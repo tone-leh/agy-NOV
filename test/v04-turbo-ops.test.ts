@@ -589,7 +589,7 @@ describe('v0.4.0 Ops 2.0 — Rule Bloat Guard, 100-Tool Budget Meter & MCP Stati
           arguments: { id: 'demo-release-readiness', variables: {} },
         });
         const rText = (rendered.structuredContent as { rendered: string }).rendered;
-        assert.ok(rText.includes('v0.4.0'), `Expected demo template default version v0.4.0, got: ${rText}`);
+        assert.ok(rText.includes('v1.0.0'), `Expected demo template default version v1.0.0, got: ${rText}`);
         assert.equal(fs.existsSync(demoDataDir), false);
       } finally {
         await demoClient.close();

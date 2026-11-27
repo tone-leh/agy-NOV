@@ -72,7 +72,7 @@ export function registerOpsModule(
           tags: ['release', 'checklist', 'demo'],
           body: '请核对 {{version}} 发布前的门禁清单：确认 UI 包体积小于 {{max_mb}} MiB，全部单元测试通过，并检查 {{module_scope}} 的默认关闭边界。',
           variables: [
-            { name: 'version', defaultValue: 'v0.4.0' },
+            { name: 'version', defaultValue: 'v1.0.0' },
             { name: 'max_mb', defaultValue: '10' },
             { name: 'module_scope', defaultValue: 'opt-in remote' },
           ],
@@ -204,7 +204,7 @@ export function registerOpsModule(
     {
       title: 'Audit Workspace Assets & Storage',
       description:
-        'Read-only inspection of workspace rules (24KB/20K bloat guard), 100-tool MCP budget meter, static MCP config health, optional .agy-nov.json team preset, cross-client pitfall & migration checks, skills/manifests, token estimates, and local agy-NOV storage usage.',
+        'Read-only inspection of workspace rules (24KB/20K bloat guard), 100-tool MCP budget meter, static security audit (prompt-injection / broad allow / risky hooks / MCP env), cross-client dedup & slimming preview, static MCP config health, optional .agy-nov.json team preset, skills/manifests, token estimates, and local agy-NOV storage usage.',
       inputSchema: {},
     },
     async () => {
@@ -215,8 +215,11 @@ export function registerOpsModule(
         const teamPresetSummary = report.teamPreset.found
           ? `${report.teamPreset.valid ? 'VALID' : 'INVALID'}${report.teamPreset.preset ? ` (preset=${report.teamPreset.preset})` : ''}, ${report.teamPreset.verifyCommands.length} verify cmd(s), ${report.teamPreset.warnings.length} warn(s), ${report.teamPreset.errors.length} error(s)`
           : 'not found (optional)';
+        const mp = report.migrationPreview;
         const lines = [
           `Workspace Audit (${report.workspaceName}, score=${report.healthScore}/100): ${report.summary.assetCount} asset(s), ~${report.summary.totalEstimatedTokens} tokens (${report.summary.totalBytes} bytes)`,
+          `Static Security Audit: score=${report.securityScore}/100, ${report.securityFindings.length} finding(s)`,
+          `Cross-Client Dedup Preview (read-only): ${mp.totalFiles} file(s), ${mp.totalBytes} bytes total, ${mp.reclaimableBytes} bytes reclaimable (~${mp.estimatedSavedTokens} tokens, ${mp.estimatedSavingsPercent}% est. savings)`,
           `Rule Bloat: [${report.ruleBloat.status.toUpperCase()}] largest=${largestKb}KB/${limitKb}KB${report.ruleBloat.largestFilePath ? ` (${report.ruleBloat.largestFilePath})` : ''}, total=~${report.ruleBloat.totalRuleTokens}/${report.ruleBloat.aggregateTokenLimit} tokens`,
           `Tool Budget (${report.toolBudget.estimatedTotalTools}/${report.toolBudget.hardLimit}): [${report.toolBudget.status.toUpperCase()}] ${report.toolBudget.usagePercent}% (agy-NOV=${report.toolBudget.agyNovTools}, external MCP=${report.toolBudget.externalServersCount} server(s) ~${report.toolBudget.estimatedExternalTools} tools)`,
           `MCP Health: ${report.mcpHealthFindings.length} finding(s)`,
@@ -226,6 +229,18 @@ export function registerOpsModule(
           ...report.assets.slice(0, 12).map(
             (a) => `- [${a.kind}] ${a.relPath}: ~${a.estimatedTokens} tokens (${a.bytes}B, ${a.lineCount}L)`,
           ),
+          ...report.securityFindings
+            .slice(0, 8)
+            .map(
+              (f) =>
+                `! [SEC ${f.severity.toUpperCase()} ${f.category}] ${f.file}: ${f.title} — ${f.summary}`,
+            ),
+          ...mp.entries
+            .slice(0, 6)
+            .map(
+              (e) =>
+                `~ [DEDUP ${e.client.toUpperCase()} ${e.action}] ${e.sourcePath} -> ${e.recommendedTarget} (${e.duplicatePercent}% dup, ${e.bytes}B)`,
+            ),
           ...report.mcpHealthFindings
             .slice(0, 8)
             .map(

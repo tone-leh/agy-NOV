@@ -68,6 +68,38 @@ interface CrossClientFindingView {
   suggestion?: string;
 }
 
+interface OpsSecurityFindingView {
+  id: string;
+  severity: 'high' | 'medium' | 'low';
+  category: 'prompt-injection' | 'broad-command-allow' | 'risky-hook' | 'mcp-unsafe-env';
+  file: string;
+  title: string;
+  summary: string;
+  remediation: string;
+}
+
+interface OpsMigrationEntryView {
+  client: 'claude' | 'cursor' | 'codex';
+  sourcePath: string;
+  bytes: number;
+  estimatedTokens: number;
+  duplicatePercent: number;
+  duplicateLines: number;
+  totalLines: number;
+  recommendedTarget: string;
+  action: 'dedupe-merge' | 'migrate-unique' | 'keep-pointer';
+}
+
+interface OpsMigrationPreviewView {
+  readOnlyPreview: true;
+  totalFiles: number;
+  totalBytes: number;
+  reclaimableBytes: number;
+  estimatedSavingsPercent: number;
+  estimatedSavedTokens?: number;
+  entries: OpsMigrationEntryView[];
+}
+
 interface OpsAudit {
   workspaceName: string;
   healthScore: number;
@@ -85,6 +117,9 @@ interface OpsAudit {
   mcpHealthFindings?: McpHealthFindingView[];
   teamPreset?: TeamPresetView;
   crossClientFindings?: CrossClientFindingView[];
+  securityScore?: number;
+  securityFindings?: OpsSecurityFindingView[];
+  migrationPreview?: OpsMigrationPreviewView;
 }
 
 function getStatusColor(status: 'ok' | 'warn' | 'critical' | 'info' | 'error'): string {
@@ -99,6 +134,28 @@ function getStatusSoftBg(status: 'ok' | 'warn' | 'critical' | 'info' | 'error'):
   if (status === 'warn') return 'var(--nov-warn-soft)';
   if (status === 'info') return 'var(--nov-accent-soft)';
   return 'var(--nov-success-soft)';
+}
+
+function mapSecuritySeverityToStatus(
+  severity: OpsSecurityFindingView['severity'],
+): 'error' | 'warn' | 'info' {
+  if (severity === 'high') return 'error';
+  if (severity === 'medium') return 'warn';
+  return 'info';
+}
+
+function mapSecurityScoreToStatus(score: number): 'ok' | 'warn' | 'critical' {
+  if (score >= 90) return 'ok';
+  if (score >= 70) return 'warn';
+  return 'critical';
+}
+
+function mapMigrationActionToStatus(
+  action: OpsMigrationEntryView['action'],
+): 'warn' | 'info' | 'ok' {
+  if (action === 'dedupe-merge') return 'warn';
+  if (action === 'migrate-unique') return 'info';
+  return 'ok';
 }
 
 interface OpsState {
@@ -605,6 +662,19 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                 {state.audit.healthScore}/100
               </div>
             </div>
+            {typeof state.audit.securityScore === 'number' && (
+              <div className="nov-p-stat">
+                <div className="nov-p-stat-label">Security Score</div>
+                <div
+                  className="nov-p-stat-val"
+                  style={{
+                    color: getStatusColor(mapSecurityScoreToStatus(state.audit.securityScore)),
+                  }}
+                >
+                  {state.audit.securityScore}/100
+                </div>
+              </div>
+            )}
             <div className="nov-p-stat">
               <div className="nov-p-stat-label">{dict.ops.auditEstTokens}</div>
               <div className="nov-p-stat-val">~{state.audit.summary.totalEstimatedTokens}</div>
@@ -620,6 +690,250 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
               </div>
             </div>
           </div>
+
+          {typeof state.audit.securityScore === 'number' &&
+            Array.isArray(state.audit.securityFindings) && (() => {
+              const secScore = state.audit.securityScore;
+              const secFindings = state.audit.securityFindings;
+              const scoreStatus = mapSecurityScoreToStatus(secScore);
+              const scoreColor = getStatusColor(scoreStatus);
+              const scoreBg = getStatusSoftBg(scoreStatus);
+              const highCount = secFindings.filter((f) => f.severity === 'high').length;
+              const medCount = secFindings.filter((f) => f.severity === 'medium').length;
+              const lowCount = secFindings.filter((f) => f.severity === 'low').length;
+              return (
+                <div className="nov-p-item" style={{ gap: '8px' }}>
+                  <div className="nov-p-row">
+                    <strong style={{ fontSize: '12.5px' }}>
+                      Static Security Audit ({secFindings.length})
+                    </strong>
+                    <div style={{ display: 'inline-flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                      <span
+                        className="nov-badge"
+                        style={{ color: scoreColor, background: scoreBg, borderColor: scoreColor }}
+                      >
+                        Score {secScore}/100
+                      </span>
+                      {highCount > 0 && (
+                        <span
+                          className="nov-badge"
+                          style={{
+                            color: 'var(--nov-danger)',
+                            background: 'var(--nov-danger-soft)',
+                            borderColor: 'var(--nov-danger)',
+                          }}
+                        >
+                          HIGH {highCount}
+                        </span>
+                      )}
+                      {medCount > 0 && (
+                        <span
+                          className="nov-badge"
+                          style={{
+                            color: 'var(--nov-warn)',
+                            background: 'var(--nov-warn-soft)',
+                            borderColor: 'var(--nov-warn)',
+                          }}
+                        >
+                          MED {medCount}
+                        </span>
+                      )}
+                      {lowCount > 0 && (
+                        <span
+                          className="nov-badge"
+                          style={{
+                            color: 'var(--nov-accent)',
+                            background: 'var(--nov-accent-soft)',
+                            borderColor: 'var(--nov-accent)',
+                          }}
+                        >
+                          LOW {lowCount}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {secFindings.length > 0 ? (
+                    <div className="nov-p-list">
+                      {secFindings.map((f) => {
+                        const sevStatus = mapSecuritySeverityToStatus(f.severity);
+                        const color = getStatusColor(sevStatus);
+                        const bg = getStatusSoftBg(sevStatus);
+                        return (
+                          <div key={f.id} className="nov-p-item" style={{ gap: '4px' }}>
+                            <div className="nov-p-row" style={{ fontSize: '12px' }}>
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  flexWrap: 'wrap',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                }}
+                              >
+                                <span
+                                  className="nov-badge"
+                                  style={{ color, background: bg, borderColor: color }}
+                                >
+                                  {f.severity.toUpperCase()}
+                                </span>
+                                <span className="nov-badge is-accent">{f.category}</span>
+                                <code>{f.file}</code>
+                              </span>
+                            </div>
+                            <strong style={{ fontSize: '12px' }}>{f.title}</strong>
+                            <span style={{ fontSize: '12px', color: 'var(--nov-text-1)' }}>
+                              {f.summary}
+                            </span>
+                            <span style={{ fontSize: '11.5px', color: 'var(--nov-text-2)' }}>
+                              Remediation: {f.remediation}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: '12px', color: 'var(--nov-success)' }}>
+                      Zero static security risks detected across rules, skills, hooks, and MCP configs.
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
+
+          {state.audit.migrationPreview && (() => {
+            const mp = state.audit.migrationPreview;
+            const savedTokens =
+              typeof mp.estimatedSavedTokens === 'number'
+                ? mp.estimatedSavedTokens
+                : Math.ceil(mp.reclaimableBytes / 4);
+            const totalTokens = Math.ceil(mp.totalBytes / 4);
+            return (
+              <div className="nov-p-item" style={{ gap: '8px' }}>
+                <div className="nov-p-row">
+                  <strong style={{ fontSize: '12.5px' }}>
+                    Cross-Client Dedup Preview ({mp.totalFiles})
+                  </strong>
+                  <div style={{ display: 'inline-flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                    <span className="nov-badge">Read-Only Preview</span>
+                    {mp.reclaimableBytes > 0 && (
+                      <span
+                        className="nov-badge"
+                        style={{
+                          color: 'var(--nov-success)',
+                          background: 'var(--nov-success-soft)',
+                          borderColor: 'var(--nov-success)',
+                        }}
+                      >
+                        Save {(mp.reclaimableBytes / 1024).toFixed(1)} KB (~{savedTokens} tok ·{' '}
+                        {mp.estimatedSavingsPercent}%)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                    fontSize: '11.5px',
+                    color: 'var(--nov-text-1)',
+                  }}
+                >
+                  <span className="nov-badge">Files: {mp.totalFiles}</span>
+                  <span className="nov-badge">
+                    Total: {(mp.totalBytes / 1024).toFixed(1)} KB (~{totalTokens} tok)
+                  </span>
+                  <span className="nov-badge is-accent">
+                    Reclaimable: {(mp.reclaimableBytes / 1024).toFixed(1)} KB (~{savedTokens} tok ·{' '}
+                    {mp.estimatedSavingsPercent}%)
+                  </span>
+                </div>
+
+                {mp.entries.length > 0 ? (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table
+                      style={{
+                        width: '100%',
+                        borderCollapse: 'collapse',
+                        fontSize: '11.5px',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--nov-border)', color: 'var(--nov-text-2)' }}>
+                          <th style={{ padding: '6px 8px' }}>Client</th>
+                          <th style={{ padding: '6px 8px' }}>Source</th>
+                          <th style={{ padding: '6px 8px' }}>Size / Tok</th>
+                          <th style={{ padding: '6px 8px' }}>Overlap</th>
+                          <th style={{ padding: '6px 8px' }}>Target</th>
+                          <th style={{ padding: '6px 8px' }}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {mp.entries.map((entry) => {
+                          const actionStatus = mapMigrationActionToStatus(entry.action);
+                          const actionColor = getStatusColor(actionStatus);
+                          const actionBg = getStatusSoftBg(actionStatus);
+                          return (
+                            <tr
+                              key={`${entry.client}-${entry.sourcePath}`}
+                              style={{ borderBottom: '1px solid var(--nov-border)' }}
+                            >
+                              <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>
+                                <span className="nov-badge is-accent">{entry.client}</span>
+                              </td>
+                              <td style={{ padding: '6px 8px' }}>
+                                <code>{entry.sourcePath}</code>
+                              </td>
+                              <td
+                                style={{
+                                  padding: '6px 8px',
+                                  whiteSpace: 'nowrap',
+                                  fontFamily: 'var(--nov-font-mono)',
+                                }}
+                              >
+                                {(entry.bytes / 1024).toFixed(1)} KB · ~{entry.estimatedTokens}
+                              </td>
+                              <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span style={{ fontFamily: 'var(--nov-font-mono)' }}>
+                                    {entry.duplicatePercent}%
+                                  </span>
+                                  <span style={{ color: 'var(--nov-text-2)', fontSize: '11px' }}>
+                                    ({entry.duplicateLines}/{entry.totalLines}L)
+                                  </span>
+                                </div>
+                              </td>
+                              <td style={{ padding: '6px 8px' }}>
+                                <code>{entry.recommendedTarget}</code>
+                              </td>
+                              <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>
+                                <span
+                                  className="nov-badge"
+                                  style={{
+                                    color: actionColor,
+                                    background: actionBg,
+                                    borderColor: actionColor,
+                                  }}
+                                >
+                                  {entry.action}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <span style={{ fontSize: '12px', color: 'var(--nov-text-2)' }}>
+                    No cross-client config or rule files (.claude/, .cursor/rules/, .codex/) detected.
+                  </span>
+                )}
+              </div>
+            );
+          })()}
 
           {Array.isArray(state.audit.mcpHealthFindings) && (
             <>

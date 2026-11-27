@@ -184,6 +184,12 @@
   border-color: color-mix(in srgb, var(--mem-purple) 40%, transparent);
 }
 
+.mod-mem .mem-badge.is-danger {
+  color: var(--nov-danger);
+  background: var(--nov-danger-soft);
+  border-color: color-mix(in srgb, var(--nov-danger) 45%, transparent);
+}
+
 .mod-mem .mem-btn {
   appearance: none;
   background: var(--nov-bg-1);
@@ -212,6 +218,126 @@
   background: var(--nov-accent-soft);
   border-color: var(--nov-accent);
   color: var(--nov-accent);
+}
+
+.mod-mem .mem-btn.is-danger {
+  background: var(--nov-danger-soft);
+  border-color: var(--nov-danger);
+  color: var(--nov-danger);
+}
+
+.mod-mem .mem-btn.is-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--nov-danger) 24%, transparent);
+  border-color: var(--nov-danger);
+}
+
+.mod-mem .mem-hygiene-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  background: var(--nov-bg-1);
+  border: 1px solid var(--nov-border);
+  border-radius: 9px;
+}
+
+.mod-mem .mem-hygiene-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mod-mem .mem-hygiene-pill {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--nov-border);
+  background: var(--nov-bg-0);
+  color: var(--nov-text-1);
+  font-family: var(--nov-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.mod-mem .mem-hygiene-pill:hover {
+  border-color: var(--nov-accent);
+  color: var(--nov-text-0);
+}
+
+.mod-mem .mem-hygiene-pill.is-active {
+  background: var(--nov-accent-soft);
+  border-color: var(--nov-accent);
+  color: var(--nov-accent);
+}
+
+.mod-mem .mem-hygiene-pill.is-good.is-active {
+  background: var(--nov-success-soft);
+  border-color: var(--nov-success);
+  color: var(--nov-success);
+}
+
+.mod-mem .mem-hygiene-pill.is-warn.is-active {
+  background: var(--nov-warn-soft);
+  border-color: var(--nov-warn);
+  color: var(--nov-warn);
+}
+
+.mod-mem .mem-hygiene-pill.is-danger.is-active {
+  background: var(--nov-danger-soft);
+  border-color: var(--nov-danger);
+  color: var(--nov-danger);
+}
+
+.mod-mem .mem-batch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 7px 10px;
+  background: var(--nov-bg-1);
+  border: 1px solid var(--nov-border);
+  border-radius: 9px;
+}
+
+.mod-mem .mem-batch-bar.has-selection {
+  border-color: color-mix(in srgb, var(--nov-accent) 60%, transparent);
+  background: color-mix(in srgb, var(--nov-accent-soft) 35%, var(--nov-bg-1));
+}
+
+.mod-mem .mem-item-checkbox {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--nov-accent);
+  flex-shrink: 0;
+}
+
+.mod-mem .mem-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.mod-mem .mem-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mod-mem .mem-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--nov-text-2);
 }
 
 .mod-mem .mem-input,
@@ -261,6 +387,15 @@
 
 .mod-mem .mem-item-card.is-drifted {
   border-color: color-mix(in srgb, var(--nov-warn) 60%, transparent);
+}
+
+.mod-mem .mem-item-card.is-stale-ttl {
+  border-color: color-mix(in srgb, var(--nov-danger) 55%, transparent);
+}
+
+.mod-mem .mem-item-card.is-selected {
+  border-color: var(--nov-accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--nov-accent) 45%, transparent);
 }
 
 .mod-mem .mem-content {

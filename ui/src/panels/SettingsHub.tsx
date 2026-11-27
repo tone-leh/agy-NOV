@@ -17,6 +17,7 @@ import {
 import type {
   NovBridge,
   NovConfigSnapshot,
+  NovFeedSummary,
   NovHubStatePayload,
   SanitizedConfigExportPayload,
 } from '../bridge.js';
@@ -279,6 +280,278 @@ const SETTINGS_V08_LABELS: Record<ResolvedUiLocale, SettingsV08LocaleLabels> = {
   },
 };
 
+export type IdleSlotReasonKey =
+  | 'remoteNotRunning'
+  | 'toolboxOnDemand'
+  | 'specIdle'
+  | 'verifyIdle'
+  | 'worktreeOnDemand'
+  | 'memEmpty'
+  | 'turboIdle'
+  | 'radarIdle';
+
+export interface IdleSlotCandidate {
+  moduleId: ModuleId;
+  toolCount: number;
+  reasonKey: IdleSlotReasonKey;
+}
+
+interface SettingsV10IdleLocaleLabels {
+  title: string;
+  subtitle: string;
+  slotsUsageBadge: string;
+  reclaimBadge: string;
+  projectedBadge: string;
+  allLean: string;
+  disableBtn: string;
+  reasons: Record<IdleSlotReasonKey, string>;
+}
+
+const SETTINGS_V10_IDLE_LABELS: Record<ResolvedUiLocale, SettingsV10IdleLocaleLabels> = {
+  en: {
+    title: 'Tool-Slot Idle Advisor',
+    subtitle:
+      'Read-only audit of enabled optional modules against the 100-tool MCP slot budget. Disable idle modules to reclaim context slots immediately.',
+    slotsUsageBadge: 'Used: {used} / {limit}',
+    reclaimBadge: 'Reclaimable: -{n}t',
+    projectedBadge: 'After reclaim: {next} / {limit}',
+    allLean: 'Budget is lean — no idle optional modules detected.',
+    disableBtn: 'Disable',
+    reasons: {
+      remoteNotRunning: 'Enabled while local Remote gateway is stopped',
+      toolboxOnDemand: 'On-demand toolbox module enabled',
+      specIdle: 'No active Spec or tasks tracked',
+      verifyIdle: 'No verification runs recorded yet',
+      worktreeOnDemand: 'Parallel Git worktree tools enabled on standby',
+      memEmpty: '0 memories recorded in Memory Graph',
+      turboIdle: 'No output compression runs recorded yet',
+      radarIdle: '0 active or unread sessions tracked',
+    },
+  },
+  'zh-CN': {
+    title: '工具槽位闲置与预算体检',
+    subtitle:
+      '基于当前开启模块与实时摘要的只读体检，对照 100 工具预算上限估算可回收槽位，可一键关闭闲置可选模块。',
+    slotsUsageBadge: '已用槽位：{used} / {limit}',
+    reclaimBadge: '可回收：-{n}t',
+    projectedBadge: '回收后：{next} / {limit}',
+    allLean: '当前工具预算精简，未检测到闲置可选模块。',
+    disableBtn: '关闭',
+    reasons: {
+      remoteNotRunning: '已启用，本地 Remote 网关当前未运行',
+      toolboxOnDemand: '按需工具箱模块已开启',
+      specIdle: '当前无活跃 Spec 或任务',
+      verifyIdle: '暂无验证门禁运行记录',
+      worktreeOnDemand: '并行 Worktree 工具处于待命开启状态',
+      memEmpty: '记忆图谱当前为 0 条记录',
+      turboIdle: '尚未产生输出压缩记录',
+      radarIdle: '当前 0 活跃或未读会话',
+    },
+  },
+  'zh-TW': {
+    title: '工具槽位閒置與預算體檢',
+    subtitle:
+      '依目前啟用模組與即時摘要進行唯讀體檢，對照 100 工具預算上限估算可回收槽位，可一鍵關閉閒置可選模組。',
+    slotsUsageBadge: '已用槽位：{used} / {limit}',
+    reclaimBadge: '可回收：-{n}t',
+    projectedBadge: '回收後：{next} / {limit}',
+    allLean: '目前工具預算精簡，未偵測到閒置可選模組。',
+    disableBtn: '關閉',
+    reasons: {
+      remoteNotRunning: '已啟用，本機 Remote 閘道目前未執行',
+      toolboxOnDemand: '隨需工具箱模組已開啟',
+      specIdle: '目前無進行中 Spec 或任務',
+      verifyIdle: '尚無驗證門禁執行紀錄',
+      worktreeOnDemand: '平行 Worktree 工具處於待命開啟狀態',
+      memEmpty: '記憶圖譜目前為 0 筆紀錄',
+      turboIdle: '尚未產生輸出壓縮紀錄',
+      radarIdle: '目前 0 個活躍或未讀工作階段',
+    },
+  },
+  ja: {
+    title: 'ツール枠アイドル診断',
+    subtitle:
+      '有効な任意モジュールと稼働サマリーを読み取り専用で分析し、100 ツール上限に対する回収可能枠を算出します。',
+    slotsUsageBadge: '使用中：{used} / {limit}',
+    reclaimBadge: '回収可能：-{n}t',
+    projectedBadge: '回収後：{next} / {limit}',
+    allLean: 'ツール予算は最適化済みです（アイドル状態の任意モジュールなし）。',
+    disableBtn: '無効化',
+    reasons: {
+      remoteNotRunning: '有効ですがローカル Remote ゲートウェイは停止中です',
+      toolboxOnDemand: 'オンデマンドツールボックスが有効です',
+      specIdle: 'アクティブな Spec またはタスクがありません',
+      verifyIdle: '検証ゲートの実行履歴がまだありません',
+      worktreeOnDemand: '並列 Worktree ツールが待機状態で有効です',
+      memEmpty: 'Memory Graph の記憶件数が 0 件です',
+      turboIdle: '出力圧縮の実績がまだありません',
+      radarIdle: 'アクティブ／未読セッションが 0 件です',
+    },
+  },
+  ko: {
+    title: '도구 슬롯 유휴 진단',
+    subtitle:
+      '활성화된 선택 모듈과 실시간 요약을 읽기 전용으로 점검해 100개 도구 예산 대비 회수 가능한 슬롯을 계산합니다.',
+    slotsUsageBadge: '사용 중: {used} / {limit}',
+    reclaimBadge: '회수 가능: -{n}t',
+    projectedBadge: '회수 후: {next} / {limit}',
+    allLean: '도구 예산이 간결합니다. 유휴 선택 모듈이 없습니다.',
+    disableBtn: '끄기',
+    reasons: {
+      remoteNotRunning: '활성화되었으나 로컬 Remote 게이트웨이가 중지됨',
+      toolboxOnDemand: '온디맨드 도구함 모듈이 켜져 있음',
+      specIdle: '활성 Spec 또는 작업 없음',
+      verifyIdle: '검증 게이트 실행 기록 없음',
+      worktreeOnDemand: '병렬 Worktree 도구가 대기 상태로 켜져 있음',
+      memEmpty: 'Memory Graph 저장 기억 0건',
+      turboIdle: '출력 압축 기록 없음',
+      radarIdle: '활성 또는 읽지 않은 세션 0건',
+    },
+  },
+  es: {
+    title: 'Asesor de ranuras inactivas',
+    subtitle:
+      'Auditoría de solo lectura de módulos opcionales activos frente al presupuesto de 100 herramientas MCP para recuperar ranuras al instante.',
+    slotsUsageBadge: 'En uso: {used} / {limit}',
+    reclaimBadge: 'Recuperable: -{n}t',
+    projectedBadge: 'Tras recuperar: {next} / {limit}',
+    allLean: 'Presupuesto optimizado: no se detectaron módulos opcionales inactivos.',
+    disableBtn: 'Desactivar',
+    reasons: {
+      remoteNotRunning: 'Activado con la pasarela local Remote detenida',
+      toolboxOnDemand: 'Módulo de caja de herramientas bajo demanda activo',
+      specIdle: 'Sin Spec ni tareas activas registradas',
+      verifyIdle: 'Aún sin ejecuciones de verificación registradas',
+      worktreeOnDemand: 'Herramientas paralelas de Worktree en espera',
+      memEmpty: '0 memorias registradas en Memory Graph',
+      turboIdle: 'Aún sin compresiones de salida registradas',
+      radarIdle: '0 sesiones activas o sin leer',
+    },
+  },
+  fr: {
+    title: 'Conseiller de créneaux inactifs',
+    subtitle:
+      'Audit en lecture seule des modules optionnels activés face au budget de 100 outils MCP pour libérer immédiatement des créneaux.',
+    slotsUsageBadge: 'Utilisés : {used} / {limit}',
+    reclaimBadge: 'Récupérable : -{n}t',
+    projectedBadge: 'Après libération : {next} / {limit}',
+    allLean: 'Budget sobre : aucun module optionnel inactif détecté.',
+    disableBtn: 'Désactiver',
+    reasons: {
+      remoteNotRunning: 'Activé alors que la passerelle locale Remote est arrêtée',
+      toolboxOnDemand: 'Module boîte à outils à la demande activé',
+      specIdle: 'Aucun Spec ou tâche actif suivi',
+      verifyIdle: 'Aucune exécution de vérification enregistrée',
+      worktreeOnDemand: 'Outils Worktree parallèles activés en veille',
+      memEmpty: '0 mémoire enregistrée dans Memory Graph',
+      turboIdle: 'Aucune compression de sortie enregistrée',
+      radarIdle: '0 session active ou non lue',
+    },
+  },
+  de: {
+    title: 'Werkzeug-Slot-Leerlaufberater',
+    subtitle:
+      'Nur-Lese-Prüfung aktivierter optionaler Module gegen das 100-Tool-MCP-Budget zur sofortigen Freigabe ungenutzter Slots.',
+    slotsUsageBadge: 'Belegt: {used} / {limit}',
+    reclaimBadge: 'Freigebbar: -{n}t',
+    projectedBadge: 'Nach Freigabe: {next} / {limit}',
+    allLean: 'Budget ist schlank – keine inaktiven optionalen Module erkannt.',
+    disableBtn: 'Deaktivieren',
+    reasons: {
+      remoteNotRunning: 'Aktiviert, während das lokale Remote-Gateway gestoppt ist',
+      toolboxOnDemand: 'Bedarfs-Toolbox-Modul ist aktiviert',
+      specIdle: 'Kein aktiver Spec oder aktive Aufgaben erfasst',
+      verifyIdle: 'Noch keine Verifikationsläufe aufgezeichnet',
+      worktreeOnDemand: 'Parallele Worktree-Tools im Bereitschaftsmodus aktiv',
+      memEmpty: '0 Einträge im Memory Graph gespeichert',
+      turboIdle: 'Noch keine Ausgabekomprimierungen erfasst',
+      radarIdle: '0 aktive oder ungelesene Sitzungen erfasst',
+    },
+  },
+};
+
+export function computeIdleSlotCandidates(
+  modules: Record<ModuleId, boolean>,
+  feedSummary: NovFeedSummary | undefined,
+  remoteRunning: boolean,
+): IdleSlotCandidate[] {
+  const candidates: IdleSlotCandidate[] = [];
+  const pushIfEnabled = (modId: ModuleId, reasonKey: IdleSlotReasonKey): void => {
+    if (!modules[modId]) return;
+    candidates.push({
+      moduleId: modId,
+      toolCount: MODULE_CATALOG[modId].modelToolNames.length,
+      reasonKey,
+    });
+  };
+
+  if (modules.remote && !remoteRunning && feedSummary?.remote?.running !== true) {
+    pushIfEnabled('remote', 'remoteNotRunning');
+  }
+  if (modules.studio) {
+    pushIfEnabled('studio', 'toolboxOnDemand');
+  }
+  if (modules.canvas) {
+    pushIfEnabled('canvas', 'toolboxOnDemand');
+  }
+  if (modules.spec) {
+    const spec = feedSummary?.spec;
+    const hasActiveSpec = Boolean(
+      spec?.activeSpecId || spec?.title || spec?.status || (spec?.totalTasks ?? 0) > 0,
+    );
+    if (!hasActiveSpec) {
+      pushIfEnabled('spec', 'specIdle');
+    }
+  }
+  if (modules.verify) {
+    const verify = feedSummary?.verify;
+    const hasVerifyHistory = Boolean(
+      (verify?.lastStatus && verify.lastStatus !== 'idle') ||
+        (verify?.totalRuns ?? 0) > 0 ||
+        (verify?.passedRuns ?? 0) > 0 ||
+        (verify?.failedRuns ?? 0) > 0 ||
+        (verify?.blockedStops ?? 0) > 0 ||
+        (verify?.dirtyFilesCount ?? 0) > 0,
+    );
+    if (!hasVerifyHistory) {
+      pushIfEnabled('verify', 'verifyIdle');
+    }
+  }
+  if (modules.worktree) {
+    pushIfEnabled('worktree', 'worktreeOnDemand');
+  }
+  if (modules.mem) {
+    const memCount = feedSummary?.mem?.totalMemories ?? feedSummary?.mem?.total ?? 0;
+    if (memCount <= 0) {
+      pushIfEnabled('mem', 'memEmpty');
+    }
+  }
+  if (modules.ops) {
+    pushIfEnabled('ops', 'toolboxOnDemand');
+  }
+  if (modules.turbo) {
+    const saved = feedSummary?.turbo?.totalSavedTokens ?? feedSummary?.turbo?.savedTokens ?? 0;
+    const compactions = feedSummary?.turbo?.compactionCount ?? 0;
+    if (saved <= 0 && compactions <= 0) {
+      pushIfEnabled('turbo', 'turboIdle');
+    }
+  }
+  if (modules.radar) {
+    const radar = feedSummary?.radar;
+    const activeRadar =
+      (radar?.runningCount ?? radar?.running ?? 0) +
+      (radar?.awaitingCount ?? radar?.awaitingApproval ?? radar?.awaiting_approval ?? 0) +
+      (radar?.stalledCount ?? radar?.stalled ?? 0) +
+      (radar?.unreadCount ?? radar?.unread ?? 0) +
+      (radar?.total ?? 0);
+    if (activeRadar <= 0) {
+      pushIfEnabled('radar', 'radarIdle');
+    }
+  }
+
+  return candidates.sort((a, b) => b.toolCount - a.toolCount);
+}
+
 function getBudgetTone(exposed: number, limit: number): 'is-safe' | 'is-warn' | 'is-danger' {
   const ratio = limit > 0 ? (exposed / limit) * 100 : 0;
   if (ratio >= 85) return 'is-danger';
@@ -412,6 +685,7 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
   const { locale, dict, prefLocale, t } = useNovI18n();
   const sh = dict.settingsHub;
   const v08 = SETTINGS_V08_LABELS[locale] ?? SETTINGS_V08_LABELS.en;
+  const v10 = SETTINGS_V10_IDLE_LABELS[locale] ?? SETTINGS_V10_IDLE_LABELS.en;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [hubState, setHubState] = useState<NovHubStatePayload | null>(null);
@@ -741,12 +1015,14 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
       sh.importBtn,
       sh.resetBtn,
       sh.dualStarSection,
-      'json export import reset team feed-snapshot.json agy-nov.json backup restore',
+      v10.title,
+      v10.subtitle,
+      'json export import reset team feed-snapshot.json agy-nov.json backup restore idle slot budget reclaim',
     ]
       .join(' ')
       .toLowerCase();
     return advHaystack.includes(normalizedQuery);
-  }, [normalizedQuery, sh]);
+  }, [normalizedQuery, sh, v10.subtitle, v10.title]);
 
   const totalVisibleModules = filteredDomains.reduce((sum, g) => sum + g.modules.length, 0);
   const noSearchHits = Boolean(normalizedQuery) && totalVisibleModules === 0 && !advancedMatchesQuery;
@@ -756,6 +1032,21 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
   const budgetPercent = Math.min(100, Math.round((exposedTools / Math.max(1, budgetLimit)) * 100));
   const budgetTone = getBudgetTone(exposedTools, budgetLimit);
   const currentStartupView: NovStartupView = snapshot.config.startupView ?? 'hub';
+
+  const idleCandidates = useMemo(
+    () =>
+      computeIdleSlotCandidates(
+        snapshot.config.modules,
+        hubState?.feed?.summary,
+        Boolean(snapshot.remoteRunning),
+      ),
+    [snapshot.config.modules, hubState?.feed?.summary, snapshot.remoteRunning],
+  );
+  const reclaimableTools = useMemo(
+    () => idleCandidates.reduce((sum, item) => sum + item.toolCount, 0),
+    [idleCandidates],
+  );
+  const projectedTools = Math.max(0, exposedTools - reclaimableTools);
 
   const feedSummary = hubState?.feed?.summary ?? {};
   const feedPath =
@@ -1577,6 +1868,63 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
                     <li key={i}>{w}</li>
                   ))}
                 </ul>
+              )}
+            </div>
+
+            {/* Tool-Slot Idle Advisor (Read-only budget & idle module audit) */}
+            <div className="nov-p-item" aria-label={v10.title}>
+              <div className="nov-p-row">
+                <strong>{v10.title}</strong>
+                <div className="nov-card-tags">
+                  <span
+                    className={`nov-badge ${budgetTone === 'is-safe' ? 'is-offline' : budgetTone === 'is-warn' ? 'is-network' : 'is-danger'}`}
+                  >
+                    {t(v10.slotsUsageBadge, { used: exposedTools, limit: budgetLimit })}
+                  </span>
+                  {reclaimableTools > 0 && (
+                    <>
+                      <span className="nov-badge is-accent">
+                        {t(v10.reclaimBadge, { n: reclaimableTools })}
+                      </span>
+                      <span className="nov-badge">
+                        {t(v10.projectedBadge, { next: projectedTools, limit: budgetLimit })}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="nov-muted">{v10.subtitle}</div>
+              {idleCandidates.length === 0 ? (
+                <div className="nov-card-tags">
+                  <span className="nov-badge is-offline">{v10.allLean}</span>
+                </div>
+              ) : (
+                <div className="nov-p-list">
+                  {idleCandidates.map((item) => {
+                    const modText = dict.modules[item.moduleId];
+                    const isItemBusy = busyKey === item.moduleId || busyKey === 'preset';
+                    return (
+                      <div key={item.moduleId} className="nov-p-row">
+                        <div>
+                          <div className="nov-card-tags">
+                            <strong>{modText.name}</strong>
+                            <span className="nov-badge nov-mono">{item.toolCount}t</span>
+                          </div>
+                          <div className="nov-muted">{v10.reasons[item.reasonKey]}</div>
+                        </div>
+                        <button
+                          type="button"
+                          className="nov-p-btn"
+                          aria-label={`${v10.disableBtn} ${modText.name}`}
+                          disabled={isItemBusy || busyKey !== null}
+                          onClick={() => void onToggleModule(item.moduleId, false)}
+                        >
+                          {v10.disableBtn}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
 

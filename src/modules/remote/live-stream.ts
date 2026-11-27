@@ -35,6 +35,19 @@ const FILE_ARG_KEYS = [
 const EXTRA_SENSITIVE_BASENAME_RE =
   /(?:^\.env(?:\.|$)|\.(?:pem|key|p12|pfx|jks|keystore|kdbx|crt|der)$|^id_(?:rsa|ed25519|ecdsa|dsa)(?:\.pub)?$|^(?:authorized_keys|known_hosts|\.npmrc|\.netrc|\.pypirc|kubeconfig)$|(?:secret|credential|password|passwd|private[_-]?key|token))/i;
 
+function findTagCloseBeforeNextOpen(
+  input: string,
+  from: number,
+): { gt: number; nextLt: number } {
+  const n = input.length;
+  for (let k = from; k < n; k += 1) {
+    const code = input.charCodeAt(k);
+    if (code === 0x3e /* '>' */) return { gt: k, nextLt: -1 };
+    if (code === 0x3c /* '<' */) return { gt: -1, nextLt: k };
+  }
+  return { gt: -1, nextLt: n };
+}
+
 function stripRemotePrivateBlocksLinear(input: string): string {
   if (!input || !input.includes('<')) return input;
   const lower = input.toLowerCase();
@@ -50,12 +63,13 @@ function stripRemotePrivateBlocksLinear(input: string): string {
     const lt = input.indexOf('<', i);
     if (lt < 0) {
       if (depth === 0) out += input.slice(cursor);
+      cursor = n;
       break;
     }
     if (lower.startsWith('<private', lt)) {
       const after = lt + 8;
       if (after < n && (input[after] === '>' || /\s/.test(input[after]))) {
-        const gt = input.indexOf('>', after);
+        const { gt, nextLt } = findTagCloseBeforeNextOpen(input, after);
         if (gt >= 0) {
           if (depth === 0) {
             out += input.slice(cursor, lt);
@@ -66,20 +80,30 @@ function stripRemotePrivateBlocksLinear(input: string): string {
           cursor = i;
           continue;
         }
+        // Unclosed `<private ...`: abandon immediately at next `<` (or end) to preserve strict O(n)
+        i = nextLt;
+        continue;
       }
     } else if (lower.startsWith('</private', lt)) {
       const after = lt + 9;
       if (after < n && (input[after] === '>' || /\s/.test(input[after]))) {
-        const gt = input.indexOf('>', after);
+        const { gt, nextLt } = findTagCloseBeforeNextOpen(input, after);
         if (gt >= 0) {
           if (depth > 0) depth -= 1;
           i = gt + 1;
           if (depth === 0) cursor = i;
           continue;
         }
+        // Unclosed `</private ...`: abandon immediately at next `<` (or end) to preserve strict O(n)
+        i = nextLt;
+        continue;
       }
     }
     i = lt + 1;
+  }
+
+  if (depth === 0 && cursor < n) {
+    out += input.slice(cursor);
   }
   return out;
 }

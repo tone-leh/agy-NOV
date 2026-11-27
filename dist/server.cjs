@@ -38484,7 +38484,7 @@ function resetNovConfig(rootDataDir) {
 var import_node_crypto = __toESM(require("node:crypto"), 1);
 var import_node_fs3 = __toESM(require("node:fs"), 1);
 var import_node_path3 = __toESM(require("node:path"), 1);
-var FEED_SNAPSHOT_VERSION = "0.9.0";
+var FEED_SNAPSHOT_VERSION = "1.0.0";
 var FEED_SNAPSHOT_FILENAME = "feed-snapshot.json";
 var MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
 var MAX_FEED_ALERTS = 6;
@@ -42984,7 +42984,11 @@ var import_node_path12 = __toESM(require("node:path"), 1);
 var import_node_url2 = require("node:url");
 
 // src/modules/mem/demo-memories.ts
-function buildDemoMemories() {
+var MS_PER_DAY = 24 * 60 * 60 * 1e3;
+function isoOffset(nowMs, offsetDays) {
+  return new Date(nowMs + offsetDays * MS_PER_DAY).toISOString();
+}
+function buildDemoMemories(nowMs = Date.now()) {
   return [
     {
       id: "mem_demo_pkce",
@@ -42998,10 +43002,16 @@ function buildDemoMemories() {
         { filePath: "/workspace/demo-app/src/auth/singleflight-lock.ts", basename: "singleflight-lock.ts", uri: "file:///workspace/demo-app/src/auth/singleflight-lock.ts", symbol: "SingleFlightMap", driftStatus: "fresh" }
       ],
       pinned: true,
-      createdAt: "2026-11-24T09:10:00Z",
-      updatedAt: "2026-11-26T06:40:00Z",
+      createdAt: isoOffset(nowMs, -12),
+      updatedAt: isoOffset(nowMs, -1),
+      verifiedAt: isoOffset(nowMs, -1),
       recallCount: 7,
-      drifted: false
+      drifted: false,
+      confidence: "verified",
+      source: "manual",
+      ttlDays: null,
+      expiresAt: null,
+      hygieneStatus: "healthy"
     },
     {
       id: "mem_demo_redis",
@@ -43014,10 +43024,15 @@ function buildDemoMemories() {
         { filePath: "/workspace/demo-app/src/checkout/pricing-cache.ts", basename: "pricing-cache.ts", uri: "file:///workspace/demo-app/src/checkout/pricing-cache.ts", symbol: "fetchCartPrices", driftStatus: "drifted" }
       ],
       pinned: true,
-      createdAt: "2026-11-22T14:20:00Z",
-      updatedAt: "2026-11-25T15:02:00Z",
+      createdAt: isoOffset(nowMs, -15),
+      updatedAt: isoOffset(nowMs, -4),
       recallCount: 5,
-      drifted: true
+      drifted: true,
+      confidence: "normal",
+      source: "manual",
+      ttlDays: null,
+      expiresAt: null,
+      hygieneStatus: "drifted"
     },
     {
       id: "mem_demo_stripe",
@@ -43030,10 +43045,16 @@ function buildDemoMemories() {
         { filePath: "/workspace/demo-app/src/billing/webhook-handler.ts", basename: "webhook-handler.ts", uri: "file:///workspace/demo-app/src/billing/webhook-handler.ts", driftStatus: "fresh" }
       ],
       pinned: false,
-      createdAt: "2026-11-21T11:00:00Z",
-      updatedAt: "2026-11-24T17:12:00Z",
+      createdAt: isoOffset(nowMs, -10),
+      updatedAt: isoOffset(nowMs, -2),
+      verifiedAt: isoOffset(nowMs, -2),
       recallCount: 3,
-      drifted: false
+      drifted: false,
+      confidence: "verified",
+      source: "spec_archive",
+      ttlDays: 90,
+      expiresAt: isoOffset(nowMs, 88),
+      hygieneStatus: "healthy"
     },
     {
       id: "mem_demo_style",
@@ -43046,10 +43067,16 @@ function buildDemoMemories() {
         { filePath: "/workspace/demo-app/package.json", basename: "package.json", uri: "file:///workspace/demo-app/package.json", driftStatus: "fresh" }
       ],
       pinned: true,
-      createdAt: "2026-11-20T08:00:00Z",
-      updatedAt: "2026-11-26T05:10:00Z",
+      createdAt: isoOffset(nowMs, -20),
+      updatedAt: isoOffset(nowMs, -1),
+      verifiedAt: isoOffset(nowMs, -1),
       recallCount: 9,
-      drifted: false
+      drifted: false,
+      confidence: "verified",
+      source: "manual",
+      ttlDays: null,
+      expiresAt: null,
+      hygieneStatus: "healthy"
     },
     {
       id: "mem_demo_pref",
@@ -43059,10 +43086,59 @@ function buildDemoMemories() {
       tags: ["workflow", "style"],
       anchors: [],
       pinned: false,
-      createdAt: "2026-11-18T10:30:00Z",
-      updatedAt: "2026-11-26T04:00:00Z",
+      createdAt: isoOffset(nowMs, -28),
+      updatedAt: isoOffset(nowMs, -28),
       recallCount: 12,
-      drifted: false
+      drifted: false,
+      confidence: "normal",
+      source: "manual",
+      ttlDays: 30,
+      expiresAt: isoOffset(nowMs, 2),
+      hygieneStatus: "needs_review"
+    },
+    {
+      id: "mem_demo_auto_retry",
+      kind: "decision",
+      title: "Session recap: Tune webhook retry jitter cap to 25%",
+      content: "Auto-captured from conversation conv-8841. Modified 1 file(s): retry-policy.ts. Candidate tuning parameter pending production verification.",
+      tags: ["auto-capture", "retry"],
+      workspacePath: "/workspace/demo-app",
+      sourceConversationId: "conv-8841-demo",
+      anchors: [
+        { filePath: "/workspace/demo-app/src/queue/retry-policy.ts", basename: "retry-policy.ts", uri: "file:///workspace/demo-app/src/queue/retry-policy.ts", driftStatus: "fresh" }
+      ],
+      pinned: false,
+      createdAt: isoOffset(nowMs, -3),
+      updatedAt: isoOffset(nowMs, -3),
+      recallCount: 1,
+      drifted: false,
+      confidence: "tentative",
+      source: "auto_capture",
+      ttlDays: 14,
+      expiresAt: isoOffset(nowMs, 11),
+      hygieneStatus: "needs_review"
+    },
+    {
+      id: "mem_demo_stale_spike",
+      kind: "pitfall",
+      title: "Session recap: Temporary debug flag for staging cache probe",
+      content: "Auto-captured from conversation conv-7012. Temporary workaround for staging cache probe that expired and should be pruned or refreshed.",
+      tags: ["auto-capture", "staging"],
+      workspacePath: "/workspace/demo-app",
+      sourceConversationId: "conv-7012-demo",
+      anchors: [
+        { filePath: "/workspace/demo-app/src/checkout/staging-probe.ts", basename: "staging-probe.ts", uri: "file:///workspace/demo-app/src/checkout/staging-probe.ts", driftStatus: "fresh" }
+      ],
+      pinned: false,
+      createdAt: isoOffset(nowMs, -22),
+      updatedAt: isoOffset(nowMs, -20),
+      recallCount: 0,
+      drifted: false,
+      confidence: "tentative",
+      source: "auto_capture",
+      ttlDays: 14,
+      expiresAt: isoOffset(nowMs, -6),
+      hygieneStatus: "stale_ttl"
     }
   ];
 }
@@ -43072,6 +43148,11 @@ var MAX_ANCHOR_FILE_BYTES = 2 * 1024 * 1024;
 var MAX_SESSION_START_CHARS = 1200;
 var PRIVATE_CONTENT_PLACEHOLDER = "[PRIVATE_CONTENT_STRIPPED]";
 var PRIVATE_TITLE_PLACEHOLDER = "[PRIVATE_TITLE_STRIPPED]";
+var MIN_TTL_DAYS = 1;
+var MAX_TTL_DAYS = 365;
+var DEFAULT_REFRESH_TTL_DAYS = 30;
+var NEEDS_REVIEW_TTL_WINDOW_DAYS = 3;
+var MS_PER_DAY2 = 24 * 60 * 60 * 1e3;
 var PRIVATE_OPEN_PREFIX = "<private";
 var PRIVATE_CLOSE_PREFIX = "</private";
 var VALID_MEMORY_KINDS = /* @__PURE__ */ new Set([
@@ -43080,6 +43161,16 @@ var VALID_MEMORY_KINDS = /* @__PURE__ */ new Set([
   "pitfall",
   "convention",
   "preference"
+]);
+var VALID_MEMORY_CONFIDENCES = /* @__PURE__ */ new Set([
+  "verified",
+  "normal",
+  "tentative"
+]);
+var VALID_MEMORY_SOURCES = /* @__PURE__ */ new Set([
+  "manual",
+  "spec_archive",
+  "auto_capture"
 ]);
 var VALID_DRIFT_STATUSES = /* @__PURE__ */ new Set([
   "fresh",
@@ -43233,7 +43324,106 @@ function formatCompactAnchorList(anchors, maxFiles = 3) {
   const extra = anchors.length > maxFiles ? `, +${anchors.length - maxFiles}` : "";
   return ` [${names.join(", ")}${extra}]`;
 }
+function resolveNowMs(now) {
+  if (typeof now === "number" && Number.isFinite(now)) return now;
+  if (now instanceof Date && Number.isFinite(now.getTime())) return now.getTime();
+  return Date.now();
+}
+function normalizeTtlDays(raw) {
+  if (raw === null) return null;
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    const floored = Math.floor(raw);
+    if (floored < MIN_TTL_DAYS) return void 0;
+    return Math.min(MAX_TTL_DAYS, floored);
+  }
+  return void 0;
+}
+function computeExpiresAt(baseIso, ttlDays) {
+  if (ttlDays === null || ttlDays === void 0) return null;
+  if (typeof ttlDays !== "number" || !Number.isFinite(ttlDays) || ttlDays < MIN_TTL_DAYS) {
+    return null;
+  }
+  const baseMs = baseIso ? Date.parse(baseIso) : NaN;
+  if (!Number.isFinite(baseMs)) return null;
+  const clampedDays = Math.min(MAX_TTL_DAYS, Math.max(MIN_TTL_DAYS, Math.floor(ttlDays)));
+  return new Date(baseMs + clampedDays * MS_PER_DAY2).toISOString();
+}
+function resolveEffectiveExpiresAt(item) {
+  if (typeof item.expiresAt === "string" && item.expiresAt.trim()) {
+    const parsed = Date.parse(item.expiresAt.trim());
+    if (Number.isFinite(parsed)) return item.expiresAt.trim();
+  }
+  if (item.ttlDays === null) return null;
+  if (typeof item.ttlDays === "number" && Number.isFinite(item.ttlDays) && item.ttlDays > 0) {
+    const base = item.verifiedAt || item.updatedAt || item.createdAt;
+    return computeExpiresAt(base, item.ttlDays);
+  }
+  return null;
+}
+function evaluateMemoryHygiene(item, nowMs = Date.now()) {
+  if (item.drifted === true) {
+    return "drifted";
+  }
+  if (item.pinned === true) {
+    return item.confidence === "tentative" ? "needs_review" : "healthy";
+  }
+  const effectiveExpiresAt = resolveEffectiveExpiresAt(item);
+  const expiresMs = effectiveExpiresAt ? Date.parse(effectiveExpiresAt) : NaN;
+  if (Number.isFinite(expiresMs) && expiresMs <= nowMs) {
+    return "stale_ttl";
+  }
+  if (item.confidence === "tentative") {
+    return "needs_review";
+  }
+  if (Number.isFinite(expiresMs) && expiresMs - nowMs <= NEEDS_REVIEW_TTL_WINDOW_DAYS * MS_PER_DAY2) {
+    return "needs_review";
+  }
+  return "healthy";
+}
+function computeHygieneSummary(items, nowMs = Date.now()) {
+  let healthy = 0;
+  let needsReview = 0;
+  let staleTtl = 0;
+  let drifted = 0;
+  let tentative = 0;
+  const expiredIds = [];
+  const reviewIds = [];
+  for (const item of items) {
+    const status = evaluateMemoryHygiene(item, nowMs);
+    if (status === "healthy") healthy += 1;
+    else if (status === "needs_review") {
+      needsReview += 1;
+      reviewIds.push(item.id);
+    } else if (status === "stale_ttl") {
+      staleTtl += 1;
+      expiredIds.push(item.id);
+    } else if (status === "drifted") {
+      drifted += 1;
+    }
+    if (item.confidence === "tentative") {
+      tentative += 1;
+    }
+  }
+  return {
+    total: items.length,
+    healthy,
+    needsReview,
+    staleTtl,
+    drifted,
+    tentative,
+    expiredIds,
+    reviewIds
+  };
+}
+function confidenceRankWeight(confidence) {
+  if (confidence === "verified") return 2;
+  if (confidence === "tentative") return 0;
+  return 1;
+}
 function toIndexEntry(m, score) {
+  const confidence = m.confidence ?? "normal";
+  const expiresAt = resolveEffectiveExpiresAt(m);
+  const hygieneStatus = m.hygieneStatus ?? evaluateMemoryHygiene(m);
   return {
     id: m.id,
     kind: m.kind,
@@ -43248,16 +43438,21 @@ function toIndexEntry(m, score) {
     })),
     updatedAt: m.updatedAt,
     recallCount: m.recallCount,
+    confidence,
+    hygieneStatus,
+    expiresAt,
     ...typeof score === "number" ? { score } : {}
   };
 }
 function formatCompactIndexLine(entry, maxTitleLen = 72) {
   const title = collapseSingleLine(entry.title, maxTitleLen);
   const pinMark = entry.pinned ? " \u2605" : "";
-  const driftMark = entry.drifted ? " \xB7 DRIFTED" : "";
+  const driftMark = entry.drifted ? " [DRIFT]" : "";
+  const tentativeMark = entry.confidence === "tentative" ? " [TENTATIVE]" : "";
+  const expiredMark = entry.hygieneStatus === "stale_ttl" ? " [EXPIRED]" : "";
   const scoreMark = typeof entry.score === "number" ? ` (score ${entry.score})` : "";
   const files = entry.anchors.length > 0 ? ` [${entry.anchors.slice(0, 3).map((a) => a.basename).join(", ")}${entry.anchors.length > 3 ? `, +${entry.anchors.length - 3}` : ""}]` : "";
-  return `- [${entry.id}] (${entry.kind.toUpperCase()}${pinMark}${driftMark}) ${title}${files}${scoreMark}`;
+  return `- [${entry.id}] (${entry.kind.toUpperCase()}${pinMark}${driftMark}${tentativeMark}${expiredMark}) ${title}${files}${scoreMark}`;
 }
 function isSensitiveFilePath(filePath) {
   const trimmed = filePath.trim();
@@ -43412,6 +43607,13 @@ function normalizeMemoryItem(raw, index) {
   const recallCount = typeof r.recallCount === "number" && Number.isFinite(r.recallCount) && r.recallCount >= 0 ? Math.floor(r.recallCount) : 0;
   const pinned = Boolean(r.pinned);
   const drifted = typeof r.drifted === "boolean" ? r.drifted : void 0;
+  const confidence = typeof r.confidence === "string" && VALID_MEMORY_CONFIDENCES.has(r.confidence) ? r.confidence : "normal";
+  const source = typeof r.source === "string" && VALID_MEMORY_SOURCES.has(r.source) ? r.source : "manual";
+  const normalizedTtl = normalizeTtlDays(r.ttlDays);
+  const ttlDays = normalizedTtl !== void 0 ? normalizedTtl : null;
+  const verifiedAt = typeof r.verifiedAt === "string" && r.verifiedAt.trim() && Number.isFinite(Date.parse(r.verifiedAt.trim())) ? r.verifiedAt.trim() : void 0;
+  const explicitExpiresAt = typeof r.expiresAt === "string" && r.expiresAt.trim() && Number.isFinite(Date.parse(r.expiresAt.trim())) ? r.expiresAt.trim() : r.expiresAt === null ? null : void 0;
+  const expiresAt = explicitExpiresAt !== void 0 ? explicitExpiresAt : computeExpiresAt(verifiedAt || updatedAt || createdAt, ttlDays);
   return {
     id,
     kind,
@@ -43425,7 +43627,12 @@ function normalizeMemoryItem(raw, index) {
     createdAt,
     updatedAt,
     recallCount,
-    ...drifted !== void 0 ? { drifted } : {}
+    ...drifted !== void 0 ? { drifted } : {},
+    confidence,
+    source,
+    ttlDays,
+    expiresAt,
+    ...verifiedAt ? { verifiedAt } : {}
   };
 }
 function ensurePrivateDir2(dirPath) {
@@ -43507,15 +43714,26 @@ var MemoryStore = class {
     }
     return parsed.map((entry, idx) => normalizeMemoryItem(entry, idx)).filter((item) => item !== null);
   }
+  stripEphemeralForPersist(items) {
+    return items.map((m) => {
+      const { hygieneStatus: _ignored, ...persisted } = m;
+      return {
+        ...persisted,
+        tags: [...m.tags],
+        anchors: m.anchors.map((a) => ({ ...a }))
+      };
+    });
+  }
   writeAll(items) {
+    const cleanItems = this.stripEphemeralForPersist(items);
     if (this.demoMode) {
-      this.demoItems = this.cloneItems(items);
+      this.demoItems = cleanItems;
       return;
     }
     ensurePrivateDir2(this.dataDir);
     const tmp = `${this.filePath}.${process.pid}.${import_node_crypto5.default.randomBytes(4).toString("hex")}.tmp`;
     try {
-      import_node_fs9.default.writeFileSync(tmp, JSON.stringify(items, null, 2), { encoding: "utf8", mode: 384 });
+      import_node_fs9.default.writeFileSync(tmp, JSON.stringify(cleanItems, null, 2), { encoding: "utf8", mode: 384 });
       try {
         import_node_fs9.default.chmodSync(tmp, 384);
       } catch {
@@ -43529,9 +43747,29 @@ var MemoryStore = class {
       throw err;
     }
   }
-  evaluateDrift(item) {
+  evaluateDrift(item, nowMs = Date.now()) {
+    const confidence = item.confidence ?? "normal";
+    const source = item.source ?? "manual";
+    const ttlDays = item.ttlDays !== void 0 ? item.ttlDays : null;
+    const expiresAt = resolveEffectiveExpiresAt({
+      verifiedAt: item.verifiedAt,
+      updatedAt: item.updatedAt,
+      createdAt: item.createdAt,
+      ttlDays,
+      expiresAt: item.expiresAt
+    });
     if (this.demoMode && item.id.startsWith("mem_demo_")) {
-      return item;
+      const enrichedDemo = {
+        ...item,
+        confidence,
+        source,
+        ttlDays,
+        expiresAt
+      };
+      return {
+        ...enrichedDemo,
+        hygieneStatus: evaluateMemoryHygiene(enrichedDemo, nowMs)
+      };
     }
     let anyDrifted = false;
     const effectiveWs = item.workspacePath ?? this.defaultWorkspaceRoot;
@@ -43552,19 +43790,136 @@ var MemoryStore = class {
       }
       return { ...a, driftStatus: "fresh" };
     });
-    return { ...item, anchors, drifted: anyDrifted };
+    const enriched = {
+      ...item,
+      anchors,
+      drifted: anyDrifted,
+      confidence,
+      source,
+      ttlDays,
+      expiresAt
+    };
+    return {
+      ...enriched,
+      hygieneStatus: evaluateMemoryHygiene(enriched, nowMs)
+    };
   }
   list(opts = {}) {
-    let items = this.readRaw().map((m) => this.evaluateDrift(m));
+    const nowMs = resolveNowMs(opts.now);
+    let items = this.readRaw().map((m) => this.evaluateDrift(m, nowMs));
     if (opts.workspacePath) {
       const target = import_node_path12.default.resolve(opts.workspacePath);
       items = items.filter((m) => !m.workspacePath || import_node_path12.default.resolve(m.workspacePath) === target);
     }
     if (opts.kind) items = items.filter((m) => m.kind === opts.kind);
     if (opts.pinnedOnly) items = items.filter((m) => m.pinned);
+    if (opts.confidence) items = items.filter((m) => (m.confidence ?? "normal") === opts.confidence);
+    if (opts.hygieneStatus) items = items.filter((m) => m.hygieneStatus === opts.hygieneStatus);
+    if (opts.includeExpired === false) {
+      items = items.filter((m) => m.hygieneStatus !== "stale_ttl");
+    }
     return items.sort(
       (a, b) => Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt)
     );
+  }
+  getHygieneSummary(opts = {}) {
+    const nowMs = resolveNowMs(opts.now);
+    const items = this.list({ workspacePath: opts.workspacePath, includeExpired: true, now: nowMs });
+    return computeHygieneSummary(items, nowMs);
+  }
+  batchHygieneMemories(ids, action, opts = {}) {
+    if (action !== "verify" && action !== "refresh_ttl" && action !== "prune") {
+      throw new Error(`Invalid hygiene action: "${String(action)}" (expected verify | refresh_ttl | prune)`);
+    }
+    const requestedIds = Array.from(
+      new Set((ids ?? []).map((id) => typeof id === "string" ? id.trim() : "").filter(Boolean))
+    );
+    const nowMs = resolveNowMs(opts.now);
+    const nowIso = new Date(nowMs).toISOString();
+    if (requestedIds.length === 0) {
+      return {
+        action,
+        requestedIds,
+        affectedIds: [],
+        updatedCount: 0,
+        deletedCount: 0,
+        summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs })
+      };
+    }
+    const idSet = new Set(requestedIds);
+    const rawItems = this.readRaw();
+    const affectedIds = [];
+    if (action === "prune") {
+      const remaining = [];
+      for (const item of rawItems) {
+        if (idSet.has(item.id)) {
+          affectedIds.push(item.id);
+        } else {
+          remaining.push(item);
+        }
+      }
+      if (affectedIds.length > 0) {
+        this.writeAll(remaining);
+      }
+      return {
+        action,
+        requestedIds,
+        affectedIds,
+        updatedCount: 0,
+        deletedCount: affectedIds.length,
+        summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs })
+      };
+    }
+    if (action === "verify") {
+      const explicitTtl = opts.ttlDays !== void 0 ? normalizeTtlDays(opts.ttlDays) ?? null : null;
+      const nextItems2 = rawItems.map((item) => {
+        if (!idSet.has(item.id)) return item;
+        affectedIds.push(item.id);
+        const nextTtlDays = explicitTtl;
+        return {
+          ...item,
+          confidence: "verified",
+          verifiedAt: nowIso,
+          updatedAt: nowIso,
+          ttlDays: nextTtlDays,
+          expiresAt: computeExpiresAt(nowIso, nextTtlDays)
+        };
+      });
+      if (affectedIds.length > 0) {
+        this.writeAll(nextItems2);
+      }
+      return {
+        action,
+        requestedIds,
+        affectedIds,
+        updatedCount: affectedIds.length,
+        deletedCount: 0,
+        summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs })
+      };
+    }
+    const refreshTtl = opts.ttlDays === null ? null : opts.ttlDays !== void 0 ? normalizeTtlDays(opts.ttlDays) ?? DEFAULT_REFRESH_TTL_DAYS : DEFAULT_REFRESH_TTL_DAYS;
+    const nextItems = rawItems.map((item) => {
+      if (!idSet.has(item.id)) return item;
+      affectedIds.push(item.id);
+      return {
+        ...item,
+        updatedAt: nowIso,
+        verifiedAt: nowIso,
+        ttlDays: refreshTtl,
+        expiresAt: computeExpiresAt(nowIso, refreshTtl)
+      };
+    });
+    if (affectedIds.length > 0) {
+      this.writeAll(nextItems);
+    }
+    return {
+      action,
+      requestedIds,
+      affectedIds,
+      updatedCount: affectedIds.length,
+      deletedCount: 0,
+      summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs })
+    };
   }
   remember(input2) {
     const items = this.readRaw();
@@ -43620,21 +43975,41 @@ var MemoryStore = class {
     const existingIdx = input2.id ? items.findIndex((m) => m.id === input2.id) : items.findIndex(
       (m) => m.title.toLowerCase() === cleanTitle.toLowerCase() && (m.workspacePath ?? "") === (resolvedWorkspace ?? "")
     );
+    const parsedInputTtl = input2.ttlDays !== void 0 ? normalizeTtlDays(input2.ttlDays) ?? null : void 0;
+    const sanitizedInputConfidence = input2.confidence !== void 0 && VALID_MEMORY_CONFIDENCES.has(input2.confidence) ? input2.confidence : void 0;
+    const sanitizedInputSource = input2.source !== void 0 && VALID_MEMORY_SOURCES.has(input2.source) ? input2.source : void 0;
     if (existingIdx >= 0) {
+      const prev = items[existingIdx];
+      const nextConfidence = sanitizedInputConfidence ?? prev.confidence ?? "normal";
+      const nextSource = sanitizedInputSource ?? prev.source ?? "manual";
+      const nextTtlDays = parsedInputTtl !== void 0 ? parsedInputTtl : prev.ttlDays ?? null;
+      const nextVerifiedAt = input2.verifiedAt ?? (sanitizedInputConfidence === "verified" ? now : prev.verifiedAt);
+      const ttlAnchorIso = parsedInputTtl !== void 0 ? now : nextVerifiedAt || now;
+      const nextExpiresAt = computeExpiresAt(ttlAnchorIso, nextTtlDays);
       const updated = {
-        ...items[existingIdx],
+        ...prev,
         kind: input2.kind,
         title: cleanTitle,
         content: cleanContent,
         tags,
-        anchors: anchors.length ? anchors : items[existingIdx].anchors,
-        pinned: input2.pinned ?? items[existingIdx].pinned,
-        updatedAt: now
+        anchors: anchors.length ? anchors : prev.anchors,
+        pinned: input2.pinned ?? prev.pinned,
+        updatedAt: now,
+        confidence: nextConfidence,
+        source: nextSource,
+        ttlDays: nextTtlDays,
+        expiresAt: nextExpiresAt,
+        ...nextVerifiedAt ? { verifiedAt: nextVerifiedAt } : {}
       };
       items[existingIdx] = updated;
       this.writeAll(items);
       return this.evaluateDrift(updated);
     }
+    const confidence = sanitizedInputConfidence ?? "normal";
+    const source = sanitizedInputSource ?? "manual";
+    const ttlDays = parsedInputTtl !== void 0 ? parsedInputTtl : null;
+    const verifiedAt = input2.verifiedAt ?? (confidence === "verified" ? now : void 0);
+    const expiresAt = computeExpiresAt(verifiedAt || now, ttlDays);
     const created = {
       id: input2.id || `mem_${import_node_crypto5.default.randomBytes(5).toString("hex")}`,
       kind: input2.kind,
@@ -43647,7 +44022,12 @@ var MemoryStore = class {
       pinned: Boolean(input2.pinned),
       createdAt: now,
       updatedAt: now,
-      recallCount: 0
+      recallCount: 0,
+      confidence,
+      source,
+      ttlDays,
+      expiresAt,
+      ...verifiedAt ? { verifiedAt } : {}
     };
     items.unshift(created);
     this.writeAll(items);
@@ -43657,20 +44037,29 @@ var MemoryStore = class {
     const items = this.readRaw();
     const idx = items.findIndex((m) => m.id === id);
     if (idx < 0) return null;
-    const ws = items[idx].workspacePath ?? this.defaultWorkspaceRoot;
-    items[idx].anchors = items[idx].anchors.map((a) => {
-      const inspected = inspectAnchorFile(a.filePath, ws);
-      if (inspected.status === "ok" && inspected.sha256) {
-        return { ...a, sha256: inspected.sha256, driftStatus: "fresh" };
-      }
-      if (inspected.status === "skipped") {
-        const { sha256: _ignored, ...rest } = a;
-        return { ...rest, driftStatus: "skipped" };
-      }
-      return { ...a, driftStatus: "missing" };
-    });
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    if (this.demoMode && items[idx].id.startsWith("mem_demo_")) {
+      items[idx].anchors = items[idx].anchors.map((a) => ({ ...a, driftStatus: "fresh" }));
+    } else {
+      const ws = items[idx].workspacePath ?? this.defaultWorkspaceRoot;
+      items[idx].anchors = items[idx].anchors.map((a) => {
+        const inspected = inspectAnchorFile(a.filePath, ws);
+        if (inspected.status === "ok" && inspected.sha256) {
+          return { ...a, sha256: inspected.sha256, driftStatus: "fresh" };
+        }
+        if (inspected.status === "skipped") {
+          const { sha256: _ignored, ...rest } = a;
+          return { ...rest, driftStatus: "skipped" };
+        }
+        return { ...a, driftStatus: "missing" };
+      });
+    }
     items[idx].drifted = false;
-    items[idx].updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+    items[idx].updatedAt = now;
+    items[idx].verifiedAt = now;
+    if (typeof items[idx].ttlDays === "number" && items[idx].ttlDays > 0) {
+      items[idx].expiresAt = computeExpiresAt(now, items[idx].ttlDays);
+    }
     this.writeAll(items);
     return this.evaluateDrift(items[idx]);
   }
@@ -43693,7 +44082,11 @@ var MemoryStore = class {
   getByIds(ids, opts = {}) {
     const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
     if (uniqueIds.length === 0) return [];
-    const all = this.list({ workspacePath: opts.workspacePath });
+    const all = this.list({
+      workspacePath: opts.workspacePath,
+      includeExpired: Boolean(opts.includeExpired),
+      now: opts.now
+    });
     const byId = new Map(all.map((m) => [m.id, m]));
     const matched = uniqueIds.map((id) => byId.get(id)).filter((m) => m !== void 0);
     if (opts.incrementRecall && matched.length > 0) {
@@ -43711,10 +44104,23 @@ var MemoryStore = class {
   }
   recall(query, opts = {}) {
     const limit = opts.limit ?? 10;
-    const all = this.list({ workspacePath: opts.workspacePath });
+    const all = this.list({
+      workspacePath: opts.workspacePath,
+      includeExpired: Boolean(opts.includeExpired),
+      now: opts.now
+    });
     const trimmed = query.trim();
     if (!trimmed) {
-      return all.slice(0, limit).map((m) => ({ ...m, score: m.pinned ? 2 : 1 }));
+      return [...all].map((m) => {
+        let baseScore = 1;
+        if (m.pinned) baseScore += 1;
+        if (m.confidence === "verified") baseScore += 0.5;
+        else if (m.confidence === "tentative") baseScore -= 0.25;
+        if (m.drifted) baseScore -= 0.2;
+        return { ...m, score: Number(Math.max(0.1, baseScore).toFixed(2)) };
+      }).sort(
+        (a, b2) => b2.score - a.score || Number(b2.pinned) - Number(a.pinned) || confidenceRankWeight(b2.confidence) - confidenceRankWeight(a.confidence) || b2.updatedAt.localeCompare(a.updatedAt)
+      ).slice(0, limit);
     }
     const qTokens = Array.from(new Set(tokenize(trimmed)));
     if (qTokens.length === 0) return [];
@@ -43747,9 +44153,16 @@ var MemoryStore = class {
       }
       if (m.title.toLowerCase().includes(qLower)) score += 3;
       if (m.content.toLowerCase().includes(qLower)) score += 2;
-      if (m.pinned && score > 0) score += 0.6;
+      if (score > 0) {
+        if (m.pinned) score += 0.6;
+        if (m.confidence === "verified") score += 0.45;
+        else if (m.confidence === "tentative") score = Math.max(0.05, score * 0.85);
+        if (m.drifted) score = Math.max(0.05, score * 0.9);
+      }
       return { ...m, score: Number(score.toFixed(2)) };
-    }).filter((h) => h.score > 0).sort((a, b2) => b2.score - a.score).slice(0, limit);
+    }).filter((h) => h.score > 0).sort(
+      (a, b2) => b2.score - a.score || Number(b2.pinned) - Number(a.pinned) || confidenceRankWeight(b2.confidence) - confidenceRankWeight(a.confidence) || b2.updatedAt.localeCompare(a.updatedAt)
+    ).slice(0, limit);
     if (opts.incrementRecall && hits.length > 0) {
       const raw = this.readRaw();
       const hitIds = new Set(hits.map((h) => h.id));
@@ -43761,12 +44174,14 @@ var MemoryStore = class {
     }
     return hits;
   }
-  buildCompactIndexEntries(workspacePaths = [], maxItems = 12) {
+  buildCompactIndexEntries(workspacePaths = [], maxItems = 12, now) {
     const ws = workspacePaths[0];
-    return this.list({ workspacePath: ws }).filter((m) => !m.drifted).slice(0, maxItems).map((m) => toIndexEntry(m));
+    return this.list({ workspacePath: ws, includeExpired: false, now }).filter((m) => !m.drifted && m.hygieneStatus !== "stale_ttl").sort(
+      (a, b) => Number(b.pinned) - Number(a.pinned) || confidenceRankWeight(b.confidence) - confidenceRankWeight(a.confidence) || b.updatedAt.localeCompare(a.updatedAt)
+    ).slice(0, maxItems).map((m) => toIndexEntry(m));
   }
-  buildSessionStartInjection(workspacePaths = [], maxItems = 12) {
-    const entries = this.buildCompactIndexEntries(workspacePaths, maxItems);
+  buildSessionStartInjection(workspacePaths = [], maxItems = 12, now) {
+    const entries = this.buildCompactIndexEntries(workspacePaths, maxItems, now);
     if (entries.length === 0) return "";
     const header = `[Agy Mem \u2014 Progressive Index (${entries.length} active \xB7 L1)]`;
     const footer = 'Call mem_recall(mode="detail", ids=["<id>"]) for full content or mode="timeline" for nearby context.';
@@ -43800,9 +44215,11 @@ var MemoryStore = class {
     const out = lines.join("\n");
     return out.length <= MAX_SESSION_START_CHARS ? out : out.slice(0, MAX_SESSION_START_CHARS);
   }
-  buildProgressiveStats(workspacePaths, maxItems = 12) {
+  buildProgressiveStats(workspacePaths, maxItems = 12, now) {
     const ws = workspacePaths?.[0];
-    const active = this.list({ workspacePath: ws }).filter((m) => !m.drifted);
+    const active = this.list({ workspacePath: ws, includeExpired: false, now }).filter(
+      (m) => !m.drifted && m.hygieneStatus !== "stale_ttl"
+    );
     if (active.length === 0) {
       return {
         activeCount: 0,
@@ -43813,7 +44230,7 @@ var MemoryStore = class {
         savedPercent: 0
       };
     }
-    const compactIndex = this.buildSessionStartInjection(workspacePaths ?? [], maxItems);
+    const compactIndex = this.buildSessionStartInjection(workspacePaths ?? [], maxItems, now);
     const fullDumpText = [
       `[Agy Mem \u2014 Persistent Workspace Memory (${active.length} active)]`,
       ...active.map((m) => {
@@ -43842,13 +44259,19 @@ var MemoryStore = class {
     const ids = Array.from(new Set((opts.ids ?? []).map((id) => id.trim()).filter(Boolean)));
     const limit = opts.limit ?? 8;
     const windowSize = Math.min(5, Math.max(1, Math.floor(opts.window ?? 2)));
+    const includeExpired = Boolean(opts.includeExpired);
     if (mode === "index") {
-      const entries = ids.length > 0 ? this.getByIds(ids, { workspacePath: opts.workspacePath, incrementRecall: false }).map(
-        (m) => toIndexEntry(m)
-      ) : this.recall(query, {
+      const entries = ids.length > 0 ? this.getByIds(ids, {
+        workspacePath: opts.workspacePath,
+        incrementRecall: false,
+        includeExpired,
+        now: opts.now
+      }).map((m) => toIndexEntry(m)) : this.recall(query, {
         workspacePath: opts.workspacePath,
         limit,
-        incrementRecall: false
+        incrementRecall: false,
+        includeExpired,
+        now: opts.now
       }).map((m) => toIndexEntry(m, m.score));
       const text2 = entries.length ? [
         `[Agy Mem \xB7 L1 Index (${entries.length} ${entries.length === 1 ? "match" : "matches"})]`,
@@ -43868,7 +44291,11 @@ var MemoryStore = class {
       };
     }
     if (mode === "timeline") {
-      const chronological = this.list({ workspacePath: opts.workspacePath }).sort(
+      const chronological = this.list({
+        workspacePath: opts.workspacePath,
+        includeExpired,
+        now: opts.now
+      }).sort(
         (a, b) => b.updatedAt.localeCompare(a.updatedAt) || b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id)
       );
       const indexById = /* @__PURE__ */ new Map();
@@ -43888,7 +44315,9 @@ var MemoryStore = class {
         const hits = this.recall(query, {
           workspacePath: opts.workspacePath,
           limit,
-          incrementRecall: false
+          incrementRecall: false,
+          includeExpired,
+          now: opts.now
         });
         for (const h of hits) {
           const idx = indexById.get(h.id);
@@ -43936,6 +44365,9 @@ var MemoryStore = class {
           updatedAt: m.updatedAt,
           recallCount: m.recallCount,
           isAnchorHit: anchorHitIds.has(m.id),
+          confidence: m.confidence ?? "normal",
+          hygieneStatus: m.hygieneStatus,
+          expiresAt: resolveEffectiveExpiresAt(m),
           ...typeof score === "number" ? { score } : {}
         };
       });
@@ -43946,7 +44378,10 @@ var MemoryStore = class {
           const filesTxt = entry.anchorFiles.length ? ` [files: ${entry.anchorFiles.slice(0, 3).join(", ")}]` : "";
           const convTxt = entry.sourceConversationId ? ` (session:${entry.sourceConversationId.slice(0, 12)})` : "";
           const scoreTxt = typeof entry.score === "number" ? ` score=${entry.score}` : "";
-          return `- ${entry.updatedAt} ${marker} [${entry.id}] (${entry.kind.toUpperCase()}${entry.pinned ? " \u2605" : ""}${entry.drifted ? " \xB7 DRIFTED" : ""}) ${entry.title}${filesTxt}${convTxt}${scoreTxt}
+          const driftTxt = entry.drifted ? " [DRIFT]" : "";
+          const tentativeTxt = entry.confidence === "tentative" ? " [TENTATIVE]" : "";
+          const expiredTxt = entry.hygieneStatus === "stale_ttl" ? " [EXPIRED]" : "";
+          return `- ${entry.updatedAt} ${marker} [${entry.id}] (${entry.kind.toUpperCase()}${entry.pinned ? " \u2605" : ""}${driftTxt}${tentativeTxt}${expiredTxt}) ${entry.title}${filesTxt}${convTxt}${scoreTxt}
   ${entry.excerpt}`;
         }),
         'Call mem_recall(mode="detail", ids=["<id>"]) to load full memory content.'
@@ -43965,16 +44400,23 @@ var MemoryStore = class {
     }
     const detailItems = ids.length > 0 ? this.getByIds(ids, {
       workspacePath: opts.workspacePath,
-      incrementRecall: Boolean(opts.incrementRecall)
+      incrementRecall: Boolean(opts.incrementRecall),
+      includeExpired,
+      now: opts.now
     }).map((m) => ({ ...m, score: 1 })) : this.recall(query, {
       workspacePath: opts.workspacePath,
       limit,
-      incrementRecall: Boolean(opts.incrementRecall)
+      incrementRecall: Boolean(opts.incrementRecall),
+      includeExpired,
+      now: opts.now
     });
     const text = detailItems.length ? detailItems.map((m, i) => {
       const anchorTxt = formatCompactAnchorList(m.anchors, 4);
       const scoreTxt = typeof m.score === "number" ? ` (score ${m.score})` : "";
-      return `${i + 1}. [${m.id}] [${m.kind.toUpperCase()}${m.pinned ? " \u2605" : ""}${m.drifted ? " \xB7 DRIFTED" : ""}] ${m.title}${anchorTxt}${scoreTxt}
+      const driftTxt = m.drifted ? " [DRIFT]" : "";
+      const confTxt = m.confidence === "tentative" ? " [TENTATIVE]" : m.confidence === "verified" ? " [VERIFIED]" : "";
+      const expiredTxt = m.hygieneStatus === "stale_ttl" ? " [EXPIRED]" : "";
+      return `${i + 1}. [${m.id}] [${m.kind.toUpperCase()}${m.pinned ? " \u2605" : ""}${driftTxt}${confTxt}${expiredTxt}] ${m.title}${anchorTxt}${scoreTxt}
    ${m.content}`;
     }).join("\n") : ids.length > 0 ? `No memories found for ids: ${ids.join(", ")}.` : `No memories matched "${query}".`;
     return {
@@ -43992,6 +44434,8 @@ var MemoryStore = class {
 };
 
 // src/modules/mem/register.ts
+var CONFIDENCE_SCHEMA = external_exports.enum(["verified", "normal", "tentative"]);
+var TTL_DAYS_SCHEMA = external_exports.number().int().min(MIN_TTL_DAYS).max(MAX_TTL_DAYS).nullable();
 function toHandle2(name, reg) {
   return {
     name,
@@ -44014,6 +44458,7 @@ function registerMemModule(server, opts, uiResourceUri) {
     const indexText = store.buildSessionStartInjection();
     const progressiveStats = store.buildProgressiveStats();
     const indexEntries = store.buildCompactIndexEntries();
+    const hygieneSummary = store.getHygieneSummary();
     return {
       memories,
       graph: buildMemoryGraph(memories),
@@ -44022,7 +44467,8 @@ function registerMemModule(server, opts, uiResourceUri) {
       progressivePreview: {
         indexText,
         entries: indexEntries
-      }
+      },
+      hygieneSummary
     };
   };
   const modelTools = [];
@@ -44030,7 +44476,7 @@ function registerMemModule(server, opts, uiResourceUri) {
     "mem_remember",
     {
       title: "Remember Code-Anchored Fact",
-      description: "Store a long-term architectural decision, pitfall, convention, or preference anchored to source file paths (with SHA-256 drift tracking, <private> tag stripping, and secret redaction).",
+      description: "Store a long-term architectural decision, pitfall, convention, or preference anchored to source file paths (with SHA-256 drift tracking, confidence/TTL hygiene governance, <private> tag stripping, and secret redaction).",
       inputSchema: {
         kind: external_exports.enum(["architecture", "decision", "pitfall", "convention", "preference"]),
         title: external_exports.string().min(2),
@@ -44038,7 +44484,9 @@ function registerMemModule(server, opts, uiResourceUri) {
         tags: external_exports.array(external_exports.string()).optional(),
         workspacePath: external_exports.string().optional(),
         anchors: external_exports.array(external_exports.object({ filePath: external_exports.string(), symbol: external_exports.string().optional() })).optional(),
-        pinned: external_exports.boolean().optional()
+        pinned: external_exports.boolean().optional(),
+        confidence: CONFIDENCE_SCHEMA.optional(),
+        ttlDays: TTL_DAYS_SCHEMA.optional()
       }
     },
     async (input2) => {
@@ -44047,7 +44495,7 @@ function registerMemModule(server, opts, uiResourceUri) {
         content: [
           {
             type: "text",
-            text: `Remembered [${saved.kind.toUpperCase()}] "${saved.title}" (id=${saved.id}, anchors=${saved.anchors.length}, pinned=${saved.pinned}).`
+            text: `Remembered [${saved.kind.toUpperCase()}] "${saved.title}" (id=${saved.id}, anchors=${saved.anchors.length}, pinned=${saved.pinned}, confidence=${saved.confidence ?? "normal"}, hygiene=${saved.hygieneStatus ?? "healthy"}).`
           }
         ],
         structuredContent: {
@@ -44056,6 +44504,11 @@ function registerMemModule(server, opts, uiResourceUri) {
           title: saved.title,
           pinned: saved.pinned,
           drifted: Boolean(saved.drifted),
+          confidence: saved.confidence ?? "normal",
+          source: saved.source ?? "manual",
+          ttlDays: saved.ttlDays ?? null,
+          expiresAt: saved.expiresAt ?? null,
+          hygieneStatus: saved.hygieneStatus ?? "healthy",
           anchorCount: saved.anchors.length,
           tagCount: saved.tags.length,
           updatedAt: saved.updatedAt
@@ -44068,17 +44521,18 @@ function registerMemModule(server, opts, uiResourceUri) {
     "mem_recall",
     {
       title: "Recall Long-Term Memories",
-      description: 'Search or load long-term memories with 3-layer progressive disclosure: mode="index" (compact L1 catalog without content), mode="timeline" (L2 chronological context window around hits/ids), or mode="detail" (default L3 full content by query or exact ids).',
+      description: 'Search or load long-term memories with 3-layer progressive disclosure: mode="index" (compact L1 catalog without content), mode="timeline" (L2 chronological context window around hits/ids), or mode="detail" (default L3 full content by query or exact ids). Excludes expired TTL memories unless includeExpired=true.',
       inputSchema: {
         query: external_exports.string().optional().default(""),
         mode: external_exports.enum(["index", "timeline", "detail"]).optional(),
         ids: external_exports.array(external_exports.string().min(1)).max(20).optional(),
         workspacePath: external_exports.string().optional(),
         limit: external_exports.number().int().min(1).max(30).optional(),
-        window: external_exports.number().int().min(1).max(5).optional()
+        window: external_exports.number().int().min(1).max(5).optional(),
+        includeExpired: external_exports.boolean().optional()
       }
     },
-    async ({ query, mode, ids, workspacePath, limit, window }) => {
+    async ({ query, mode, ids, workspacePath, limit, window, includeExpired }) => {
       const effectiveMode = mode ?? "detail";
       const result = store.recallLayered({
         query,
@@ -44087,7 +44541,8 @@ function registerMemModule(server, opts, uiResourceUri) {
         workspacePath,
         limit: limit ?? 8,
         window: window ?? 2,
-        incrementRecall: effectiveMode === "detail"
+        incrementRecall: effectiveMode === "detail",
+        includeExpired: Boolean(includeExpired)
       });
       if (effectiveMode === "index") {
         return {
@@ -44117,6 +44572,9 @@ function registerMemModule(server, opts, uiResourceUri) {
               title: entry.title,
               pinned: entry.pinned,
               drifted: entry.drifted,
+              confidence: entry.confidence ?? "normal",
+              hygieneStatus: entry.hygieneStatus,
+              expiresAt: entry.expiresAt ?? null,
               isAnchorHit: entry.isAnchorHit,
               updatedAt: entry.updatedAt,
               ...typeof entry.score === "number" ? { score: entry.score } : {}
@@ -44138,6 +44596,9 @@ function registerMemModule(server, opts, uiResourceUri) {
             score: m.score ?? 1,
             pinned: m.pinned,
             drifted: Boolean(m.drifted),
+            confidence: m.confidence ?? "normal",
+            hygieneStatus: m.hygieneStatus,
+            expiresAt: m.expiresAt ?? null,
             anchorCount: m.anchors.length,
             tagCount: m.tags.length
           })),
@@ -44167,7 +44628,7 @@ function registerMemModule(server, opts, uiResourceUri) {
     "app_mem_get_state",
     {
       title: "Get Memory State (App Only)",
-      description: "Fetch memories, graph, progressive disclosure stats & compact injection preview.",
+      description: "Fetch memories, graph, hygiene summary, progressive disclosure stats & compact injection preview.",
       inputSchema: {},
       _meta: APP_ONLY_META2
     },
@@ -44181,12 +44642,17 @@ function registerMemModule(server, opts, uiResourceUri) {
     {
       title: "Search Memories (App Only)",
       description: "Interactive bilingual search from UI.",
-      inputSchema: { query: external_exports.string() },
+      inputSchema: {
+        query: external_exports.string(),
+        includeExpired: external_exports.boolean().optional()
+      },
       _meta: APP_ONLY_META2
     },
-    async ({ query }) => ({
+    async ({ query, includeExpired }) => ({
       content: [{ type: "text", text: "ok" }],
-      structuredContent: { hits: store.recall(query, { limit: 25 }) }
+      structuredContent: {
+        hits: store.recall(query, { limit: 25, includeExpired: Boolean(includeExpired) })
+      }
     })
   );
   server.registerTool(
@@ -44199,18 +44665,20 @@ function registerMemModule(server, opts, uiResourceUri) {
         mode: external_exports.enum(["index", "timeline", "detail"]).optional().default("detail"),
         ids: external_exports.array(external_exports.string().min(1)).max(20).optional(),
         limit: external_exports.number().int().min(1).max(30).optional(),
-        window: external_exports.number().int().min(1).max(5).optional()
+        window: external_exports.number().int().min(1).max(5).optional(),
+        includeExpired: external_exports.boolean().optional()
       },
       _meta: APP_ONLY_META2
     },
-    async ({ query, mode, ids, limit, window }) => {
+    async ({ query, mode, ids, limit, window, includeExpired }) => {
       const result = store.recallLayered({
         query,
         mode,
         ids,
         limit: limit ?? 25,
         window: window ?? 2,
-        incrementRecall: false
+        incrementRecall: false,
+        includeExpired: Boolean(includeExpired)
       });
       return {
         content: [{ type: "text", text: result.text }],
@@ -44230,6 +44698,60 @@ function registerMemModule(server, opts, uiResourceUri) {
     }
   );
   server.registerTool(
+    "app_mem_get_hygiene_summary",
+    {
+      title: "Get Memory Hygiene Summary (App Only)",
+      description: "Read-only hygiene report covering healthy, needs_review, stale_ttl, drifted, and tentative memories.",
+      inputSchema: {
+        workspacePath: external_exports.string().optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ workspacePath }) => {
+      const summary = store.getHygieneSummary({ workspacePath });
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Memory hygiene: total=${summary.total}, healthy=${summary.healthy}, needsReview=${summary.needsReview}, staleTtl=${summary.staleTtl}, drifted=${summary.drifted}, tentative=${summary.tentative}.`
+          }
+        ],
+        structuredContent: {
+          ...summary,
+          summary
+        }
+      };
+    }
+  );
+  server.registerTool(
+    "app_mem_batch_hygiene",
+    {
+      title: "Batch Memory Hygiene Governance (App Only)",
+      description: "Batch verify confidence, refresh TTL, or prune selected memories from UI (atomic 0600 write in live mode, strictly in-memory in demo mode).",
+      inputSchema: {
+        ids: external_exports.array(external_exports.string().min(1)).min(1).max(100),
+        action: external_exports.enum(["verify", "refresh_ttl", "prune"]),
+        ttlDays: TTL_DAYS_SCHEMA.optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ ids, action, ttlDays }) => {
+      const result = store.batchHygieneMemories(ids, action, { ttlDays });
+      return {
+        content: [
+          {
+            type: "text",
+            text: action === "prune" ? `Pruned ${result.deletedCount} memory item(s).` : `Updated ${result.updatedCount} memory item(s) via ${action}.`
+          }
+        ],
+        structuredContent: {
+          result,
+          ...buildPayload()
+        }
+      };
+    }
+  );
+  server.registerTool(
     "app_mem_add_memory",
     {
       title: "Add Memory (App Only)",
@@ -44240,7 +44762,9 @@ function registerMemModule(server, opts, uiResourceUri) {
         content: external_exports.string().min(4),
         tags: external_exports.array(external_exports.string()).optional(),
         anchorFiles: external_exports.array(external_exports.string()).optional(),
-        pinned: external_exports.boolean().optional()
+        pinned: external_exports.boolean().optional(),
+        confidence: CONFIDENCE_SCHEMA.optional(),
+        ttlDays: TTL_DAYS_SCHEMA.optional()
       },
       _meta: APP_ONLY_META2
     },
@@ -44251,7 +44775,9 @@ function registerMemModule(server, opts, uiResourceUri) {
         content: input2.content,
         tags: input2.tags,
         anchors: (input2.anchorFiles ?? []).filter(Boolean).map((filePath) => ({ filePath })),
-        pinned: input2.pinned
+        pinned: input2.pinned,
+        confidence: input2.confidence,
+        ttlDays: input2.ttlDays
       });
       return {
         content: [{ type: "text", text: "saved" }],
@@ -44309,7 +44835,8 @@ function registerMemModule(server, opts, uiResourceUri) {
   );
   return {
     moduleId: "mem",
-    modelTools
+    modelTools,
+    exemptReadOnlyAppTools: ["app_mem_get_hygiene_summary"]
   };
 }
 
@@ -44321,6 +44848,8 @@ var RULE_SINGLE_FILE_LIMIT_BYTES = 24 * 1024;
 var RULE_AGGREGATE_TOKEN_LIMIT = 2e4;
 var TOOL_BUDGET_HARD_LIMIT = 100;
 var DEFAULT_TOOLS_PER_EXTERNAL_MCP_SERVER = 10;
+var MAX_SECURITY_SCAN_FILE_BYTES = 256 * 1024;
+var MAX_SECURITY_SCAN_FILES = 80;
 var VALID_CATEGORIES = /* @__PURE__ */ new Set([
   "review",
   "debug",
@@ -45390,6 +45919,910 @@ function resolveEnabledNovTools(rootDataDir, optsOrCount) {
   }
   return countEnabledModelTools(createDefaultConfig().modules);
 }
+var SECURITY_DEDUCTION = {
+  high: 25,
+  medium: 10,
+  low: 4
+};
+function calculateSecurityScore(findings) {
+  let deduction = 0;
+  for (const f of findings) {
+    deduction += SECURITY_DEDUCTION[f.severity] ?? 0;
+  }
+  return Math.max(0, 100 - deduction);
+}
+function summarizeMigrationPreview(entries) {
+  let totalBytes = 0;
+  let reclaimableBytes = 0;
+  for (const entry of entries) {
+    totalBytes += entry.bytes;
+    if (entry.action !== "keep-pointer" && entry.duplicatePercent > 0) {
+      const entryReclaim = Math.min(
+        entry.bytes,
+        Math.round(entry.bytes * entry.duplicatePercent / 100)
+      );
+      reclaimableBytes += entryReclaim;
+    }
+  }
+  const estimatedSavingsPercent = totalBytes > 0 ? Math.min(100, Math.round(reclaimableBytes / totalBytes * 100)) : 0;
+  return {
+    readOnlyPreview: true,
+    totalFiles: entries.length,
+    totalBytes,
+    reclaimableBytes,
+    estimatedSavingsPercent,
+    estimatedSavedTokens: Math.ceil(reclaimableBytes / 4),
+    entries: [...entries]
+  };
+}
+function sanitizeSecurityFinding(finding) {
+  return {
+    id: finding.id,
+    severity: finding.severity,
+    category: finding.category,
+    file: redactSecretsInMessage(finding.file),
+    title: redactSecretsInMessage(finding.title),
+    summary: redactSecretsInMessage(finding.summary),
+    remediation: redactSecretsInMessage(finding.remediation)
+  };
+}
+function makeFindingSlug(relPath, suffix) {
+  const hash2 = import_node_crypto6.default.createHash("sha256").update(`${relPath}:${suffix}`).digest("hex").slice(0, 8);
+  return `${suffix}-${hash2}`;
+}
+function readFileStrictNoSymlink(realRoot, rootPrefix, relPosix, maxBytes) {
+  const normalizedRel = relPosix.replace(/\\/g, "/").replace(/^\/+/, "");
+  if (!normalizedRel) return { ok: false, reason: "missing" };
+  if (isSensitiveCrossClientFile(normalizedRel)) {
+    return { ok: false, reason: "sensitive" };
+  }
+  const segments = normalizedRel.split("/").filter(Boolean);
+  let cur = realRoot;
+  let finalLstat = null;
+  for (const seg of segments) {
+    if (seg === "." || seg === "..") return { ok: false, reason: "symlink" };
+    cur = import_node_path13.default.join(cur, seg);
+    let st;
+    try {
+      st = import_node_fs10.default.lstatSync(cur);
+    } catch {
+      return { ok: false, reason: "missing" };
+    }
+    if (st.isSymbolicLink()) {
+      return { ok: false, reason: "symlink" };
+    }
+    finalLstat = st;
+  }
+  if (!finalLstat || !finalLstat.isFile()) {
+    return { ok: false, reason: "not-file" };
+  }
+  let realTarget;
+  try {
+    realTarget = import_node_fs10.default.realpathSync(cur);
+  } catch {
+    return { ok: false, reason: "error" };
+  }
+  if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
+    return { ok: false, reason: "symlink" };
+  }
+  const realRel = import_node_path13.default.relative(realRoot, realTarget).replace(/\\/g, "/");
+  if (isSensitiveCrossClientFile(realRel)) {
+    return { ok: false, reason: "sensitive" };
+  }
+  if (finalLstat.size > maxBytes) {
+    return { ok: false, reason: "oversized" };
+  }
+  try {
+    const buf = import_node_fs10.default.readFileSync(realTarget);
+    if (buf.length > maxBytes) {
+      return { ok: false, reason: "oversized" };
+    }
+    const inspectLen = Math.min(buf.length, 4096);
+    for (let i = 0; i < inspectLen; i += 1) {
+      if (buf[i] === 0) return { ok: false, reason: "binary" };
+    }
+    return {
+      ok: true,
+      relPath: normalizedRel,
+      realPath: realTarget,
+      bytes: buf.length,
+      text: buf.toString("utf8")
+    };
+  } catch {
+    return { ok: false, reason: "error" };
+  }
+}
+function listFilesStrictNoSymlink(realRoot, rootPrefix, relBaseDir, maxDepth, maxEntries, predicate) {
+  const normalizedBase = relBaseDir.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+  if (!normalizedBase) return [];
+  const segments = normalizedBase.split("/").filter(Boolean);
+  let cur = realRoot;
+  let baseStat = null;
+  for (const seg of segments) {
+    if (seg === "." || seg === "..") return [];
+    cur = import_node_path13.default.join(cur, seg);
+    try {
+      const st = import_node_fs10.default.lstatSync(cur);
+      if (st.isSymbolicLink()) return [];
+      baseStat = st;
+    } catch {
+      return [];
+    }
+  }
+  if (!baseStat || !baseStat.isDirectory()) return [];
+  let realBase;
+  try {
+    realBase = import_node_fs10.default.realpathSync(cur);
+  } catch {
+    return [];
+  }
+  if (realBase !== realRoot && !realBase.startsWith(rootPrefix)) return [];
+  const results = [];
+  const visited = /* @__PURE__ */ new Set();
+  const walk = (dirAbs, relDir, depth) => {
+    if (depth > maxDepth || results.length >= maxEntries) return;
+    if (visited.has(dirAbs)) return;
+    visited.add(dirAbs);
+    let entries;
+    try {
+      entries = import_node_fs10.default.readdirSync(dirAbs, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      if (results.length >= maxEntries) break;
+      if (entry.name === ".git" || entry.name === "node_modules") continue;
+      const full = import_node_path13.default.join(dirAbs, entry.name);
+      const rel = `${relDir}/${entry.name}`;
+      if (isSensitiveCrossClientFile(rel)) continue;
+      let lstat;
+      try {
+        lstat = import_node_fs10.default.lstatSync(full);
+      } catch {
+        continue;
+      }
+      if (lstat.isSymbolicLink()) {
+        continue;
+      }
+      if (lstat.isDirectory()) {
+        walk(full, rel, depth + 1);
+      } else if (lstat.isFile() && predicate(rel, entry.name)) {
+        results.push(rel);
+      }
+    }
+  };
+  walk(realBase, normalizedBase, 0);
+  return results;
+}
+var PI_OVERRIDE_RE = /\b(?:ignore|disregard|forget|override)\s+(?:all\s+|any\s+)?(?:previous|prior|above|system)\s+(?:instructions?|rules?|prompts?|policies?)\b/i;
+var PI_JAILBREAK_RE = /\byou\s+are\s+now\s+(?:in\s+)?(?:developer|unrestricted|jailbreak)\s+mode\b/i;
+var PI_EXFIL_SECRET_RE = /\b(?:exfiltrate|steal|leak|dump|upload|post|send|transmit)\b[^\r\n]{0,100}\b(?:secret|secrets|token|tokens|api[_ -]?key|keys|credential|credentials|\.env|id_rsa|ssh|password|passwd)\b/i;
+var PI_EXFIL_NET_RE = /\b(?:curl|wget|fetch|nc|netcat)\b[^\r\n]{0,120}(?:https?:\/\/|\$\(|\.(?:env|ssh)|id_rsa|secret|token|password|api[_ -]?key)/i;
+var PI_EXFIL_URL_SEND_RE = /\b(?:send|post|upload|exfiltrate)\b[^\r\n]{0,100}https?:\/\//i;
+var BROAD_ALLOW_KEYS = /* @__PURE__ */ new Set([
+  "allow",
+  "allowedtools",
+  "allowed_tools",
+  "autoapprove",
+  "auto_approve",
+  "alwaysallow",
+  "always_allow",
+  "allowedcommands",
+  "allowed_commands",
+  "approvecommands",
+  "approvedtools"
+]);
+var BROAD_WILDCARD_VALUE_RE = /^(?:\*{1,2}|(?:bash|shell|exec|terminal|run_command|command)\(\*\))$/i;
+var DANGEROUS_SKIP_PERM_RE = /--dangerously-skip-permissions\b/i;
+var DANGEROUS_YOLO_RE = /(?:^|[\s`"'])--yolo(?=$|[\s`"'])/i;
+var DANGEROUS_CHMOD_777_RE = /\bchmod\s+(?:-R\s+)?(?:0?777|a\+rwx)\b/i;
+var NEGATION_CONTEXT_RE = /\b(?:never|do not|don't|avoid|forbid|forbidden|prohibit|prohibited|block|blocked|deny|denied|reject|rejected|ban|banned|disallow|disallowed)\b|严禁|禁止|不要|不得/i;
+var HOOK_PIPE_SHELL_RE = /\b(?:curl|wget)\b[^|\r\n]{0,240}\|\s*(?:sudo\s+)?(?:\/(?:usr\/)?bin\/)?(?:sh|bash|zsh|dash|ksh|python3?|node)\b/i;
+var HOOK_RM_RF_ROOT_RE = /\brm\s+(?:-[a-zA-Z]*[rf][a-zA-Z]*\s+){1,2}(?:--no-preserve-root\s+)?(?:\/(?:\s|$|\*|[;&|])|~\/?(?:\s|$|[;&|])|\$HOME\/?(?:\s|$|[;&|]))/i;
+var HOOK_EVAL_RE = /(?:^|[;&|]\s*|\b(?:sh|bash|zsh)\s+-c\s+["']?)\beval(?:\s+["'$A-Za-z0-9_(]|\s*$)/i;
+var SAFE_LITERAL_ENV_VALUES_RE = /^(?:true|false|yes|no|on|off|0|1|none|null|empty|disabled|enabled|readonly|dev|prod|staging|local|test)$/i;
+var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+var AUTH_SCHEME_ONLY_RE = /^(?:Bearer|Basic|Token|ApiKey|Digest)$/i;
+function computeShannonEntropy(input2) {
+  if (!input2) return 0;
+  const freq = /* @__PURE__ */ new Map();
+  for (let i = 0; i < input2.length; i += 1) {
+    const ch = input2[i];
+    freq.set(ch, (freq.get(ch) ?? 0) + 1);
+  }
+  let entropy = 0;
+  const len = input2.length;
+  for (const count of freq.values()) {
+    const p = count / len;
+    entropy -= p * Math.log2(p);
+  }
+  return entropy;
+}
+function isHighEntropySecretLiteral(val) {
+  if (val.length < 24 || val.length > 512) return false;
+  if (/\s/.test(val)) return false;
+  if (val.includes("${") || val.includes("{{")) return false;
+  if (/^https?:\/\//i.test(val)) return false;
+  if (val.includes("/") || val.includes("\\")) return false;
+  if (UUID_RE.test(val)) return false;
+  const hasLower = /[a-z]/.test(val);
+  const hasUpper = /[A-Z]/.test(val);
+  const hasDigit = /[0-9]/.test(val);
+  if (!(hasLower && hasUpper && hasDigit)) return false;
+  return computeShannonEntropy(val) >= 4;
+}
+function isLoopbackHost(rawHost) {
+  const host = rawHost.trim().toLowerCase().replace(/^\[|\]$/g, "");
+  if (!host) return false;
+  if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
+  if (host.endsWith(".localhost")) return true;
+  if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  return false;
+}
+function extractSafeHttpHost(urlCandidate) {
+  try {
+    const parsed = new URL(urlCandidate);
+    return parsed.hostname;
+  } catch {
+    const withoutScheme = urlCandidate.replace(/^http:\/\//i, "");
+    const authority = withoutScheme.split(/[/?#]/)[0] ?? "";
+    const hostPort = authority.includes("@") ? authority.slice(authority.lastIndexOf("@") + 1) : authority;
+    if (hostPort.startsWith("[")) {
+      const endBracket = hostPort.indexOf("]");
+      return endBracket > 0 ? hostPort.slice(0, endBracket + 1) : hostPort;
+    }
+    return hostPort.split(":")[0] ?? "";
+  }
+}
+function scanPromptInjection(relPath, text, push) {
+  let bidiCount = 0;
+  let zwRun = 0;
+  let maxZwRun = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    if (code >= 8234 && code <= 8238 || code >= 8294 && code <= 8297) {
+      bidiCount += 1;
+    }
+    if (code === 8203 || code === 8204 || code === 8205 || code === 65279) {
+      zwRun += 1;
+      if (zwRun > maxZwRun) maxZwRun = zwRun;
+    } else {
+      zwRun = 0;
+    }
+  }
+  if (bidiCount > 0) {
+    push({
+      id: makeFindingSlug(relPath, "pi-bidi"),
+      severity: "high",
+      category: "prompt-injection",
+      file: relPath,
+      title: "Covert BiDi directional control characters detected",
+      summary: `Found ${bidiCount} Unicode BiDi control character(s) (U+202A\u2013U+202E / U+2066\u2013U+2069) that can disguise hidden prompt instructions.`,
+      remediation: "Remove all hidden Unicode BiDi override characters from rule and skill markdown files and inspect surrounding lines in plain hex/ASCII view."
+    });
+  }
+  if (maxZwRun >= 4) {
+    push({
+      id: makeFindingSlug(relPath, "pi-zw"),
+      severity: "high",
+      category: "prompt-injection",
+      file: relPath,
+      title: "Zero-width steganographic character sequence detected",
+      summary: `Found a contiguous run of ${maxZwRun} zero-width characters (U+200B\u2013U+200D / U+FEFF), commonly used for invisible prompt smuggling.`,
+      remediation: "Strip contiguous zero-width characters from the instruction file and re-verify diff history for unauthorized edits."
+    });
+  }
+  const hasOverride = PI_OVERRIDE_RE.test(text) || PI_JAILBREAK_RE.test(text);
+  const hasExfil = PI_EXFIL_SECRET_RE.test(text) || PI_EXFIL_NET_RE.test(text) || PI_EXFIL_URL_SEND_RE.test(text);
+  if (hasOverride && hasExfil) {
+    push({
+      id: makeFindingSlug(relPath, "pi-override-exfil"),
+      severity: "high",
+      category: "prompt-injection",
+      file: relPath,
+      title: "Prompt override combined with secret exfiltration pattern",
+      summary: "Instruction file combines system/previous-instruction override phrasing with secret exfiltration or outbound network commands.",
+      remediation: "Remove untrusted override directives and outbound secret-handling instructions from workspace rule or skill files."
+    });
+  }
+}
+function scanJsonBroadCommandAllow(relPath, text, push) {
+  const reportedSubtypes = /* @__PURE__ */ new Set();
+  const reportOnce = (subtype, title, summary, remediation) => {
+    if (reportedSubtypes.has(subtype)) return;
+    reportedSubtypes.add(subtype);
+    push({
+      id: makeFindingSlug(relPath, `broad-${subtype}`),
+      severity: "high",
+      category: "broad-command-allow",
+      file: relPath,
+      title,
+      summary,
+      remediation
+    });
+  };
+  const inspectStringForFlags = (str) => {
+    if (DANGEROUS_SKIP_PERM_RE.test(str)) {
+      reportOnce(
+        "skip-permissions",
+        "Unrestricted permission bypass flag (--dangerously-skip-permissions)",
+        "Configuration enables --dangerously-skip-permissions, disabling host confirmation gates.",
+        "Remove --dangerously-skip-permissions and rely on explicit allowlists or Guard permission modes."
+      );
+    }
+    if (DANGEROUS_YOLO_RE.test(str)) {
+      reportOnce(
+        "yolo-flag",
+        "Unrestricted auto-approval flag (--yolo)",
+        "Configuration enables --yolo auto-execution without safety prompts.",
+        "Remove --yolo and scope permitted commands explicitly."
+      );
+    }
+    if (DANGEROUS_CHMOD_777_RE.test(str)) {
+      reportOnce(
+        "chmod-777",
+        "World-writable permission command (chmod 777)",
+        "Configuration invokes chmod 777 / a+rwx, granting unrestricted read/write/execute permissions.",
+        "Replace chmod 777 with least-privilege permissions (for example 0600 for secrets or 0755 for executables)."
+      );
+    }
+  };
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    if (/"(?:allow|allowedTools|allowed_tools|autoApprove|alwaysAllow)"\s*:\s*\[\s*"\*"\s*\]/i.test(text)) {
+      reportOnce(
+        "wildcard-allow",
+        'Wildcard command/tool allowlist ("*") detected',
+        'Configuration grants wildcard "*" allowlist access to all commands or tools.',
+        'Replace wildcard "*" allowlists with an explicit, minimal list of safe read-only tools or commands.'
+      );
+    }
+    inspectStringForFlags(text);
+    return;
+  }
+  const walk = (node2, depth) => {
+    if (depth > 12 || node2 === null || node2 === void 0) return;
+    if (typeof node2 === "string") {
+      inspectStringForFlags(node2);
+      return;
+    }
+    if (Array.isArray(node2)) {
+      for (const item of node2) walk(item, depth + 1);
+      return;
+    }
+    if (typeof node2 === "object") {
+      for (const [key, val] of Object.entries(node2)) {
+        const lowerKey = key.toLowerCase();
+        if (BROAD_ALLOW_KEYS.has(lowerKey)) {
+          const checkWildcard = (candidate) => typeof candidate === "string" && BROAD_WILDCARD_VALUE_RE.test(candidate.trim());
+          if (checkWildcard(val) || Array.isArray(val) && val.some(checkWildcard)) {
+            reportOnce(
+              "wildcard-allow",
+              `Wildcard permission allowlist in "${key}"`,
+              `Configuration sets "${key}" to a wildcard ("*"), permitting unrestricted tool or shell execution.`,
+              `Replace wildcard entries in "${key}" with explicit, least-privilege tool or command names.`
+            );
+          }
+        } else if ((lowerKey === "defaultmode" || lowerKey === "permissionmode") && typeof val === "string" && /^(?:bypasspermissions|dangerously-skip-permissions|yolo)$/i.test(val.trim())) {
+          reportOnce(
+            "bypass-mode",
+            `Unrestricted permission mode ("${val.trim()}")`,
+            `Configuration sets "${key}" to an unrestricted bypass mode.`,
+            "Use a guarded permission mode such as balanced-dev or strict-gate."
+          );
+        }
+        walk(val, depth + 1);
+      }
+    }
+  };
+  walk(parsed, 0);
+}
+function scanTextBroadCommandAllow(relPath, text, push) {
+  const reportedSubtypes = /* @__PURE__ */ new Set();
+  const lines = text.split(/\r?\n/);
+  for (const line of lines) {
+    if (!line || NEGATION_CONTEXT_RE.test(line)) continue;
+    if (!reportedSubtypes.has("skip-permissions") && DANGEROUS_SKIP_PERM_RE.test(line)) {
+      reportedSubtypes.add("skip-permissions");
+      push({
+        id: makeFindingSlug(relPath, "broad-text-skip-permissions"),
+        severity: "high",
+        category: "broad-command-allow",
+        file: relPath,
+        title: "Rule/skill recommends --dangerously-skip-permissions",
+        summary: "Instruction text directs the agent to pass --dangerously-skip-permissions without safety constraints.",
+        remediation: "Remove --dangerously-skip-permissions directives from workspace rules and skills."
+      });
+    }
+    if (!reportedSubtypes.has("yolo-flag") && DANGEROUS_YOLO_RE.test(line)) {
+      reportedSubtypes.add("yolo-flag");
+      push({
+        id: makeFindingSlug(relPath, "broad-text-yolo"),
+        severity: "high",
+        category: "broad-command-allow",
+        file: relPath,
+        title: "Rule/skill recommends --yolo auto-execution",
+        summary: "Instruction text directs the agent to run commands with --yolo unrestricted approval.",
+        remediation: "Remove --yolo directives and require explicit user approval for destructive commands."
+      });
+    }
+    if (!reportedSubtypes.has("chmod-777") && DANGEROUS_CHMOD_777_RE.test(line)) {
+      reportedSubtypes.add("chmod-777");
+      push({
+        id: makeFindingSlug(relPath, "broad-text-chmod-777"),
+        severity: "high",
+        category: "broad-command-allow",
+        file: relPath,
+        title: "Rule/skill recommends world-writable chmod 777",
+        summary: "Instruction text includes chmod 777 / a+rwx, exposing workspace files to world-writable access.",
+        remediation: "Replace chmod 777 with minimal file permissions (0600 / 0644 / 0755)."
+      });
+    }
+  }
+}
+function scanRiskyHooks(relPath, text, push) {
+  const commands = [];
+  let parsed = null;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    const cmdLineRe = /"(?:command|cmd|script)"\s*:\s*"([^"\r\n]{1,500})"/g;
+    let m;
+    while ((m = cmdLineRe.exec(text)) !== null) {
+      commands.push(m[1]);
+      if (commands.length >= 64) break;
+    }
+  }
+  if (parsed && typeof parsed === "object") {
+    const walk = (node2, depth) => {
+      if (depth > 12 || !node2 || typeof node2 !== "object" || commands.length >= 64) return;
+      if (Array.isArray(node2)) {
+        for (const item of node2) walk(item, depth + 1);
+        return;
+      }
+      const obj = node2;
+      for (const field of ["command", "cmd", "script"]) {
+        const rawCmd = obj[field];
+        if (typeof rawCmd === "string" && rawCmd.trim()) {
+          const argList = Array.isArray(obj.args) ? obj.args.filter((a) => typeof a === "string").join(" ") : "";
+          commands.push(argList ? `${rawCmd.trim()} ${argList}` : rawCmd.trim());
+        }
+      }
+      for (const val of Object.values(obj)) {
+        if (val && typeof val === "object") walk(val, depth + 1);
+      }
+    };
+    walk(parsed, 0);
+  }
+  const reported = /* @__PURE__ */ new Set();
+  for (const cmd of commands) {
+    if (!reported.has("pipe-sh") && HOOK_PIPE_SHELL_RE.test(cmd)) {
+      reported.add("pipe-sh");
+      push({
+        id: makeFindingSlug(relPath, "hook-pipe-sh"),
+        severity: "high",
+        category: "risky-hook",
+        file: relPath,
+        title: "Hook pipes remote download directly into shell interpreter",
+        summary: "Lifecycle hook command executes a remote script via curl/wget piped directly into a shell or runtime.",
+        remediation: "Pin and verify scripts locally inside the repository with checksum verification instead of piping remote downloads into sh/bash."
+      });
+    }
+    if (!reported.has("rm-rf-root") && HOOK_RM_RF_ROOT_RE.test(cmd)) {
+      reported.add("rm-rf-root");
+      push({
+        id: makeFindingSlug(relPath, "hook-rm-rf-root"),
+        severity: "high",
+        category: "risky-hook",
+        file: relPath,
+        title: "Hook executes destructive root/home deletion (rm -rf)",
+        summary: "Lifecycle hook command contains a destructive recursive rm targeting /, /*, ~, or $HOME.",
+        remediation: "Remove destructive root/home rm commands from hooks and restrict cleanup strictly to explicit workspace temp paths."
+      });
+    }
+    if (!reported.has("eval") && HOOK_EVAL_RE.test(cmd)) {
+      reported.add("eval");
+      push({
+        id: makeFindingSlug(relPath, "hook-eval"),
+        severity: "high",
+        category: "risky-hook",
+        file: relPath,
+        title: "Hook invokes dynamic eval execution",
+        summary: "Lifecycle hook command calls shell eval, enabling arbitrary command injection from untrusted hook payloads.",
+        remediation: "Replace eval with direct argv invocation (for example node ./dist/hook.cjs with explicit CLI flags)."
+      });
+    }
+  }
+}
+function scanMcpUnsafeEnv(relPath, text, push) {
+  let parsed;
+  try {
+    const raw = JSON.parse(text);
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return;
+    parsed = raw;
+  } catch {
+    return;
+  }
+  const serversObj = parsed.mcpServers && typeof parsed.mcpServers === "object" && !Array.isArray(parsed.mcpServers) ? parsed.mcpServers : parsed.servers && typeof parsed.servers === "object" && !Array.isArray(parsed.servers) ? parsed.servers : null;
+  if (!serversObj) return;
+  for (const [serverName, rawDef] of Object.entries(serversObj)) {
+    if (!rawDef || typeof rawDef !== "object" || Array.isArray(rawDef)) continue;
+    const def = rawDef;
+    const safeServerName = sanitizeMcpIdentifier(serverName);
+    if (def.env && typeof def.env === "object" && !Array.isArray(def.env)) {
+      for (const [rawKey, rawVal] of Object.entries(def.env)) {
+        if (typeof rawVal !== "string") continue;
+        const val = rawVal.trim();
+        if (!val) continue;
+        if (PURE_ENV_REF_RE.test(val) || UNRESOLVED_PLACEHOLDER_RE.test(val)) continue;
+        const stripped = val.replace(ENV_VAR_GLOBAL_RE, "").trim();
+        if (!stripped || AUTH_SCHEME_ONLY_RE.test(stripped)) continue;
+        const cleanedKey = rawKey.replace(/[^\w.-]/g, "").slice(0, 64) || "key";
+        const safeKey = sanitizeMcpIdentifier(cleanedKey);
+        const knownSecret = containsSecretPattern(val) || JWT_LIKE_RE.test(val);
+        const sensitiveKeyLiteral = SENSITIVE_KEY_NAME_RE.test(rawKey) && stripped.length >= 4 && !SAFE_LITERAL_ENV_VALUES_RE.test(stripped);
+        const highEntropy = isHighEntropySecretLiteral(stripped);
+        if (knownSecret || sensitiveKeyLiteral || highEntropy) {
+          push({
+            id: makeFindingSlug(relPath, `mcp-env-${safeServerName}-${safeKey}`),
+            severity: "high",
+            category: "mcp-unsafe-env",
+            file: relPath,
+            title: `Hardcoded credential in MCP env (${safeServerName}.${safeKey})`,
+            summary: `MCP server "${safeServerName}" defines a hardcoded non-placeholder value for env.${safeKey} (secret value redacted).`,
+            remediation: `Replace the literal value in "${safeServerName}" env.${safeKey} with a \${${safeKey}} placeholder or host keychain injection.`
+          });
+        }
+      }
+    }
+    const urlCandidate = typeof def.url === "string" ? def.url.trim() : typeof def.serverUrl === "string" ? def.serverUrl.trim() : typeof def.httpUrl === "string" ? def.httpUrl.trim() : "";
+    if (urlCandidate && /^http:\/\//i.test(urlCandidate)) {
+      const host = extractSafeHttpHost(urlCandidate);
+      if (host && !isLoopbackHost(host)) {
+        const safeHost = containsSecretPattern(host) || SENSITIVE_KEY_NAME_RE.test(host) ? "<redacted-host>" : host.slice(0, 80);
+        push({
+          id: makeFindingSlug(relPath, `mcp-http-${safeServerName}`),
+          severity: "medium",
+          category: "mcp-unsafe-env",
+          file: relPath,
+          title: `Unencrypted remote http:// MCP endpoint (${safeServerName})`,
+          summary: `MCP server "${safeServerName}" points to remote host "${safeHost}" over plaintext http://.`,
+          remediation: `Use https:// with TLS for remote MCP server "${safeServerName}", or confine plaintext http:// strictly to localhost / 127.0.0.1 / [::1].`
+        });
+      }
+    }
+  }
+}
+function auditStaticSecurityReadOnly(realRoot, rootPrefix) {
+  const findings = [];
+  const seenFindingIds = /* @__PURE__ */ new Set();
+  const pushFinding = (finding) => {
+    const clean = sanitizeSecurityFinding(finding);
+    if (seenFindingIds.has(clean.id)) return;
+    seenFindingIds.add(clean.id);
+    findings.push(clean);
+  };
+  const candidates = [];
+  const seenCandidates = /* @__PURE__ */ new Set();
+  const addCandidate = (relPath, kind) => {
+    const norm = relPath.replace(/\\/g, "/").replace(/^\/+/, "");
+    if (!norm || seenCandidates.has(norm) || candidates.length >= MAX_SECURITY_SCAN_FILES * 2) return;
+    seenCandidates.add(norm);
+    candidates.push({ relPath: norm, kind });
+  };
+  addCandidate("AGENTS.md", "rule");
+  addCandidate("GEMINI.md", "rule");
+  addCandidate("CLAUDE.md", "rule");
+  addCandidate("hooks.json", "hook");
+  addCandidate(".agents/hooks.json", "hook");
+  addCandidate("hooks/hooks.json", "hook");
+  addCandidate("mcp_config.json", "mcp");
+  addCandidate(".mcp.json", "mcp");
+  addCandidate(".cursor/mcp.json", "mcp");
+  addCandidate(".gemini/mcp_config.json", "mcp");
+  addCandidate(".claude/settings.json", "client-settings");
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    ".agents/rules",
+    4,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => /\.(?:md|mdx|txt)$/i.test(name)
+  )) {
+    addCandidate(rel, "rule");
+  }
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    ".cursor/rules",
+    4,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => /\.(?:mdc|md|mdx|txt)$/i.test(name)
+  )) {
+    addCandidate(rel, "rule");
+  }
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    "skills",
+    2,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => name.toUpperCase() === "SKILL.MD"
+  )) {
+    addCandidate(rel, "skill");
+  }
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    ".agents/skills",
+    2,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => name.toUpperCase() === "SKILL.MD"
+  )) {
+    addCandidate(rel, "skill");
+  }
+  let scannedCount = 0;
+  for (const target of candidates) {
+    if (scannedCount >= MAX_SECURITY_SCAN_FILES) break;
+    const read = readFileStrictNoSymlink(
+      realRoot,
+      rootPrefix,
+      target.relPath,
+      MAX_SECURITY_SCAN_FILE_BYTES
+    );
+    if (!read.ok) continue;
+    scannedCount += 1;
+    if (target.kind === "rule" || target.kind === "skill") {
+      scanPromptInjection(read.relPath, read.text, pushFinding);
+      scanTextBroadCommandAllow(read.relPath, read.text, pushFinding);
+    } else if (target.kind === "hook") {
+      scanJsonBroadCommandAllow(read.relPath, read.text, pushFinding);
+      scanRiskyHooks(read.relPath, read.text, pushFinding);
+    } else if (target.kind === "mcp") {
+      scanJsonBroadCommandAllow(read.relPath, read.text, pushFinding);
+      scanMcpUnsafeEnv(read.relPath, read.text, pushFinding);
+    } else if (target.kind === "client-settings") {
+      scanJsonBroadCommandAllow(read.relPath, read.text, pushFinding);
+    }
+  }
+  const severityRank = { high: 0, medium: 1, low: 2 };
+  findings.sort(
+    (a, b) => severityRank[a.severity] - severityRank[b.severity] || a.file.localeCompare(b.file) || a.id.localeCompare(b.id)
+  );
+  return {
+    securityFindings: findings,
+    securityScore: calculateSecurityScore(findings)
+  };
+}
+function stripYamlFrontmatter(text) {
+  const lines = text.split(/\r?\n/);
+  if (lines.length >= 3 && lines[0].trim() === "---") {
+    for (let i = 1; i < Math.min(lines.length, 40); i += 1) {
+      if (lines[i].trim() === "---") {
+        return lines.slice(i + 1).join("\n");
+      }
+    }
+  }
+  return text;
+}
+function normalizeDedupLine(rawLine) {
+  let s = rawLine.trim();
+  if (!s) return "";
+  if (/^[-*_=`~]{3,}$/.test(s)) return "";
+  s = s.replace(/^(?:[>#*+-]+\s+|\d+[.)]\s+)/, "");
+  s = s.replace(/[`*_]+/g, "");
+  s = s.replace(/\s+/g, " ").trim().toLowerCase();
+  const alphaNumCount = (s.match(/[\p{L}\p{N}]/gu) ?? []).length;
+  if (alphaNumCount < 4) return "";
+  return s;
+}
+function hashDedupUnit(unit) {
+  return import_node_crypto6.default.createHash("sha256").update(unit).digest("hex").slice(0, 16);
+}
+function extractNormalizedDocUnits(text) {
+  const body = stripYamlFrontmatter(text);
+  const rawLines = body.length === 0 ? [] : body.split(/\r?\n/);
+  const meaningfulLineHashes = [];
+  const lineToParaHash = [];
+  const paragraphHashes = [];
+  let paraBuf = [];
+  const flushPara = () => {
+    if (paraBuf.length === 0) return;
+    const paraHash = paraBuf.length >= 2 ? hashDedupUnit(paraBuf.join("\n")) : "";
+    if (paraHash) paragraphHashes.push(paraHash);
+    for (const normLine of paraBuf) {
+      meaningfulLineHashes.push(hashDedupUnit(normLine));
+      lineToParaHash.push(paraHash);
+    }
+    paraBuf = [];
+  };
+  for (const raw of rawLines) {
+    if (!raw.trim()) {
+      flushPara();
+      continue;
+    }
+    const norm = normalizeDedupLine(raw);
+    if (!norm) continue;
+    paraBuf.push(norm);
+  }
+  flushPara();
+  return {
+    meaningfulLineHashes,
+    lineToParaHash,
+    paragraphHashes,
+    rawLineCount: text.length === 0 ? 0 : text.split(/\r?\n/).length
+  };
+}
+function isThinRulePointer(text) {
+  const nonEmpty = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (nonEmpty.length === 0 || nonEmpty.length > 3) return false;
+  const joined = nonEmpty.join(" ");
+  if (joined.length > 220) return false;
+  return /(?:^|\s)@(?:AGENTS|GEMINI)\.md\b|\b(?:see|follow|import|source of truth:?)\s+[`"]?(?:AGENTS|GEMINI)\.md[`"]?/i.test(
+    joined
+  );
+}
+function buildCrossClientMigrationPreviewReadOnly(realRoot, rootPrefix) {
+  const seenLineHashes = /* @__PURE__ */ new Set();
+  const seenParaHashes = /* @__PURE__ */ new Set();
+  const hasAgentsMd = readFileStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    "AGENTS.md",
+    MAX_SECURITY_SCAN_FILE_BYTES
+  );
+  const hasGeminiMd = readFileStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    "GEMINI.md",
+    MAX_SECURITY_SCAN_FILE_BYTES
+  );
+  const defaultRuleTarget = !hasAgentsMd.ok && hasGeminiMd.ok ? "GEMINI.md" : "AGENTS.md";
+  const indexCanonicalText = (text) => {
+    const units = extractNormalizedDocUnits(text);
+    for (const lh of units.meaningfulLineHashes) seenLineHashes.add(lh);
+    for (const ph of units.paragraphHashes) seenParaHashes.add(ph);
+  };
+  if (hasAgentsMd.ok) indexCanonicalText(hasAgentsMd.text);
+  if (hasGeminiMd.ok) indexCanonicalText(hasGeminiMd.text);
+  const canonicalAgentRules = listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    ".agents/rules",
+    4,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => /\.(?:md|mdx|txt)$/i.test(name)
+  );
+  for (const rel of canonicalAgentRules) {
+    const read = readFileStrictNoSymlink(realRoot, rootPrefix, rel, MAX_SECURITY_SCAN_FILE_BYTES);
+    if (read.ok) indexCanonicalText(read.text);
+  }
+  const sources = [];
+  const seenSourcePaths = /* @__PURE__ */ new Set();
+  const addSource = (client, relPath, isConfig) => {
+    const norm = relPath.replace(/\\/g, "/").replace(/^\/+/, "");
+    if (!norm || seenSourcePaths.has(norm) || sources.length >= MAX_SECURITY_SCAN_FILES) return;
+    seenSourcePaths.add(norm);
+    sources.push({ client, relPath: norm, isConfig });
+  };
+  addSource("claude", "CLAUDE.md", false);
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    ".claude/rules",
+    4,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => /\.(?:md|mdx|txt)$/i.test(name)
+  )) {
+    addSource("claude", rel, false);
+  }
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    ".claude/commands",
+    4,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => /\.(?:md|mdx|txt)$/i.test(name)
+  )) {
+    addSource("claude", rel, false);
+  }
+  addSource("claude", ".claude/settings.json", true);
+  addSource("claude", ".claude/settings.local.json", true);
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    ".cursor/rules",
+    4,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => /\.(?:mdc|md|mdx|txt)$/i.test(name)
+  )) {
+    addSource("cursor", rel, false);
+  }
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    ".codex",
+    4,
+    MAX_SECURITY_SCAN_FILES,
+    (r, name) => {
+      const lower = r.toLowerCase();
+      return lower === ".codex/config.toml" || /^\.codex\/rules\/.+\.toml$/i.test(lower) || /\.(?:md|mdx|txt)$/i.test(name);
+    }
+  )) {
+    const isCfg = /\.toml$/i.test(rel);
+    addSource("codex", rel, isCfg);
+  }
+  const entries = [];
+  for (const src of sources) {
+    const read = readFileStrictNoSymlink(
+      realRoot,
+      rootPrefix,
+      src.relPath,
+      MAX_SECURITY_SCAN_FILE_BYTES
+    );
+    if (!read.ok) continue;
+    const estimatedTokens = Math.ceil(read.text.length / 4);
+    const rawLineCount = read.text.length === 0 ? 0 : read.text.split(/\r?\n/).length;
+    if (src.isConfig) {
+      entries.push({
+        client: src.client,
+        sourcePath: read.relPath,
+        bytes: read.bytes,
+        estimatedTokens,
+        duplicatePercent: 0,
+        duplicateLines: 0,
+        totalLines: rawLineCount,
+        recommendedTarget: ".agy-nov.json",
+        action: "keep-pointer"
+      });
+      continue;
+    }
+    const recommendedTarget = src.relPath.toLowerCase().startsWith(".claude/commands/") ? ".agents/skills/" : defaultRuleTarget;
+    if (isThinRulePointer(read.text)) {
+      entries.push({
+        client: src.client,
+        sourcePath: read.relPath,
+        bytes: read.bytes,
+        estimatedTokens,
+        duplicatePercent: 0,
+        duplicateLines: 0,
+        totalLines: rawLineCount,
+        recommendedTarget,
+        action: "keep-pointer"
+      });
+      continue;
+    }
+    const units = extractNormalizedDocUnits(read.text);
+    const totalLines = units.meaningfulLineHashes.length > 0 ? units.meaningfulLineHashes.length : rawLineCount;
+    let duplicateLines = 0;
+    for (let i = 0; i < units.meaningfulLineHashes.length; i += 1) {
+      const lh = units.meaningfulLineHashes[i];
+      const ph = units.lineToParaHash[i];
+      if (seenLineHashes.has(lh) || ph && seenParaHashes.has(ph)) {
+        duplicateLines += 1;
+      }
+    }
+    const duplicatePercent = units.meaningfulLineHashes.length > 0 ? Math.min(100, Math.round(duplicateLines / units.meaningfulLineHashes.length * 100)) : 0;
+    for (const lh of units.meaningfulLineHashes) seenLineHashes.add(lh);
+    for (const ph of units.paragraphHashes) seenParaHashes.add(ph);
+    const action = duplicatePercent >= 30 || duplicateLines >= 2 && duplicatePercent >= 20 ? "dedupe-merge" : "migrate-unique";
+    entries.push({
+      client: src.client,
+      sourcePath: read.relPath,
+      bytes: read.bytes,
+      estimatedTokens,
+      duplicatePercent,
+      duplicateLines,
+      totalLines,
+      recommendedTarget,
+      action
+    });
+  }
+  return summarizeMigrationPreview(entries);
+}
 function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools) {
   const realRoot = import_node_fs10.default.realpathSync(import_node_path13.default.resolve(workspaceRoot));
   const rootPrefix = realRoot.endsWith(import_node_path13.default.sep) ? realRoot : `${realRoot}${import_node_path13.default.sep}`;
@@ -45965,6 +47398,24 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools)
       detail: `Current data directory size is ${(storage.totalBytes / (1024 * 1024)).toFixed(1)} MiB across ${storage.totalFiles} files. Consider pruning old snapshots or completed sessions.`
     });
   }
+  const { securityFindings, securityScore } = auditStaticSecurityReadOnly(realRoot, rootPrefix);
+  const migrationPreview = buildCrossClientMigrationPreviewReadOnly(realRoot, rootPrefix);
+  const highSecurityCount = securityFindings.filter((f) => f.severity === "high").length;
+  if (highSecurityCount > 0) {
+    recommendations.push({
+      level: "critical",
+      code: "ops.static-security-findings",
+      title: `Static security audit detected ${highSecurityCount} high-severity risk(s) (score ${securityScore}/100)`,
+      detail: `Inspect securityFindings for prompt-injection, unrestricted command allowlists, risky hooks, or hardcoded MCP credentials.`
+    });
+  } else if (securityFindings.length > 0) {
+    recommendations.push({
+      level: "warn",
+      code: "ops.static-security-findings",
+      title: `Static security audit detected ${securityFindings.length} finding(s) (score ${securityScore}/100)`,
+      detail: `Review securityFindings for recommended hardening across workspace rules, hooks, and MCP endpoints.`
+    });
+  }
   if (recommendations.length === 0) {
     recommendations.push({
       level: "info",
@@ -45994,7 +47445,10 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools)
     toolBudget,
     mcpHealthFindings,
     teamPreset,
-    crossClientFindings
+    crossClientFindings,
+    securityFindings,
+    securityScore,
+    migrationPreview
   };
 }
 var auditWorkspaceReadOnly = auditWorkspaceAssets;
@@ -46006,6 +47460,64 @@ function createDemoOpsAuditReport(workspaceRoot, enabledNovTools) {
   const estimatedTotalTools = novTools + estimatedExternalTools;
   const usagePercent = Math.round(estimatedTotalTools / TOOL_BUDGET_HARD_LIMIT * 100);
   const toolBudgetStatus = estimatedTotalTools >= 95 ? "critical" : estimatedTotalTools >= 75 ? "warn" : "ok";
+  const demoSecurityFindings = [
+    {
+      id: "demo-sec-mcp-http-docs",
+      severity: "medium",
+      category: "mcp-unsafe-env",
+      file: ".mcp.json",
+      title: "Unencrypted remote http:// MCP endpoint (docs-search)",
+      summary: 'MCP server "docs-search" points to remote host "mcp-docs.staging.internal" over plaintext http://.',
+      remediation: 'Use https:// with TLS for remote MCP server "docs-search", or confine plaintext http:// strictly to localhost / 127.0.0.1 / [::1].'
+    }
+  ];
+  const demoSecurityScore = calculateSecurityScore(demoSecurityFindings);
+  const demoMigrationPreview = summarizeMigrationPreview([
+    {
+      client: "claude",
+      sourcePath: "CLAUDE.md",
+      bytes: 3420,
+      estimatedTokens: 855,
+      duplicatePercent: 82,
+      duplicateLines: 41,
+      totalLines: 50,
+      recommendedTarget: "AGENTS.md",
+      action: "dedupe-merge"
+    },
+    {
+      client: "cursor",
+      sourcePath: ".cursor/rules/typescript.mdc",
+      bytes: 2180,
+      estimatedTokens: 545,
+      duplicatePercent: 64,
+      duplicateLines: 25,
+      totalLines: 39,
+      recommendedTarget: "AGENTS.md",
+      action: "dedupe-merge"
+    },
+    {
+      client: "claude",
+      sourcePath: ".claude/commands/release.md",
+      bytes: 1240,
+      estimatedTokens: 310,
+      duplicatePercent: 15,
+      duplicateLines: 3,
+      totalLines: 20,
+      recommendedTarget: ".agents/skills/",
+      action: "migrate-unique"
+    },
+    {
+      client: "codex",
+      sourcePath: ".codex/config.toml",
+      bytes: 480,
+      estimatedTokens: 120,
+      duplicatePercent: 0,
+      duplicateLines: 0,
+      totalLines: 14,
+      recommendedTarget: ".agy-nov.json",
+      action: "keep-pointer"
+    }
+  ]);
   const assets = [
     {
       relPath: "AGENTS.md",
@@ -46168,7 +47680,10 @@ function createDemoOpsAuditReport(workspaceRoot, enabledNovTools) {
         message: "Detected 1 Cursor rule file(s) (.cursor/rules/typescript.mdc).",
         suggestion: "Keep shared workspace rules in AGENTS.md or modular skills/ so Antigravity and Cursor coexist without rule drift."
       }
-    ]
+    ],
+    securityFindings: demoSecurityFindings,
+    securityScore: demoSecurityScore,
+    migrationPreview: demoMigrationPreview
   };
 }
 var createDemoWorkspaceAudit = createDemoOpsAuditReport;
@@ -46209,7 +47724,7 @@ function registerOpsModule(server, options, uiResourceUri) {
       tags: ["release", "checklist", "demo"],
       body: "\u8BF7\u6838\u5BF9 {{version}} \u53D1\u5E03\u524D\u7684\u95E8\u7981\u6E05\u5355\uFF1A\u786E\u8BA4 UI \u5305\u4F53\u79EF\u5C0F\u4E8E {{max_mb}} MiB\uFF0C\u5168\u90E8\u5355\u5143\u6D4B\u8BD5\u901A\u8FC7\uFF0C\u5E76\u68C0\u67E5 {{module_scope}} \u7684\u9ED8\u8BA4\u5173\u95ED\u8FB9\u754C\u3002",
       variables: [
-        { name: "version", defaultValue: "v0.4.0" },
+        { name: "version", defaultValue: "v1.0.0" },
         { name: "max_mb", defaultValue: "10" },
         { name: "module_scope", defaultValue: "opt-in remote" }
       ]
@@ -46314,7 +47829,7 @@ function registerOpsModule(server, options, uiResourceUri) {
     "ops_audit_workspace",
     {
       title: "Audit Workspace Assets & Storage",
-      description: "Read-only inspection of workspace rules (24KB/20K bloat guard), 100-tool MCP budget meter, static MCP config health, optional .agy-nov.json team preset, cross-client pitfall & migration checks, skills/manifests, token estimates, and local agy-NOV storage usage.",
+      description: "Read-only inspection of workspace rules (24KB/20K bloat guard), 100-tool MCP budget meter, static security audit (prompt-injection / broad allow / risky hooks / MCP env), cross-client dedup & slimming preview, static MCP config health, optional .agy-nov.json team preset, skills/manifests, token estimates, and local agy-NOV storage usage.",
       inputSchema: {}
     },
     async () => {
@@ -46323,8 +47838,11 @@ function registerOpsModule(server, options, uiResourceUri) {
         const largestKb = (report.ruleBloat.largestFileBytes / 1024).toFixed(1);
         const limitKb = Math.round(report.ruleBloat.singleFileLimitBytes / 1024);
         const teamPresetSummary = report.teamPreset.found ? `${report.teamPreset.valid ? "VALID" : "INVALID"}${report.teamPreset.preset ? ` (preset=${report.teamPreset.preset})` : ""}, ${report.teamPreset.verifyCommands.length} verify cmd(s), ${report.teamPreset.warnings.length} warn(s), ${report.teamPreset.errors.length} error(s)` : "not found (optional)";
+        const mp = report.migrationPreview;
         const lines = [
           `Workspace Audit (${report.workspaceName}, score=${report.healthScore}/100): ${report.summary.assetCount} asset(s), ~${report.summary.totalEstimatedTokens} tokens (${report.summary.totalBytes} bytes)`,
+          `Static Security Audit: score=${report.securityScore}/100, ${report.securityFindings.length} finding(s)`,
+          `Cross-Client Dedup Preview (read-only): ${mp.totalFiles} file(s), ${mp.totalBytes} bytes total, ${mp.reclaimableBytes} bytes reclaimable (~${mp.estimatedSavedTokens} tokens, ${mp.estimatedSavingsPercent}% est. savings)`,
           `Rule Bloat: [${report.ruleBloat.status.toUpperCase()}] largest=${largestKb}KB/${limitKb}KB${report.ruleBloat.largestFilePath ? ` (${report.ruleBloat.largestFilePath})` : ""}, total=~${report.ruleBloat.totalRuleTokens}/${report.ruleBloat.aggregateTokenLimit} tokens`,
           `Tool Budget (${report.toolBudget.estimatedTotalTools}/${report.toolBudget.hardLimit}): [${report.toolBudget.status.toUpperCase()}] ${report.toolBudget.usagePercent}% (agy-NOV=${report.toolBudget.agyNovTools}, external MCP=${report.toolBudget.externalServersCount} server(s) ~${report.toolBudget.estimatedExternalTools} tools)`,
           `MCP Health: ${report.mcpHealthFindings.length} finding(s)`,
@@ -46333,6 +47851,12 @@ function registerOpsModule(server, options, uiResourceUri) {
           `Local storage: ${report.storage.rootDataDirExists ? `${report.storage.totalFiles} files, ${report.storage.totalBytes} bytes` : "not initialized (0 bytes)"}`,
           ...report.assets.slice(0, 12).map(
             (a) => `- [${a.kind}] ${a.relPath}: ~${a.estimatedTokens} tokens (${a.bytes}B, ${a.lineCount}L)`
+          ),
+          ...report.securityFindings.slice(0, 8).map(
+            (f) => `! [SEC ${f.severity.toUpperCase()} ${f.category}] ${f.file}: ${f.title} \u2014 ${f.summary}`
+          ),
+          ...mp.entries.slice(0, 6).map(
+            (e) => `~ [DEDUP ${e.client.toUpperCase()} ${e.action}] ${e.sourcePath} -> ${e.recommendedTarget} (${e.duplicatePercent}% dup, ${e.bytes}B)`
           ),
           ...report.mcpHealthFindings.slice(0, 8).map(
             (f) => `! [MCP ${f.severity.toUpperCase()}] ${f.file}${f.serverName ? ` (${f.serverName})` : ""}: ${f.message}`
@@ -47247,6 +48771,15 @@ var FILE_ARG_KEYS = [
   "Uri"
 ];
 var EXTRA_SENSITIVE_BASENAME_RE = /(?:^\.env(?:\.|$)|\.(?:pem|key|p12|pfx|jks|keystore|kdbx|crt|der)$|^id_(?:rsa|ed25519|ecdsa|dsa)(?:\.pub)?$|^(?:authorized_keys|known_hosts|\.npmrc|\.netrc|\.pypirc|kubeconfig)$|(?:secret|credential|password|passwd|private[_-]?key|token))/i;
+function findTagCloseBeforeNextOpen(input2, from) {
+  const n = input2.length;
+  for (let k = from; k < n; k += 1) {
+    const code = input2.charCodeAt(k);
+    if (code === 62) return { gt: k, nextLt: -1 };
+    if (code === 60) return { gt: -1, nextLt: k };
+  }
+  return { gt: -1, nextLt: n };
+}
 function stripRemotePrivateBlocksLinear(input2) {
   if (!input2 || !input2.includes("<")) return input2;
   const lower = input2.toLowerCase();
@@ -47260,12 +48793,13 @@ function stripRemotePrivateBlocksLinear(input2) {
     const lt = input2.indexOf("<", i);
     if (lt < 0) {
       if (depth === 0) out += input2.slice(cursor);
+      cursor = n;
       break;
     }
     if (lower.startsWith("<private", lt)) {
       const after = lt + 8;
       if (after < n && (input2[after] === ">" || /\s/.test(input2[after]))) {
-        const gt = input2.indexOf(">", after);
+        const { gt, nextLt } = findTagCloseBeforeNextOpen(input2, after);
         if (gt >= 0) {
           if (depth === 0) {
             out += input2.slice(cursor, lt);
@@ -47276,20 +48810,27 @@ function stripRemotePrivateBlocksLinear(input2) {
           cursor = i;
           continue;
         }
+        i = nextLt;
+        continue;
       }
     } else if (lower.startsWith("</private", lt)) {
       const after = lt + 9;
       if (after < n && (input2[after] === ">" || /\s/.test(input2[after]))) {
-        const gt = input2.indexOf(">", after);
+        const { gt, nextLt } = findTagCloseBeforeNextOpen(input2, after);
         if (gt >= 0) {
           if (depth > 0) depth -= 1;
           i = gt + 1;
           if (depth === 0) cursor = i;
           continue;
         }
+        i = nextLt;
+        continue;
       }
     }
     i = lt + 1;
+  }
+  if (depth === 0 && cursor < n) {
+    out += input2.slice(cursor);
   }
   return out;
 }
@@ -47997,7 +49538,7 @@ function isBlockedIpAddress(rawIp) {
   }
   return false;
 }
-function isLoopbackHost(hostname3) {
+function isLoopbackHost2(hostname3) {
   const clean = hostname3.replace(/^\[|\]$/g, "").replace(/\.$/, "").toLowerCase();
   if (clean === "localhost" || clean === "::1") return true;
   if (import_node_net.default.isIP(clean) === 4) {
@@ -48021,7 +49562,7 @@ function validateWebhookUrl(rawUrl, opts = {}) {
     throw new Error("Webhook URL is missing hostname");
   }
   if (opts.allowInsecureLocalhostForTests) {
-    if ((parsed.protocol === "http:" || parsed.protocol === "https:") && isLoopbackHost(host)) {
+    if ((parsed.protocol === "http:" || parsed.protocol === "https:") && isLoopbackHost2(host)) {
       return parsed;
     }
     throw new Error("Test localhost bypass only permits loopback http(s) endpoints");
@@ -60079,9 +61620,19 @@ function matchFileViewerExtension(nameOrPath) {
 function resolveFileViewerTargetTab(ext) {
   return ext === ".svg" ? "canvas" : "studio";
 }
+var SVG_NAMED_PROTOCOL_ENTITIES = {
+  colon: ":",
+  tab: "	",
+  newline: "\n",
+  sol: "/"
+};
 function decodeSvgEntitiesAndCssEscapesLinear(input2) {
-  const entitiesDecoded = input2.replace(
-    /&#(?:x([0-9a-fA-F]{1,6})|([0-9]{1,7}));?/g,
+  const namedDecoded = input2.replace(
+    /&(colon|tab|newline|sol);/gi,
+    (_full, name) => SVG_NAMED_PROTOCOL_ENTITIES[name.toLowerCase()] ?? ""
+  );
+  const entitiesDecoded = namedDecoded.replace(
+    /&#(?:x0*([0-9a-fA-F]{1,6})|0*([0-9]{1,7}));?/g,
     (full, hex3, dec) => {
       const code = hex3 ? Number.parseInt(hex3, 16) : Number.parseInt(dec ?? "", 10);
       if (!Number.isFinite(code) || code <= 0 || code > 1114111) return "";
@@ -67265,8 +68816,17 @@ var DEFAULT_VERIFY_POLICY = {
     }
   ]
 };
+function findTagCloseBeforeNextOpen2(input2, from) {
+  const n = input2.length;
+  for (let k = from; k < n; k += 1) {
+    const code = input2.charCodeAt(k);
+    if (code === 62) return { gt: k, nextLt: -1 };
+    if (code === 60) return { gt: -1, nextLt: k };
+  }
+  return { gt: -1, nextLt: n };
+}
 function stripPrivateBlocksLinear3(input2) {
-  if (!input2 || !input2.includes("<") && !input2.includes(">")) return input2;
+  if (!input2 || !input2.includes("<")) return input2;
   const lower = input2.toLowerCase();
   if (!lower.includes("<private")) return input2;
   let out = "";
@@ -67278,12 +68838,13 @@ function stripPrivateBlocksLinear3(input2) {
     const lt = input2.indexOf("<", i);
     if (lt < 0) {
       if (depth === 0) out += input2.slice(cursor);
+      cursor = n;
       break;
     }
     if (lower.startsWith("<private", lt)) {
       const after = lt + 8;
       if (after < n && (input2[after] === ">" || /\s/.test(input2[after]))) {
-        const gt = input2.indexOf(">", after);
+        const { gt, nextLt } = findTagCloseBeforeNextOpen2(input2, after);
         if (gt >= 0) {
           if (depth === 0) {
             out += input2.slice(cursor, lt);
@@ -67294,11 +68855,13 @@ function stripPrivateBlocksLinear3(input2) {
           cursor = i;
           continue;
         }
+        i = nextLt;
+        continue;
       }
     } else if (lower.startsWith("</private", lt)) {
       const after = lt + 9;
       if (after < n && (input2[after] === ">" || /\s/.test(input2[after]))) {
-        const gt = input2.indexOf(">", after);
+        const { gt, nextLt } = findTagCloseBeforeNextOpen2(input2, after);
         if (gt >= 0) {
           if (depth > 0) {
             depth -= 1;
@@ -67309,9 +68872,14 @@ function stripPrivateBlocksLinear3(input2) {
           }
           continue;
         }
+        i = nextLt;
+        continue;
       }
     }
     i = lt + 1;
+  }
+  if (depth === 0 && cursor < n) {
+    out += input2.slice(cursor);
   }
   return out;
 }
@@ -72456,7 +74024,7 @@ function listArtifactsInBrainDir(brainDir) {
 }
 var MAX_LINKED_SUBAGENTS = 24;
 var CHILD_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{1,127}$/;
-var UUID_RE = /\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i;
+var UUID_RE2 = /\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i;
 var LABELED_CONV_ID_RE = /["']?(?:child[_-]?conversation[_-]?id|subagent[_-]?conversation[_-]?id|conversation[_-]?id|session[_-]?id|subagent[_-]?id)["']?\s*[:=]\s*["'`]?([A-Za-z0-9][A-Za-z0-9._-]{1,127})["'`]?/i;
 var BRAIN_PATH_ID_RE = /brain[\\/]([A-Za-z0-9][A-Za-z0-9._-]{1,127})[\\/](?:\.system_generated[\\/]logs[\\/])?transcript\.jsonl/i;
 var RETRY_SIGNAL_RE = /\b(?:429|RESOURCE_EXHAUSTED|rate[\s_-]*limit(?:ed|ing)?|quota(?:\s+exceeded)?|too\s+many\s+requests|retry(?:ing|able)?|backoff)\b/i;
@@ -72557,7 +74125,7 @@ function extractChildIdFromText(text, parentSessionId, siblingDirNames, usedIds)
     } catch {
     }
   }
-  for (const re of [LABELED_CONV_ID_RE, BRAIN_PATH_ID_RE, UUID_RE]) {
+  for (const re of [LABELED_CONV_ID_RE, BRAIN_PATH_ID_RE, UUID_RE2]) {
     const match = text.match(re);
     if (match?.[1] && isSafeChildId(match[1], parentSessionId) && !usedIds.has(match[1])) {
       return match[1];
@@ -74594,7 +76162,7 @@ function readCoreMemoriesReadOnly(rootDataDir, nowMs) {
 }
 function buildDemoSpecData() {
   return {
-    activeSpecTitle: "v0.9.0 Clean Fork & Native File Viewer",
+    activeSpecTitle: "Clean Fork & Native File Viewer",
     status: "approved",
     goal: "Eliminate long-session context rot with one-click clean session forks and zero-ASAR file viewers.",
     readyTasks: [
@@ -75312,7 +76880,7 @@ function registerXrayModule(server, opts, uiResourceUri) {
 
 // src/server/index.ts
 var UI_RESOURCE_URI = "ui://agy-nov/app.html";
-var NOV_VERSION = "0.9.0";
+var NOV_VERSION = "1.0.0";
 var UI_ENTRYPOINT_META = {
   ui: { resourceUri: UI_RESOURCE_URI },
   "com.google.antigravity/ui": {

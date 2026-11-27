@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
@@ -20,41 +21,130 @@ import {
   resolveNovDataDir,
   setModuleEnabled,
   setNovLocale,
+  TEAM_CONFIG_FILENAME,
+  TEAM_VERIFY_ALLOWED_EXECUTABLES,
   type ModuleId,
   type PresetId,
+  type TeamVerifyCommand,
 } from '../core/config.js';
 import { getFeedSnapshotPath, MAX_FEED_SNAPSHOT_BYTES } from '../core/feed.js';
 import { hasCliFlag, parseCliFlag } from '../core/utils.js';
 import { executeSafeCompactRun, loadTurboPrefsReadOnly } from '../modules/turbo/auto-rtk.js';
 
-const CLI_VERSION = '0.9.0';
+const CLI_VERSION = '1.0.0';
+const MAX_READ_JSON_BYTES = 2 * 1024 * 1024; // 2 MiB hard cap for silent read-only JSON loading
+const DEFAULT_CONTEXT_WINDOW_TOKENS = 200_000;
+
+export const STATUSLINE_SEGMENTS = [
+  'brand',
+  'context',
+  'burn',
+  'cache',
+  'spec',
+  'verify',
+  'guard',
+  'radar',
+  'network',
+] as const;
+
+export type StatusLineSegmentId = (typeof STATUSLINE_SEGMENTS)[number];
+
+const STATUSLINE_SEGMENT_SET: ReadonlySet<string> = new Set(STATUSLINE_SEGMENTS);
 
 function printHelp(): void {
   console.log(`agy-NOV CLI (v${CLI_VERSION}) — The 100% Native Modular Super-Workbench for Antigravity 2.0
 
 Usage:
-  agy-nov status [--data-dir=<dir>]                             Show enabled modules, preset, UI language & token footprint
-  agy-nov enable <module> [--data-dir=<dir>]                    Enable a module (${MODULE_IDS.join(' | ')})
-  agy-nov disable <module> [--data-dir=<dir>]                   Disable a module
-  agy-nov preset <name> [--data-dir=<dir>]                      Apply preset (${PRESET_IDS.join(' | ')})
-  agy-nov locale <lang> [--data-dir=<dir>]                      Set UI language (${LOCALE_IDS.join(' | ')})
-  agy-nov statusline [--json] [--compact] [--data-dir=<dir>]    Zero-token read-only status line for Antigravity CLI
-  agy-nov recommend [--workspace=<dir>] [--json]                Read-only project scanner recommending preset & modules
-  agy-nov doctor [--data-dir=<dir>]                             Verify plugin bundle, manifests & config health (read-only)
-  agy-nov compact-run --payload=<b64> [--data-dir=<dir>]        Auto-RTK whitelisted shell-free compact command runner
+  agy-nov status [--data-dir=<dir>]                                                   Show enabled modules, preset, UI language & token footprint
+  agy-nov enable <module> [--data-dir=<dir>]                                          Enable a module (${MODULE_IDS.join(' | ')})
+  agy-nov disable <module> [--data-dir=<dir>]                                         Disable a module
+  agy-nov preset <name> [--data-dir=<dir>]                                            Apply preset (${PRESET_IDS.join(' | ')})
+  agy-nov locale <lang> [--data-dir=<dir>]                                            Set UI language (${LOCALE_IDS.join(' | ')})
+  agy-nov statusline [--json] [--compact] [--segments=<list>] [--data-dir=<dir>]      Zero-token read-only status line for Antigravity CLI
+  agy-nov recommend [--workspace=<dir>] [--json] [--export-preset [--confirm] [--force]]  Read-only project scanner & .agy-nov.json scaffold
+  agy-nov doctor [--data-dir=<dir>]                                                   Verify plugin bundle, manifests & config health (read-only)
+  agy-nov compact-run --payload=<b64> [--data-dir=<dir>]                              Auto-RTK whitelisted shell-free compact command runner
 `);
 }
 
-function readJsonSilent(filePath: string): Record<string, unknown> | null {
+function readJsonAnySilent(filePath: string): unknown | null {
   try {
-    if (!fs.existsSync(filePath)) return null;
-    const raw = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    return raw && typeof raw === 'object' && !Array.isArray(raw)
-      ? (raw as Record<string, unknown>)
-      : null;
+    const st = fs.lstatSync(filePath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_READ_JSON_BYTES) {
+      return null;
+    }
+    return JSON.parse(fs.readFileSync(filePath, 'utf8')) as unknown;
   } catch {
     return null;
   }
+}
+
+function readJsonSilent(filePath: string): Record<string, unknown> | null {
+  const raw = readJsonAnySilent(filePath);
+  return raw && typeof raw === 'object' && !Array.isArray(raw)
+    ? (raw as Record<string, unknown>)
+    : null;
+}
+
+function asPlainRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function pickFiniteNonNegNumber(...candidates: unknown[]): number | undefined {
+  for (const c of candidates) {
+    if (typeof c === 'number' && Number.isFinite(c) && c >= 0) {
+      return c;
+    }
+  }
+  return undefined;
+}
+
+function pickFinitePositiveNumber(...candidates: unknown[]): number | undefined {
+  for (const c of candidates) {
+    if (typeof c === 'number' && Number.isFinite(c) && c > 0) {
+      return c;
+    }
+  }
+  return undefined;
+}
+
+export function parseStatusLineSegments(raw: string | undefined): StatusLineSegmentId[] | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+
+  const result: StatusLineSegmentId[] = [];
+  const seen = new Set<string>();
+  for (const part of trimmed.split(',')) {
+    const normalized = part.trim().toLowerCase();
+    if (!normalized || !STATUSLINE_SEGMENT_SET.has(normalized) || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    result.push(normalized as StatusLineSegmentId);
+  }
+  return result;
+}
+
+function normalizeGuardModeForStatusLine(raw: unknown): 'readonly-audit' | 'balanced-dev' | 'strict-gate' {
+  if (raw === 'readonly-audit' || raw === 'strict-gate' || raw === 'balanced-dev') {
+    return raw;
+  }
+  return 'balanced-dev';
+}
+
+function formatGuardModeAbbr(mode: string): 'RO' | 'BAL' | 'STRICT' {
+  if (mode === 'readonly-audit') return 'RO';
+  if (mode === 'strict-gate') return 'STRICT';
+  return 'BAL';
+}
+
+function formatContextUsageBar(percent: number): string {
+  const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+  const filled = Math.max(0, Math.min(5, Math.round(clamped / 20)));
+  return `Ctx[${'█'.repeat(filled)}${'░'.repeat(5 - filled)}]${clamped}%`;
 }
 
 export interface StatusLineSnapshot {
@@ -65,6 +155,17 @@ export interface StatusLineSnapshot {
   modelTools: number;
   locale: string;
   network: 'offline' | 'opt-in-remote';
+  segments?: string[];
+  guard?: {
+    enabled: boolean;
+    permissionMode: string;
+    blockedCount: number;
+  };
+  telemetry?: {
+    contextPercent?: number;
+    burn5hUsd?: number;
+    cacheHitRate?: number;
+  };
   verify?: {
     enabled: boolean;
     lastStatus: 'pass' | 'fail' | 'blocked' | 'idle';
@@ -95,75 +196,114 @@ export interface StatusLineSnapshot {
   line: string;
 }
 
-function buildStatusLine(dataDir: string, compact: boolean): StatusLineSnapshot {
+export interface BuildStatusLineOptions {
+  segments?: StatusLineSegmentId[];
+}
+
+export function buildStatusLine(
+  dataDir: string,
+  compact: boolean,
+  opts: BuildStatusLineOptions = {},
+): StatusLineSnapshot {
   const cfg = loadNovConfigReadOnly(dataDir);
   const enabledCount = MODULE_IDS.filter((id) => cfg.modules[id]).length;
   const modelTools = countEnabledModelTools(cfg.modules);
   const network: 'offline' | 'opt-in-remote' = cfg.modules.remote ? 'opt-in-remote' : 'offline';
 
+  // Read-only optional feed-snapshot.json fallback (rejects symlinks & > 2 MiB, zero writes)
+  const feedSnapshot = readJsonSilent(getFeedSnapshotPath(dataDir));
+  const feedSummary = asPlainRecord(feedSnapshot?.summary);
+
   let verifySummary: StatusLineSnapshot['verify'];
   if (cfg.modules.verify) {
     const verifyState = readJsonSilent(path.join(getModuleDataDir(dataDir, 'verify'), 'state.json'));
-    const rawEvidence = Array.isArray(verifyState?.evidence) ? verifyState.evidence : [];
-    const validEvidence = rawEvidence.filter(
-      (e): e is Record<string, unknown> => Boolean(e) && typeof e === 'object' && !Array.isArray(e),
-    );
-    const latest = validEvidence[0];
-    let lastStatus: 'pass' | 'fail' | 'blocked' | 'idle' = 'idle';
-    if (latest) {
-      const outcome = typeof latest.outcome === 'string' ? latest.outcome : '';
-      if (outcome === 'blocked' || latest.blocked === true) lastStatus = 'blocked';
-      else if (outcome === 'pass' || outcome === 'guardrail-allow' || latest.passed === true) {
-        lastStatus = 'pass';
-      } else {
-        lastStatus = 'fail';
+    if (verifyState) {
+      const rawEvidence = Array.isArray(verifyState.evidence) ? verifyState.evidence : [];
+      const validEvidence = rawEvidence.filter(
+        (e): e is Record<string, unknown> => Boolean(e) && typeof e === 'object' && !Array.isArray(e),
+      );
+      const latest = validEvidence[0];
+      let lastStatus: 'pass' | 'fail' | 'blocked' | 'idle' = 'idle';
+      if (latest) {
+        const outcome = typeof latest.outcome === 'string' ? latest.outcome : '';
+        if (outcome === 'blocked' || latest.blocked === true) lastStatus = 'blocked';
+        else if (outcome === 'pass' || outcome === 'guardrail-allow' || latest.passed === true) {
+          lastStatus = 'pass';
+        } else {
+          lastStatus = 'fail';
+        }
       }
+      const storedBlockedStops =
+        typeof verifyState.blockedStops === 'number' && Number.isFinite(verifyState.blockedStops)
+          ? Math.max(0, Math.floor(verifyState.blockedStops))
+          : 0;
+      const countedBlocked = validEvidence.filter(
+        (e) => e.outcome === 'blocked' || e.blocked === true,
+      ).length;
+      const blockedStops = Math.max(storedBlockedStops, countedBlocked);
+      verifySummary = { enabled: true, lastStatus, blockedStops };
+    } else {
+      const feedVerify = asPlainRecord(feedSummary?.verify);
+      const rawStatus = typeof feedVerify?.lastStatus === 'string' ? feedVerify.lastStatus : 'idle';
+      const lastStatus: 'pass' | 'fail' | 'blocked' | 'idle' =
+        rawStatus === 'pass' || rawStatus === 'fail' || rawStatus === 'blocked' ? rawStatus : 'idle';
+      const blockedStops =
+        typeof feedVerify?.blockedStops === 'number' && Number.isFinite(feedVerify.blockedStops)
+          ? Math.max(0, Math.floor(feedVerify.blockedStops))
+          : 0;
+      verifySummary = { enabled: true, lastStatus, blockedStops };
     }
-    const storedBlockedStops =
-      typeof verifyState?.blockedStops === 'number' && Number.isFinite(verifyState.blockedStops)
-        ? Math.max(0, Math.floor(verifyState.blockedStops))
-        : 0;
-    const countedBlocked = validEvidence.filter(
-      (e) => e.outcome === 'blocked' || e.blocked === true,
-    ).length;
-    const blockedStops = Math.max(storedBlockedStops, countedBlocked);
-    verifySummary = { enabled: true, lastStatus, blockedStops };
   }
 
   let specSummary: StatusLineSnapshot['spec'];
   if (cfg.modules.spec) {
     const specState = readJsonSilent(path.join(getModuleDataDir(dataDir, 'spec'), 'state.json'));
-    const activeId = typeof specState?.activeSpecId === 'string' ? specState.activeSpecId : undefined;
-    let activeDoc: Record<string, unknown> | undefined;
-    if (activeId && Array.isArray(specState?.specs)) {
-      activeDoc = (specState.specs as Array<unknown>).find(
-        (s): s is Record<string, unknown> =>
-          Boolean(s) && typeof s === 'object' && !Array.isArray(s) && (s as Record<string, unknown>).id === activeId,
-      );
-    } else if (activeId && specState?.specs && typeof specState.specs === 'object') {
-      const candidate = (specState.specs as Record<string, unknown>)[activeId];
-      if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
-        activeDoc = candidate as Record<string, unknown>;
+    if (specState) {
+      const activeId = typeof specState.activeSpecId === 'string' ? specState.activeSpecId : undefined;
+      let activeDoc: Record<string, unknown> | undefined;
+      if (activeId && Array.isArray(specState.specs)) {
+        activeDoc = (specState.specs as Array<unknown>).find(
+          (s): s is Record<string, unknown> =>
+            Boolean(s) && typeof s === 'object' && !Array.isArray(s) && (s as Record<string, unknown>).id === activeId,
+        );
+      } else if (activeId && specState.specs && typeof specState.specs === 'object') {
+        const candidate = (specState.specs as Record<string, unknown>)[activeId];
+        if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+          activeDoc = candidate as Record<string, unknown>;
+        }
       }
+      const tasks = Array.isArray(activeDoc?.tasks)
+        ? (activeDoc.tasks as Array<unknown>).filter(
+            (t): t is Record<string, unknown> => Boolean(t) && typeof t === 'object' && !Array.isArray(t),
+          )
+        : [];
+      const doneTasks = tasks.filter((t) => t.status === 'done').length;
+      const status = typeof activeDoc?.status === 'string' ? activeDoc.status : undefined;
+      const writeLockActive = Boolean(
+        activeDoc && status === 'draft' && activeDoc.enforcePlanBeforeWrite === true,
+      );
+      specSummary = {
+        enabled: true,
+        activeTitle: typeof activeDoc?.title === 'string' ? activeDoc.title : undefined,
+        status,
+        writeLockActive,
+        doneTasks,
+        totalTasks: tasks.length,
+      };
+    } else {
+      const feedSpec = asPlainRecord(feedSummary?.spec);
+      const status = typeof feedSpec?.status === 'string' && feedSpec.status.trim() ? feedSpec.status.trim() : undefined;
+      const doneTasks = Math.max(0, Math.floor(Number(feedSpec?.doneTasks ?? 0) || 0));
+      const totalTasks = Math.max(0, Math.floor(Number(feedSpec?.totalTasks ?? 0) || 0));
+      specSummary = {
+        enabled: true,
+        activeTitle: typeof feedSpec?.title === 'string' ? feedSpec.title : undefined,
+        status,
+        writeLockActive: feedSpec?.writeLockActive === true,
+        doneTasks,
+        totalTasks,
+      };
     }
-    const tasks = Array.isArray(activeDoc?.tasks)
-      ? (activeDoc.tasks as Array<unknown>).filter(
-          (t): t is Record<string, unknown> => Boolean(t) && typeof t === 'object' && !Array.isArray(t),
-        )
-      : [];
-    const doneTasks = tasks.filter((t) => t.status === 'done').length;
-    const status = typeof activeDoc?.status === 'string' ? activeDoc.status : undefined;
-    const writeLockActive = Boolean(
-      activeDoc && status === 'draft' && activeDoc.enforcePlanBeforeWrite === true,
-    );
-    specSummary = {
-      enabled: true,
-      activeTitle: typeof activeDoc?.title === 'string' ? activeDoc.title : undefined,
-      status,
-      writeLockActive,
-      doneTasks,
-      totalTasks: tasks.length,
-    };
   }
 
   let radarSummary: StatusLineSnapshot['radar'];
@@ -186,74 +326,299 @@ function buildStatusLine(dataDir: string, compact: boolean): StatusLineSnapshot 
       };
     } else {
       const board = readJsonSilent(path.join(radarDir, 'board.json'));
-      const sessionsRaw = board?.sessions;
-      const list =
-        sessionsRaw && typeof sessionsRaw === 'object' && !Array.isArray(sessionsRaw)
-          ? Object.values(sessionsRaw as Record<string, unknown>).filter(
-              (s): s is Record<string, unknown> => Boolean(s) && typeof s === 'object' && !Array.isArray(s),
-            )
-          : [];
-      radarSummary = {
-        enabled: true,
-        running: list.filter((s) => s.status === 'running').length,
-        awaitingApproval: list.filter((s) => s.status === 'awaiting_approval').length,
-        stalled: 0,
-        error: list.filter((s) => s.status === 'error').length,
-        orphanSubagents: 0,
-        unread: list.filter((s) => s.unread === true).length,
-      };
+      if (board) {
+        const sessionsRaw = board.sessions;
+        const list =
+          sessionsRaw && typeof sessionsRaw === 'object' && !Array.isArray(sessionsRaw)
+            ? Object.values(sessionsRaw as Record<string, unknown>).filter(
+                (s): s is Record<string, unknown> => Boolean(s) && typeof s === 'object' && !Array.isArray(s),
+              )
+            : [];
+        radarSummary = {
+          enabled: true,
+          running: list.filter((s) => s.status === 'running').length,
+          awaitingApproval: list.filter((s) => s.status === 'awaiting_approval').length,
+          stalled: list.filter((s) => s.status === 'stalled').length,
+          error: list.filter((s) => s.status === 'error').length,
+          orphanSubagents: 0,
+          unread: list.filter((s) => s.unread === true).length,
+        };
+      } else {
+        const feedRadar = asPlainRecord(feedSummary?.radar);
+        radarSummary = {
+          enabled: true,
+          running: Number(feedRadar?.runningCount ?? feedRadar?.running ?? 0) || 0,
+          awaitingApproval: Number(feedRadar?.awaitingCount ?? feedRadar?.awaitingApproval ?? 0) || 0,
+          stalled: Number(feedRadar?.stalledCount ?? feedRadar?.stalled ?? 0) || 0,
+          error: Number(feedRadar?.error ?? 0) || 0,
+          orphanSubagents: Number(feedRadar?.orphanSubagents ?? 0) || 0,
+          unread: Number(feedRadar?.unreadCount ?? feedRadar?.unread ?? 0) || 0,
+        };
+      }
     }
   }
 
+  let guardSummary: StatusLineSnapshot['guard'];
+  if (cfg.modules.guard) {
+    const guardDir = getModuleDataDir(dataDir, 'guard');
+    const policy = readJsonSilent(path.join(guardDir, 'policy.json'));
+    const permissionMode = normalizeGuardModeForStatusLine(policy?.permissionMode);
+
+    const rawAudit = readJsonAnySilent(path.join(guardDir, 'audit.json'));
+    const auditObj = asPlainRecord(rawAudit);
+    const auditEvents = Array.isArray(rawAudit)
+      ? rawAudit
+      : Array.isArray(auditObj?.events)
+        ? auditObj.events
+        : null;
+
+    let blockedCount = 0;
+    if (auditEvents) {
+      for (const item of auditEvents) {
+        const rec = asPlainRecord(item);
+        if (!rec) continue;
+        const decision = String(rec.decision ?? rec.action ?? rec.outcome ?? '')
+          .trim()
+          .toLowerCase();
+        if (
+          decision === 'deny' ||
+          decision === 'denied' ||
+          decision === 'block' ||
+          decision === 'blocked'
+        ) {
+          blockedCount += 1;
+        }
+      }
+    } else {
+      const feedGuard = asPlainRecord(feedSummary?.guard);
+      blockedCount = Math.max(0, Math.floor(Number(feedGuard?.blockedCount ?? 0) || 0));
+    }
+
+    guardSummary = {
+      enabled: true,
+      permissionMode,
+      blockedCount,
+    };
+  }
+
   let xraySummary: StatusLineSnapshot['xray'];
+  let telemetrySummary: StatusLineSnapshot['telemetry'];
   if (cfg.modules.xray) {
     const live = readJsonSilent(path.join(getModuleDataDir(dataDir, 'xray'), 'live-state.json'));
+    const feedXray = asPlainRecord(feedSummary?.xray);
+    const liveFiveHour = asPlainRecord(live?.fiveHourWindow);
+    const feedFiveHour = asPlainRecord(feedXray?.fiveHourWindow);
+
     xraySummary = {
       enabled: true,
       activeConversationId:
         typeof live?.activeConversationId === 'string' ? live.activeConversationId : undefined,
       lastToolName: typeof live?.lastToolName === 'string' ? live.lastToolName : undefined,
     };
-  }
 
-  const parts: string[] = compact
-    ? [`NOV ${enabledCount}/${MODULE_IDS.length} (${modelTools}t)`]
-    : [
-        `agy-NOV ${cfg.preset}`,
-        `${enabledCount}/${MODULE_IDS.length} (${modelTools}t)`,
-        network === 'offline' ? 'offline' : 'remote:ON',
-      ];
+    const explicitCtxPct = pickFiniteNonNegNumber(
+      live?.contextPercent,
+      live?.contextUsagePercent,
+      feedXray?.contextPercent,
+      feedXray?.contextUsagePercent,
+    );
+    const peakTokens = pickFinitePositiveNumber(
+      live?.peakContextTokens,
+      live?.contextTokens,
+      live?.peakTokens,
+      feedXray?.peakContextTokens,
+      feedXray?.contextTokens,
+      feedXray?.peakTokens,
+    );
+    const contextWindow =
+      pickFinitePositiveNumber(
+        live?.contextWindowTokens,
+        live?.maxContextTokens,
+        feedXray?.contextWindowTokens,
+        feedXray?.maxContextTokens,
+      ) ?? DEFAULT_CONTEXT_WINDOW_TOKENS;
 
-  if (verifySummary) {
-    const tag =
-      verifySummary.lastStatus === 'pass'
-        ? 'PASS'
-        : verifySummary.lastStatus === 'blocked'
-          ? 'BLOCKED'
-          : verifySummary.lastStatus === 'fail'
-            ? 'FAIL'
-            : 'IDLE';
-    parts.push(`Verify:${tag}`);
-  }
+    let contextPercent: number | undefined;
+    if (explicitCtxPct !== undefined) {
+      contextPercent = Math.max(0, Math.min(100, Math.round(explicitCtxPct)));
+    } else if (peakTokens !== undefined) {
+      contextPercent = Math.max(0, Math.min(100, Math.round((peakTokens / contextWindow) * 100)));
+    }
 
-  if (specSummary && specSummary.status) {
-    const lockTag = specSummary.writeLockActive ? 'LOCK' : specSummary.status.toUpperCase();
-    parts.push(`Spec:${lockTag}(${specSummary.doneTasks}/${specSummary.totalTasks})`);
-  }
+    const rawBurn5h = pickFiniteNonNegNumber(
+      live?.burn5hUsd,
+      live?.fiveHourUsd,
+      live?.fiveHourBurnUsd,
+      liveFiveHour?.estimatedUsd,
+      live?.estimatedCostUsd,
+      live?.estimatedUsd,
+      live?.estCostUsd,
+      feedXray?.burn5hUsd,
+      feedXray?.fiveHourUsd,
+      feedXray?.fiveHourBurnUsd,
+      feedFiveHour?.estimatedUsd,
+      feedXray?.estimatedCostUsd,
+      feedXray?.estimatedUsd,
+      feedXray?.estCostUsd,
+      feedXray?.todayCostUsd,
+    );
+    const burn5hUsd =
+      rawBurn5h !== undefined ? Math.round(rawBurn5h * 10000) / 10000 : undefined;
 
-  if (radarSummary) {
-    const radarBits: string[] = [];
-    if (radarSummary.running > 0) radarBits.push(`${radarSummary.running}run`);
-    if (radarSummary.awaitingApproval > 0) radarBits.push(`${radarSummary.awaitingApproval}wait`);
-    if (radarSummary.stalled > 0) radarBits.push(`${radarSummary.stalled}stall`);
-    if (radarSummary.orphanSubagents > 0) radarBits.push(`${radarSummary.orphanSubagents}orphan`);
-    if (radarSummary.error > 0) radarBits.push(`${radarSummary.error}err`);
-    if (radarBits.length > 0) {
-      parts.push(`Radar:${radarBits.join('/')}`);
+    let rawCacheHit = pickFiniteNonNegNumber(
+      live?.cacheHitRate,
+      live?.cacheHitPercent,
+      feedXray?.cacheHitRate,
+      feedXray?.cacheHitPercent,
+    );
+    if (rawCacheHit === undefined) {
+      const totalInput = pickFinitePositiveNumber(
+        live?.totalInputTokens,
+        live?.inputTokens,
+        feedXray?.totalInputTokens,
+        feedXray?.inputTokens,
+      );
+      const cacheRead = pickFiniteNonNegNumber(
+        live?.totalCacheReadTokens,
+        live?.cacheReadTokens,
+        feedXray?.totalCacheReadTokens,
+        feedXray?.cacheReadTokens,
+      );
+      if (totalInput !== undefined && cacheRead !== undefined) {
+        rawCacheHit = Math.min(1, cacheRead / totalInput);
+      }
+    }
+    let cacheHitRate: number | undefined;
+    if (rawCacheHit !== undefined) {
+      const normalized = rawCacheHit > 1 ? Math.min(1, rawCacheHit / 100) : Math.min(1, rawCacheHit);
+      cacheHitRate = Math.round(normalized * 10000) / 10000;
+    }
+
+    if (
+      contextPercent !== undefined ||
+      burn5hUsd !== undefined ||
+      cacheHitRate !== undefined
+    ) {
+      telemetrySummary = {
+        ...(contextPercent !== undefined ? { contextPercent } : {}),
+        ...(burn5hUsd !== undefined ? { burn5hUsd } : {}),
+        ...(cacheHitRate !== undefined ? { cacheHitRate } : {}),
+      };
     }
   }
 
-  const line = parts.join(' · ');
+  let line: string;
+  const customSegments = opts.segments;
+
+  if (customSegments && customSegments.length > 0) {
+    const customParts: string[] = [];
+    for (const seg of customSegments) {
+      if (seg === 'brand') {
+        customParts.push(
+          compact
+            ? `NOV ${enabledCount}/${MODULE_IDS.length} (${modelTools}t)`
+            : `agy-NOV ${cfg.preset} · ${enabledCount}/${MODULE_IDS.length} (${modelTools}t)`,
+        );
+      } else if (seg === 'context') {
+        customParts.push(
+          telemetrySummary?.contextPercent !== undefined
+            ? formatContextUsageBar(telemetrySummary.contextPercent)
+            : 'Ctx:idle',
+        );
+      } else if (seg === 'burn') {
+        const usd = telemetrySummary?.burn5hUsd ?? 0;
+        customParts.push(`5h:$${usd.toFixed(2)}`);
+      } else if (seg === 'cache') {
+        customParts.push(
+          telemetrySummary?.cacheHitRate !== undefined
+            ? `Cache:${Math.round(telemetrySummary.cacheHitRate * 100)}%`
+            : 'Cache:n/a',
+        );
+      } else if (seg === 'spec') {
+        if (specSummary && specSummary.status) {
+          const lockTag = specSummary.writeLockActive ? 'LOCK' : specSummary.status.toUpperCase();
+          customParts.push(`Spec:${lockTag}(${specSummary.doneTasks}/${specSummary.totalTasks})`);
+        } else {
+          customParts.push('Spec:IDLE');
+        }
+      } else if (seg === 'verify') {
+        const tag = !verifySummary
+          ? 'IDLE'
+          : verifySummary.lastStatus === 'pass'
+            ? 'PASS'
+            : verifySummary.lastStatus === 'blocked'
+              ? 'BLOCKED'
+              : verifySummary.lastStatus === 'fail'
+                ? 'FAIL'
+                : 'IDLE';
+        customParts.push(`Verify:${tag}`);
+      } else if (seg === 'guard') {
+        if (guardSummary?.enabled) {
+          const abbr = formatGuardModeAbbr(guardSummary.permissionMode);
+          customParts.push(`Guard:${abbr}(${guardSummary.blockedCount}blk)`);
+        } else {
+          customParts.push('Guard:OFF');
+        }
+      } else if (seg === 'radar') {
+        if (radarSummary) {
+          const radarBits: string[] = [];
+          if (radarSummary.running > 0) radarBits.push(`${radarSummary.running}run`);
+          if (radarSummary.awaitingApproval > 0) radarBits.push(`${radarSummary.awaitingApproval}wait`);
+          if (radarSummary.stalled > 0) radarBits.push(`${radarSummary.stalled}stall`);
+          if (radarSummary.orphanSubagents > 0) radarBits.push(`${radarSummary.orphanSubagents}orphan`);
+          if (radarSummary.error > 0) radarBits.push(`${radarSummary.error}err`);
+          if (radarSummary.unread > 0) radarBits.push(`${radarSummary.unread}unread`);
+          customParts.push(radarBits.length > 0 ? `Radar:${radarBits.join('/')}` : 'Radar:idle');
+        } else {
+          customParts.push('Radar:idle');
+        }
+      } else if (seg === 'network') {
+        customParts.push(network === 'offline' ? 'offline' : 'remote:ON');
+      }
+    }
+    line = customParts.join(' · ');
+  } else {
+    // Preserve exact default format for 100% backwards compatibility
+    const parts: string[] = compact
+      ? [`NOV ${enabledCount}/${MODULE_IDS.length} (${modelTools}t)`]
+      : [
+          `agy-NOV ${cfg.preset}`,
+          `${enabledCount}/${MODULE_IDS.length} (${modelTools}t)`,
+          network === 'offline' ? 'offline' : 'remote:ON',
+        ];
+
+    if (verifySummary) {
+      const tag =
+        verifySummary.lastStatus === 'pass'
+          ? 'PASS'
+          : verifySummary.lastStatus === 'blocked'
+            ? 'BLOCKED'
+            : verifySummary.lastStatus === 'fail'
+              ? 'FAIL'
+              : 'IDLE';
+      parts.push(`Verify:${tag}`);
+    }
+
+    if (specSummary && specSummary.status) {
+      const lockTag = specSummary.writeLockActive ? 'LOCK' : specSummary.status.toUpperCase();
+      parts.push(`Spec:${lockTag}(${specSummary.doneTasks}/${specSummary.totalTasks})`);
+    }
+
+    if (radarSummary) {
+      const radarBits: string[] = [];
+      if (radarSummary.running > 0) radarBits.push(`${radarSummary.running}run`);
+      if (radarSummary.awaitingApproval > 0) radarBits.push(`${radarSummary.awaitingApproval}wait`);
+      if (radarSummary.stalled > 0) radarBits.push(`${radarSummary.stalled}stall`);
+      if (radarSummary.orphanSubagents > 0) radarBits.push(`${radarSummary.orphanSubagents}orphan`);
+      if (radarSummary.error > 0) radarBits.push(`${radarSummary.error}err`);
+      if (radarBits.length > 0) {
+        parts.push(`Radar:${radarBits.join('/')}`);
+      }
+    }
+
+    line = parts.join(' · ');
+  }
+
   return {
     version: CLI_VERSION,
     preset: cfg.preset,
@@ -262,6 +627,9 @@ function buildStatusLine(dataDir: string, compact: boolean): StatusLineSnapshot 
     modelTools,
     locale: cfg.locale,
     network,
+    ...(customSegments !== undefined ? { segments: customSegments } : {}),
+    ...(guardSummary ? { guard: guardSummary } : {}),
+    ...(telemetrySummary ? { telemetry: telemetrySummary } : {}),
     verify: verifySummary,
     spec: specSummary,
     radar: radarSummary,
@@ -298,7 +666,15 @@ function printStatus(dataDir: string): void {
   }
 }
 
-type SafeRecommendedPreset = Exclude<PresetId, 'full'>;
+export type SafeRecommendedPreset = Exclude<PresetId, 'full'>;
+export type OfflineModuleId = Exclude<ModuleId, 'remote'>;
+
+export interface TeamPresetDraft {
+  schemaVersion: 1;
+  preset: SafeRecommendedPreset;
+  enableModules: OfflineModuleId[];
+  verifyCommands: TeamVerifyCommand[];
+}
 
 interface TeamPresetRecommendationSummary {
   found: boolean;
@@ -310,7 +686,7 @@ interface TeamPresetRecommendationSummary {
   errorCount: number;
 }
 
-interface WorkspaceRecommendation {
+export interface WorkspaceRecommendation {
   version: string;
   workspaceRoot: string;
   detectedStacks: string[];
@@ -327,7 +703,7 @@ interface WorkspaceRecommendation {
   applyCommand: string;
 }
 
-function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRecommendation {
+export function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRecommendation {
   const resolvedRoot = path.resolve(workspaceRoot);
   let realRoot = resolvedRoot;
   try {
@@ -498,6 +874,345 @@ function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRecommend
     suggestedExtraModules,
     reasons,
     applyCommand,
+  };
+}
+
+function isWithinRealDir(targetReal: string, rootReal: string): boolean {
+  const prefix = rootReal.endsWith(path.sep) ? rootReal : `${rootReal}${path.sep}`;
+  return targetReal === rootReal || targetReal.startsWith(prefix);
+}
+
+function hasSafeRegularFileInWorkspace(realRoot: string, relPath: string): boolean {
+  try {
+    const candidate = path.join(realRoot, relPath);
+    const st = fs.lstatSync(candidate);
+    if (st.isSymbolicLink() || !st.isFile()) return false;
+    const realTarget = fs.realpathSync(candidate);
+    return isWithinRealDir(realTarget, realRoot);
+  } catch {
+    return false;
+  }
+}
+
+function detectSafeVerifyCommandsReadOnly(
+  realRoot: string,
+  isGitRepo: boolean,
+): TeamVerifyCommand[] {
+  const commands: TeamVerifyCommand[] = [];
+  const seenKeys = new Set<string>();
+
+  const pushVerified = (label: string, executable: string, args: string[]): void => {
+    const execLower = executable.toLowerCase();
+    if (!TEAM_VERIFY_ALLOWED_EXECUTABLES.has(execLower)) return;
+    if (commands.length >= 10) return;
+    const key = `${execLower}\0${args.join('\0')}`;
+    if (seenKeys.has(key)) return;
+    seenKeys.add(key);
+    commands.push({ label, executable: execLower, args: [...args] });
+  };
+
+  if (hasSafeRegularFileInWorkspace(realRoot, 'package.json')) {
+    const pm = hasSafeRegularFileInWorkspace(realRoot, 'pnpm-lock.yaml')
+      ? 'pnpm'
+      : hasSafeRegularFileInWorkspace(realRoot, 'yarn.lock')
+        ? 'yarn'
+        : hasSafeRegularFileInWorkspace(realRoot, 'bun.lock') ||
+            hasSafeRegularFileInWorkspace(realRoot, 'bun.lockb')
+          ? 'bun'
+          : 'npm';
+
+    const pkg = readJsonSilent(path.join(realRoot, 'package.json'));
+    const scriptsObj = asPlainRecord(pkg?.scripts);
+    const RISKY_SCRIPT_BODY_RE =
+      /(?:\b(?:curl|wget)\b[^|\r\n]{0,240}\|\s*(?:sh|bash|zsh)\b|\brm\s+-[a-zA-Z]{0,16}r[a-zA-Z]{0,16}f?\s+\/(?:\s|$|;)|\beval\s+["'`$])/i;
+    const hasScript = (name: string): boolean => {
+      if (!scriptsObj || typeof scriptsObj[name] !== 'string') return false;
+      const body = scriptsObj[name].trim();
+      if (!body || body.length > 4096 || RISKY_SCRIPT_BODY_RE.test(body)) return false;
+      return true;
+    };
+
+    if (hasScript('typecheck')) {
+      pushVerified('Typecheck', pm, ['run', 'typecheck']);
+    } else if (hasSafeRegularFileInWorkspace(realRoot, 'tsconfig.json')) {
+      pushVerified('Typecheck', 'tsc', ['--noEmit']);
+    }
+
+    if (hasScript('lint')) {
+      pushVerified('Lint', pm, ['run', 'lint']);
+    }
+
+    if (hasScript('test')) {
+      const testBody = String(scriptsObj?.test ?? '');
+      if (!/no test specified/i.test(testBody)) {
+        pushVerified('Tests', pm, ['test']);
+      }
+    }
+
+    if (hasScript('build') && commands.length < 3) {
+      pushVerified('Build', pm, ['run', 'build']);
+    }
+  }
+
+  if (
+    hasSafeRegularFileInWorkspace(realRoot, 'pyproject.toml') ||
+    hasSafeRegularFileInWorkspace(realRoot, 'pytest.ini') ||
+    hasSafeRegularFileInWorkspace(realRoot, 'requirements.txt')
+  ) {
+    pushVerified('Python Tests', 'pytest', ['-q']);
+    if (
+      hasSafeRegularFileInWorkspace(realRoot, 'ruff.toml') ||
+      hasSafeRegularFileInWorkspace(realRoot, '.ruff.toml')
+    ) {
+      pushVerified('Ruff Lint', 'ruff', ['check', '.']);
+    }
+  }
+
+  if (hasSafeRegularFileInWorkspace(realRoot, 'Cargo.toml')) {
+    pushVerified('Cargo Check', 'cargo', ['check']);
+    pushVerified('Cargo Test', 'cargo', ['test']);
+  }
+
+  if (hasSafeRegularFileInWorkspace(realRoot, 'go.mod')) {
+    pushVerified('Go Vet', 'go', ['vet', './...']);
+    pushVerified('Go Test', 'go', ['test', './...']);
+  }
+
+  if (commands.length === 0 && isGitRepo) {
+    pushVerified('Git Status', 'git', ['status', '--short']);
+  }
+
+  return commands;
+}
+
+/**
+ * Pure read-only scaffold builder for `.agy-nov.json`.
+ * Never writes files, never recommends `full` or `remote`, and emits only
+ * whitelisted verifyCommands guaranteed to pass `loadTeamPresetReadOnly`.
+ */
+export function buildTeamPresetDraft(
+  rec: WorkspaceRecommendation,
+  workspaceRoot: string,
+): TeamPresetDraft {
+  const rawPreset = rec.recommendedPreset as PresetId;
+  const preset: SafeRecommendedPreset =
+    rawPreset === 'full'
+      ? 'local-all'
+      : isPresetId(rawPreset)
+        ? rawPreset
+        : 'core';
+
+  const presetModules = PRESET_DEFINITIONS[preset].modules;
+  const enableModules: OfflineModuleId[] = [];
+  const seen = new Set<string>();
+  for (const mod of rec.suggestedExtraModules) {
+    if (!isModuleId(mod) || mod === 'remote') continue;
+    if (presetModules[mod]) continue;
+    if (seen.has(mod)) continue;
+    seen.add(mod);
+    enableModules.push(mod);
+  }
+
+  let verifyCommands: TeamVerifyCommand[] = [];
+  try {
+    const realRoot = fs.realpathSync(path.resolve(workspaceRoot));
+    if (fs.statSync(realRoot).isDirectory()) {
+      verifyCommands = detectSafeVerifyCommandsReadOnly(realRoot, rec.signals.isGitRepo);
+    }
+  } catch {
+    verifyCommands = [];
+  }
+
+  return {
+    schemaVersion: 1,
+    preset,
+    enableModules,
+    verifyCommands,
+  };
+}
+
+interface WriteTeamPresetResult {
+  ok: true;
+  path: string;
+  existed: boolean;
+  audit: {
+    valid: boolean;
+    errors: string[];
+    warnings: string[];
+  };
+}
+
+interface WriteTeamPresetFailure {
+  ok: false;
+  path: string;
+  error: string;
+}
+
+function writeTeamPresetDraft(
+  workspaceRoot: string,
+  draft: TeamPresetDraft,
+  force: boolean,
+): WriteTeamPresetResult | WriteTeamPresetFailure {
+  const resolvedRoot = path.resolve(workspaceRoot);
+  const fallbackTarget = path.join(resolvedRoot, TEAM_CONFIG_FILENAME);
+
+  let realRoot: string;
+  try {
+    realRoot = fs.realpathSync(resolvedRoot);
+    if (!fs.statSync(realRoot).isDirectory()) {
+      return {
+        ok: false,
+        path: fallbackTarget,
+        error: `Workspace path is not a directory: ${resolvedRoot}`,
+      };
+    }
+  } catch {
+    return {
+      ok: false,
+      path: fallbackTarget,
+      error: `Workspace directory does not exist: ${resolvedRoot}`,
+    };
+  }
+
+  if ((draft.preset as string) === 'full') {
+    return {
+      ok: false,
+      path: path.join(realRoot, TEAM_CONFIG_FILENAME),
+      error: 'Refused to write .agy-nov.json: preset "full" is disallowed (opt-in remote must be enabled manually).',
+    };
+  }
+  if ((draft.enableModules as string[]).includes('remote')) {
+    return {
+      ok: false,
+      path: path.join(realRoot, TEAM_CONFIG_FILENAME),
+      error: 'Refused to write .agy-nov.json: opt-in "remote" module is forbidden in team presets.',
+    };
+  }
+
+  const targetPath = path.join(realRoot, TEAM_CONFIG_FILENAME);
+  let existed = false;
+
+  try {
+    const st = fs.lstatSync(targetPath);
+    if (st.isSymbolicLink()) {
+      return {
+        ok: false,
+        path: targetPath,
+        error: `Refused to write ${TEAM_CONFIG_FILENAME}: target path is a symbolic link (symlink escape protection).`,
+      };
+    }
+    if (!st.isFile()) {
+      return {
+        ok: false,
+        path: targetPath,
+        error: `Refused to write ${TEAM_CONFIG_FILENAME}: target path exists and is not a regular file.`,
+      };
+    }
+    existed = true;
+    if (!force) {
+      return {
+        ok: false,
+        path: targetPath,
+        error: `${TEAM_CONFIG_FILENAME} already exists at ${targetPath}. Re-run with --export-preset --confirm --force to overwrite.`,
+      };
+    }
+    const realExisting = fs.realpathSync(targetPath);
+    if (!isWithinRealDir(realExisting, realRoot)) {
+      return {
+        ok: false,
+        path: targetPath,
+        error: `Refused to write ${TEAM_CONFIG_FILENAME}: resolved target escapes workspace boundary.`,
+      };
+    }
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code !== 'ENOENT') {
+      return {
+        ok: false,
+        path: targetPath,
+        error: `Unable to inspect ${TEAM_CONFIG_FILENAME}: ${code ?? 'unknown error'}`,
+      };
+    }
+  }
+
+  const serialized = `${JSON.stringify(draft, null, 2)}\n`;
+  const tmpPath = path.join(
+    realRoot,
+    `.${TEAM_CONFIG_FILENAME}.tmp.${process.pid}.${crypto.randomBytes(6).toString('hex')}`,
+  );
+
+  try {
+    fs.writeFileSync(tmpPath, serialized, {
+      encoding: 'utf8',
+      mode: 0o644,
+      flag: 'wx',
+    });
+
+    // Re-check target symlink right before atomic rename
+    try {
+      const preRenameStat = fs.lstatSync(targetPath);
+      if (preRenameStat.isSymbolicLink()) {
+        throw new Error(
+          `Refused to write ${TEAM_CONFIG_FILENAME}: target path is a symbolic link.`,
+        );
+      }
+      if (!force) {
+        throw new Error(
+          `${TEAM_CONFIG_FILENAME} already exists at ${targetPath}. Re-run with --export-preset --confirm --force to overwrite.`,
+        );
+      }
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        throw err;
+      }
+    }
+
+    fs.renameSync(tmpPath, targetPath);
+    try {
+      fs.chmodSync(targetPath, 0o644);
+    } catch {
+      // ignore chmod failures on filesystems without POSIX modes
+    }
+
+    const realWritten = fs.realpathSync(targetPath);
+    if (!isWithinRealDir(realWritten, realRoot)) {
+      return {
+        ok: false,
+        path: targetPath,
+        error: `Written ${TEAM_CONFIG_FILENAME} failed realpath containment verification.`,
+      };
+    }
+  } catch (err) {
+    try {
+      fs.rmSync(tmpPath, { force: true });
+    } catch {
+      // ignore cleanup failure
+    }
+    return {
+      ok: false,
+      path: targetPath,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+
+  const audit = loadTeamPresetReadOnly(realRoot);
+  if (!audit.found || !audit.valid || audit.errors.length > 0) {
+    return {
+      ok: false,
+      path: targetPath,
+      error: `Self-check failed for written ${TEAM_CONFIG_FILENAME}: ${audit.errors.join('; ') || 'invalid preset'}`,
+    };
+  }
+
+  return {
+    ok: true,
+    path: targetPath,
+    existed,
+    audit: {
+      valid: audit.valid,
+      errors: audit.errors,
+      warnings: audit.warnings,
+    },
   };
 }
 
@@ -678,7 +1393,11 @@ function main(): void {
   if (cmd === 'statusline') {
     const asJson = hasCliFlag(argv, '--json');
     const compact = hasCliFlag(argv, '--compact');
-    const snap = buildStatusLine(dataDir, compact);
+    const rawSegmentsFlag = parseCliFlag(argv, '--segments');
+    const rawSegments =
+      rawSegmentsFlag !== undefined ? rawSegmentsFlag : process.env.AGY_NOV_STATUSLINE_SEGMENTS;
+    const segments = parseStatusLineSegments(rawSegments);
+    const snap = buildStatusLine(dataDir, compact, { segments });
     console.log(asJson ? JSON.stringify(snap) : snap.line);
     return;
   }
@@ -686,7 +1405,81 @@ function main(): void {
   if (cmd === 'recommend') {
     const ws = parseCliFlag(argv, '--workspace') ?? process.cwd();
     const asJson = hasCliFlag(argv, '--json');
+    const exportPreset = hasCliFlag(argv, '--export-preset');
+    const confirmWrite = hasCliFlag(argv, '--confirm');
+    const forceOverwrite = hasCliFlag(argv, '--force');
     const rec = buildWorkspaceRecommendation(ws);
+
+    if (exportPreset) {
+      const draft = buildTeamPresetDraft(rec, ws);
+      const targetPath = path.join(rec.workspaceRoot, TEAM_CONFIG_FILENAME);
+      let exists = false;
+      try {
+        fs.lstatSync(targetPath);
+        exists = true;
+      } catch {
+        exists = false;
+      }
+
+      if (!confirmWrite) {
+        if (asJson) {
+          console.log(
+            JSON.stringify(
+              {
+                ...rec,
+                exportPreset: {
+                  written: false,
+                  path: targetPath,
+                  exists,
+                  draft,
+                },
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          console.log(
+            'Preview only (no file written). Re-run with --export-preset --confirm to write .agy-nov.json',
+          );
+          console.log(`Target: ${targetPath}${exists ? ' (already exists; add --force to overwrite)' : ''}`);
+          console.log(JSON.stringify(draft, null, 2));
+        }
+        return;
+      }
+
+      const writeRes = writeTeamPresetDraft(ws, draft, forceOverwrite);
+      if (!writeRes.ok) {
+        console.error(`[agy-NOV] ${writeRes.error}`);
+        process.exit(1);
+      }
+
+      if (asJson) {
+        console.log(
+          JSON.stringify(
+            {
+              ...rec,
+              exportPreset: {
+                written: true,
+                path: writeRes.path,
+                exists: writeRes.existed,
+                draft,
+                audit: writeRes.audit,
+              },
+            },
+            null,
+            2,
+          ),
+        );
+      } else {
+        console.log(
+          `Wrote ${TEAM_CONFIG_FILENAME} to ${writeRes.path} (validated via loadTeamPresetReadOnly: valid=${String(writeRes.audit.valid)}, errors=${writeRes.audit.errors.length}).`,
+        );
+        console.log(JSON.stringify(draft, null, 2));
+      }
+      return;
+    }
+
     if (asJson) {
       console.log(JSON.stringify(rec, null, 2));
     } else {
@@ -733,4 +1526,32 @@ function main(): void {
   process.exit(2);
 }
 
-main();
+function isCliEntrypoint(): boolean {
+  try {
+    const argv1 = process.argv[1];
+    if (!argv1) return false;
+    const base = path.basename(argv1).toLowerCase();
+    if (
+      base === 'cli.ts' ||
+      base === 'cli.cjs' ||
+      base === 'cli.js' ||
+      base === 'agy-nov-cli' ||
+      base === 'agy-nov'
+    ) {
+      return true;
+    }
+    const realBase = path.basename(fs.realpathSync(argv1)).toLowerCase();
+    return (
+      realBase === 'cli.ts' ||
+      realBase === 'cli.cjs' ||
+      realBase === 'cli.js' ||
+      realBase === 'agy-nov-cli'
+    );
+  } catch {
+    return false;
+  }
+}
+
+if (isCliEntrypoint()) {
+  main();
+}

@@ -4,13 +4,19 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { getModuleDataDir, resolveNovDataDir, sanitizeDataDirCandidate } from '../../core/config.js';
 import type {
+  BatchHygieneResult,
   CodeAnchor,
   LayeredRecallResult,
+  MemoryConfidence,
+  MemoryHygieneAction,
+  MemoryHygieneStatus,
+  MemoryHygieneSummary,
   MemoryIndexEntry,
   MemoryItem,
   MemoryKind,
   MemoryProgressiveStats,
   MemoryRecallMode,
+  MemorySource,
   MemoryTimelineEntry,
   StripPrivateTagsResult,
 } from './types.js';
@@ -20,7 +26,13 @@ export const MAX_ANCHOR_FILE_BYTES = 2 * 1024 * 1024; // 2 MiB
 export const MAX_SESSION_START_CHARS = 1200;
 export const PRIVATE_CONTENT_PLACEHOLDER = '[PRIVATE_CONTENT_STRIPPED]';
 export const PRIVATE_TITLE_PLACEHOLDER = '[PRIVATE_TITLE_STRIPPED]';
+export const MIN_TTL_DAYS = 1;
+export const MAX_TTL_DAYS = 365;
+export const DEFAULT_AUTO_CAPTURE_TTL_DAYS = 14;
+export const DEFAULT_REFRESH_TTL_DAYS = 30;
+export const NEEDS_REVIEW_TTL_WINDOW_DAYS = 3;
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const PRIVATE_OPEN_PREFIX = '<private';
 const PRIVATE_CLOSE_PREFIX = '</private';
 
@@ -30,6 +42,18 @@ const VALID_MEMORY_KINDS = new Set<MemoryKind>([
   'pitfall',
   'convention',
   'preference',
+]);
+
+const VALID_MEMORY_CONFIDENCES = new Set<MemoryConfidence>([
+  'verified',
+  'normal',
+  'tentative',
+]);
+
+const VALID_MEMORY_SOURCES = new Set<MemorySource>([
+  'manual',
+  'spec_archive',
+  'auto_capture',
 ]);
 
 const VALID_DRIFT_STATUSES = new Set<NonNullable<CodeAnchor['driftStatus']>>([
@@ -228,7 +252,132 @@ function formatCompactAnchorList(anchors: CodeAnchor[], maxFiles = 3): string {
   return ` [${names.join(', ')}${extra}]`;
 }
 
+function resolveNowMs(now?: Date | number): number {
+  if (typeof now === 'number' && Number.isFinite(now)) return now;
+  if (now instanceof Date && Number.isFinite(now.getTime())) return now.getTime();
+  return Date.now();
+}
+
+export function normalizeTtlDays(raw: unknown): number | null | undefined {
+  if (raw === null) return null;
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    const floored = Math.floor(raw);
+    if (floored < MIN_TTL_DAYS) return undefined;
+    return Math.min(MAX_TTL_DAYS, floored);
+  }
+  return undefined;
+}
+
+export function computeExpiresAt(
+  baseIso: string | undefined,
+  ttlDays: number | null | undefined,
+): string | null {
+  if (ttlDays === null || ttlDays === undefined) return null;
+  if (typeof ttlDays !== 'number' || !Number.isFinite(ttlDays) || ttlDays < MIN_TTL_DAYS) {
+    return null;
+  }
+  const baseMs = baseIso ? Date.parse(baseIso) : NaN;
+  if (!Number.isFinite(baseMs)) return null;
+  const clampedDays = Math.min(MAX_TTL_DAYS, Math.max(MIN_TTL_DAYS, Math.floor(ttlDays)));
+  return new Date(baseMs + clampedDays * MS_PER_DAY).toISOString();
+}
+
+export function resolveEffectiveExpiresAt(
+  item: Pick<MemoryItem, 'verifiedAt' | 'updatedAt' | 'createdAt' | 'ttlDays' | 'expiresAt'>,
+): string | null {
+  if (typeof item.expiresAt === 'string' && item.expiresAt.trim()) {
+    const parsed = Date.parse(item.expiresAt.trim());
+    if (Number.isFinite(parsed)) return item.expiresAt.trim();
+  }
+  if (item.ttlDays === null) return null;
+  if (typeof item.ttlDays === 'number' && Number.isFinite(item.ttlDays) && item.ttlDays > 0) {
+    const base = item.verifiedAt || item.updatedAt || item.createdAt;
+    return computeExpiresAt(base, item.ttlDays);
+  }
+  return null;
+}
+
+export function evaluateMemoryHygiene(
+  item: Pick<
+    MemoryItem,
+    'pinned' | 'drifted' | 'confidence' | 'ttlDays' | 'expiresAt' | 'verifiedAt' | 'updatedAt' | 'createdAt'
+  >,
+  nowMs = Date.now(),
+): MemoryHygieneStatus {
+  if (item.drifted === true) {
+    return 'drifted';
+  }
+  if (item.pinned === true) {
+    return item.confidence === 'tentative' ? 'needs_review' : 'healthy';
+  }
+  const effectiveExpiresAt = resolveEffectiveExpiresAt(item);
+  const expiresMs = effectiveExpiresAt ? Date.parse(effectiveExpiresAt) : NaN;
+  if (Number.isFinite(expiresMs) && expiresMs <= nowMs) {
+    return 'stale_ttl';
+  }
+  if (item.confidence === 'tentative') {
+    return 'needs_review';
+  }
+  if (
+    Number.isFinite(expiresMs) &&
+    expiresMs - nowMs <= NEEDS_REVIEW_TTL_WINDOW_DAYS * MS_PER_DAY
+  ) {
+    return 'needs_review';
+  }
+  return 'healthy';
+}
+
+export function computeHygieneSummary(
+  items: MemoryItem[],
+  nowMs = Date.now(),
+): MemoryHygieneSummary {
+  let healthy = 0;
+  let needsReview = 0;
+  let staleTtl = 0;
+  let drifted = 0;
+  let tentative = 0;
+  const expiredIds: string[] = [];
+  const reviewIds: string[] = [];
+
+  for (const item of items) {
+    const status = evaluateMemoryHygiene(item, nowMs);
+    if (status === 'healthy') healthy += 1;
+    else if (status === 'needs_review') {
+      needsReview += 1;
+      reviewIds.push(item.id);
+    } else if (status === 'stale_ttl') {
+      staleTtl += 1;
+      expiredIds.push(item.id);
+    } else if (status === 'drifted') {
+      drifted += 1;
+    }
+    if (item.confidence === 'tentative') {
+      tentative += 1;
+    }
+  }
+
+  return {
+    total: items.length,
+    healthy,
+    needsReview,
+    staleTtl,
+    drifted,
+    tentative,
+    expiredIds,
+    reviewIds,
+  };
+}
+
+function confidenceRankWeight(confidence?: MemoryConfidence): number {
+  if (confidence === 'verified') return 2;
+  if (confidence === 'tentative') return 0;
+  return 1;
+}
+
 function toIndexEntry(m: MemoryItem, score?: number): MemoryIndexEntry {
+  const confidence: MemoryConfidence = m.confidence ?? 'normal';
+  const expiresAt = resolveEffectiveExpiresAt(m);
+  const hygieneStatus = m.hygieneStatus ?? evaluateMemoryHygiene(m);
   return {
     id: m.id,
     kind: m.kind,
@@ -243,6 +392,9 @@ function toIndexEntry(m: MemoryItem, score?: number): MemoryIndexEntry {
     })),
     updatedAt: m.updatedAt,
     recallCount: m.recallCount,
+    confidence,
+    hygieneStatus,
+    expiresAt,
     ...(typeof score === 'number' ? { score } : {}),
   };
 }
@@ -250,7 +402,9 @@ function toIndexEntry(m: MemoryItem, score?: number): MemoryIndexEntry {
 function formatCompactIndexLine(entry: MemoryIndexEntry, maxTitleLen = 72): string {
   const title = collapseSingleLine(entry.title, maxTitleLen);
   const pinMark = entry.pinned ? ' ★' : '';
-  const driftMark = entry.drifted ? ' · DRIFTED' : '';
+  const driftMark = entry.drifted ? ' [DRIFT]' : '';
+  const tentativeMark = entry.confidence === 'tentative' ? ' [TENTATIVE]' : '';
+  const expiredMark = entry.hygieneStatus === 'stale_ttl' ? ' [EXPIRED]' : '';
   const scoreMark = typeof entry.score === 'number' ? ` (score ${entry.score})` : '';
   const files =
     entry.anchors.length > 0
@@ -259,7 +413,7 @@ function formatCompactIndexLine(entry: MemoryIndexEntry, maxTitleLen = 72): stri
           .map((a) => a.basename)
           .join(', ')}${entry.anchors.length > 3 ? `, +${entry.anchors.length - 3}` : ''}]`
       : '';
-  return `- [${entry.id}] (${entry.kind.toUpperCase()}${pinMark}${driftMark}) ${title}${files}${scoreMark}`;
+  return `- [${entry.id}] (${entry.kind.toUpperCase()}${pinMark}${driftMark}${tentativeMark}${expiredMark}) ${title}${files}${scoreMark}`;
 }
 
 export function resolveMemDataDir(explicitRootOrDir?: string): string {
@@ -490,6 +644,34 @@ function normalizeMemoryItem(raw: unknown, index: number): MemoryItem | null {
       : 0;
   const pinned = Boolean(r.pinned);
   const drifted = typeof r.drifted === 'boolean' ? r.drifted : undefined;
+  const confidence: MemoryConfidence =
+    typeof r.confidence === 'string' && VALID_MEMORY_CONFIDENCES.has(r.confidence as MemoryConfidence)
+      ? (r.confidence as MemoryConfidence)
+      : 'normal';
+  const source: MemorySource =
+    typeof r.source === 'string' && VALID_MEMORY_SOURCES.has(r.source as MemorySource)
+      ? (r.source as MemorySource)
+      : 'manual';
+  const normalizedTtl = normalizeTtlDays(r.ttlDays);
+  const ttlDays: number | null = normalizedTtl !== undefined ? normalizedTtl : null;
+  const verifiedAt =
+    typeof r.verifiedAt === 'string' &&
+    r.verifiedAt.trim() &&
+    Number.isFinite(Date.parse(r.verifiedAt.trim()))
+      ? r.verifiedAt.trim()
+      : undefined;
+  const explicitExpiresAt =
+    typeof r.expiresAt === 'string' &&
+    r.expiresAt.trim() &&
+    Number.isFinite(Date.parse(r.expiresAt.trim()))
+      ? r.expiresAt.trim()
+      : r.expiresAt === null
+        ? null
+        : undefined;
+  const expiresAt =
+    explicitExpiresAt !== undefined
+      ? explicitExpiresAt
+      : computeExpiresAt(verifiedAt || updatedAt || createdAt, ttlDays);
 
   return {
     id,
@@ -505,6 +687,11 @@ function normalizeMemoryItem(raw: unknown, index: number): MemoryItem | null {
     updatedAt,
     recallCount,
     ...(drifted !== undefined ? { drifted } : {}),
+    confidence,
+    source,
+    ttlDays,
+    expiresAt,
+    ...(verifiedAt ? { verifiedAt } : {}),
   };
 }
 
@@ -604,15 +791,27 @@ export class MemoryStore {
       .filter((item): item is MemoryItem => item !== null);
   }
 
+  private stripEphemeralForPersist(items: MemoryItem[]): MemoryItem[] {
+    return items.map((m) => {
+      const { hygieneStatus: _ignored, ...persisted } = m;
+      return {
+        ...persisted,
+        tags: [...m.tags],
+        anchors: m.anchors.map((a) => ({ ...a })),
+      };
+    });
+  }
+
   private writeAll(items: MemoryItem[]): void {
+    const cleanItems = this.stripEphemeralForPersist(items);
     if (this.demoMode) {
-      this.demoItems = this.cloneItems(items);
+      this.demoItems = cleanItems;
       return;
     }
     ensurePrivateDir(this.dataDir);
     const tmp = `${this.filePath}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
     try {
-      fs.writeFileSync(tmp, JSON.stringify(items, null, 2), { encoding: 'utf8', mode: 0o600 });
+      fs.writeFileSync(tmp, JSON.stringify(cleanItems, null, 2), { encoding: 'utf8', mode: 0o600 });
       try {
         fs.chmodSync(tmp, 0o600);
       } catch {
@@ -629,10 +828,32 @@ export class MemoryStore {
     }
   }
 
-  private evaluateDrift(item: MemoryItem): MemoryItem {
+  private evaluateDrift(item: MemoryItem, nowMs = Date.now()): MemoryItem {
+    const confidence: MemoryConfidence = item.confidence ?? 'normal';
+    const source: MemorySource = item.source ?? 'manual';
+    const ttlDays: number | null = item.ttlDays !== undefined ? item.ttlDays : null;
+    const expiresAt = resolveEffectiveExpiresAt({
+      verifiedAt: item.verifiedAt,
+      updatedAt: item.updatedAt,
+      createdAt: item.createdAt,
+      ttlDays,
+      expiresAt: item.expiresAt,
+    });
+
     if (this.demoMode && item.id.startsWith('mem_demo_')) {
-      return item;
+      const enrichedDemo: MemoryItem = {
+        ...item,
+        confidence,
+        source,
+        ttlDays,
+        expiresAt,
+      };
+      return {
+        ...enrichedDemo,
+        hygieneStatus: evaluateMemoryHygiene(enrichedDemo, nowMs),
+      };
     }
+
     let anyDrifted = false;
     const effectiveWs = item.workspacePath ?? this.defaultWorkspaceRoot;
     const rawAnchors = Array.isArray(item.anchors) ? item.anchors : [];
@@ -652,20 +873,165 @@ export class MemoryStore {
       }
       return { ...a, driftStatus: 'fresh' };
     });
-    return { ...item, anchors, drifted: anyDrifted };
+    const enriched: MemoryItem = {
+      ...item,
+      anchors,
+      drifted: anyDrifted,
+      confidence,
+      source,
+      ttlDays,
+      expiresAt,
+    };
+    return {
+      ...enriched,
+      hygieneStatus: evaluateMemoryHygiene(enriched, nowMs),
+    };
   }
 
-  list(opts: { workspacePath?: string; kind?: MemoryKind; pinnedOnly?: boolean } = {}): MemoryItem[] {
-    let items = this.readRaw().map((m) => this.evaluateDrift(m));
+  list(
+    opts: {
+      workspacePath?: string;
+      kind?: MemoryKind;
+      pinnedOnly?: boolean;
+      includeExpired?: boolean;
+      hygieneStatus?: MemoryHygieneStatus;
+      confidence?: MemoryConfidence;
+      now?: Date | number;
+    } = {},
+  ): MemoryItem[] {
+    const nowMs = resolveNowMs(opts.now);
+    let items = this.readRaw().map((m) => this.evaluateDrift(m, nowMs));
     if (opts.workspacePath) {
       const target = path.resolve(opts.workspacePath);
       items = items.filter((m) => !m.workspacePath || path.resolve(m.workspacePath) === target);
     }
     if (opts.kind) items = items.filter((m) => m.kind === opts.kind);
     if (opts.pinnedOnly) items = items.filter((m) => m.pinned);
+    if (opts.confidence) items = items.filter((m) => (m.confidence ?? 'normal') === opts.confidence);
+    if (opts.hygieneStatus) items = items.filter((m) => m.hygieneStatus === opts.hygieneStatus);
+    if (opts.includeExpired === false) {
+      items = items.filter((m) => m.hygieneStatus !== 'stale_ttl');
+    }
     return items.sort(
       (a, b) => Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt),
     );
+  }
+
+  getHygieneSummary(opts: { workspacePath?: string; now?: Date | number } = {}): MemoryHygieneSummary {
+    const nowMs = resolveNowMs(opts.now);
+    const items = this.list({ workspacePath: opts.workspacePath, includeExpired: true, now: nowMs });
+    return computeHygieneSummary(items, nowMs);
+  }
+
+  batchHygieneMemories(
+    ids: string[],
+    action: MemoryHygieneAction,
+    opts: { ttlDays?: number | null; workspacePath?: string; now?: Date | number } = {},
+  ): BatchHygieneResult {
+    if (action !== 'verify' && action !== 'refresh_ttl' && action !== 'prune') {
+      throw new Error(`Invalid hygiene action: "${String(action)}" (expected verify | refresh_ttl | prune)`);
+    }
+    const requestedIds = Array.from(
+      new Set((ids ?? []).map((id) => (typeof id === 'string' ? id.trim() : '')).filter(Boolean)),
+    );
+    const nowMs = resolveNowMs(opts.now);
+    const nowIso = new Date(nowMs).toISOString();
+
+    if (requestedIds.length === 0) {
+      return {
+        action,
+        requestedIds,
+        affectedIds: [],
+        updatedCount: 0,
+        deletedCount: 0,
+        summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs }),
+      };
+    }
+
+    const idSet = new Set(requestedIds);
+    const rawItems = this.readRaw();
+    const affectedIds: string[] = [];
+
+    if (action === 'prune') {
+      const remaining: MemoryItem[] = [];
+      for (const item of rawItems) {
+        if (idSet.has(item.id)) {
+          affectedIds.push(item.id);
+        } else {
+          remaining.push(item);
+        }
+      }
+      if (affectedIds.length > 0) {
+        this.writeAll(remaining);
+      }
+      return {
+        action,
+        requestedIds,
+        affectedIds,
+        updatedCount: 0,
+        deletedCount: affectedIds.length,
+        summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs }),
+      };
+    }
+
+    if (action === 'verify') {
+      const explicitTtl =
+        opts.ttlDays !== undefined ? normalizeTtlDays(opts.ttlDays) ?? null : null;
+      const nextItems = rawItems.map((item) => {
+        if (!idSet.has(item.id)) return item;
+        affectedIds.push(item.id);
+        const nextTtlDays = explicitTtl;
+        return {
+          ...item,
+          confidence: 'verified' as MemoryConfidence,
+          verifiedAt: nowIso,
+          updatedAt: nowIso,
+          ttlDays: nextTtlDays,
+          expiresAt: computeExpiresAt(nowIso, nextTtlDays),
+        };
+      });
+      if (affectedIds.length > 0) {
+        this.writeAll(nextItems);
+      }
+      return {
+        action,
+        requestedIds,
+        affectedIds,
+        updatedCount: affectedIds.length,
+        deletedCount: 0,
+        summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs }),
+      };
+    }
+
+    // action === 'refresh_ttl'
+    const refreshTtl =
+      opts.ttlDays === null
+        ? null
+        : opts.ttlDays !== undefined
+          ? normalizeTtlDays(opts.ttlDays) ?? DEFAULT_REFRESH_TTL_DAYS
+          : DEFAULT_REFRESH_TTL_DAYS;
+    const nextItems = rawItems.map((item) => {
+      if (!idSet.has(item.id)) return item;
+      affectedIds.push(item.id);
+      return {
+        ...item,
+        updatedAt: nowIso,
+        verifiedAt: nowIso,
+        ttlDays: refreshTtl,
+        expiresAt: computeExpiresAt(nowIso, refreshTtl),
+      };
+    });
+    if (affectedIds.length > 0) {
+      this.writeAll(nextItems);
+    }
+    return {
+      action,
+      requestedIds,
+      affectedIds,
+      updatedCount: affectedIds.length,
+      deletedCount: 0,
+      summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs }),
+    };
   }
 
   remember(input: {
@@ -678,6 +1044,10 @@ export class MemoryStore {
     sourceConversationId?: string;
     anchors?: Array<{ filePath: string; symbol?: string }>;
     pinned?: boolean;
+    confidence?: MemoryConfidence;
+    source?: MemorySource;
+    ttlDays?: number | null;
+    verifiedAt?: string;
   }): MemoryItem {
     const items = this.readRaw();
     const now = new Date().toISOString();
@@ -754,21 +1124,54 @@ export class MemoryStore {
             (m.workspacePath ?? '') === (resolvedWorkspace ?? ''),
         );
 
+    const parsedInputTtl =
+      input.ttlDays !== undefined ? normalizeTtlDays(input.ttlDays) ?? null : undefined;
+
+    const sanitizedInputConfidence: MemoryConfidence | undefined =
+      input.confidence !== undefined && VALID_MEMORY_CONFIDENCES.has(input.confidence)
+        ? input.confidence
+        : undefined;
+    const sanitizedInputSource: MemorySource | undefined =
+      input.source !== undefined && VALID_MEMORY_SOURCES.has(input.source)
+        ? input.source
+        : undefined;
+
     if (existingIdx >= 0) {
+      const prev = items[existingIdx];
+      const nextConfidence: MemoryConfidence = sanitizedInputConfidence ?? prev.confidence ?? 'normal';
+      const nextSource: MemorySource = sanitizedInputSource ?? prev.source ?? 'manual';
+      const nextTtlDays: number | null =
+        parsedInputTtl !== undefined ? parsedInputTtl : prev.ttlDays ?? null;
+      const nextVerifiedAt =
+        input.verifiedAt ?? (sanitizedInputConfidence === 'verified' ? now : prev.verifiedAt);
+      const ttlAnchorIso = parsedInputTtl !== undefined ? now : nextVerifiedAt || now;
+      const nextExpiresAt = computeExpiresAt(ttlAnchorIso, nextTtlDays);
+
       const updated: MemoryItem = {
-        ...items[existingIdx],
+        ...prev,
         kind: input.kind,
         title: cleanTitle,
         content: cleanContent,
         tags,
-        anchors: anchors.length ? anchors : items[existingIdx].anchors,
-        pinned: input.pinned ?? items[existingIdx].pinned,
+        anchors: anchors.length ? anchors : prev.anchors,
+        pinned: input.pinned ?? prev.pinned,
         updatedAt: now,
+        confidence: nextConfidence,
+        source: nextSource,
+        ttlDays: nextTtlDays,
+        expiresAt: nextExpiresAt,
+        ...(nextVerifiedAt ? { verifiedAt: nextVerifiedAt } : {}),
       };
       items[existingIdx] = updated;
       this.writeAll(items);
       return this.evaluateDrift(updated);
     }
+
+    const confidence: MemoryConfidence = sanitizedInputConfidence ?? 'normal';
+    const source: MemorySource = sanitizedInputSource ?? 'manual';
+    const ttlDays: number | null = parsedInputTtl !== undefined ? parsedInputTtl : null;
+    const verifiedAt = input.verifiedAt ?? (confidence === 'verified' ? now : undefined);
+    const expiresAt = computeExpiresAt(verifiedAt || now, ttlDays);
 
     const created: MemoryItem = {
       id: input.id || `mem_${crypto.randomBytes(5).toString('hex')}`,
@@ -783,6 +1186,11 @@ export class MemoryStore {
       createdAt: now,
       updatedAt: now,
       recallCount: 0,
+      confidence,
+      source,
+      ttlDays,
+      expiresAt,
+      ...(verifiedAt ? { verifiedAt } : {}),
     };
     items.unshift(created);
     this.writeAll(items);
@@ -793,20 +1201,29 @@ export class MemoryStore {
     const items = this.readRaw();
     const idx = items.findIndex((m) => m.id === id);
     if (idx < 0) return null;
-    const ws = items[idx].workspacePath ?? this.defaultWorkspaceRoot;
-    items[idx].anchors = items[idx].anchors.map((a) => {
-      const inspected = inspectAnchorFile(a.filePath, ws);
-      if (inspected.status === 'ok' && inspected.sha256) {
-        return { ...a, sha256: inspected.sha256, driftStatus: 'fresh' };
-      }
-      if (inspected.status === 'skipped') {
-        const { sha256: _ignored, ...rest } = a;
-        return { ...rest, driftStatus: 'skipped' };
-      }
-      return { ...a, driftStatus: 'missing' };
-    });
+    const now = new Date().toISOString();
+    if (this.demoMode && items[idx].id.startsWith('mem_demo_')) {
+      items[idx].anchors = items[idx].anchors.map((a) => ({ ...a, driftStatus: 'fresh' }));
+    } else {
+      const ws = items[idx].workspacePath ?? this.defaultWorkspaceRoot;
+      items[idx].anchors = items[idx].anchors.map((a) => {
+        const inspected = inspectAnchorFile(a.filePath, ws);
+        if (inspected.status === 'ok' && inspected.sha256) {
+          return { ...a, sha256: inspected.sha256, driftStatus: 'fresh' };
+        }
+        if (inspected.status === 'skipped') {
+          const { sha256: _ignored, ...rest } = a;
+          return { ...rest, driftStatus: 'skipped' };
+        }
+        return { ...a, driftStatus: 'missing' };
+      });
+    }
     items[idx].drifted = false;
-    items[idx].updatedAt = new Date().toISOString();
+    items[idx].updatedAt = now;
+    items[idx].verifiedAt = now;
+    if (typeof items[idx].ttlDays === 'number' && items[idx].ttlDays > 0) {
+      items[idx].expiresAt = computeExpiresAt(now, items[idx].ttlDays);
+    }
     this.writeAll(items);
     return this.evaluateDrift(items[idx]);
   }
@@ -831,12 +1248,21 @@ export class MemoryStore {
 
   getByIds(
     ids: string[],
-    opts: { workspacePath?: string; incrementRecall?: boolean } = {},
+    opts: {
+      workspacePath?: string;
+      incrementRecall?: boolean;
+      includeExpired?: boolean;
+      now?: Date | number;
+    } = {},
   ): MemoryItem[] {
     const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
     if (uniqueIds.length === 0) return [];
 
-    const all = this.list({ workspacePath: opts.workspacePath });
+    const all = this.list({
+      workspacePath: opts.workspacePath,
+      includeExpired: Boolean(opts.includeExpired),
+      now: opts.now,
+    });
     const byId = new Map(all.map((m) => [m.id, m]));
     const matched = uniqueIds
       .map((id) => byId.get(id))
@@ -859,13 +1285,39 @@ export class MemoryStore {
 
   recall(
     query: string,
-    opts: { workspacePath?: string; limit?: number; incrementRecall?: boolean } = {},
+    opts: {
+      workspacePath?: string;
+      limit?: number;
+      incrementRecall?: boolean;
+      includeExpired?: boolean;
+      now?: Date | number;
+    } = {},
   ): Array<MemoryItem & { score: number }> {
     const limit = opts.limit ?? 10;
-    const all = this.list({ workspacePath: opts.workspacePath });
+    const all = this.list({
+      workspacePath: opts.workspacePath,
+      includeExpired: Boolean(opts.includeExpired),
+      now: opts.now,
+    });
     const trimmed = query.trim();
     if (!trimmed) {
-      return all.slice(0, limit).map((m) => ({ ...m, score: m.pinned ? 2 : 1 }));
+      return [...all]
+        .map((m) => {
+          let baseScore = 1;
+          if (m.pinned) baseScore += 1.0;
+          if (m.confidence === 'verified') baseScore += 0.5;
+          else if (m.confidence === 'tentative') baseScore -= 0.25;
+          if (m.drifted) baseScore -= 0.2;
+          return { ...m, score: Number(Math.max(0.1, baseScore).toFixed(2)) };
+        })
+        .sort(
+          (a, b) =>
+            b.score - a.score ||
+            Number(b.pinned) - Number(a.pinned) ||
+            confidenceRankWeight(b.confidence) - confidenceRankWeight(a.confidence) ||
+            b.updatedAt.localeCompare(a.updatedAt),
+        )
+        .slice(0, limit);
     }
 
     const qTokens = Array.from(new Set(tokenize(trimmed)));
@@ -903,11 +1355,22 @@ export class MemoryStore {
         }
         if (m.title.toLowerCase().includes(qLower)) score += 3.0;
         if (m.content.toLowerCase().includes(qLower)) score += 2.0;
-        if (m.pinned && score > 0) score += 0.6;
+        if (score > 0) {
+          if (m.pinned) score += 0.6;
+          if (m.confidence === 'verified') score += 0.45;
+          else if (m.confidence === 'tentative') score = Math.max(0.05, score * 0.85);
+          if (m.drifted) score = Math.max(0.05, score * 0.9);
+        }
         return { ...m, score: Number(score.toFixed(2)) };
       })
       .filter((h) => h.score > 0)
-      .sort((a, b) => b.score - a.score)
+      .sort(
+        (a, b) =>
+          b.score - a.score ||
+          Number(b.pinned) - Number(a.pinned) ||
+          confidenceRankWeight(b.confidence) - confidenceRankWeight(a.confidence) ||
+          b.updatedAt.localeCompare(a.updatedAt),
+      )
       .slice(0, limit);
 
     if (opts.incrementRecall && hits.length > 0) {
@@ -923,16 +1386,30 @@ export class MemoryStore {
     return hits;
   }
 
-  buildCompactIndexEntries(workspacePaths: string[] = [], maxItems = 12): MemoryIndexEntry[] {
+  buildCompactIndexEntries(
+    workspacePaths: string[] = [],
+    maxItems = 12,
+    now?: Date | number,
+  ): MemoryIndexEntry[] {
     const ws = workspacePaths[0];
-    return this.list({ workspacePath: ws })
-      .filter((m) => !m.drifted)
+    return this.list({ workspacePath: ws, includeExpired: false, now })
+      .filter((m) => !m.drifted && m.hygieneStatus !== 'stale_ttl')
+      .sort(
+        (a, b) =>
+          Number(b.pinned) - Number(a.pinned) ||
+          confidenceRankWeight(b.confidence) - confidenceRankWeight(a.confidence) ||
+          b.updatedAt.localeCompare(a.updatedAt),
+      )
       .slice(0, maxItems)
       .map((m) => toIndexEntry(m));
   }
 
-  buildSessionStartInjection(workspacePaths: string[] = [], maxItems = 12): string {
-    const entries = this.buildCompactIndexEntries(workspacePaths, maxItems);
+  buildSessionStartInjection(
+    workspacePaths: string[] = [],
+    maxItems = 12,
+    now?: Date | number,
+  ): string {
+    const entries = this.buildCompactIndexEntries(workspacePaths, maxItems, now);
     if (entries.length === 0) return '';
 
     const header = `[Agy Mem — Progressive Index (${entries.length} active · L1)]`;
@@ -973,9 +1450,15 @@ export class MemoryStore {
     return out.length <= MAX_SESSION_START_CHARS ? out : out.slice(0, MAX_SESSION_START_CHARS);
   }
 
-  buildProgressiveStats(workspacePaths?: string[], maxItems = 12): MemoryProgressiveStats {
+  buildProgressiveStats(
+    workspacePaths?: string[],
+    maxItems = 12,
+    now?: Date | number,
+  ): MemoryProgressiveStats {
     const ws = workspacePaths?.[0];
-    const active = this.list({ workspacePath: ws }).filter((m) => !m.drifted);
+    const active = this.list({ workspacePath: ws, includeExpired: false, now }).filter(
+      (m) => !m.drifted && m.hygieneStatus !== 'stale_ttl',
+    );
     if (active.length === 0) {
       return {
         activeCount: 0,
@@ -987,7 +1470,7 @@ export class MemoryStore {
       };
     }
 
-    const compactIndex = this.buildSessionStartInjection(workspacePaths ?? [], maxItems);
+    const compactIndex = this.buildSessionStartInjection(workspacePaths ?? [], maxItems, now);
     const fullDumpText = [
       `[Agy Mem — Persistent Workspace Memory (${active.length} active)]`,
       ...active.map((m) => {
@@ -1021,23 +1504,31 @@ export class MemoryStore {
     limit?: number;
     window?: number;
     incrementRecall?: boolean;
+    includeExpired?: boolean;
+    now?: Date | number;
   } = {}): LayeredRecallResult {
     const mode: MemoryRecallMode = opts.mode ?? 'detail';
     const query = (opts.query ?? '').trim();
     const ids = Array.from(new Set((opts.ids ?? []).map((id) => id.trim()).filter(Boolean)));
     const limit = opts.limit ?? 8;
     const windowSize = Math.min(5, Math.max(1, Math.floor(opts.window ?? 2)));
+    const includeExpired = Boolean(opts.includeExpired);
 
     if (mode === 'index') {
       const entries: MemoryIndexEntry[] =
         ids.length > 0
-          ? this.getByIds(ids, { workspacePath: opts.workspacePath, incrementRecall: false }).map((m) =>
-              toIndexEntry(m),
-            )
+          ? this.getByIds(ids, {
+              workspacePath: opts.workspacePath,
+              incrementRecall: false,
+              includeExpired,
+              now: opts.now,
+            }).map((m) => toIndexEntry(m))
           : this.recall(query, {
               workspacePath: opts.workspacePath,
               limit,
               incrementRecall: false,
+              includeExpired,
+              now: opts.now,
             }).map((m) => toIndexEntry(m, m.score));
 
       const text = entries.length
@@ -1064,7 +1555,11 @@ export class MemoryStore {
     }
 
     if (mode === 'timeline') {
-      const chronological = this.list({ workspacePath: opts.workspacePath }).sort(
+      const chronological = this.list({
+        workspacePath: opts.workspacePath,
+        includeExpired,
+        now: opts.now,
+      }).sort(
         (a, b) =>
           b.updatedAt.localeCompare(a.updatedAt) ||
           b.createdAt.localeCompare(a.createdAt) ||
@@ -1090,6 +1585,8 @@ export class MemoryStore {
           workspacePath: opts.workspacePath,
           limit,
           incrementRecall: false,
+          includeExpired,
+          now: opts.now,
         });
         for (const h of hits) {
           const idx = indexById.get(h.id);
@@ -1139,6 +1636,9 @@ export class MemoryStore {
           updatedAt: m.updatedAt,
           recallCount: m.recallCount,
           isAnchorHit: anchorHitIds.has(m.id),
+          confidence: m.confidence ?? 'normal',
+          hygieneStatus: m.hygieneStatus,
+          expiresAt: resolveEffectiveExpiresAt(m),
           ...(typeof score === 'number' ? { score } : {}),
         };
       });
@@ -1155,7 +1655,10 @@ export class MemoryStore {
                 ? ` (session:${entry.sourceConversationId.slice(0, 12)})`
                 : '';
               const scoreTxt = typeof entry.score === 'number' ? ` score=${entry.score}` : '';
-              return `- ${entry.updatedAt} ${marker} [${entry.id}] (${entry.kind.toUpperCase()}${entry.pinned ? ' ★' : ''}${entry.drifted ? ' · DRIFTED' : ''}) ${entry.title}${filesTxt}${convTxt}${scoreTxt}\n  ${entry.excerpt}`;
+              const driftTxt = entry.drifted ? ' [DRIFT]' : '';
+              const tentativeTxt = entry.confidence === 'tentative' ? ' [TENTATIVE]' : '';
+              const expiredTxt = entry.hygieneStatus === 'stale_ttl' ? ' [EXPIRED]' : '';
+              return `- ${entry.updatedAt} ${marker} [${entry.id}] (${entry.kind.toUpperCase()}${entry.pinned ? ' ★' : ''}${driftTxt}${tentativeTxt}${expiredTxt}) ${entry.title}${filesTxt}${convTxt}${scoreTxt}\n  ${entry.excerpt}`;
             }),
             'Call mem_recall(mode="detail", ids=["<id>"]) to load full memory content.',
           ].join('\n')
@@ -1182,11 +1685,15 @@ export class MemoryStore {
         ? this.getByIds(ids, {
             workspacePath: opts.workspacePath,
             incrementRecall: Boolean(opts.incrementRecall),
+            includeExpired,
+            now: opts.now,
           }).map((m) => ({ ...m, score: 1 }))
         : this.recall(query, {
             workspacePath: opts.workspacePath,
             limit,
             incrementRecall: Boolean(opts.incrementRecall),
+            includeExpired,
+            now: opts.now,
           });
 
     const text = detailItems.length
@@ -1194,7 +1701,15 @@ export class MemoryStore {
           .map((m, i) => {
             const anchorTxt = formatCompactAnchorList(m.anchors, 4);
             const scoreTxt = typeof m.score === 'number' ? ` (score ${m.score})` : '';
-            return `${i + 1}. [${m.id}] [${m.kind.toUpperCase()}${m.pinned ? ' ★' : ''}${m.drifted ? ' · DRIFTED' : ''}] ${m.title}${anchorTxt}${scoreTxt}\n   ${m.content}`;
+            const driftTxt = m.drifted ? ' [DRIFT]' : '';
+            const confTxt =
+              m.confidence === 'tentative'
+                ? ' [TENTATIVE]'
+                : m.confidence === 'verified'
+                  ? ' [VERIFIED]'
+                  : '';
+            const expiredTxt = m.hygieneStatus === 'stale_ttl' ? ' [EXPIRED]' : '';
+            return `${i + 1}. [${m.id}] [${m.kind.toUpperCase()}${m.pinned ? ' ★' : ''}${driftTxt}${confTxt}${expiredTxt}] ${m.title}${anchorTxt}${scoreTxt}\n   ${m.content}`;
           })
           .join('\n')
       : ids.length > 0

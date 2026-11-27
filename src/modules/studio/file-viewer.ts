@@ -126,10 +126,22 @@ export function resolveFileViewerTargetTab(ext: FileViewerExtension): FileViewer
   return ext === '.svg' ? 'canvas' : 'studio';
 }
 
+const SVG_NAMED_PROTOCOL_ENTITIES: Readonly<Record<string, string>> = {
+  colon: ':',
+  tab: '\t',
+  newline: '\n',
+  sol: '/',
+};
+
 function decodeSvgEntitiesAndCssEscapesLinear(input: string): string {
-  // Decode decimal/hex numeric HTML entities & CSS backslash hex escapes in O(n)
-  const entitiesDecoded = input.replace(
-    /&#(?:x([0-9a-fA-F]{1,6})|([0-9]{1,7}));?/g,
+  // Decode HTML5 named entities (&colon;, &tab;, &newline;, &sol;, case-insensitive) before numeric entities
+  const namedDecoded = input.replace(
+    /&(colon|tab|newline|sol);/gi,
+    (_full, name: string) => SVG_NAMED_PROTOCOL_ENTITIES[name.toLowerCase()] ?? '',
+  );
+  // Decode decimal/hex numeric HTML entities (supporting arbitrary leading zeros) & CSS backslash hex escapes in O(n)
+  const entitiesDecoded = namedDecoded.replace(
+    /&#(?:x0*([0-9a-fA-F]{1,6})|0*([0-9]{1,7}));?/g,
     (full, hex: string | undefined, dec: string | undefined) => {
       const code = hex ? Number.parseInt(hex, 16) : Number.parseInt(dec ?? '', 10);
       if (!Number.isFinite(code) || code <= 0 || code > 0x10ffff) return '';
@@ -152,7 +164,7 @@ function decodeSvgEntitiesAndCssEscapesLinear(input: string): string {
       }
     },
   );
-  // Strip control characters and whitespace so `java&#x09;script:` collapses to `javascript:`
+  // Strip control characters and whitespace so `java&#x09;script:` / `java&Tab;script:` collapses to `javascript:`
   return cssDecoded.replace(/[\x00-\x20\x7f]+/g, '');
 }
 

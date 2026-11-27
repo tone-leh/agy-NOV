@@ -591,7 +591,7 @@ function readCoreMemoriesReadOnly(rootDataDir: string, nowMs: number): Extracted
 
 function buildDemoSpecData(): ExtractedSpecData {
   return {
-    activeSpecTitle: 'v0.9.0 Clean Fork & Native File Viewer',
+    activeSpecTitle: 'Clean Fork & Native File Viewer',
     status: 'approved',
     goal: 'Eliminate long-session context rot with one-click clean session forks and zero-ASAR file viewers.',
     readyTasks: [

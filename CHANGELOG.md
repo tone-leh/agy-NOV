@@ -2,6 +2,33 @@
 
 All notable changes to **agy-NOV** will be documented in this file.
 
+## [1.0.0] - 2026-11-27
+
+### Added
+- **Ops 3.0 — Static Read-Only Security Audit, Cross-Client Dedup Preview & SettingsHub S4 Tool-Slot Idle Advisor (`ops`, `ui`):**
+  - Extended `ops_audit_workspace` with a pure read-only static security scanner (`securityFindings` + `securityScore` 0–100, linear O(n), rejecting symlinks, capped at `<= 256 KiB` per file and 80 files max) across workspace rules, skills, hooks, and MCP configs (`src/modules/ops/core.ts`). Accurately detects 4 categories with zero false positives on compliant repositories: `prompt-injection` (BiDi overrides, zero-width steganography, override + exfiltration pairs), `broad-command-allow` (wildcard approvals, `--yolo`, `chmod 777`), `risky-hook` (curl/wget pipe-to-shell, bare `rm -rf`, `eval`), and `mcp-unsafe-env` (hardcoded plaintext credentials reporting key names only with zero secret echoing, plus non-loopback plaintext HTTP endpoints).
+  - Upgraded `.claude/` / `.cursor/rules/` / `.codex/` migration hints into a strictly read-only **Deduplication & Slimming Comparison Preview** (`migrationPreview`), computing normalized line and paragraph SHA-256 hashes to report exact duplication ratios, reclaimable bytes, and token savings without modifying any user files.
+  - Added an 8-language **Tool-Slot Idle Advisor** in **Settings Hub S4** (`SettingsHub`), surfacing idle heavy modules and enabling one-click toggling off to reclaim Antigravity's 100-tool MCP budget.
+- **Mem 3.0 — Memory Hygiene, Confidence Tiers & TTL Governance (`mem`, `hooks`, `ui`):**
+  - Added source confidence tiers (`confidence`: `verified` / `normal` / `tentative`), provenance markers (`source`: `manual` / `spec_archive` / `auto_capture`), and optional TTL expiration (`ttlDays` 1–365 / `expiresAt`) while preserving seamless backward-compatible loading of legacy `memories.json` files (`src/modules/mem/store.ts`, `src/modules/mem/register.ts`).
+  - Downgraded `Stop`-hook auto-captured memories by default to `tentative` with a `14`-day TTL so transient missteps do not pollute future sessions; `SessionStart` L1 Index and default `mem_recall` automatically exclude expired unpinned `tentative` entries (`includeExpired: true` recovers them on demand, while `pinned` entries never expire).
+  - Upgraded `MemPanel` with memory hygiene summary filter pills, confidence & TTL badges, multi-select checkboxes, and a batch cleanup bar (**Verify / Refresh TTL (+30d) / Prune** with inline double confirmation). Kept model tools strictly at **3** (`mem_remember`, `mem_recall`, `mem_forget`), adding App-only `app_mem_get_hygiene_summary` (read-only) and `app_mem_batch_hygiene` (mutating, disabled automatically whenever `mem` is turned off).
+- **Customizable CLI `statusLine` + Preview-Then-Confirm `.agy-nov.json` Scaffold (`cli`):**
+  - Extended `agy-nov statusline` with `--segments=<csv>` (plus `AGY_NOV_STATUSLINE_SEGMENTS` environment-variable fallback) to compose any subset of **9 read-only status segments** (`brand`, `context` context usage bar, `burn` 5h burn rate, `cache` prefix cache hit rate, `spec`, `verify`, `guard` permission mode & block count, `radar`, `network`) with zero LLM tokens, zero disk writes when `dataDir` is absent, and strict symlink rejection (`src/server/cli.ts`).
+  - Extended `agy-nov recommend` with `--export-preset`, defaulting to a strictly **read-only preview** of the generated `.agy-nov.json` team preset scaffold (zero disk writes, never emits `remote`, all verify commands validated against the 23-executable allowlist). Writes atomically only when `--confirm` is explicitly passed (refusing to overwrite existing files without `--force`, hard-rejecting symlink targets) and runs immediate post-write self-validation.
+- **Expanded Automated v1.0.0 Production-Grade Test Suite (`test`):**
+  - Added 3 dedicated v1.0.0 test suites (`test/v10-ops-security-dedup.test.ts`, `test/v10-mem-hygiene-ttl.test.ts`, `test/v10-cli-statusline-preset.test.ts`), raising total automated verification to **85 test suites / 233 tests**.
+
+### Changed
+- **Preserved 13-Module Architecture, 5 Presets, 9 CLI Commands, 5 Skills, 2 Read-Only Subagents & 47 Model Tools Unchanged:** Across `v0.4` -> `v1.0.0`, all 13 toggleable native modules (12 local offline + 1 opt-in `remote`), 5 presets (`minimal` 6 / `core` 12 / `power` 32 / `local-all` 43 / `full` 47), 9 CLI commands, 5 official on-demand Skills, 2 read-only specialist subagents, and all **47 canonical model tool names** remain 100% backward-compatible with **+0 tool-slot inflation**.
+- **Bundle, 8-Language UI & Docs Alignment (`v1.0.0` GA):** Updated `package.json`, `plugin.json`, `src/server/cli.ts`, all 8 bundled UI languages across all **24 UI components** (`dist/ui/app.html` `~1.2 MB`, measured `1,260.1 KB`, well below the 1.5 MiB target and 10 MiB cap), `skills/agy-nov/SKILL.md`, `README.md`, all 7 localized `docs/i18n/README.*.md` files, `llms.txt`, and `docs/llms-install.md` to `v1.0.0`.
+
+### Security
+- **Ops 3.0 Static Security Scan & Zero-Echo Dedup Preview (`ops`):** Enforced strictly read-only O(n) scanning with symlink refusal, `<= 256 KiB` file cap, 80-file scan ceiling, zero secret value echoing (reporting credential key names only), and zero writes to any workspace or external client rule directories during cross-client deduplication preview.
+- **Mem 3.0 Hygiene Gating & Synchronized App-Tool Shutdown (`mem`, `hooks`):** Defaulted `Stop`-hook auto-captures to `tentative` + `14`-day TTL to prevent unverified context pollution, required inline double confirmation for batch pruning, and synced `app_mem_batch_hygiene` enable/disable state strictly with the `mem` module switch while keeping `app_mem_get_hygiene_summary` read-only.
+- **CLI `statusline` & `.agy-nov.json` Export Scaffold Hardening (`cli`):** Enforced symlink refusal and zero disk writes when `dataDir` is absent for `statusline --segments`; locked `recommend --export-preset` to read-only preview by default, requiring explicit `--confirm` for atomic writes (with `--force` required for overwrites, hard symlink refusal, allowlisted-only verify commands, and permanent exclusion of `remote`).
+- **Zero-Touch Invariants Preserved:** Maintained 100% Zero ASAR / Zero CDP boundaries, four-zero OFF-state isolation for `remote`, zero default resident `rules/AGENTS.md` bloat, and 15-asset `agy-nov doctor` verification.
+
 ## [0.9.0] - 2026-11-27
 
 ### Added

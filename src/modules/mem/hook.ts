@@ -2,7 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getModuleDataDir, resolveNovDataDir } from '../../core/config.js';
 import type { NormalizedHookPayload } from '../../core/types.js';
-import { isSensitiveFilePath, MemoryStore, stripPrivateTags } from './store.js';
+import {
+  DEFAULT_AUTO_CAPTURE_TTL_DAYS,
+  isSensitiveFilePath,
+  MemoryStore,
+  stripPrivateTags,
+} from './store.js';
 
 export const MAX_TRANSCRIPT_TAIL_BYTES = 256 * 1024; // 256 KiB
 
@@ -149,6 +154,9 @@ export function handleMemStopHook(
       sourceConversationId: convId,
       anchors: editedFiles.map((filePath) => ({ filePath })),
       pinned: false,
+      confidence: 'tentative',
+      source: 'auto_capture',
+      ttlDays: DEFAULT_AUTO_CAPTURE_TTL_DAYS,
     });
   } catch {
     // fail-open on capture write failures

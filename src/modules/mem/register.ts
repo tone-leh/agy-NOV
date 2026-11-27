@@ -7,7 +7,10 @@ import type {
   NovRuntimeOptions,
 } from '../../core/types.js';
 import { buildMemoryGraph } from './graph.js';
-import { MemoryStore } from './store.js';
+import { MAX_TTL_DAYS, MemoryStore, MIN_TTL_DAYS } from './store.js';
+
+const CONFIDENCE_SCHEMA = z.enum(['verified', 'normal', 'tentative']);
+const TTL_DAYS_SCHEMA = z.number().int().min(MIN_TTL_DAYS).max(MAX_TTL_DAYS).nullable();
 
 function toHandle(
   name: string,
@@ -41,6 +44,7 @@ export function registerMemModule(
     const indexText = store.buildSessionStartInjection();
     const progressiveStats = store.buildProgressiveStats();
     const indexEntries = store.buildCompactIndexEntries();
+    const hygieneSummary = store.getHygieneSummary();
     return {
       memories,
       graph: buildMemoryGraph(memories),
@@ -50,6 +54,7 @@ export function registerMemModule(
         indexText,
         entries: indexEntries,
       },
+      hygieneSummary,
     };
   };
 
@@ -61,7 +66,7 @@ export function registerMemModule(
     {
       title: 'Remember Code-Anchored Fact',
       description:
-        'Store a long-term architectural decision, pitfall, convention, or preference anchored to source file paths (with SHA-256 drift tracking, <private> tag stripping, and secret redaction).',
+        'Store a long-term architectural decision, pitfall, convention, or preference anchored to source file paths (with SHA-256 drift tracking, confidence/TTL hygiene governance, <private> tag stripping, and secret redaction).',
       inputSchema: {
         kind: z.enum(['architecture', 'decision', 'pitfall', 'convention', 'preference']),
         title: z.string().min(2),
@@ -72,6 +77,8 @@ export function registerMemModule(
           .array(z.object({ filePath: z.string(), symbol: z.string().optional() }))
           .optional(),
         pinned: z.boolean().optional(),
+        confidence: CONFIDENCE_SCHEMA.optional(),
+        ttlDays: TTL_DAYS_SCHEMA.optional(),
       },
     },
     async (input) => {
@@ -80,7 +87,7 @@ export function registerMemModule(
         content: [
           {
             type: 'text',
-            text: `Remembered [${saved.kind.toUpperCase()}] "${saved.title}" (id=${saved.id}, anchors=${saved.anchors.length}, pinned=${saved.pinned}).`,
+            text: `Remembered [${saved.kind.toUpperCase()}] "${saved.title}" (id=${saved.id}, anchors=${saved.anchors.length}, pinned=${saved.pinned}, confidence=${saved.confidence ?? 'normal'}, hygiene=${saved.hygieneStatus ?? 'healthy'}).`,
           },
         ],
         structuredContent: {
@@ -89,6 +96,11 @@ export function registerMemModule(
           title: saved.title,
           pinned: saved.pinned,
           drifted: Boolean(saved.drifted),
+          confidence: saved.confidence ?? 'normal',
+          source: saved.source ?? 'manual',
+          ttlDays: saved.ttlDays ?? null,
+          expiresAt: saved.expiresAt ?? null,
+          hygieneStatus: saved.hygieneStatus ?? 'healthy',
           anchorCount: saved.anchors.length,
           tagCount: saved.tags.length,
           updatedAt: saved.updatedAt,
@@ -104,7 +116,7 @@ export function registerMemModule(
     {
       title: 'Recall Long-Term Memories',
       description:
-        'Search or load long-term memories with 3-layer progressive disclosure: mode="index" (compact L1 catalog without content), mode="timeline" (L2 chronological context window around hits/ids), or mode="detail" (default L3 full content by query or exact ids).',
+        'Search or load long-term memories with 3-layer progressive disclosure: mode="index" (compact L1 catalog without content), mode="timeline" (L2 chronological context window around hits/ids), or mode="detail" (default L3 full content by query or exact ids). Excludes expired TTL memories unless includeExpired=true.',
       inputSchema: {
         query: z.string().optional().default(''),
         mode: z.enum(['index', 'timeline', 'detail']).optional(),
@@ -112,9 +124,10 @@ export function registerMemModule(
         workspacePath: z.string().optional(),
         limit: z.number().int().min(1).max(30).optional(),
         window: z.number().int().min(1).max(5).optional(),
+        includeExpired: z.boolean().optional(),
       },
     },
-    async ({ query, mode, ids, workspacePath, limit, window }) => {
+    async ({ query, mode, ids, workspacePath, limit, window, includeExpired }) => {
       const effectiveMode = mode ?? 'detail';
       const result = store.recallLayered({
         query,
@@ -124,6 +137,7 @@ export function registerMemModule(
         limit: limit ?? 8,
         window: window ?? 2,
         incrementRecall: effectiveMode === 'detail',
+        includeExpired: Boolean(includeExpired),
       });
 
       if (effectiveMode === 'index') {
@@ -155,6 +169,9 @@ export function registerMemModule(
               title: entry.title,
               pinned: entry.pinned,
               drifted: entry.drifted,
+              confidence: entry.confidence ?? 'normal',
+              hygieneStatus: entry.hygieneStatus,
+              expiresAt: entry.expiresAt ?? null,
               isAnchorHit: entry.isAnchorHit,
               updatedAt: entry.updatedAt,
               ...(typeof entry.score === 'number' ? { score: entry.score } : {}),
@@ -177,6 +194,9 @@ export function registerMemModule(
             score: m.score ?? 1,
             pinned: m.pinned,
             drifted: Boolean(m.drifted),
+            confidence: m.confidence ?? 'normal',
+            hygieneStatus: m.hygieneStatus,
+            expiresAt: m.expiresAt ?? null,
             anchorCount: m.anchors.length,
             tagCount: m.tags.length,
           })),
@@ -205,12 +225,13 @@ export function registerMemModule(
   );
   modelTools.push(toHandle('mem_forget', forgetTool));
 
-  // App-only tools (7)
+  // App-only tools (9)
   server.registerTool(
     'app_mem_get_state',
     {
       title: 'Get Memory State (App Only)',
-      description: 'Fetch memories, graph, progressive disclosure stats & compact injection preview.',
+      description:
+        'Fetch memories, graph, hygiene summary, progressive disclosure stats & compact injection preview.',
       inputSchema: {},
       _meta: APP_ONLY_META,
     },
@@ -225,12 +246,17 @@ export function registerMemModule(
     {
       title: 'Search Memories (App Only)',
       description: 'Interactive bilingual search from UI.',
-      inputSchema: { query: z.string() },
+      inputSchema: {
+        query: z.string(),
+        includeExpired: z.boolean().optional(),
+      },
       _meta: APP_ONLY_META,
     },
-    async ({ query }) => ({
+    async ({ query, includeExpired }) => ({
       content: [{ type: 'text', text: 'ok' }],
-      structuredContent: { hits: store.recall(query, { limit: 25 }) },
+      structuredContent: {
+        hits: store.recall(query, { limit: 25, includeExpired: Boolean(includeExpired) }),
+      },
     }),
   );
 
@@ -246,10 +272,11 @@ export function registerMemModule(
         ids: z.array(z.string().min(1)).max(20).optional(),
         limit: z.number().int().min(1).max(30).optional(),
         window: z.number().int().min(1).max(5).optional(),
+        includeExpired: z.boolean().optional(),
       },
       _meta: APP_ONLY_META,
     },
-    async ({ query, mode, ids, limit, window }) => {
+    async ({ query, mode, ids, limit, window, includeExpired }) => {
       const result = store.recallLayered({
         query,
         mode,
@@ -257,6 +284,7 @@ export function registerMemModule(
         limit: limit ?? 25,
         window: window ?? 2,
         incrementRecall: false,
+        includeExpired: Boolean(includeExpired),
       });
       return {
         content: [{ type: 'text', text: result.text }],
@@ -277,6 +305,67 @@ export function registerMemModule(
   );
 
   server.registerTool(
+    'app_mem_get_hygiene_summary',
+    {
+      title: 'Get Memory Hygiene Summary (App Only)',
+      description:
+        'Read-only hygiene report covering healthy, needs_review, stale_ttl, drifted, and tentative memories.',
+      inputSchema: {
+        workspacePath: z.string().optional(),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ workspacePath }) => {
+      const summary = store.getHygieneSummary({ workspacePath });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Memory hygiene: total=${summary.total}, healthy=${summary.healthy}, needsReview=${summary.needsReview}, staleTtl=${summary.staleTtl}, drifted=${summary.drifted}, tentative=${summary.tentative}.`,
+          },
+        ],
+        structuredContent: {
+          ...summary,
+          summary,
+        },
+      };
+    },
+  );
+
+  server.registerTool(
+    'app_mem_batch_hygiene',
+    {
+      title: 'Batch Memory Hygiene Governance (App Only)',
+      description:
+        'Batch verify confidence, refresh TTL, or prune selected memories from UI (atomic 0600 write in live mode, strictly in-memory in demo mode).',
+      inputSchema: {
+        ids: z.array(z.string().min(1)).min(1).max(100),
+        action: z.enum(['verify', 'refresh_ttl', 'prune']),
+        ttlDays: TTL_DAYS_SCHEMA.optional(),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ ids, action, ttlDays }) => {
+      const result = store.batchHygieneMemories(ids, action, { ttlDays });
+      return {
+        content: [
+          {
+            type: 'text',
+            text:
+              action === 'prune'
+                ? `Pruned ${result.deletedCount} memory item(s).`
+                : `Updated ${result.updatedCount} memory item(s) via ${action}.`,
+          },
+        ],
+        structuredContent: {
+          result,
+          ...buildPayload(),
+        },
+      };
+    },
+  );
+
+  server.registerTool(
     'app_mem_add_memory',
     {
       title: 'Add Memory (App Only)',
@@ -288,6 +377,8 @@ export function registerMemModule(
         tags: z.array(z.string()).optional(),
         anchorFiles: z.array(z.string()).optional(),
         pinned: z.boolean().optional(),
+        confidence: CONFIDENCE_SCHEMA.optional(),
+        ttlDays: TTL_DAYS_SCHEMA.optional(),
       },
       _meta: APP_ONLY_META,
     },
@@ -299,6 +390,8 @@ export function registerMemModule(
         tags: input.tags,
         anchors: (input.anchorFiles ?? []).filter(Boolean).map((filePath) => ({ filePath })),
         pinned: input.pinned,
+        confidence: input.confidence,
+        ttlDays: input.ttlDays,
       });
       return {
         content: [{ type: 'text', text: 'saved' }],
@@ -361,5 +454,6 @@ export function registerMemModule(
   return {
     moduleId: 'mem',
     modelTools,
+    exemptReadOnlyAppTools: ['app_mem_get_hygiene_summary'],
   };
 }

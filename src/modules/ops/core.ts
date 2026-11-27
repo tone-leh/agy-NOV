@@ -149,6 +149,52 @@ export interface CrossClientFinding {
   suggestion?: string;
 }
 
+export type OpsSecuritySeverity = 'high' | 'medium' | 'low';
+
+export type OpsSecurityCategory =
+  | 'prompt-injection'
+  | 'broad-command-allow'
+  | 'risky-hook'
+  | 'mcp-unsafe-env';
+
+export interface OpsSecurityFinding {
+  id: string;
+  severity: OpsSecuritySeverity;
+  category: OpsSecurityCategory;
+  file: string;
+  title: string;
+  summary: string;
+  remediation: string;
+}
+
+export type OpsMigrationClient = 'claude' | 'cursor' | 'codex';
+export type OpsMigrationAction = 'dedupe-merge' | 'migrate-unique' | 'keep-pointer';
+
+export interface OpsMigrationEntry {
+  client: OpsMigrationClient;
+  sourcePath: string;
+  bytes: number;
+  estimatedTokens: number;
+  duplicatePercent: number;
+  duplicateLines: number;
+  totalLines: number;
+  recommendedTarget: string;
+  action: OpsMigrationAction;
+}
+
+export interface OpsMigrationPreview {
+  readOnlyPreview: true;
+  totalFiles: number;
+  totalBytes: number;
+  reclaimableBytes: number;
+  estimatedSavingsPercent: number;
+  estimatedSavedTokens: number;
+  entries: OpsMigrationEntry[];
+}
+
+export const MAX_SECURITY_SCAN_FILE_BYTES = 256 * 1024; // 256 KiB cap
+export const MAX_SECURITY_SCAN_FILES = 80;
+
 export interface AuditWorkspaceOptions {
   enabledNovTools?: number;
 }
@@ -175,6 +221,9 @@ export interface WorkspaceAuditReport {
   mcpHealthFindings: McpHealthFinding[];
   teamPreset: TeamPresetAuditResult;
   crossClientFindings: CrossClientFinding[];
+  securityFindings: OpsSecurityFinding[];
+  securityScore: number;
+  migrationPreview: OpsMigrationPreview;
 }
 
 const VALID_CATEGORIES = new Set<PromptCategory>([
@@ -1486,6 +1535,1135 @@ function resolveEnabledNovTools(
   return countEnabledModelTools(createDefaultConfig().modules);
 }
 
+const SECURITY_DEDUCTION: Record<OpsSecuritySeverity, number> = {
+  high: 25,
+  medium: 10,
+  low: 4,
+};
+
+export function calculateSecurityScore(findings: readonly OpsSecurityFinding[]): number {
+  let deduction = 0;
+  for (const f of findings) {
+    deduction += SECURITY_DEDUCTION[f.severity] ?? 0;
+  }
+  return Math.max(0, 100 - deduction);
+}
+
+export function summarizeMigrationPreview(entries: readonly OpsMigrationEntry[]): OpsMigrationPreview {
+  let totalBytes = 0;
+  let reclaimableBytes = 0;
+  for (const entry of entries) {
+    totalBytes += entry.bytes;
+    if (entry.action !== 'keep-pointer' && entry.duplicatePercent > 0) {
+      const entryReclaim = Math.min(
+        entry.bytes,
+        Math.round((entry.bytes * entry.duplicatePercent) / 100),
+      );
+      reclaimableBytes += entryReclaim;
+    }
+  }
+  const estimatedSavingsPercent =
+    totalBytes > 0 ? Math.min(100, Math.round((reclaimableBytes / totalBytes) * 100)) : 0;
+  return {
+    readOnlyPreview: true,
+    totalFiles: entries.length,
+    totalBytes,
+    reclaimableBytes,
+    estimatedSavingsPercent,
+    estimatedSavedTokens: Math.ceil(reclaimableBytes / 4),
+    entries: [...entries],
+  };
+}
+
+function sanitizeSecurityFinding(finding: OpsSecurityFinding): OpsSecurityFinding {
+  return {
+    id: finding.id,
+    severity: finding.severity,
+    category: finding.category,
+    file: redactSecretsInMessage(finding.file),
+    title: redactSecretsInMessage(finding.title),
+    summary: redactSecretsInMessage(finding.summary),
+    remediation: redactSecretsInMessage(finding.remediation),
+  };
+}
+
+function makeFindingSlug(relPath: string, suffix: string): string {
+  const hash = crypto.createHash('sha256').update(`${relPath}:${suffix}`).digest('hex').slice(0, 8);
+  return `${suffix}-${hash}`;
+}
+
+type StrictReadResult =
+  | { ok: true; relPath: string; realPath: string; bytes: number; text: string }
+  | { ok: false; reason: 'missing' | 'symlink' | 'sensitive' | 'not-file' | 'oversized' | 'binary' | 'error' };
+
+function readFileStrictNoSymlink(
+  realRoot: string,
+  rootPrefix: string,
+  relPosix: string,
+  maxBytes: number,
+): StrictReadResult {
+  const normalizedRel = relPosix.replace(/\\/g, '/').replace(/^\/+/, '');
+  if (!normalizedRel) return { ok: false, reason: 'missing' };
+  if (isSensitiveCrossClientFile(normalizedRel)) {
+    return { ok: false, reason: 'sensitive' };
+  }
+
+  const segments = normalizedRel.split('/').filter(Boolean);
+  let cur = realRoot;
+  let finalLstat: fs.Stats | null = null;
+  for (const seg of segments) {
+    if (seg === '.' || seg === '..') return { ok: false, reason: 'symlink' };
+    cur = path.join(cur, seg);
+    let st: fs.Stats;
+    try {
+      st = fs.lstatSync(cur);
+    } catch {
+      return { ok: false, reason: 'missing' };
+    }
+    if (st.isSymbolicLink()) {
+      return { ok: false, reason: 'symlink' };
+    }
+    finalLstat = st;
+  }
+
+  if (!finalLstat || !finalLstat.isFile()) {
+    return { ok: false, reason: 'not-file' };
+  }
+
+  let realTarget: string;
+  try {
+    realTarget = fs.realpathSync(cur);
+  } catch {
+    return { ok: false, reason: 'error' };
+  }
+  if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
+    return { ok: false, reason: 'symlink' };
+  }
+
+  const realRel = path.relative(realRoot, realTarget).replace(/\\/g, '/');
+  if (isSensitiveCrossClientFile(realRel)) {
+    return { ok: false, reason: 'sensitive' };
+  }
+
+  if (finalLstat.size > maxBytes) {
+    return { ok: false, reason: 'oversized' };
+  }
+
+  try {
+    const buf = fs.readFileSync(realTarget);
+    if (buf.length > maxBytes) {
+      return { ok: false, reason: 'oversized' };
+    }
+    const inspectLen = Math.min(buf.length, 4096);
+    for (let i = 0; i < inspectLen; i += 1) {
+      if (buf[i] === 0) return { ok: false, reason: 'binary' };
+    }
+    return {
+      ok: true,
+      relPath: normalizedRel,
+      realPath: realTarget,
+      bytes: buf.length,
+      text: buf.toString('utf8'),
+    };
+  } catch {
+    return { ok: false, reason: 'error' };
+  }
+}
+
+function listFilesStrictNoSymlink(
+  realRoot: string,
+  rootPrefix: string,
+  relBaseDir: string,
+  maxDepth: number,
+  maxEntries: number,
+  predicate: (relPosix: string, entryName: string) => boolean,
+): string[] {
+  const normalizedBase = relBaseDir.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+  if (!normalizedBase) return [];
+
+  const segments = normalizedBase.split('/').filter(Boolean);
+  let cur = realRoot;
+  let baseStat: fs.Stats | null = null;
+  for (const seg of segments) {
+    if (seg === '.' || seg === '..') return [];
+    cur = path.join(cur, seg);
+    try {
+      const st = fs.lstatSync(cur);
+      if (st.isSymbolicLink()) return [];
+      baseStat = st;
+    } catch {
+      return [];
+    }
+  }
+  if (!baseStat || !baseStat.isDirectory()) return [];
+
+  let realBase: string;
+  try {
+    realBase = fs.realpathSync(cur);
+  } catch {
+    return [];
+  }
+  if (realBase !== realRoot && !realBase.startsWith(rootPrefix)) return [];
+
+  const results: string[] = [];
+  const visited = new Set<string>();
+
+  const walk = (dirAbs: string, relDir: string, depth: number): void => {
+    if (depth > maxDepth || results.length >= maxEntries) return;
+    if (visited.has(dirAbs)) return;
+    visited.add(dirAbs);
+
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dirAbs, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const entry of entries) {
+      if (results.length >= maxEntries) break;
+      if (entry.name === '.git' || entry.name === 'node_modules') continue;
+      const full = path.join(dirAbs, entry.name);
+      const rel = `${relDir}/${entry.name}`;
+      if (isSensitiveCrossClientFile(rel)) continue;
+
+      let lstat: fs.Stats;
+      try {
+        lstat = fs.lstatSync(full);
+      } catch {
+        continue;
+      }
+      if (lstat.isSymbolicLink()) {
+        // Strictly reject symlinks in static security & dedup scans
+        continue;
+      }
+      if (lstat.isDirectory()) {
+        walk(full, rel, depth + 1);
+      } else if (lstat.isFile() && predicate(rel, entry.name)) {
+        results.push(rel);
+      }
+    }
+  };
+
+  walk(realBase, normalizedBase, 0);
+  return results;
+}
+
+const PI_OVERRIDE_RE =
+  /\b(?:ignore|disregard|forget|override)\s+(?:all\s+|any\s+)?(?:previous|prior|above|system)\s+(?:instructions?|rules?|prompts?|policies?)\b/i;
+const PI_JAILBREAK_RE =
+  /\byou\s+are\s+now\s+(?:in\s+)?(?:developer|unrestricted|jailbreak)\s+mode\b/i;
+const PI_EXFIL_SECRET_RE =
+  /\b(?:exfiltrate|steal|leak|dump|upload|post|send|transmit)\b[^\r\n]{0,100}\b(?:secret|secrets|token|tokens|api[_ -]?key|keys|credential|credentials|\.env|id_rsa|ssh|password|passwd)\b/i;
+const PI_EXFIL_NET_RE =
+  /\b(?:curl|wget|fetch|nc|netcat)\b[^\r\n]{0,120}(?:https?:\/\/|\$\(|\.(?:env|ssh)|id_rsa|secret|token|password|api[_ -]?key)/i;
+const PI_EXFIL_URL_SEND_RE =
+  /\b(?:send|post|upload|exfiltrate)\b[^\r\n]{0,100}https?:\/\//i;
+
+const BROAD_ALLOW_KEYS = new Set([
+  'allow',
+  'allowedtools',
+  'allowed_tools',
+  'autoapprove',
+  'auto_approve',
+  'alwaysallow',
+  'always_allow',
+  'allowedcommands',
+  'allowed_commands',
+  'approvecommands',
+  'approvedtools',
+]);
+
+const BROAD_WILDCARD_VALUE_RE = /^(?:\*{1,2}|(?:bash|shell|exec|terminal|run_command|command)\(\*\))$/i;
+const DANGEROUS_SKIP_PERM_RE = /--dangerously-skip-permissions\b/i;
+const DANGEROUS_YOLO_RE = /(?:^|[\s`"'])--yolo(?=$|[\s`"'])/i;
+const DANGEROUS_CHMOD_777_RE = /\bchmod\s+(?:-R\s+)?(?:0?777|a\+rwx)\b/i;
+const NEGATION_CONTEXT_RE =
+  /\b(?:never|do not|don't|avoid|forbid|forbidden|prohibit|prohibited|block|blocked|deny|denied|reject|rejected|ban|banned|disallow|disallowed)\b|严禁|禁止|不要|不得/i;
+
+const HOOK_PIPE_SHELL_RE =
+  /\b(?:curl|wget)\b[^|\r\n]{0,240}\|\s*(?:sudo\s+)?(?:\/(?:usr\/)?bin\/)?(?:sh|bash|zsh|dash|ksh|python3?|node)\b/i;
+const HOOK_RM_RF_ROOT_RE =
+  /\brm\s+(?:-[a-zA-Z]*[rf][a-zA-Z]*\s+){1,2}(?:--no-preserve-root\s+)?(?:\/(?:\s|$|\*|[;&|])|~\/?(?:\s|$|[;&|])|\$HOME\/?(?:\s|$|[;&|]))/i;
+const HOOK_EVAL_RE =
+  /(?:^|[;&|]\s*|\b(?:sh|bash|zsh)\s+-c\s+["']?)\beval(?:\s+["'$A-Za-z0-9_(]|\s*$)/i;
+
+const SAFE_LITERAL_ENV_VALUES_RE =
+  /^(?:true|false|yes|no|on|off|0|1|none|null|empty|disabled|enabled|readonly|dev|prod|staging|local|test)$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const AUTH_SCHEME_ONLY_RE = /^(?:Bearer|Basic|Token|ApiKey|Digest)$/i;
+
+function computeShannonEntropy(input: string): number {
+  if (!input) return 0;
+  const freq = new Map<string, number>();
+  for (let i = 0; i < input.length; i += 1) {
+    const ch = input[i];
+    freq.set(ch, (freq.get(ch) ?? 0) + 1);
+  }
+  let entropy = 0;
+  const len = input.length;
+  for (const count of freq.values()) {
+    const p = count / len;
+    entropy -= p * Math.log2(p);
+  }
+  return entropy;
+}
+
+function isHighEntropySecretLiteral(val: string): boolean {
+  if (val.length < 24 || val.length > 512) return false;
+  if (/\s/.test(val)) return false;
+  if (val.includes('${') || val.includes('{{')) return false;
+  if (/^https?:\/\//i.test(val)) return false;
+  if (val.includes('/') || val.includes('\\')) return false;
+  if (UUID_RE.test(val)) return false;
+  const hasLower = /[a-z]/.test(val);
+  const hasUpper = /[A-Z]/.test(val);
+  const hasDigit = /[0-9]/.test(val);
+  if (!(hasLower && hasUpper && hasDigit)) return false;
+  return computeShannonEntropy(val) >= 4.0;
+}
+
+function isLoopbackHost(rawHost: string): boolean {
+  const host = rawHost.trim().toLowerCase().replace(/^\[|\]$/g, '');
+  if (!host) return false;
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return true;
+  if (host.endsWith('.localhost')) return true;
+  if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  return false;
+}
+
+function extractSafeHttpHost(urlCandidate: string): string {
+  try {
+    const parsed = new URL(urlCandidate);
+    return parsed.hostname;
+  } catch {
+    const withoutScheme = urlCandidate.replace(/^http:\/\//i, '');
+    const authority = withoutScheme.split(/[/?#]/)[0] ?? '';
+    const hostPort = authority.includes('@') ? authority.slice(authority.lastIndexOf('@') + 1) : authority;
+    if (hostPort.startsWith('[')) {
+      const endBracket = hostPort.indexOf(']');
+      return endBracket > 0 ? hostPort.slice(0, endBracket + 1) : hostPort;
+    }
+    return hostPort.split(':')[0] ?? '';
+  }
+}
+
+function scanPromptInjection(
+  relPath: string,
+  text: string,
+  push: (finding: OpsSecurityFinding) => void,
+): void {
+  // 1. O(n) single-pass scan for covert BiDi overrides & zero-width steganography runs
+  let bidiCount = 0;
+  let zwRun = 0;
+  let maxZwRun = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    if ((code >= 0x202a && code <= 0x202e) || (code >= 0x2066 && code <= 0x2069)) {
+      bidiCount += 1;
+    }
+    if (code === 0x200b || code === 0x200c || code === 0x200d || code === 0xfeff) {
+      zwRun += 1;
+      if (zwRun > maxZwRun) maxZwRun = zwRun;
+    } else {
+      zwRun = 0;
+    }
+  }
+
+  if (bidiCount > 0) {
+    push({
+      id: makeFindingSlug(relPath, 'pi-bidi'),
+      severity: 'high',
+      category: 'prompt-injection',
+      file: relPath,
+      title: 'Covert BiDi directional control characters detected',
+      summary: `Found ${bidiCount} Unicode BiDi control character(s) (U+202A–U+202E / U+2066–U+2069) that can disguise hidden prompt instructions.`,
+      remediation:
+        'Remove all hidden Unicode BiDi override characters from rule and skill markdown files and inspect surrounding lines in plain hex/ASCII view.',
+    });
+  }
+
+  if (maxZwRun >= 4) {
+    push({
+      id: makeFindingSlug(relPath, 'pi-zw'),
+      severity: 'high',
+      category: 'prompt-injection',
+      file: relPath,
+      title: 'Zero-width steganographic character sequence detected',
+      summary: `Found a contiguous run of ${maxZwRun} zero-width characters (U+200B–U+200D / U+FEFF), commonly used for invisible prompt smuggling.`,
+      remediation:
+        'Strip contiguous zero-width characters from the instruction file and re-verify diff history for unauthorized edits.',
+    });
+  }
+
+  // 2. Instruction override paired with concrete exfiltration/network sink (zero false positives on security docs)
+  const hasOverride = PI_OVERRIDE_RE.test(text) || PI_JAILBREAK_RE.test(text);
+  const hasExfil =
+    PI_EXFIL_SECRET_RE.test(text) || PI_EXFIL_NET_RE.test(text) || PI_EXFIL_URL_SEND_RE.test(text);
+  if (hasOverride && hasExfil) {
+    push({
+      id: makeFindingSlug(relPath, 'pi-override-exfil'),
+      severity: 'high',
+      category: 'prompt-injection',
+      file: relPath,
+      title: 'Prompt override combined with secret exfiltration pattern',
+      summary:
+        'Instruction file combines system/previous-instruction override phrasing with secret exfiltration or outbound network commands.',
+      remediation:
+        'Remove untrusted override directives and outbound secret-handling instructions from workspace rule or skill files.',
+    });
+  }
+}
+
+function scanJsonBroadCommandAllow(
+  relPath: string,
+  text: string,
+  push: (finding: OpsSecurityFinding) => void,
+): void {
+  const reportedSubtypes = new Set<string>();
+  const reportOnce = (subtype: string, title: string, summary: string, remediation: string) => {
+    if (reportedSubtypes.has(subtype)) return;
+    reportedSubtypes.add(subtype);
+    push({
+      id: makeFindingSlug(relPath, `broad-${subtype}`),
+      severity: 'high',
+      category: 'broad-command-allow',
+      file: relPath,
+      title,
+      summary,
+      remediation,
+    });
+  };
+
+  const inspectStringForFlags = (str: string) => {
+    if (DANGEROUS_SKIP_PERM_RE.test(str)) {
+      reportOnce(
+        'skip-permissions',
+        'Unrestricted permission bypass flag (--dangerously-skip-permissions)',
+        'Configuration enables --dangerously-skip-permissions, disabling host confirmation gates.',
+        'Remove --dangerously-skip-permissions and rely on explicit allowlists or Guard permission modes.',
+      );
+    }
+    if (DANGEROUS_YOLO_RE.test(str)) {
+      reportOnce(
+        'yolo-flag',
+        'Unrestricted auto-approval flag (--yolo)',
+        'Configuration enables --yolo auto-execution without safety prompts.',
+        'Remove --yolo and scope permitted commands explicitly.',
+      );
+    }
+    if (DANGEROUS_CHMOD_777_RE.test(str)) {
+      reportOnce(
+        'chmod-777',
+        'World-writable permission command (chmod 777)',
+        'Configuration invokes chmod 777 / a+rwx, granting unrestricted read/write/execute permissions.',
+        'Replace chmod 777 with least-privilege permissions (for example 0600 for secrets or 0755 for executables).',
+      );
+    }
+  };
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    if (/"(?:allow|allowedTools|allowed_tools|autoApprove|alwaysAllow)"\s*:\s*\[\s*"\*"\s*\]/i.test(text)) {
+      reportOnce(
+        'wildcard-allow',
+        'Wildcard command/tool allowlist ("*") detected',
+        'Configuration grants wildcard "*" allowlist access to all commands or tools.',
+        'Replace wildcard "*" allowlists with an explicit, minimal list of safe read-only tools or commands.',
+      );
+    }
+    inspectStringForFlags(text);
+    return;
+  }
+
+  const walk = (node: unknown, depth: number): void => {
+    if (depth > 12 || node === null || node === undefined) return;
+    if (typeof node === 'string') {
+      inspectStringForFlags(node);
+      return;
+    }
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item, depth + 1);
+      return;
+    }
+    if (typeof node === 'object') {
+      for (const [key, val] of Object.entries(node as Record<string, unknown>)) {
+        const lowerKey = key.toLowerCase();
+        if (BROAD_ALLOW_KEYS.has(lowerKey)) {
+          const checkWildcard = (candidate: unknown): boolean =>
+            typeof candidate === 'string' && BROAD_WILDCARD_VALUE_RE.test(candidate.trim());
+          if (checkWildcard(val) || (Array.isArray(val) && val.some(checkWildcard))) {
+            reportOnce(
+              'wildcard-allow',
+              `Wildcard permission allowlist in "${key}"`,
+              `Configuration sets "${key}" to a wildcard ("*"), permitting unrestricted tool or shell execution.`,
+              `Replace wildcard entries in "${key}" with explicit, least-privilege tool or command names.`,
+            );
+          }
+        } else if (
+          (lowerKey === 'defaultmode' || lowerKey === 'permissionmode') &&
+          typeof val === 'string' &&
+          /^(?:bypasspermissions|dangerously-skip-permissions|yolo)$/i.test(val.trim())
+        ) {
+          reportOnce(
+            'bypass-mode',
+            `Unrestricted permission mode ("${val.trim()}")`,
+            `Configuration sets "${key}" to an unrestricted bypass mode.`,
+            'Use a guarded permission mode such as balanced-dev or strict-gate.',
+          );
+        }
+        walk(val, depth + 1);
+      }
+    }
+  };
+
+  walk(parsed, 0);
+}
+
+function scanTextBroadCommandAllow(
+  relPath: string,
+  text: string,
+  push: (finding: OpsSecurityFinding) => void,
+): void {
+  const reportedSubtypes = new Set<string>();
+  const lines = text.split(/\r?\n/);
+  for (const line of lines) {
+    if (!line || NEGATION_CONTEXT_RE.test(line)) continue;
+    if (!reportedSubtypes.has('skip-permissions') && DANGEROUS_SKIP_PERM_RE.test(line)) {
+      reportedSubtypes.add('skip-permissions');
+      push({
+        id: makeFindingSlug(relPath, 'broad-text-skip-permissions'),
+        severity: 'high',
+        category: 'broad-command-allow',
+        file: relPath,
+        title: 'Rule/skill recommends --dangerously-skip-permissions',
+        summary:
+          'Instruction text directs the agent to pass --dangerously-skip-permissions without safety constraints.',
+        remediation:
+          'Remove --dangerously-skip-permissions directives from workspace rules and skills.',
+      });
+    }
+    if (!reportedSubtypes.has('yolo-flag') && DANGEROUS_YOLO_RE.test(line)) {
+      reportedSubtypes.add('yolo-flag');
+      push({
+        id: makeFindingSlug(relPath, 'broad-text-yolo'),
+        severity: 'high',
+        category: 'broad-command-allow',
+        file: relPath,
+        title: 'Rule/skill recommends --yolo auto-execution',
+        summary: 'Instruction text directs the agent to run commands with --yolo unrestricted approval.',
+        remediation: 'Remove --yolo directives and require explicit user approval for destructive commands.',
+      });
+    }
+    if (!reportedSubtypes.has('chmod-777') && DANGEROUS_CHMOD_777_RE.test(line)) {
+      reportedSubtypes.add('chmod-777');
+      push({
+        id: makeFindingSlug(relPath, 'broad-text-chmod-777'),
+        severity: 'high',
+        category: 'broad-command-allow',
+        file: relPath,
+        title: 'Rule/skill recommends world-writable chmod 777',
+        summary: 'Instruction text includes chmod 777 / a+rwx, exposing workspace files to world-writable access.',
+        remediation: 'Replace chmod 777 with minimal file permissions (0600 / 0644 / 0755).',
+      });
+    }
+  }
+}
+
+function scanRiskyHooks(
+  relPath: string,
+  text: string,
+  push: (finding: OpsSecurityFinding) => void,
+): void {
+  const commands: string[] = [];
+  let parsed: unknown = null;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    // Fallback linear extraction when JSON syntax is malformed
+    const cmdLineRe = /"(?:command|cmd|script)"\s*:\s*"([^"\r\n]{1,500})"/g;
+    let m: RegExpExecArray | null;
+    while ((m = cmdLineRe.exec(text)) !== null) {
+      commands.push(m[1]);
+      if (commands.length >= 64) break;
+    }
+  }
+
+  if (parsed && typeof parsed === 'object') {
+    const walk = (node: unknown, depth: number): void => {
+      if (depth > 12 || !node || typeof node !== 'object' || commands.length >= 64) return;
+      if (Array.isArray(node)) {
+        for (const item of node) walk(item, depth + 1);
+        return;
+      }
+      const obj = node as Record<string, unknown>;
+      for (const field of ['command', 'cmd', 'script'] as const) {
+        const rawCmd = obj[field];
+        if (typeof rawCmd === 'string' && rawCmd.trim()) {
+          const argList = Array.isArray(obj.args)
+            ? obj.args.filter((a): a is string => typeof a === 'string').join(' ')
+            : '';
+          commands.push(argList ? `${rawCmd.trim()} ${argList}` : rawCmd.trim());
+        }
+      }
+      for (const val of Object.values(obj)) {
+        if (val && typeof val === 'object') walk(val, depth + 1);
+      }
+    };
+    walk(parsed, 0);
+  }
+
+  const reported = new Set<string>();
+  for (const cmd of commands) {
+    if (!reported.has('pipe-sh') && HOOK_PIPE_SHELL_RE.test(cmd)) {
+      reported.add('pipe-sh');
+      push({
+        id: makeFindingSlug(relPath, 'hook-pipe-sh'),
+        severity: 'high',
+        category: 'risky-hook',
+        file: relPath,
+        title: 'Hook pipes remote download directly into shell interpreter',
+        summary:
+          'Lifecycle hook command executes a remote script via curl/wget piped directly into a shell or runtime.',
+        remediation:
+          'Pin and verify scripts locally inside the repository with checksum verification instead of piping remote downloads into sh/bash.',
+      });
+    }
+    if (!reported.has('rm-rf-root') && HOOK_RM_RF_ROOT_RE.test(cmd)) {
+      reported.add('rm-rf-root');
+      push({
+        id: makeFindingSlug(relPath, 'hook-rm-rf-root'),
+        severity: 'high',
+        category: 'risky-hook',
+        file: relPath,
+        title: 'Hook executes destructive root/home deletion (rm -rf)',
+        summary:
+          'Lifecycle hook command contains a destructive recursive rm targeting /, /*, ~, or $HOME.',
+        remediation:
+          'Remove destructive root/home rm commands from hooks and restrict cleanup strictly to explicit workspace temp paths.',
+      });
+    }
+    if (!reported.has('eval') && HOOK_EVAL_RE.test(cmd)) {
+      reported.add('eval');
+      push({
+        id: makeFindingSlug(relPath, 'hook-eval'),
+        severity: 'high',
+        category: 'risky-hook',
+        file: relPath,
+        title: 'Hook invokes dynamic eval execution',
+        summary:
+          'Lifecycle hook command calls shell eval, enabling arbitrary command injection from untrusted hook payloads.',
+        remediation:
+          'Replace eval with direct argv invocation (for example node ./dist/hook.cjs with explicit CLI flags).',
+      });
+    }
+  }
+}
+
+function scanMcpUnsafeEnv(
+  relPath: string,
+  text: string,
+  push: (finding: OpsSecurityFinding) => void,
+): void {
+  let parsed: Record<string, unknown>;
+  try {
+    const raw = JSON.parse(text);
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return;
+    parsed = raw as Record<string, unknown>;
+  } catch {
+    return;
+  }
+
+  const serversObj =
+    parsed.mcpServers && typeof parsed.mcpServers === 'object' && !Array.isArray(parsed.mcpServers)
+      ? (parsed.mcpServers as Record<string, unknown>)
+      : parsed.servers && typeof parsed.servers === 'object' && !Array.isArray(parsed.servers)
+        ? (parsed.servers as Record<string, unknown>)
+        : null;
+  if (!serversObj) return;
+
+  for (const [serverName, rawDef] of Object.entries(serversObj)) {
+    if (!rawDef || typeof rawDef !== 'object' || Array.isArray(rawDef)) continue;
+    const def = rawDef as Record<string, unknown>;
+    const safeServerName = sanitizeMcpIdentifier(serverName);
+
+    // 1. Hardcoded literal secrets inside env (zero value echo — only serverName & key name)
+    if (def.env && typeof def.env === 'object' && !Array.isArray(def.env)) {
+      for (const [rawKey, rawVal] of Object.entries(def.env as Record<string, unknown>)) {
+        if (typeof rawVal !== 'string') continue;
+        const val = rawVal.trim();
+        if (!val) continue;
+        if (PURE_ENV_REF_RE.test(val) || UNRESOLVED_PLACEHOLDER_RE.test(val)) continue;
+
+        const stripped = val.replace(ENV_VAR_GLOBAL_RE, '').trim();
+        if (!stripped || AUTH_SCHEME_ONLY_RE.test(stripped)) continue;
+
+        const cleanedKey = rawKey.replace(/[^\w.-]/g, '').slice(0, 64) || 'key';
+        const safeKey = sanitizeMcpIdentifier(cleanedKey);
+
+        const knownSecret = containsSecretPattern(val) || JWT_LIKE_RE.test(val);
+        const sensitiveKeyLiteral =
+          SENSITIVE_KEY_NAME_RE.test(rawKey) &&
+          stripped.length >= 4 &&
+          !SAFE_LITERAL_ENV_VALUES_RE.test(stripped);
+        const highEntropy = isHighEntropySecretLiteral(stripped);
+
+        if (knownSecret || sensitiveKeyLiteral || highEntropy) {
+          push({
+            id: makeFindingSlug(relPath, `mcp-env-${safeServerName}-${safeKey}`),
+            severity: 'high',
+            category: 'mcp-unsafe-env',
+            file: relPath,
+            title: `Hardcoded credential in MCP env (${safeServerName}.${safeKey})`,
+            summary: `MCP server "${safeServerName}" defines a hardcoded non-placeholder value for env.${safeKey} (secret value redacted).`,
+            remediation: `Replace the literal value in "${safeServerName}" env.${safeKey} with a \${${safeKey}} placeholder or host keychain injection.`,
+          });
+        }
+      }
+    }
+
+    // 2. Plaintext http:// remote MCP endpoint (non-loopback)
+    const urlCandidate =
+      typeof def.url === 'string'
+        ? def.url.trim()
+        : typeof def.serverUrl === 'string'
+          ? def.serverUrl.trim()
+          : typeof def.httpUrl === 'string'
+            ? def.httpUrl.trim()
+            : '';
+
+    if (urlCandidate && /^http:\/\//i.test(urlCandidate)) {
+      const host = extractSafeHttpHost(urlCandidate);
+      if (host && !isLoopbackHost(host)) {
+        const safeHost =
+          containsSecretPattern(host) || SENSITIVE_KEY_NAME_RE.test(host)
+            ? '<redacted-host>'
+            : host.slice(0, 80);
+        push({
+          id: makeFindingSlug(relPath, `mcp-http-${safeServerName}`),
+          severity: 'medium',
+          category: 'mcp-unsafe-env',
+          file: relPath,
+          title: `Unencrypted remote http:// MCP endpoint (${safeServerName})`,
+          summary: `MCP server "${safeServerName}" points to remote host "${safeHost}" over plaintext http://.`,
+          remediation: `Use https:// with TLS for remote MCP server "${safeServerName}", or confine plaintext http:// strictly to localhost / 127.0.0.1 / [::1].`,
+        });
+      }
+    }
+  }
+}
+
+type SecurityScanTargetKind = 'rule' | 'skill' | 'hook' | 'mcp' | 'client-settings';
+
+function auditStaticSecurityReadOnly(
+  realRoot: string,
+  rootPrefix: string,
+): { securityFindings: OpsSecurityFinding[]; securityScore: number } {
+  const findings: OpsSecurityFinding[] = [];
+  const seenFindingIds = new Set<string>();
+  const pushFinding = (finding: OpsSecurityFinding): void => {
+    const clean = sanitizeSecurityFinding(finding);
+    if (seenFindingIds.has(clean.id)) return;
+    seenFindingIds.add(clean.id);
+    findings.push(clean);
+  };
+
+  const candidates: Array<{ relPath: string; kind: SecurityScanTargetKind }> = [];
+  const seenCandidates = new Set<string>();
+  const addCandidate = (relPath: string, kind: SecurityScanTargetKind): void => {
+    const norm = relPath.replace(/\\/g, '/').replace(/^\/+/, '');
+    if (!norm || seenCandidates.has(norm) || candidates.length >= MAX_SECURITY_SCAN_FILES * 2) return;
+    seenCandidates.add(norm);
+    candidates.push({ relPath: norm, kind });
+  };
+
+  // Fixed root rule / hook / MCP / settings files
+  addCandidate('AGENTS.md', 'rule');
+  addCandidate('GEMINI.md', 'rule');
+  addCandidate('CLAUDE.md', 'rule');
+  addCandidate('hooks.json', 'hook');
+  addCandidate('.agents/hooks.json', 'hook');
+  addCandidate('hooks/hooks.json', 'hook');
+  addCandidate('mcp_config.json', 'mcp');
+  addCandidate('.mcp.json', 'mcp');
+  addCandidate('.cursor/mcp.json', 'mcp');
+  addCandidate('.gemini/mcp_config.json', 'mcp');
+  addCandidate('.claude/settings.json', 'client-settings');
+
+  // Dynamic bounded directories (strictly no symlinks)
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    '.agents/rules',
+    4,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => /\.(?:md|mdx|txt)$/i.test(name),
+  )) {
+    addCandidate(rel, 'rule');
+  }
+
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    '.cursor/rules',
+    4,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => /\.(?:mdc|md|mdx|txt)$/i.test(name),
+  )) {
+    addCandidate(rel, 'rule');
+  }
+
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    'skills',
+    2,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => name.toUpperCase() === 'SKILL.MD',
+  )) {
+    addCandidate(rel, 'skill');
+  }
+
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    '.agents/skills',
+    2,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => name.toUpperCase() === 'SKILL.MD',
+  )) {
+    addCandidate(rel, 'skill');
+  }
+
+  let scannedCount = 0;
+  for (const target of candidates) {
+    if (scannedCount >= MAX_SECURITY_SCAN_FILES) break;
+    const read = readFileStrictNoSymlink(
+      realRoot,
+      rootPrefix,
+      target.relPath,
+      MAX_SECURITY_SCAN_FILE_BYTES,
+    );
+    if (!read.ok) continue;
+    scannedCount += 1;
+
+    if (target.kind === 'rule' || target.kind === 'skill') {
+      scanPromptInjection(read.relPath, read.text, pushFinding);
+      scanTextBroadCommandAllow(read.relPath, read.text, pushFinding);
+    } else if (target.kind === 'hook') {
+      scanJsonBroadCommandAllow(read.relPath, read.text, pushFinding);
+      scanRiskyHooks(read.relPath, read.text, pushFinding);
+    } else if (target.kind === 'mcp') {
+      scanJsonBroadCommandAllow(read.relPath, read.text, pushFinding);
+      scanMcpUnsafeEnv(read.relPath, read.text, pushFinding);
+    } else if (target.kind === 'client-settings') {
+      scanJsonBroadCommandAllow(read.relPath, read.text, pushFinding);
+    }
+  }
+
+  const severityRank: Record<OpsSecuritySeverity, number> = { high: 0, medium: 1, low: 2 };
+  findings.sort(
+    (a, b) =>
+      severityRank[a.severity] - severityRank[b.severity] ||
+      a.file.localeCompare(b.file) ||
+      a.id.localeCompare(b.id),
+  );
+
+  return {
+    securityFindings: findings,
+    securityScore: calculateSecurityScore(findings),
+  };
+}
+
+function stripYamlFrontmatter(text: string): string {
+  const lines = text.split(/\r?\n/);
+  if (lines.length >= 3 && lines[0].trim() === '---') {
+    for (let i = 1; i < Math.min(lines.length, 40); i += 1) {
+      if (lines[i].trim() === '---') {
+        return lines.slice(i + 1).join('\n');
+      }
+    }
+  }
+  return text;
+}
+
+function normalizeDedupLine(rawLine: string): string {
+  let s = rawLine.trim();
+  if (!s) return '';
+  if (/^[-*_=`~]{3,}$/.test(s)) return '';
+  // Strip leading Markdown list / heading / blockquote prefixes
+  s = s.replace(/^(?:[>#*+-]+\s+|\d+[.)]\s+)/, '');
+  // Strip inline emphasis & code ticks for resilient cross-client matching
+  s = s.replace(/[`*_]+/g, '');
+  s = s.replace(/\s+/g, ' ').trim().toLowerCase();
+  const alphaNumCount = (s.match(/[\p{L}\p{N}]/gu) ?? []).length;
+  if (alphaNumCount < 4) return '';
+  return s;
+}
+
+function hashDedupUnit(unit: string): string {
+  return crypto.createHash('sha256').update(unit).digest('hex').slice(0, 16);
+}
+
+interface NormalizedDocUnits {
+  meaningfulLineHashes: string[];
+  lineToParaHash: string[];
+  paragraphHashes: string[];
+  rawLineCount: number;
+}
+
+function extractNormalizedDocUnits(text: string): NormalizedDocUnits {
+  const body = stripYamlFrontmatter(text);
+  const rawLines = body.length === 0 ? [] : body.split(/\r?\n/);
+  const meaningfulLineHashes: string[] = [];
+  const lineToParaHash: string[] = [];
+  const paragraphHashes: string[] = [];
+
+  let paraBuf: string[] = [];
+  const flushPara = () => {
+    if (paraBuf.length === 0) return;
+    const paraHash = paraBuf.length >= 2 ? hashDedupUnit(paraBuf.join('\n')) : '';
+    if (paraHash) paragraphHashes.push(paraHash);
+    for (const normLine of paraBuf) {
+      meaningfulLineHashes.push(hashDedupUnit(normLine));
+      lineToParaHash.push(paraHash);
+    }
+    paraBuf = [];
+  };
+
+  for (const raw of rawLines) {
+    if (!raw.trim()) {
+      flushPara();
+      continue;
+    }
+    const norm = normalizeDedupLine(raw);
+    if (!norm) continue;
+    paraBuf.push(norm);
+  }
+  flushPara();
+
+  return {
+    meaningfulLineHashes,
+    lineToParaHash,
+    paragraphHashes,
+    rawLineCount: text.length === 0 ? 0 : text.split(/\r?\n/).length,
+  };
+}
+
+function isThinRulePointer(text: string): boolean {
+  const nonEmpty = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (nonEmpty.length === 0 || nonEmpty.length > 3) return false;
+  const joined = nonEmpty.join(' ');
+  if (joined.length > 220) return false;
+  return /(?:^|\s)@(?:AGENTS|GEMINI)\.md\b|\b(?:see|follow|import|source of truth:?)\s+[`"]?(?:AGENTS|GEMINI)\.md[`"]?/i.test(
+    joined,
+  );
+}
+
+function buildCrossClientMigrationPreviewReadOnly(
+  realRoot: string,
+  rootPrefix: string,
+): OpsMigrationPreview {
+  const seenLineHashes = new Set<string>();
+  const seenParaHashes = new Set<string>();
+
+  const hasAgentsMd = readFileStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    'AGENTS.md',
+    MAX_SECURITY_SCAN_FILE_BYTES,
+  );
+  const hasGeminiMd = readFileStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    'GEMINI.md',
+    MAX_SECURITY_SCAN_FILE_BYTES,
+  );
+  const defaultRuleTarget = !hasAgentsMd.ok && hasGeminiMd.ok ? 'GEMINI.md' : 'AGENTS.md';
+
+  const indexCanonicalText = (text: string): void => {
+    const units = extractNormalizedDocUnits(text);
+    for (const lh of units.meaningfulLineHashes) seenLineHashes.add(lh);
+    for (const ph of units.paragraphHashes) seenParaHashes.add(ph);
+  };
+
+  if (hasAgentsMd.ok) indexCanonicalText(hasAgentsMd.text);
+  if (hasGeminiMd.ok) indexCanonicalText(hasGeminiMd.text);
+
+  const canonicalAgentRules = listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    '.agents/rules',
+    4,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => /\.(?:md|mdx|txt)$/i.test(name),
+  );
+  for (const rel of canonicalAgentRules) {
+    const read = readFileStrictNoSymlink(realRoot, rootPrefix, rel, MAX_SECURITY_SCAN_FILE_BYTES);
+    if (read.ok) indexCanonicalText(read.text);
+  }
+
+  // Collect cross-client candidates (.claude/, CLAUDE.md, .cursor/rules/*, .codex/)
+  const sources: Array<{ client: OpsMigrationClient; relPath: string; isConfig: boolean }> = [];
+  const seenSourcePaths = new Set<string>();
+  const addSource = (client: OpsMigrationClient, relPath: string, isConfig: boolean): void => {
+    const norm = relPath.replace(/\\/g, '/').replace(/^\/+/, '');
+    if (!norm || seenSourcePaths.has(norm) || sources.length >= MAX_SECURITY_SCAN_FILES) return;
+    seenSourcePaths.add(norm);
+    sources.push({ client, relPath: norm, isConfig });
+  };
+
+  // Claude sources
+  addSource('claude', 'CLAUDE.md', false);
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    '.claude/rules',
+    4,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => /\.(?:md|mdx|txt)$/i.test(name),
+  )) {
+    addSource('claude', rel, false);
+  }
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    '.claude/commands',
+    4,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => /\.(?:md|mdx|txt)$/i.test(name),
+  )) {
+    addSource('claude', rel, false);
+  }
+  addSource('claude', '.claude/settings.json', true);
+  addSource('claude', '.claude/settings.local.json', true);
+
+  // Cursor sources
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    '.cursor/rules',
+    4,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => /\.(?:mdc|md|mdx|txt)$/i.test(name),
+  )) {
+    addSource('cursor', rel, false);
+  }
+
+  // Codex sources
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    rootPrefix,
+    '.codex',
+    4,
+    MAX_SECURITY_SCAN_FILES,
+    (r, name) => {
+      const lower = r.toLowerCase();
+      return (
+        lower === '.codex/config.toml' ||
+        /^\.codex\/rules\/.+\.toml$/i.test(lower) ||
+        /\.(?:md|mdx|txt)$/i.test(name)
+      );
+    },
+  )) {
+    const isCfg = /\.toml$/i.test(rel);
+    addSource('codex', rel, isCfg);
+  }
+
+  const entries: OpsMigrationEntry[] = [];
+  for (const src of sources) {
+    const read = readFileStrictNoSymlink(
+      realRoot,
+      rootPrefix,
+      src.relPath,
+      MAX_SECURITY_SCAN_FILE_BYTES,
+    );
+    if (!read.ok) continue;
+
+    const estimatedTokens = Math.ceil(read.text.length / 4);
+    const rawLineCount = read.text.length === 0 ? 0 : read.text.split(/\r?\n/).length;
+
+    if (src.isConfig) {
+      entries.push({
+        client: src.client,
+        sourcePath: read.relPath,
+        bytes: read.bytes,
+        estimatedTokens,
+        duplicatePercent: 0,
+        duplicateLines: 0,
+        totalLines: rawLineCount,
+        recommendedTarget: '.agy-nov.json',
+        action: 'keep-pointer',
+      });
+      continue;
+    }
+
+    const recommendedTarget = src.relPath.toLowerCase().startsWith('.claude/commands/')
+      ? '.agents/skills/'
+      : defaultRuleTarget;
+
+    if (isThinRulePointer(read.text)) {
+      entries.push({
+        client: src.client,
+        sourcePath: read.relPath,
+        bytes: read.bytes,
+        estimatedTokens,
+        duplicatePercent: 0,
+        duplicateLines: 0,
+        totalLines: rawLineCount,
+        recommendedTarget,
+        action: 'keep-pointer',
+      });
+      continue;
+    }
+
+    const units = extractNormalizedDocUnits(read.text);
+    const totalLines = units.meaningfulLineHashes.length > 0 ? units.meaningfulLineHashes.length : rawLineCount;
+    let duplicateLines = 0;
+    for (let i = 0; i < units.meaningfulLineHashes.length; i += 1) {
+      const lh = units.meaningfulLineHashes[i];
+      const ph = units.lineToParaHash[i];
+      if (seenLineHashes.has(lh) || (ph && seenParaHashes.has(ph))) {
+        duplicateLines += 1;
+      }
+    }
+
+    const duplicatePercent =
+      units.meaningfulLineHashes.length > 0
+        ? Math.min(100, Math.round((duplicateLines / units.meaningfulLineHashes.length) * 100))
+        : 0;
+
+    // Add this source's normalized units to cumulative baseline so duplicate rules across clients are detected
+    for (const lh of units.meaningfulLineHashes) seenLineHashes.add(lh);
+    for (const ph of units.paragraphHashes) seenParaHashes.add(ph);
+
+    const action: OpsMigrationAction =
+      duplicatePercent >= 30 || (duplicateLines >= 2 && duplicatePercent >= 20)
+        ? 'dedupe-merge'
+        : 'migrate-unique';
+
+    entries.push({
+      client: src.client,
+      sourcePath: read.relPath,
+      bytes: read.bytes,
+      estimatedTokens,
+      duplicatePercent,
+      duplicateLines,
+      totalLines,
+      recommendedTarget,
+      action,
+    });
+  }
+
+  return summarizeMigrationPreview(entries);
+}
+
 /**
  * 100% read-only audit of workspace agent assets (rules/skills/manifests/MCP/hooks/.agents/.gemini),
  * 24KB/20K rule bloat guard, 100-tool budget meter, MCP static health check, and agy-NOV local storage footprint.
@@ -2154,6 +3332,27 @@ export function auditWorkspaceAssets(
     });
   }
 
+  // 5. Ops 3.0 strictly read-only static security audit & cross-client dedup preview
+  const { securityFindings, securityScore } = auditStaticSecurityReadOnly(realRoot, rootPrefix);
+  const migrationPreview = buildCrossClientMigrationPreviewReadOnly(realRoot, rootPrefix);
+
+  const highSecurityCount = securityFindings.filter((f) => f.severity === 'high').length;
+  if (highSecurityCount > 0) {
+    recommendations.push({
+      level: 'critical',
+      code: 'ops.static-security-findings',
+      title: `Static security audit detected ${highSecurityCount} high-severity risk(s) (score ${securityScore}/100)`,
+      detail: `Inspect securityFindings for prompt-injection, unrestricted command allowlists, risky hooks, or hardcoded MCP credentials.`,
+    });
+  } else if (securityFindings.length > 0) {
+    recommendations.push({
+      level: 'warn',
+      code: 'ops.static-security-findings',
+      title: `Static security audit detected ${securityFindings.length} finding(s) (score ${securityScore}/100)`,
+      detail: `Review securityFindings for recommended hardening across workspace rules, hooks, and MCP endpoints.`,
+    });
+  }
+
   if (recommendations.length === 0) {
     recommendations.push({
       level: 'info',
@@ -2185,6 +3384,9 @@ export function auditWorkspaceAssets(
     mcpHealthFindings,
     teamPreset,
     crossClientFindings,
+    securityFindings,
+    securityScore,
+    migrationPreview,
   };
 }
 
@@ -2205,6 +3407,68 @@ export function createDemoOpsAuditReport(
   const usagePercent = Math.round((estimatedTotalTools / TOOL_BUDGET_HARD_LIMIT) * 100);
   const toolBudgetStatus: 'ok' | 'warn' | 'critical' =
     estimatedTotalTools >= 95 ? 'critical' : estimatedTotalTools >= 75 ? 'warn' : 'ok';
+
+  const demoSecurityFindings: OpsSecurityFinding[] = [
+    {
+      id: 'demo-sec-mcp-http-docs',
+      severity: 'medium',
+      category: 'mcp-unsafe-env',
+      file: '.mcp.json',
+      title: 'Unencrypted remote http:// MCP endpoint (docs-search)',
+      summary:
+        'MCP server "docs-search" points to remote host "mcp-docs.staging.internal" over plaintext http://.',
+      remediation:
+        'Use https:// with TLS for remote MCP server "docs-search", or confine plaintext http:// strictly to localhost / 127.0.0.1 / [::1].',
+    },
+  ];
+  const demoSecurityScore = calculateSecurityScore(demoSecurityFindings);
+
+  const demoMigrationPreview = summarizeMigrationPreview([
+    {
+      client: 'claude',
+      sourcePath: 'CLAUDE.md',
+      bytes: 3420,
+      estimatedTokens: 855,
+      duplicatePercent: 82,
+      duplicateLines: 41,
+      totalLines: 50,
+      recommendedTarget: 'AGENTS.md',
+      action: 'dedupe-merge',
+    },
+    {
+      client: 'cursor',
+      sourcePath: '.cursor/rules/typescript.mdc',
+      bytes: 2180,
+      estimatedTokens: 545,
+      duplicatePercent: 64,
+      duplicateLines: 25,
+      totalLines: 39,
+      recommendedTarget: 'AGENTS.md',
+      action: 'dedupe-merge',
+    },
+    {
+      client: 'claude',
+      sourcePath: '.claude/commands/release.md',
+      bytes: 1240,
+      estimatedTokens: 310,
+      duplicatePercent: 15,
+      duplicateLines: 3,
+      totalLines: 20,
+      recommendedTarget: '.agents/skills/',
+      action: 'migrate-unique',
+    },
+    {
+      client: 'codex',
+      sourcePath: '.codex/config.toml',
+      bytes: 480,
+      estimatedTokens: 120,
+      duplicatePercent: 0,
+      duplicateLines: 0,
+      totalLines: 14,
+      recommendedTarget: '.agy-nov.json',
+      action: 'keep-pointer',
+    },
+  ]);
 
   const assets: WorkspaceAssetEntry[] = [
     {
@@ -2372,6 +3636,9 @@ export function createDemoOpsAuditReport(
           'Keep shared workspace rules in AGENTS.md or modular skills/ so Antigravity and Cursor coexist without rule drift.',
       },
     ],
+    securityFindings: demoSecurityFindings,
+    securityScore: demoSecurityScore,
+    migrationPreview: demoMigrationPreview,
   };
 }
 

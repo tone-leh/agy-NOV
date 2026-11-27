@@ -599,7 +599,7 @@ var MAX_CONFIG_IMPORT_BYTES = 32 * 1024;
 var import_node_crypto = __toESM(require("node:crypto"), 1);
 var import_node_fs2 = __toESM(require("node:fs"), 1);
 var import_node_path2 = __toESM(require("node:path"), 1);
-var FEED_SNAPSHOT_VERSION = "0.9.0";
+var FEED_SNAPSHOT_VERSION = "1.0.0";
 var FEED_SNAPSHOT_FILENAME = "feed-snapshot.json";
 var MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
 var MAX_FEED_ALERTS = 6;
@@ -2694,7 +2694,11 @@ var import_node_path7 = __toESM(require("node:path"), 1);
 var import_node_url = require("node:url");
 
 // src/modules/mem/demo-memories.ts
-function buildDemoMemories() {
+var MS_PER_DAY = 24 * 60 * 60 * 1e3;
+function isoOffset(nowMs, offsetDays) {
+  return new Date(nowMs + offsetDays * MS_PER_DAY).toISOString();
+}
+function buildDemoMemories(nowMs = Date.now()) {
   return [
     {
       id: "mem_demo_pkce",
@@ -2708,10 +2712,16 @@ function buildDemoMemories() {
         { filePath: "/workspace/demo-app/src/auth/singleflight-lock.ts", basename: "singleflight-lock.ts", uri: "file:///workspace/demo-app/src/auth/singleflight-lock.ts", symbol: "SingleFlightMap", driftStatus: "fresh" }
       ],
       pinned: true,
-      createdAt: "2026-11-24T09:10:00Z",
-      updatedAt: "2026-11-26T06:40:00Z",
+      createdAt: isoOffset(nowMs, -12),
+      updatedAt: isoOffset(nowMs, -1),
+      verifiedAt: isoOffset(nowMs, -1),
       recallCount: 7,
-      drifted: false
+      drifted: false,
+      confidence: "verified",
+      source: "manual",
+      ttlDays: null,
+      expiresAt: null,
+      hygieneStatus: "healthy"
     },
     {
       id: "mem_demo_redis",
@@ -2724,10 +2734,15 @@ function buildDemoMemories() {
         { filePath: "/workspace/demo-app/src/checkout/pricing-cache.ts", basename: "pricing-cache.ts", uri: "file:///workspace/demo-app/src/checkout/pricing-cache.ts", symbol: "fetchCartPrices", driftStatus: "drifted" }
       ],
       pinned: true,
-      createdAt: "2026-11-22T14:20:00Z",
-      updatedAt: "2026-11-25T15:02:00Z",
+      createdAt: isoOffset(nowMs, -15),
+      updatedAt: isoOffset(nowMs, -4),
       recallCount: 5,
-      drifted: true
+      drifted: true,
+      confidence: "normal",
+      source: "manual",
+      ttlDays: null,
+      expiresAt: null,
+      hygieneStatus: "drifted"
     },
     {
       id: "mem_demo_stripe",
@@ -2740,10 +2755,16 @@ function buildDemoMemories() {
         { filePath: "/workspace/demo-app/src/billing/webhook-handler.ts", basename: "webhook-handler.ts", uri: "file:///workspace/demo-app/src/billing/webhook-handler.ts", driftStatus: "fresh" }
       ],
       pinned: false,
-      createdAt: "2026-11-21T11:00:00Z",
-      updatedAt: "2026-11-24T17:12:00Z",
+      createdAt: isoOffset(nowMs, -10),
+      updatedAt: isoOffset(nowMs, -2),
+      verifiedAt: isoOffset(nowMs, -2),
       recallCount: 3,
-      drifted: false
+      drifted: false,
+      confidence: "verified",
+      source: "spec_archive",
+      ttlDays: 90,
+      expiresAt: isoOffset(nowMs, 88),
+      hygieneStatus: "healthy"
     },
     {
       id: "mem_demo_style",
@@ -2756,10 +2777,16 @@ function buildDemoMemories() {
         { filePath: "/workspace/demo-app/package.json", basename: "package.json", uri: "file:///workspace/demo-app/package.json", driftStatus: "fresh" }
       ],
       pinned: true,
-      createdAt: "2026-11-20T08:00:00Z",
-      updatedAt: "2026-11-26T05:10:00Z",
+      createdAt: isoOffset(nowMs, -20),
+      updatedAt: isoOffset(nowMs, -1),
+      verifiedAt: isoOffset(nowMs, -1),
       recallCount: 9,
-      drifted: false
+      drifted: false,
+      confidence: "verified",
+      source: "manual",
+      ttlDays: null,
+      expiresAt: null,
+      hygieneStatus: "healthy"
     },
     {
       id: "mem_demo_pref",
@@ -2769,10 +2796,59 @@ function buildDemoMemories() {
       tags: ["workflow", "style"],
       anchors: [],
       pinned: false,
-      createdAt: "2026-11-18T10:30:00Z",
-      updatedAt: "2026-11-26T04:00:00Z",
+      createdAt: isoOffset(nowMs, -28),
+      updatedAt: isoOffset(nowMs, -28),
       recallCount: 12,
-      drifted: false
+      drifted: false,
+      confidence: "normal",
+      source: "manual",
+      ttlDays: 30,
+      expiresAt: isoOffset(nowMs, 2),
+      hygieneStatus: "needs_review"
+    },
+    {
+      id: "mem_demo_auto_retry",
+      kind: "decision",
+      title: "Session recap: Tune webhook retry jitter cap to 25%",
+      content: "Auto-captured from conversation conv-8841. Modified 1 file(s): retry-policy.ts. Candidate tuning parameter pending production verification.",
+      tags: ["auto-capture", "retry"],
+      workspacePath: "/workspace/demo-app",
+      sourceConversationId: "conv-8841-demo",
+      anchors: [
+        { filePath: "/workspace/demo-app/src/queue/retry-policy.ts", basename: "retry-policy.ts", uri: "file:///workspace/demo-app/src/queue/retry-policy.ts", driftStatus: "fresh" }
+      ],
+      pinned: false,
+      createdAt: isoOffset(nowMs, -3),
+      updatedAt: isoOffset(nowMs, -3),
+      recallCount: 1,
+      drifted: false,
+      confidence: "tentative",
+      source: "auto_capture",
+      ttlDays: 14,
+      expiresAt: isoOffset(nowMs, 11),
+      hygieneStatus: "needs_review"
+    },
+    {
+      id: "mem_demo_stale_spike",
+      kind: "pitfall",
+      title: "Session recap: Temporary debug flag for staging cache probe",
+      content: "Auto-captured from conversation conv-7012. Temporary workaround for staging cache probe that expired and should be pruned or refreshed.",
+      tags: ["auto-capture", "staging"],
+      workspacePath: "/workspace/demo-app",
+      sourceConversationId: "conv-7012-demo",
+      anchors: [
+        { filePath: "/workspace/demo-app/src/checkout/staging-probe.ts", basename: "staging-probe.ts", uri: "file:///workspace/demo-app/src/checkout/staging-probe.ts", driftStatus: "fresh" }
+      ],
+      pinned: false,
+      createdAt: isoOffset(nowMs, -22),
+      updatedAt: isoOffset(nowMs, -20),
+      recallCount: 0,
+      drifted: false,
+      confidence: "tentative",
+      source: "auto_capture",
+      ttlDays: 14,
+      expiresAt: isoOffset(nowMs, -6),
+      hygieneStatus: "stale_ttl"
     }
   ];
 }
@@ -2782,6 +2858,12 @@ var MAX_ANCHOR_FILE_BYTES = 2 * 1024 * 1024;
 var MAX_SESSION_START_CHARS = 1200;
 var PRIVATE_CONTENT_PLACEHOLDER = "[PRIVATE_CONTENT_STRIPPED]";
 var PRIVATE_TITLE_PLACEHOLDER = "[PRIVATE_TITLE_STRIPPED]";
+var MIN_TTL_DAYS = 1;
+var MAX_TTL_DAYS = 365;
+var DEFAULT_AUTO_CAPTURE_TTL_DAYS = 14;
+var DEFAULT_REFRESH_TTL_DAYS = 30;
+var NEEDS_REVIEW_TTL_WINDOW_DAYS = 3;
+var MS_PER_DAY2 = 24 * 60 * 60 * 1e3;
 var PRIVATE_OPEN_PREFIX = "<private";
 var PRIVATE_CLOSE_PREFIX = "</private";
 var VALID_MEMORY_KINDS = /* @__PURE__ */ new Set([
@@ -2790,6 +2872,16 @@ var VALID_MEMORY_KINDS = /* @__PURE__ */ new Set([
   "pitfall",
   "convention",
   "preference"
+]);
+var VALID_MEMORY_CONFIDENCES = /* @__PURE__ */ new Set([
+  "verified",
+  "normal",
+  "tentative"
+]);
+var VALID_MEMORY_SOURCES = /* @__PURE__ */ new Set([
+  "manual",
+  "spec_archive",
+  "auto_capture"
 ]);
 var VALID_DRIFT_STATUSES = /* @__PURE__ */ new Set([
   "fresh",
@@ -2943,7 +3035,106 @@ function formatCompactAnchorList(anchors, maxFiles = 3) {
   const extra = anchors.length > maxFiles ? `, +${anchors.length - maxFiles}` : "";
   return ` [${names.join(", ")}${extra}]`;
 }
+function resolveNowMs(now) {
+  if (typeof now === "number" && Number.isFinite(now)) return now;
+  if (now instanceof Date && Number.isFinite(now.getTime())) return now.getTime();
+  return Date.now();
+}
+function normalizeTtlDays(raw) {
+  if (raw === null) return null;
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    const floored = Math.floor(raw);
+    if (floored < MIN_TTL_DAYS) return void 0;
+    return Math.min(MAX_TTL_DAYS, floored);
+  }
+  return void 0;
+}
+function computeExpiresAt(baseIso, ttlDays) {
+  if (ttlDays === null || ttlDays === void 0) return null;
+  if (typeof ttlDays !== "number" || !Number.isFinite(ttlDays) || ttlDays < MIN_TTL_DAYS) {
+    return null;
+  }
+  const baseMs = baseIso ? Date.parse(baseIso) : NaN;
+  if (!Number.isFinite(baseMs)) return null;
+  const clampedDays = Math.min(MAX_TTL_DAYS, Math.max(MIN_TTL_DAYS, Math.floor(ttlDays)));
+  return new Date(baseMs + clampedDays * MS_PER_DAY2).toISOString();
+}
+function resolveEffectiveExpiresAt(item) {
+  if (typeof item.expiresAt === "string" && item.expiresAt.trim()) {
+    const parsed = Date.parse(item.expiresAt.trim());
+    if (Number.isFinite(parsed)) return item.expiresAt.trim();
+  }
+  if (item.ttlDays === null) return null;
+  if (typeof item.ttlDays === "number" && Number.isFinite(item.ttlDays) && item.ttlDays > 0) {
+    const base = item.verifiedAt || item.updatedAt || item.createdAt;
+    return computeExpiresAt(base, item.ttlDays);
+  }
+  return null;
+}
+function evaluateMemoryHygiene(item, nowMs = Date.now()) {
+  if (item.drifted === true) {
+    return "drifted";
+  }
+  if (item.pinned === true) {
+    return item.confidence === "tentative" ? "needs_review" : "healthy";
+  }
+  const effectiveExpiresAt = resolveEffectiveExpiresAt(item);
+  const expiresMs = effectiveExpiresAt ? Date.parse(effectiveExpiresAt) : NaN;
+  if (Number.isFinite(expiresMs) && expiresMs <= nowMs) {
+    return "stale_ttl";
+  }
+  if (item.confidence === "tentative") {
+    return "needs_review";
+  }
+  if (Number.isFinite(expiresMs) && expiresMs - nowMs <= NEEDS_REVIEW_TTL_WINDOW_DAYS * MS_PER_DAY2) {
+    return "needs_review";
+  }
+  return "healthy";
+}
+function computeHygieneSummary(items, nowMs = Date.now()) {
+  let healthy = 0;
+  let needsReview = 0;
+  let staleTtl = 0;
+  let drifted = 0;
+  let tentative = 0;
+  const expiredIds = [];
+  const reviewIds = [];
+  for (const item of items) {
+    const status = evaluateMemoryHygiene(item, nowMs);
+    if (status === "healthy") healthy += 1;
+    else if (status === "needs_review") {
+      needsReview += 1;
+      reviewIds.push(item.id);
+    } else if (status === "stale_ttl") {
+      staleTtl += 1;
+      expiredIds.push(item.id);
+    } else if (status === "drifted") {
+      drifted += 1;
+    }
+    if (item.confidence === "tentative") {
+      tentative += 1;
+    }
+  }
+  return {
+    total: items.length,
+    healthy,
+    needsReview,
+    staleTtl,
+    drifted,
+    tentative,
+    expiredIds,
+    reviewIds
+  };
+}
+function confidenceRankWeight(confidence) {
+  if (confidence === "verified") return 2;
+  if (confidence === "tentative") return 0;
+  return 1;
+}
 function toIndexEntry(m, score) {
+  const confidence = m.confidence ?? "normal";
+  const expiresAt = resolveEffectiveExpiresAt(m);
+  const hygieneStatus = m.hygieneStatus ?? evaluateMemoryHygiene(m);
   return {
     id: m.id,
     kind: m.kind,
@@ -2958,16 +3149,21 @@ function toIndexEntry(m, score) {
     })),
     updatedAt: m.updatedAt,
     recallCount: m.recallCount,
+    confidence,
+    hygieneStatus,
+    expiresAt,
     ...typeof score === "number" ? { score } : {}
   };
 }
 function formatCompactIndexLine(entry, maxTitleLen = 72) {
   const title = collapseSingleLine(entry.title, maxTitleLen);
   const pinMark = entry.pinned ? " \u2605" : "";
-  const driftMark = entry.drifted ? " \xB7 DRIFTED" : "";
+  const driftMark = entry.drifted ? " [DRIFT]" : "";
+  const tentativeMark = entry.confidence === "tentative" ? " [TENTATIVE]" : "";
+  const expiredMark = entry.hygieneStatus === "stale_ttl" ? " [EXPIRED]" : "";
   const scoreMark = typeof entry.score === "number" ? ` (score ${entry.score})` : "";
   const files = entry.anchors.length > 0 ? ` [${entry.anchors.slice(0, 3).map((a) => a.basename).join(", ")}${entry.anchors.length > 3 ? `, +${entry.anchors.length - 3}` : ""}]` : "";
-  return `- [${entry.id}] (${entry.kind.toUpperCase()}${pinMark}${driftMark}) ${title}${files}${scoreMark}`;
+  return `- [${entry.id}] (${entry.kind.toUpperCase()}${pinMark}${driftMark}${tentativeMark}${expiredMark}) ${title}${files}${scoreMark}`;
 }
 function isSensitiveFilePath(filePath) {
   const trimmed = filePath.trim();
@@ -3122,6 +3318,13 @@ function normalizeMemoryItem(raw, index) {
   const recallCount = typeof r.recallCount === "number" && Number.isFinite(r.recallCount) && r.recallCount >= 0 ? Math.floor(r.recallCount) : 0;
   const pinned = Boolean(r.pinned);
   const drifted = typeof r.drifted === "boolean" ? r.drifted : void 0;
+  const confidence = typeof r.confidence === "string" && VALID_MEMORY_CONFIDENCES.has(r.confidence) ? r.confidence : "normal";
+  const source = typeof r.source === "string" && VALID_MEMORY_SOURCES.has(r.source) ? r.source : "manual";
+  const normalizedTtl = normalizeTtlDays(r.ttlDays);
+  const ttlDays = normalizedTtl !== void 0 ? normalizedTtl : null;
+  const verifiedAt = typeof r.verifiedAt === "string" && r.verifiedAt.trim() && Number.isFinite(Date.parse(r.verifiedAt.trim())) ? r.verifiedAt.trim() : void 0;
+  const explicitExpiresAt = typeof r.expiresAt === "string" && r.expiresAt.trim() && Number.isFinite(Date.parse(r.expiresAt.trim())) ? r.expiresAt.trim() : r.expiresAt === null ? null : void 0;
+  const expiresAt = explicitExpiresAt !== void 0 ? explicitExpiresAt : computeExpiresAt(verifiedAt || updatedAt || createdAt, ttlDays);
   return {
     id,
     kind,
@@ -3135,7 +3338,12 @@ function normalizeMemoryItem(raw, index) {
     createdAt,
     updatedAt,
     recallCount,
-    ...drifted !== void 0 ? { drifted } : {}
+    ...drifted !== void 0 ? { drifted } : {},
+    confidence,
+    source,
+    ttlDays,
+    expiresAt,
+    ...verifiedAt ? { verifiedAt } : {}
   };
 }
 function ensurePrivateDir2(dirPath) {
@@ -3217,15 +3425,26 @@ var MemoryStore = class {
     }
     return parsed.map((entry, idx) => normalizeMemoryItem(entry, idx)).filter((item) => item !== null);
   }
+  stripEphemeralForPersist(items) {
+    return items.map((m) => {
+      const { hygieneStatus: _ignored, ...persisted } = m;
+      return {
+        ...persisted,
+        tags: [...m.tags],
+        anchors: m.anchors.map((a) => ({ ...a }))
+      };
+    });
+  }
   writeAll(items) {
+    const cleanItems = this.stripEphemeralForPersist(items);
     if (this.demoMode) {
-      this.demoItems = this.cloneItems(items);
+      this.demoItems = cleanItems;
       return;
     }
     ensurePrivateDir2(this.dataDir);
     const tmp = `${this.filePath}.${process.pid}.${import_node_crypto3.default.randomBytes(4).toString("hex")}.tmp`;
     try {
-      import_node_fs5.default.writeFileSync(tmp, JSON.stringify(items, null, 2), { encoding: "utf8", mode: 384 });
+      import_node_fs5.default.writeFileSync(tmp, JSON.stringify(cleanItems, null, 2), { encoding: "utf8", mode: 384 });
       try {
         import_node_fs5.default.chmodSync(tmp, 384);
       } catch {
@@ -3239,9 +3458,29 @@ var MemoryStore = class {
       throw err;
     }
   }
-  evaluateDrift(item) {
+  evaluateDrift(item, nowMs = Date.now()) {
+    const confidence = item.confidence ?? "normal";
+    const source = item.source ?? "manual";
+    const ttlDays = item.ttlDays !== void 0 ? item.ttlDays : null;
+    const expiresAt = resolveEffectiveExpiresAt({
+      verifiedAt: item.verifiedAt,
+      updatedAt: item.updatedAt,
+      createdAt: item.createdAt,
+      ttlDays,
+      expiresAt: item.expiresAt
+    });
     if (this.demoMode && item.id.startsWith("mem_demo_")) {
-      return item;
+      const enrichedDemo = {
+        ...item,
+        confidence,
+        source,
+        ttlDays,
+        expiresAt
+      };
+      return {
+        ...enrichedDemo,
+        hygieneStatus: evaluateMemoryHygiene(enrichedDemo, nowMs)
+      };
     }
     let anyDrifted = false;
     const effectiveWs = item.workspacePath ?? this.defaultWorkspaceRoot;
@@ -3262,19 +3501,136 @@ var MemoryStore = class {
       }
       return { ...a, driftStatus: "fresh" };
     });
-    return { ...item, anchors, drifted: anyDrifted };
+    const enriched = {
+      ...item,
+      anchors,
+      drifted: anyDrifted,
+      confidence,
+      source,
+      ttlDays,
+      expiresAt
+    };
+    return {
+      ...enriched,
+      hygieneStatus: evaluateMemoryHygiene(enriched, nowMs)
+    };
   }
   list(opts = {}) {
-    let items = this.readRaw().map((m) => this.evaluateDrift(m));
+    const nowMs = resolveNowMs(opts.now);
+    let items = this.readRaw().map((m) => this.evaluateDrift(m, nowMs));
     if (opts.workspacePath) {
       const target = import_node_path7.default.resolve(opts.workspacePath);
       items = items.filter((m) => !m.workspacePath || import_node_path7.default.resolve(m.workspacePath) === target);
     }
     if (opts.kind) items = items.filter((m) => m.kind === opts.kind);
     if (opts.pinnedOnly) items = items.filter((m) => m.pinned);
+    if (opts.confidence) items = items.filter((m) => (m.confidence ?? "normal") === opts.confidence);
+    if (opts.hygieneStatus) items = items.filter((m) => m.hygieneStatus === opts.hygieneStatus);
+    if (opts.includeExpired === false) {
+      items = items.filter((m) => m.hygieneStatus !== "stale_ttl");
+    }
     return items.sort(
       (a, b) => Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt)
     );
+  }
+  getHygieneSummary(opts = {}) {
+    const nowMs = resolveNowMs(opts.now);
+    const items = this.list({ workspacePath: opts.workspacePath, includeExpired: true, now: nowMs });
+    return computeHygieneSummary(items, nowMs);
+  }
+  batchHygieneMemories(ids, action, opts = {}) {
+    if (action !== "verify" && action !== "refresh_ttl" && action !== "prune") {
+      throw new Error(`Invalid hygiene action: "${String(action)}" (expected verify | refresh_ttl | prune)`);
+    }
+    const requestedIds = Array.from(
+      new Set((ids ?? []).map((id) => typeof id === "string" ? id.trim() : "").filter(Boolean))
+    );
+    const nowMs = resolveNowMs(opts.now);
+    const nowIso = new Date(nowMs).toISOString();
+    if (requestedIds.length === 0) {
+      return {
+        action,
+        requestedIds,
+        affectedIds: [],
+        updatedCount: 0,
+        deletedCount: 0,
+        summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs })
+      };
+    }
+    const idSet = new Set(requestedIds);
+    const rawItems = this.readRaw();
+    const affectedIds = [];
+    if (action === "prune") {
+      const remaining = [];
+      for (const item of rawItems) {
+        if (idSet.has(item.id)) {
+          affectedIds.push(item.id);
+        } else {
+          remaining.push(item);
+        }
+      }
+      if (affectedIds.length > 0) {
+        this.writeAll(remaining);
+      }
+      return {
+        action,
+        requestedIds,
+        affectedIds,
+        updatedCount: 0,
+        deletedCount: affectedIds.length,
+        summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs })
+      };
+    }
+    if (action === "verify") {
+      const explicitTtl = opts.ttlDays !== void 0 ? normalizeTtlDays(opts.ttlDays) ?? null : null;
+      const nextItems2 = rawItems.map((item) => {
+        if (!idSet.has(item.id)) return item;
+        affectedIds.push(item.id);
+        const nextTtlDays = explicitTtl;
+        return {
+          ...item,
+          confidence: "verified",
+          verifiedAt: nowIso,
+          updatedAt: nowIso,
+          ttlDays: nextTtlDays,
+          expiresAt: computeExpiresAt(nowIso, nextTtlDays)
+        };
+      });
+      if (affectedIds.length > 0) {
+        this.writeAll(nextItems2);
+      }
+      return {
+        action,
+        requestedIds,
+        affectedIds,
+        updatedCount: affectedIds.length,
+        deletedCount: 0,
+        summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs })
+      };
+    }
+    const refreshTtl = opts.ttlDays === null ? null : opts.ttlDays !== void 0 ? normalizeTtlDays(opts.ttlDays) ?? DEFAULT_REFRESH_TTL_DAYS : DEFAULT_REFRESH_TTL_DAYS;
+    const nextItems = rawItems.map((item) => {
+      if (!idSet.has(item.id)) return item;
+      affectedIds.push(item.id);
+      return {
+        ...item,
+        updatedAt: nowIso,
+        verifiedAt: nowIso,
+        ttlDays: refreshTtl,
+        expiresAt: computeExpiresAt(nowIso, refreshTtl)
+      };
+    });
+    if (affectedIds.length > 0) {
+      this.writeAll(nextItems);
+    }
+    return {
+      action,
+      requestedIds,
+      affectedIds,
+      updatedCount: affectedIds.length,
+      deletedCount: 0,
+      summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs })
+    };
   }
   remember(input) {
     const items = this.readRaw();
@@ -3330,21 +3686,41 @@ var MemoryStore = class {
     const existingIdx = input.id ? items.findIndex((m) => m.id === input.id) : items.findIndex(
       (m) => m.title.toLowerCase() === cleanTitle.toLowerCase() && (m.workspacePath ?? "") === (resolvedWorkspace ?? "")
     );
+    const parsedInputTtl = input.ttlDays !== void 0 ? normalizeTtlDays(input.ttlDays) ?? null : void 0;
+    const sanitizedInputConfidence = input.confidence !== void 0 && VALID_MEMORY_CONFIDENCES.has(input.confidence) ? input.confidence : void 0;
+    const sanitizedInputSource = input.source !== void 0 && VALID_MEMORY_SOURCES.has(input.source) ? input.source : void 0;
     if (existingIdx >= 0) {
+      const prev = items[existingIdx];
+      const nextConfidence = sanitizedInputConfidence ?? prev.confidence ?? "normal";
+      const nextSource = sanitizedInputSource ?? prev.source ?? "manual";
+      const nextTtlDays = parsedInputTtl !== void 0 ? parsedInputTtl : prev.ttlDays ?? null;
+      const nextVerifiedAt = input.verifiedAt ?? (sanitizedInputConfidence === "verified" ? now : prev.verifiedAt);
+      const ttlAnchorIso = parsedInputTtl !== void 0 ? now : nextVerifiedAt || now;
+      const nextExpiresAt = computeExpiresAt(ttlAnchorIso, nextTtlDays);
       const updated = {
-        ...items[existingIdx],
+        ...prev,
         kind: input.kind,
         title: cleanTitle,
         content: cleanContent,
         tags,
-        anchors: anchors.length ? anchors : items[existingIdx].anchors,
-        pinned: input.pinned ?? items[existingIdx].pinned,
-        updatedAt: now
+        anchors: anchors.length ? anchors : prev.anchors,
+        pinned: input.pinned ?? prev.pinned,
+        updatedAt: now,
+        confidence: nextConfidence,
+        source: nextSource,
+        ttlDays: nextTtlDays,
+        expiresAt: nextExpiresAt,
+        ...nextVerifiedAt ? { verifiedAt: nextVerifiedAt } : {}
       };
       items[existingIdx] = updated;
       this.writeAll(items);
       return this.evaluateDrift(updated);
     }
+    const confidence = sanitizedInputConfidence ?? "normal";
+    const source = sanitizedInputSource ?? "manual";
+    const ttlDays = parsedInputTtl !== void 0 ? parsedInputTtl : null;
+    const verifiedAt = input.verifiedAt ?? (confidence === "verified" ? now : void 0);
+    const expiresAt = computeExpiresAt(verifiedAt || now, ttlDays);
     const created = {
       id: input.id || `mem_${import_node_crypto3.default.randomBytes(5).toString("hex")}`,
       kind: input.kind,
@@ -3357,7 +3733,12 @@ var MemoryStore = class {
       pinned: Boolean(input.pinned),
       createdAt: now,
       updatedAt: now,
-      recallCount: 0
+      recallCount: 0,
+      confidence,
+      source,
+      ttlDays,
+      expiresAt,
+      ...verifiedAt ? { verifiedAt } : {}
     };
     items.unshift(created);
     this.writeAll(items);
@@ -3367,20 +3748,29 @@ var MemoryStore = class {
     const items = this.readRaw();
     const idx = items.findIndex((m) => m.id === id);
     if (idx < 0) return null;
-    const ws = items[idx].workspacePath ?? this.defaultWorkspaceRoot;
-    items[idx].anchors = items[idx].anchors.map((a) => {
-      const inspected = inspectAnchorFile(a.filePath, ws);
-      if (inspected.status === "ok" && inspected.sha256) {
-        return { ...a, sha256: inspected.sha256, driftStatus: "fresh" };
-      }
-      if (inspected.status === "skipped") {
-        const { sha256: _ignored, ...rest } = a;
-        return { ...rest, driftStatus: "skipped" };
-      }
-      return { ...a, driftStatus: "missing" };
-    });
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    if (this.demoMode && items[idx].id.startsWith("mem_demo_")) {
+      items[idx].anchors = items[idx].anchors.map((a) => ({ ...a, driftStatus: "fresh" }));
+    } else {
+      const ws = items[idx].workspacePath ?? this.defaultWorkspaceRoot;
+      items[idx].anchors = items[idx].anchors.map((a) => {
+        const inspected = inspectAnchorFile(a.filePath, ws);
+        if (inspected.status === "ok" && inspected.sha256) {
+          return { ...a, sha256: inspected.sha256, driftStatus: "fresh" };
+        }
+        if (inspected.status === "skipped") {
+          const { sha256: _ignored, ...rest } = a;
+          return { ...rest, driftStatus: "skipped" };
+        }
+        return { ...a, driftStatus: "missing" };
+      });
+    }
     items[idx].drifted = false;
-    items[idx].updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+    items[idx].updatedAt = now;
+    items[idx].verifiedAt = now;
+    if (typeof items[idx].ttlDays === "number" && items[idx].ttlDays > 0) {
+      items[idx].expiresAt = computeExpiresAt(now, items[idx].ttlDays);
+    }
     this.writeAll(items);
     return this.evaluateDrift(items[idx]);
   }
@@ -3403,7 +3793,11 @@ var MemoryStore = class {
   getByIds(ids, opts = {}) {
     const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
     if (uniqueIds.length === 0) return [];
-    const all = this.list({ workspacePath: opts.workspacePath });
+    const all = this.list({
+      workspacePath: opts.workspacePath,
+      includeExpired: Boolean(opts.includeExpired),
+      now: opts.now
+    });
     const byId = new Map(all.map((m) => [m.id, m]));
     const matched = uniqueIds.map((id) => byId.get(id)).filter((m) => m !== void 0);
     if (opts.incrementRecall && matched.length > 0) {
@@ -3421,10 +3815,23 @@ var MemoryStore = class {
   }
   recall(query, opts = {}) {
     const limit = opts.limit ?? 10;
-    const all = this.list({ workspacePath: opts.workspacePath });
+    const all = this.list({
+      workspacePath: opts.workspacePath,
+      includeExpired: Boolean(opts.includeExpired),
+      now: opts.now
+    });
     const trimmed = query.trim();
     if (!trimmed) {
-      return all.slice(0, limit).map((m) => ({ ...m, score: m.pinned ? 2 : 1 }));
+      return [...all].map((m) => {
+        let baseScore = 1;
+        if (m.pinned) baseScore += 1;
+        if (m.confidence === "verified") baseScore += 0.5;
+        else if (m.confidence === "tentative") baseScore -= 0.25;
+        if (m.drifted) baseScore -= 0.2;
+        return { ...m, score: Number(Math.max(0.1, baseScore).toFixed(2)) };
+      }).sort(
+        (a, b2) => b2.score - a.score || Number(b2.pinned) - Number(a.pinned) || confidenceRankWeight(b2.confidence) - confidenceRankWeight(a.confidence) || b2.updatedAt.localeCompare(a.updatedAt)
+      ).slice(0, limit);
     }
     const qTokens = Array.from(new Set(tokenize(trimmed)));
     if (qTokens.length === 0) return [];
@@ -3457,9 +3864,16 @@ var MemoryStore = class {
       }
       if (m.title.toLowerCase().includes(qLower)) score += 3;
       if (m.content.toLowerCase().includes(qLower)) score += 2;
-      if (m.pinned && score > 0) score += 0.6;
+      if (score > 0) {
+        if (m.pinned) score += 0.6;
+        if (m.confidence === "verified") score += 0.45;
+        else if (m.confidence === "tentative") score = Math.max(0.05, score * 0.85);
+        if (m.drifted) score = Math.max(0.05, score * 0.9);
+      }
       return { ...m, score: Number(score.toFixed(2)) };
-    }).filter((h) => h.score > 0).sort((a, b2) => b2.score - a.score).slice(0, limit);
+    }).filter((h) => h.score > 0).sort(
+      (a, b2) => b2.score - a.score || Number(b2.pinned) - Number(a.pinned) || confidenceRankWeight(b2.confidence) - confidenceRankWeight(a.confidence) || b2.updatedAt.localeCompare(a.updatedAt)
+    ).slice(0, limit);
     if (opts.incrementRecall && hits.length > 0) {
       const raw = this.readRaw();
       const hitIds = new Set(hits.map((h) => h.id));
@@ -3471,12 +3885,14 @@ var MemoryStore = class {
     }
     return hits;
   }
-  buildCompactIndexEntries(workspacePaths = [], maxItems = 12) {
+  buildCompactIndexEntries(workspacePaths = [], maxItems = 12, now) {
     const ws = workspacePaths[0];
-    return this.list({ workspacePath: ws }).filter((m) => !m.drifted).slice(0, maxItems).map((m) => toIndexEntry(m));
+    return this.list({ workspacePath: ws, includeExpired: false, now }).filter((m) => !m.drifted && m.hygieneStatus !== "stale_ttl").sort(
+      (a, b) => Number(b.pinned) - Number(a.pinned) || confidenceRankWeight(b.confidence) - confidenceRankWeight(a.confidence) || b.updatedAt.localeCompare(a.updatedAt)
+    ).slice(0, maxItems).map((m) => toIndexEntry(m));
   }
-  buildSessionStartInjection(workspacePaths = [], maxItems = 12) {
-    const entries = this.buildCompactIndexEntries(workspacePaths, maxItems);
+  buildSessionStartInjection(workspacePaths = [], maxItems = 12, now) {
+    const entries = this.buildCompactIndexEntries(workspacePaths, maxItems, now);
     if (entries.length === 0) return "";
     const header = `[Agy Mem \u2014 Progressive Index (${entries.length} active \xB7 L1)]`;
     const footer = 'Call mem_recall(mode="detail", ids=["<id>"]) for full content or mode="timeline" for nearby context.';
@@ -3510,9 +3926,11 @@ var MemoryStore = class {
     const out = lines.join("\n");
     return out.length <= MAX_SESSION_START_CHARS ? out : out.slice(0, MAX_SESSION_START_CHARS);
   }
-  buildProgressiveStats(workspacePaths, maxItems = 12) {
+  buildProgressiveStats(workspacePaths, maxItems = 12, now) {
     const ws = workspacePaths?.[0];
-    const active = this.list({ workspacePath: ws }).filter((m) => !m.drifted);
+    const active = this.list({ workspacePath: ws, includeExpired: false, now }).filter(
+      (m) => !m.drifted && m.hygieneStatus !== "stale_ttl"
+    );
     if (active.length === 0) {
       return {
         activeCount: 0,
@@ -3523,7 +3941,7 @@ var MemoryStore = class {
         savedPercent: 0
       };
     }
-    const compactIndex = this.buildSessionStartInjection(workspacePaths ?? [], maxItems);
+    const compactIndex = this.buildSessionStartInjection(workspacePaths ?? [], maxItems, now);
     const fullDumpText = [
       `[Agy Mem \u2014 Persistent Workspace Memory (${active.length} active)]`,
       ...active.map((m) => {
@@ -3552,13 +3970,19 @@ var MemoryStore = class {
     const ids = Array.from(new Set((opts.ids ?? []).map((id) => id.trim()).filter(Boolean)));
     const limit = opts.limit ?? 8;
     const windowSize = Math.min(5, Math.max(1, Math.floor(opts.window ?? 2)));
+    const includeExpired = Boolean(opts.includeExpired);
     if (mode === "index") {
-      const entries = ids.length > 0 ? this.getByIds(ids, { workspacePath: opts.workspacePath, incrementRecall: false }).map(
-        (m) => toIndexEntry(m)
-      ) : this.recall(query, {
+      const entries = ids.length > 0 ? this.getByIds(ids, {
+        workspacePath: opts.workspacePath,
+        incrementRecall: false,
+        includeExpired,
+        now: opts.now
+      }).map((m) => toIndexEntry(m)) : this.recall(query, {
         workspacePath: opts.workspacePath,
         limit,
-        incrementRecall: false
+        incrementRecall: false,
+        includeExpired,
+        now: opts.now
       }).map((m) => toIndexEntry(m, m.score));
       const text2 = entries.length ? [
         `[Agy Mem \xB7 L1 Index (${entries.length} ${entries.length === 1 ? "match" : "matches"})]`,
@@ -3578,7 +4002,11 @@ var MemoryStore = class {
       };
     }
     if (mode === "timeline") {
-      const chronological = this.list({ workspacePath: opts.workspacePath }).sort(
+      const chronological = this.list({
+        workspacePath: opts.workspacePath,
+        includeExpired,
+        now: opts.now
+      }).sort(
         (a, b) => b.updatedAt.localeCompare(a.updatedAt) || b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id)
       );
       const indexById = /* @__PURE__ */ new Map();
@@ -3598,7 +4026,9 @@ var MemoryStore = class {
         const hits = this.recall(query, {
           workspacePath: opts.workspacePath,
           limit,
-          incrementRecall: false
+          incrementRecall: false,
+          includeExpired,
+          now: opts.now
         });
         for (const h of hits) {
           const idx = indexById.get(h.id);
@@ -3646,6 +4076,9 @@ var MemoryStore = class {
           updatedAt: m.updatedAt,
           recallCount: m.recallCount,
           isAnchorHit: anchorHitIds.has(m.id),
+          confidence: m.confidence ?? "normal",
+          hygieneStatus: m.hygieneStatus,
+          expiresAt: resolveEffectiveExpiresAt(m),
           ...typeof score === "number" ? { score } : {}
         };
       });
@@ -3656,7 +4089,10 @@ var MemoryStore = class {
           const filesTxt = entry.anchorFiles.length ? ` [files: ${entry.anchorFiles.slice(0, 3).join(", ")}]` : "";
           const convTxt = entry.sourceConversationId ? ` (session:${entry.sourceConversationId.slice(0, 12)})` : "";
           const scoreTxt = typeof entry.score === "number" ? ` score=${entry.score}` : "";
-          return `- ${entry.updatedAt} ${marker} [${entry.id}] (${entry.kind.toUpperCase()}${entry.pinned ? " \u2605" : ""}${entry.drifted ? " \xB7 DRIFTED" : ""}) ${entry.title}${filesTxt}${convTxt}${scoreTxt}
+          const driftTxt = entry.drifted ? " [DRIFT]" : "";
+          const tentativeTxt = entry.confidence === "tentative" ? " [TENTATIVE]" : "";
+          const expiredTxt = entry.hygieneStatus === "stale_ttl" ? " [EXPIRED]" : "";
+          return `- ${entry.updatedAt} ${marker} [${entry.id}] (${entry.kind.toUpperCase()}${entry.pinned ? " \u2605" : ""}${driftTxt}${tentativeTxt}${expiredTxt}) ${entry.title}${filesTxt}${convTxt}${scoreTxt}
   ${entry.excerpt}`;
         }),
         'Call mem_recall(mode="detail", ids=["<id>"]) to load full memory content.'
@@ -3675,16 +4111,23 @@ var MemoryStore = class {
     }
     const detailItems = ids.length > 0 ? this.getByIds(ids, {
       workspacePath: opts.workspacePath,
-      incrementRecall: Boolean(opts.incrementRecall)
+      incrementRecall: Boolean(opts.incrementRecall),
+      includeExpired,
+      now: opts.now
     }).map((m) => ({ ...m, score: 1 })) : this.recall(query, {
       workspacePath: opts.workspacePath,
       limit,
-      incrementRecall: Boolean(opts.incrementRecall)
+      incrementRecall: Boolean(opts.incrementRecall),
+      includeExpired,
+      now: opts.now
     });
     const text = detailItems.length ? detailItems.map((m, i) => {
       const anchorTxt = formatCompactAnchorList(m.anchors, 4);
       const scoreTxt = typeof m.score === "number" ? ` (score ${m.score})` : "";
-      return `${i + 1}. [${m.id}] [${m.kind.toUpperCase()}${m.pinned ? " \u2605" : ""}${m.drifted ? " \xB7 DRIFTED" : ""}] ${m.title}${anchorTxt}${scoreTxt}
+      const driftTxt = m.drifted ? " [DRIFT]" : "";
+      const confTxt = m.confidence === "tentative" ? " [TENTATIVE]" : m.confidence === "verified" ? " [VERIFIED]" : "";
+      const expiredTxt = m.hygieneStatus === "stale_ttl" ? " [EXPIRED]" : "";
+      return `${i + 1}. [${m.id}] [${m.kind.toUpperCase()}${m.pinned ? " \u2605" : ""}${driftTxt}${confTxt}${expiredTxt}] ${m.title}${anchorTxt}${scoreTxt}
    ${m.content}`;
     }).join("\n") : ids.length > 0 ? `No memories found for ids: ${ids.join(", ")}.` : `No memories matched "${query}".`;
     return {
@@ -3811,7 +4254,10 @@ function handleMemStopHook(payload, rootDataDir) {
       workspacePath,
       sourceConversationId: convId,
       anchors: editedFiles.map((filePath) => ({ filePath })),
-      pinned: false
+      pinned: false,
+      confidence: "tentative",
+      source: "auto_capture",
+      ttlDays: DEFAULT_AUTO_CAPTURE_TTL_DAYS
     });
   } catch {
   }
@@ -4393,6 +4839,15 @@ function matchSensitivePath(target) {
 
 // src/modules/remote/live-stream.ts
 var MAX_LIVE_STREAM_TAIL_BYTES = 256 * 1024;
+function findTagCloseBeforeNextOpen(input, from) {
+  const n = input.length;
+  for (let k = from; k < n; k += 1) {
+    const code = input.charCodeAt(k);
+    if (code === 62) return { gt: k, nextLt: -1 };
+    if (code === 60) return { gt: -1, nextLt: k };
+  }
+  return { gt: -1, nextLt: n };
+}
 function stripRemotePrivateBlocksLinear(input) {
   if (!input || !input.includes("<")) return input;
   const lower = input.toLowerCase();
@@ -4406,12 +4861,13 @@ function stripRemotePrivateBlocksLinear(input) {
     const lt = input.indexOf("<", i);
     if (lt < 0) {
       if (depth === 0) out += input.slice(cursor);
+      cursor = n;
       break;
     }
     if (lower.startsWith("<private", lt)) {
       const after = lt + 8;
       if (after < n && (input[after] === ">" || /\s/.test(input[after]))) {
-        const gt = input.indexOf(">", after);
+        const { gt, nextLt } = findTagCloseBeforeNextOpen(input, after);
         if (gt >= 0) {
           if (depth === 0) {
             out += input.slice(cursor, lt);
@@ -4422,20 +4878,27 @@ function stripRemotePrivateBlocksLinear(input) {
           cursor = i;
           continue;
         }
+        i = nextLt;
+        continue;
       }
     } else if (lower.startsWith("</private", lt)) {
       const after = lt + 9;
       if (after < n && (input[after] === ">" || /\s/.test(input[after]))) {
-        const gt = input.indexOf(">", after);
+        const { gt, nextLt } = findTagCloseBeforeNextOpen(input, after);
         if (gt >= 0) {
           if (depth > 0) depth -= 1;
           i = gt + 1;
           if (depth === 0) cursor = i;
           continue;
         }
+        i = nextLt;
+        continue;
       }
     }
     i = lt + 1;
+  }
+  if (depth === 0 && cursor < n) {
+    out += input.slice(cursor);
   }
   return out;
 }
@@ -7816,8 +8279,17 @@ var DEFAULT_VERIFY_POLICY = {
     }
   ]
 };
+function findTagCloseBeforeNextOpen2(input, from) {
+  const n = input.length;
+  for (let k = from; k < n; k += 1) {
+    const code = input.charCodeAt(k);
+    if (code === 62) return { gt: k, nextLt: -1 };
+    if (code === 60) return { gt: -1, nextLt: k };
+  }
+  return { gt: -1, nextLt: n };
+}
 function stripPrivateBlocksLinear2(input) {
-  if (!input || !input.includes("<") && !input.includes(">")) return input;
+  if (!input || !input.includes("<")) return input;
   const lower = input.toLowerCase();
   if (!lower.includes("<private")) return input;
   let out = "";
@@ -7829,12 +8301,13 @@ function stripPrivateBlocksLinear2(input) {
     const lt = input.indexOf("<", i);
     if (lt < 0) {
       if (depth === 0) out += input.slice(cursor);
+      cursor = n;
       break;
     }
     if (lower.startsWith("<private", lt)) {
       const after = lt + 8;
       if (after < n && (input[after] === ">" || /\s/.test(input[after]))) {
-        const gt = input.indexOf(">", after);
+        const { gt, nextLt } = findTagCloseBeforeNextOpen2(input, after);
         if (gt >= 0) {
           if (depth === 0) {
             out += input.slice(cursor, lt);
@@ -7845,11 +8318,13 @@ function stripPrivateBlocksLinear2(input) {
           cursor = i;
           continue;
         }
+        i = nextLt;
+        continue;
       }
     } else if (lower.startsWith("</private", lt)) {
       const after = lt + 9;
       if (after < n && (input[after] === ">" || /\s/.test(input[after]))) {
-        const gt = input.indexOf(">", after);
+        const { gt, nextLt } = findTagCloseBeforeNextOpen2(input, after);
         if (gt >= 0) {
           if (depth > 0) {
             depth -= 1;
@@ -7860,9 +8335,14 @@ function stripPrivateBlocksLinear2(input) {
           }
           continue;
         }
+        i = nextLt;
+        continue;
       }
     }
     i = lt + 1;
+  }
+  if (depth === 0 && cursor < n) {
+    out += input.slice(cursor);
   }
   return out;
 }

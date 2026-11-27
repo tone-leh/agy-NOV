@@ -11,6 +11,11 @@ export interface NovModulePanelProps {
 }
 
 type MemoryKind = 'architecture' | 'decision' | 'pitfall' | 'convention' | 'preference';
+type MemoryConfidence = 'verified' | 'normal' | 'tentative';
+type MemorySource = 'manual' | 'spec_archive' | 'auto_capture';
+type MemoryHygieneStatus = 'healthy' | 'needs_review' | 'stale_ttl' | 'drifted';
+type MemoryHygieneFilter = 'all' | 'healthy' | 'needs_review' | 'stale_ttl' | 'drifted';
+type MemoryHygieneAction = 'verify' | 'refresh_ttl' | 'prune';
 type MemSubTab = 'cards' | 'graph' | 'add' | 'injection';
 type MemoryRecallMode = 'index' | 'timeline' | 'detail';
 
@@ -37,7 +42,33 @@ interface MemoryItem {
   updatedAt: string;
   recallCount: number;
   drifted?: boolean;
+  confidence?: MemoryConfidence;
+  source?: MemorySource;
+  ttlDays?: number | null;
+  expiresAt?: string | null;
+  verifiedAt?: string;
+  hygieneStatus?: MemoryHygieneStatus;
   score?: number;
+}
+
+interface MemoryHygieneSummary {
+  total: number;
+  healthy: number;
+  needsReview: number;
+  staleTtl: number;
+  drifted: number;
+  tentative: number;
+  expiredIds: string[];
+  reviewIds: string[];
+}
+
+interface BatchHygieneResult {
+  action: MemoryHygieneAction;
+  requestedIds: string[];
+  affectedIds: string[];
+  updatedCount: number;
+  deletedCount: number;
+  summary: MemoryHygieneSummary;
 }
 
 interface MemoryIndexEntry {
@@ -54,6 +85,9 @@ interface MemoryIndexEntry {
   }>;
   updatedAt: string;
   recallCount: number;
+  confidence?: MemoryConfidence;
+  hygieneStatus?: MemoryHygieneStatus;
+  expiresAt?: string | null;
   score?: number;
 }
 
@@ -71,6 +105,9 @@ interface MemoryTimelineEntry {
   updatedAt: string;
   recallCount: number;
   isAnchorHit: boolean;
+  confidence?: MemoryConfidence;
+  hygieneStatus?: MemoryHygieneStatus;
+  expiresAt?: string | null;
   score?: number;
 }
 
@@ -118,6 +155,8 @@ interface MemPayload {
   injectionPreview?: string;
   progressiveStats?: MemoryProgressiveStats;
   progressivePreview?: MemoryProgressivePreview;
+  hygieneSummary?: MemoryHygieneSummary;
+  result?: BatchHygieneResult;
 }
 
 interface LayeredRecallPayload {
@@ -145,8 +184,114 @@ const KIND_COLOR: Record<MemoryKind, string> = {
   preference: '#f59e0b',
 };
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 function isMemSubTab(v: unknown): v is MemSubTab {
   return v === 'cards' || v === 'graph' || v === 'add' || v === 'injection';
+}
+
+function getEffectiveConfidence(item: { confidence?: MemoryConfidence }): MemoryConfidence {
+  return item.confidence ?? 'normal';
+}
+
+function getEffectiveHygieneStatus(item: {
+  hygieneStatus?: MemoryHygieneStatus;
+  drifted?: boolean;
+  pinned?: boolean;
+  confidence?: MemoryConfidence;
+  expiresAt?: string | null;
+}): MemoryHygieneStatus {
+  if (item.hygieneStatus) return item.hygieneStatus;
+  if (item.drifted) return 'drifted';
+  if (item.pinned) {
+    return item.confidence === 'tentative' ? 'needs_review' : 'healthy';
+  }
+  const expiresMs = item.expiresAt ? Date.parse(item.expiresAt) : NaN;
+  if (Number.isFinite(expiresMs)) {
+    const nowMs = Date.now();
+    if (expiresMs <= nowMs) return 'stale_ttl';
+    if (expiresMs - nowMs <= 3 * MS_PER_DAY) return 'needs_review';
+  }
+  if (item.confidence === 'tentative') return 'needs_review';
+  return 'healthy';
+}
+
+function computeClientHygieneSummary(memories: MemoryItem[]): MemoryHygieneSummary {
+  let healthy = 0;
+  let needsReview = 0;
+  let staleTtl = 0;
+  let drifted = 0;
+  let tentative = 0;
+  const expiredIds: string[] = [];
+  const reviewIds: string[] = [];
+
+  for (const m of memories) {
+    const st = getEffectiveHygieneStatus(m);
+    if (st === 'healthy') healthy += 1;
+    else if (st === 'needs_review') {
+      needsReview += 1;
+      reviewIds.push(m.id);
+    } else if (st === 'stale_ttl') {
+      staleTtl += 1;
+      expiredIds.push(m.id);
+    } else if (st === 'drifted') {
+      drifted += 1;
+    }
+    if (getEffectiveConfidence(m) === 'tentative') tentative += 1;
+  }
+
+  return {
+    total: memories.length,
+    healthy,
+    needsReview,
+    staleTtl,
+    drifted,
+    tentative,
+    expiredIds,
+    reviewIds,
+  };
+}
+
+function renderConfidenceBadge(confidence: MemoryConfidence): { label: string; className: string } {
+  if (confidence === 'verified') {
+    return { label: 'Verified', className: 'mem-badge is-good' };
+  }
+  if (confidence === 'tentative') {
+    return { label: 'Tentative', className: 'mem-badge is-warn' };
+  }
+  return { label: 'Normal', className: 'mem-badge' };
+}
+
+function renderTtlBadge(item: {
+  pinned?: boolean;
+  ttlDays?: number | null;
+  expiresAt?: string | null;
+  hygieneStatus?: MemoryHygieneStatus;
+}): { label: string; className: string } {
+  const status = getEffectiveHygieneStatus(item);
+  if (item.pinned) {
+    return { label: 'No Expiry', className: 'mem-badge is-info' };
+  }
+  if (!item.expiresAt) {
+    return { label: 'No Expiry', className: 'mem-badge' };
+  }
+  const expiresMs = Date.parse(item.expiresAt);
+  if (!Number.isFinite(expiresMs)) {
+    return { label: 'No Expiry', className: 'mem-badge' };
+  }
+  const diffMs = expiresMs - Date.now();
+  if (diffMs <= 0 || status === 'stale_ttl') {
+    const overdueDays = Math.max(0, Math.floor(-diffMs / MS_PER_DAY));
+    return {
+      label: overdueDays > 0 ? `Stale TTL (${overdueDays}d ago)` : 'Stale TTL',
+      className: 'mem-badge is-danger',
+    };
+  }
+  const leftDays = Math.max(1, Math.ceil(diffMs / MS_PER_DAY));
+  return {
+    label: `TTL ${leftDays}d left`,
+    className: leftDays <= 3 ? 'mem-badge is-warn' : 'mem-badge',
+  };
 }
 
 export const MemPanel: React.FC<NovModulePanelProps> = ({
@@ -165,6 +310,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
     injectionPreview: string;
     progressiveStats?: MemoryProgressiveStats;
     progressivePreview?: MemoryProgressivePreview;
+    hygieneSummary?: MemoryHygieneSummary;
   } | null>(null);
   const [query, setQuery] = useState('');
   const [recallMode, setRecallMode] = useState<MemoryRecallMode>('detail');
@@ -173,6 +319,10 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
   const [searchHits, setSearchHits] = useState<Array<MemoryItem & { score?: number }> | null>(null);
   const [searching, setSearching] = useState(false);
   const [filterKind, setFilterKind] = useState<string>('all');
+  const [hygieneFilter, setHygieneFilter] = useState<MemoryHygieneFilter>('all');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [confirmPrune, setConfirmPrune] = useState(false);
+  const [batchBusy, setBatchBusy] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [newKind, setNewKind] = useState<MemoryKind>('architecture');
   const [newTitle, setNewTitle] = useState('');
@@ -180,6 +330,8 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
   const [newTags, setNewTags] = useState('');
   const [newAnchor, setNewAnchor] = useState('');
   const [newPinned, setNewPinned] = useState(true);
+  const [newConfidence, setNewConfidence] = useState<MemoryConfidence>('normal');
+  const [newTtlDays, setNewTtlDays] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [localToast, setLocalToast] = useState<string | null>(null);
@@ -211,20 +363,30 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
 
   const applyPayload = useCallback((res: MemPayload) => {
     if (!Array.isArray(res.memories)) return;
+    const validIds = new Set(res.memories.map((m) => m.id));
     setData({
       memories: res.memories,
       graph: res.graph ?? { nodes: [], edges: [] },
       injectionPreview: res.progressivePreview?.indexText ?? res.injectionPreview ?? '',
       progressiveStats: res.progressiveStats,
       progressivePreview: res.progressivePreview,
+      hygieneSummary: res.hygieneSummary ?? computeClientHygieneSummary(res.memories),
     });
+    setSelectedIds((prev) => prev.filter((id) => validIds.has(id)));
     loadedOnceRef.current = true;
   }, []);
 
   const runLayeredRecall = useCallback(
-    async (mode: MemoryRecallMode, rawQuery: string, ids: string[] = []) => {
+    async (
+      mode: MemoryRecallMode,
+      rawQuery: string,
+      ids: string[] = [],
+      includeExpiredOverride?: boolean,
+    ) => {
       const seq = ++layeredSeqRef.current;
       const trimmed = rawQuery.trim();
+      const includeExpired =
+        includeExpiredOverride ?? (hygieneFilter === 'stale_ttl' || hygieneFilter === 'all');
       setSearching(true);
       setErrorMsg(null);
       try {
@@ -234,6 +396,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
           ...(ids.length > 0 ? { ids } : {}),
           limit: 25,
           window: 2,
+          includeExpired,
         });
         if (seq !== layeredSeqRef.current) return;
         setLayeredResult(res);
@@ -250,6 +413,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
           try {
             const fallback = await bridge.callTool<MemSearchPayload>('app_mem_search', {
               query: trimmed,
+              includeExpired,
             });
             if (seq !== layeredSeqRef.current) return;
             setSearchHits(Array.isArray(fallback.hits) ? fallback.hits : []);
@@ -263,7 +427,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
         if (seq === layeredSeqRef.current) setSearching(false);
       }
     },
-    [bridge],
+    [bridge, hygieneFilter],
   );
 
   const refresh = useCallback(async () => {
@@ -357,7 +521,14 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
   };
 
   const matchesKindFilter = useCallback(
-    (item: { kind: MemoryKind; pinned: boolean; drifted?: boolean }) => {
+    (item: {
+      kind: MemoryKind;
+      pinned: boolean;
+      drifted?: boolean;
+      confidence?: MemoryConfidence;
+      hygieneStatus?: MemoryHygieneStatus;
+      expiresAt?: string | null;
+    }) => {
       if (filterKind === 'pinned' && !item.pinned) return false;
       if (filterKind === 'drifted' && !item.drifted) return false;
       if (
@@ -368,9 +539,13 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
       ) {
         return false;
       }
+      if (hygieneFilter !== 'all') {
+        const status = getEffectiveHygieneStatus(item);
+        if (status !== hygieneFilter) return false;
+      }
       return true;
     },
-    [filterKind],
+    [filterKind, hygieneFilter],
   );
 
   const filtered = useMemo(() => {
@@ -404,6 +579,9 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
             })),
             updatedAt: m.updatedAt,
             recallCount: m.recallCount,
+            confidence: m.confidence,
+            hygieneStatus: m.hygieneStatus,
+            expiresAt: m.expiresAt,
             score: m.score,
           }));
     const q = layeredResult?.mode === 'index' ? '' : query.trim().toLowerCase();
@@ -437,9 +615,88 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
               updatedAt: m.updatedAt,
               recallCount: m.recallCount,
               isAnchorHit: false,
+              confidence: m.confidence,
+              hygieneStatus: m.hygieneStatus,
+              expiresAt: m.expiresAt,
             }));
     return rawEntries.filter((entry) => matchesKindFilter(entry));
   }, [layeredResult, data?.memories, matchesKindFilter]);
+
+  const visibleIds = useMemo(() => {
+    if (recallMode === 'index') return indexEntries.map((e) => e.id);
+    if (recallMode === 'timeline') return timelineEntries.map((e) => e.id);
+    return filtered.map((m) => m.id);
+  }, [recallMode, indexEntries, timelineEntries, filtered]);
+
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedIdSet.has(id));
+
+  const handleToggleSelect = (id: string) => {
+    setConfirmPrune(false);
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
+  };
+
+  const handleToggleSelectVisible = () => {
+    setConfirmPrune(false);
+    if (allVisibleSelected) {
+      const visibleSet = new Set(visibleIds);
+      setSelectedIds((prev) => prev.filter((id) => !visibleSet.has(id)));
+    } else {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  };
+
+  const handleSelectHygieneFilter = (next: MemoryHygieneFilter) => {
+    setConfirmPrune(false);
+    const resolved: MemoryHygieneFilter = next === hygieneFilter && next !== 'all' ? 'all' : next;
+    setHygieneFilter(resolved);
+    if (resolved === 'drifted' && filterKind === 'drifted') {
+      setFilterKind('all');
+    }
+  };
+
+  const handleBatchHygiene = async (action: MemoryHygieneAction) => {
+    if (selectedIds.length === 0 || batchBusy) return;
+    if (action === 'prune' && !confirmPrune) {
+      setConfirmPrune(true);
+      return;
+    }
+    setBatchBusy(true);
+    setErrorMsg(null);
+    try {
+      const res = await bridge.callTool<MemPayload>('app_mem_batch_hygiene', {
+        ids: selectedIds,
+        action,
+        ...(action === 'refresh_ttl' ? { ttlDays: 30 } : {}),
+      });
+      applyPayload(res);
+      setSelectedIds([]);
+      setConfirmPrune(false);
+      if (recallMode !== 'detail' || searchHits !== null || focusedIds.length > 0) {
+        await runLayeredRecall(recallMode, query, focusedIds);
+      }
+      const affected =
+        action === 'prune'
+          ? res.result?.deletedCount ?? selectedIds.length
+          : res.result?.updatedCount ?? selectedIds.length;
+      if (action === 'verify') {
+        notify(`Verified ${affected} memory item(s)`);
+      } else if (action === 'refresh_ttl') {
+        notify(`Refreshed TTL (+30d) for ${affected} memory item(s)`);
+      } else {
+        notify(`Pruned ${affected} memory item(s)`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setErrorMsg(msg);
+      notify(`Batch hygiene failed: ${msg}`);
+    } finally {
+      setBatchBusy(false);
+    }
+  };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -448,6 +705,15 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
     if (title.length < 2 || content.length < 4) {
       notify('Title (min 2 chars) and content (min 4 chars) are required');
       return;
+    }
+    let parsedTtlDays: number | null = null;
+    if (newTtlDays.trim().length > 0) {
+      const n = Number(newTtlDays.trim());
+      if (!Number.isInteger(n) || n < 1 || n > 365) {
+        notify('TTL (days) must be an integer between 1 and 365 (or leave blank for no expiry)');
+        return;
+      }
+      parsedTtlDays = n;
     }
     try {
       const res = await bridge.callTool<MemPayload>('app_mem_add_memory', {
@@ -463,6 +729,8 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
           .map((s) => s.trim())
           .filter(Boolean),
         pinned: newPinned,
+        confidence: newConfidence,
+        ttlDays: parsedTtlDays,
       });
       applyPayload(res);
       setSearchHits(null);
@@ -474,6 +742,8 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
       setNewContent('');
       setNewTags('');
       setNewAnchor('');
+      setNewConfidence('normal');
+      setNewTtlDays('');
       setTab('cards');
       notify('Saved code-anchored memory');
     } catch (err) {
@@ -574,6 +844,10 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
   const memories = data?.memories ?? [];
   const driftedCount = memories.filter((m) => m.drifted).length;
   const pinnedCount = memories.filter((m) => m.pinned).length;
+  const hygieneSummary = useMemo(
+    () => data?.hygieneSummary ?? computeClientHygieneSummary(memories),
+    [data?.hygieneSummary, memories],
+  );
   const progressiveStats = data?.progressiveStats;
   const indexPreviewText = data?.progressivePreview?.indexText ?? data?.injectionPreview ?? '';
   const estimatedPreviewTokens =
@@ -662,6 +936,56 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
 
           {tab === 'cards' && (
             <div className="mem-stack">
+              <div className="mem-hygiene-bar" role="region" aria-label="Memory Hygiene">
+                <div className="mem-hygiene-pills" role="group" aria-label="Filter by hygiene status">
+                  <button
+                    type="button"
+                    aria-pressed={hygieneFilter === 'all'}
+                    className={`mem-hygiene-pill ${hygieneFilter === 'all' ? 'is-active' : ''}`}
+                    onClick={() => handleSelectHygieneFilter('all')}
+                  >
+                    All ({hygieneSummary.total})
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={hygieneFilter === 'healthy'}
+                    className={`mem-hygiene-pill is-good ${hygieneFilter === 'healthy' ? 'is-active' : ''}`}
+                    onClick={() => handleSelectHygieneFilter('healthy')}
+                  >
+                    Healthy ({hygieneSummary.healthy})
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={hygieneFilter === 'needs_review'}
+                    className={`mem-hygiene-pill is-warn ${hygieneFilter === 'needs_review' ? 'is-active' : ''}`}
+                    onClick={() => handleSelectHygieneFilter('needs_review')}
+                  >
+                    Needs Review ({hygieneSummary.needsReview})
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={hygieneFilter === 'stale_ttl'}
+                    className={`mem-hygiene-pill is-danger ${hygieneFilter === 'stale_ttl' ? 'is-active' : ''}`}
+                    onClick={() => handleSelectHygieneFilter('stale_ttl')}
+                  >
+                    Stale TTL ({hygieneSummary.staleTtl})
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={hygieneFilter === 'drifted'}
+                    className={`mem-hygiene-pill is-warn ${hygieneFilter === 'drifted' ? 'is-active' : ''}`}
+                    onClick={() => handleSelectHygieneFilter('drifted')}
+                  >
+                    Drifted ({hygieneSummary.drifted})
+                  </button>
+                </div>
+                {hygieneSummary.tentative > 0 && (
+                  <span className="mem-badge is-warn">
+                    Tentative: {hygieneSummary.tentative}
+                  </span>
+                )}
+              </div>
+
               <form className="mem-row" onSubmit={(e) => void handleServerSearch(e)}>
                 <input
                   className="mem-input mem-search-input"
@@ -753,63 +1077,163 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                 )}
               </div>
 
+              {(visibleIds.length > 0 || selectedIds.length > 0) && (
+                <div
+                  className={`mem-batch-bar ${selectedIds.length > 0 ? 'has-selection' : ''}`}
+                  role="toolbar"
+                  aria-label="Batch memory hygiene actions"
+                >
+                  <div className="mem-row">
+                    <label className="mem-checkbox-row">
+                      <input
+                        type="checkbox"
+                        className="mem-item-checkbox"
+                        checked={allVisibleSelected}
+                        disabled={visibleIds.length === 0 || batchBusy}
+                        onChange={handleToggleSelectVisible}
+                      />
+                      <span>
+                        {selectedIds.length > 0
+                          ? `${selectedIds.length} selected`
+                          : `Select visible (${visibleIds.length})`}
+                      </span>
+                    </label>
+                    {selectedIds.length > 0 && (
+                      <button
+                        type="button"
+                        className="mem-btn"
+                        disabled={batchBusy}
+                        onClick={() => {
+                          setSelectedIds([]);
+                          setConfirmPrune(false);
+                        }}
+                      >
+                        {dict.common.clear}
+                      </button>
+                    )}
+                  </div>
+                  <div className="mem-row">
+                    <button
+                      type="button"
+                      className="mem-btn is-primary"
+                      disabled={selectedIds.length === 0 || batchBusy}
+                      onClick={() => void handleBatchHygiene('verify')}
+                    >
+                      Verify Selected
+                    </button>
+                    <button
+                      type="button"
+                      className="mem-btn"
+                      disabled={selectedIds.length === 0 || batchBusy}
+                      onClick={() => void handleBatchHygiene('refresh_ttl')}
+                    >
+                      Refresh TTL (+30d)
+                    </button>
+                    {confirmPrune && selectedIds.length > 0 ? (
+                      <>
+                        <button
+                          type="button"
+                          className="mem-btn is-danger"
+                          disabled={batchBusy}
+                          onClick={() => void handleBatchHygiene('prune')}
+                        >
+                          Confirm Prune ({selectedIds.length})
+                        </button>
+                        <button
+                          type="button"
+                          className="mem-btn"
+                          disabled={batchBusy}
+                          onClick={() => setConfirmPrune(false)}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className="mem-btn is-danger"
+                        disabled={selectedIds.length === 0 || batchBusy}
+                        onClick={() => void handleBatchHygiene('prune')}
+                      >
+                        Prune Selected
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {recallMode === 'index' &&
                 (indexEntries.length === 0 ? (
                   <div className="mem-card mem-muted">{memDict.emptyMemories}</div>
                 ) : (
                   <div className="mem-stack">
-                    {indexEntries.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className={`mem-item-card ${entry.drifted ? 'is-drifted' : ''}`}
-                      >
-                        <div className="mem-row is-between">
-                          <div className="mem-row">
-                            <span className="mem-badge">{entry.id}</span>
-                            <span
-                              className="mem-badge"
-                              style={{
-                                color: KIND_COLOR[entry.kind],
-                                borderColor: KIND_COLOR[entry.kind],
-                              }}
-                            >
-                              {entry.kind.toUpperCase()}
-                            </span>
-                            <strong>{entry.title}</strong>
-                            {typeof entry.score === 'number' && (
-                              <span className="mem-badge is-good">BM25 {entry.score.toFixed(2)}</span>
-                            )}
-                            {entry.pinned && <span className="mem-badge is-info">★</span>}
-                            {entry.drifted ? (
-                              <span className="mem-badge is-warn">⚠ {memDict.stale}</span>
-                            ) : (
-                              <span className="mem-badge is-good">✓ {memDict.fresh}</span>
-                            )}
-                          </div>
-                          <div className="mem-row">
-                            {entry.anchors.slice(0, 3).map((a) => (
-                              <span key={`${entry.id}:${a.basename}`} className="mem-badge">
-                                📄 {a.basename}
+                    {indexEntries.map((entry) => {
+                      const confBadge = renderConfidenceBadge(getEffectiveConfidence(entry));
+                      const ttlBadge = renderTtlBadge(entry);
+                      const status = getEffectiveHygieneStatus(entry);
+                      const isSelected = selectedIdSet.has(entry.id);
+                      return (
+                        <div
+                          key={entry.id}
+                          className={`mem-item-card ${entry.drifted ? 'is-drifted' : ''} ${status === 'stale_ttl' ? 'is-stale-ttl' : ''} ${isSelected ? 'is-selected' : ''}`}
+                        >
+                          <div className="mem-row is-between">
+                            <div className="mem-row">
+                              <input
+                                type="checkbox"
+                                className="mem-item-checkbox"
+                                aria-label={`Select ${entry.title}`}
+                                checked={isSelected}
+                                onChange={() => handleToggleSelect(entry.id)}
+                              />
+                              <span className="mem-badge">{entry.id}</span>
+                              <span
+                                className="mem-badge"
+                                style={{
+                                  color: KIND_COLOR[entry.kind],
+                                  borderColor: KIND_COLOR[entry.kind],
+                                }}
+                              >
+                                {entry.kind.toUpperCase()}
                               </span>
-                            ))}
-                            <button
-                              type="button"
-                              className="mem-btn"
-                              onClick={() => handleInspectById(entry.id, 'timeline')}
-                            >
-                              {memDict.recallModeTimeline}
-                            </button>
-                            <button
-                              type="button"
-                              className="mem-btn is-primary"
-                              onClick={() => handleInspectById(entry.id, 'detail')}
-                            >
-                              {memDict.recallModeDetail}
-                            </button>
+                              <strong>{entry.title}</strong>
+                              <span className={confBadge.className}>{confBadge.label}</span>
+                              <span className={ttlBadge.className}>{ttlBadge.label}</span>
+                              {typeof entry.score === 'number' && (
+                                <span className="mem-badge is-good">BM25 {entry.score.toFixed(2)}</span>
+                              )}
+                              {entry.pinned && <span className="mem-badge is-info">★</span>}
+                              {entry.drifted ? (
+                                <span className="mem-badge is-warn">⚠ {memDict.stale}</span>
+                              ) : (
+                                <span className="mem-badge is-good">✓ {memDict.fresh}</span>
+                              )}
+                            </div>
+                            <div className="mem-row">
+                              {entry.anchors.slice(0, 3).map((a) => (
+                                <span key={`${entry.id}:${a.basename}`} className="mem-badge">
+                                  📄 {a.basename}
+                                </span>
+                              ))}
+                              <button
+                                type="button"
+                                className="mem-btn"
+                                onClick={() => handleInspectById(entry.id, 'timeline')}
+                              >
+                                {memDict.recallModeTimeline}
+                              </button>
+                              <button
+                                type="button"
+                                className="mem-btn is-primary"
+                                onClick={() => handleInspectById(entry.id, 'detail')}
+                              >
+                                {memDict.recallModeDetail}
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ))}
 
@@ -818,58 +1242,73 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                   <div className="mem-card mem-muted">{memDict.emptyMemories}</div>
                 ) : (
                   <div className="mem-stack">
-                    {timelineEntries.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className={`mem-item-card ${entry.drifted ? 'is-drifted' : ''}`}
-                      >
-                        <div className="mem-row is-between">
-                          <div className="mem-row">
-                            <span className="mem-badge">{entry.updatedAt.slice(0, 19).replace('T', ' ')}</span>
-                            {entry.isAnchorHit && <span className="mem-badge is-info">★ HIT</span>}
-                            <span className="mem-badge">{entry.id}</span>
-                            <span
-                              className="mem-badge"
-                              style={{
-                                color: KIND_COLOR[entry.kind],
-                                borderColor: KIND_COLOR[entry.kind],
-                              }}
+                    {timelineEntries.map((entry) => {
+                      const confBadge = renderConfidenceBadge(getEffectiveConfidence(entry));
+                      const ttlBadge = renderTtlBadge(entry);
+                      const status = getEffectiveHygieneStatus(entry);
+                      const isSelected = selectedIdSet.has(entry.id);
+                      return (
+                        <div
+                          key={entry.id}
+                          className={`mem-item-card ${entry.drifted ? 'is-drifted' : ''} ${status === 'stale_ttl' ? 'is-stale-ttl' : ''} ${isSelected ? 'is-selected' : ''}`}
+                        >
+                          <div className="mem-row is-between">
+                            <div className="mem-row">
+                              <input
+                                type="checkbox"
+                                className="mem-item-checkbox"
+                                aria-label={`Select ${entry.title}`}
+                                checked={isSelected}
+                                onChange={() => handleToggleSelect(entry.id)}
+                              />
+                              <span className="mem-badge">{entry.updatedAt.slice(0, 19).replace('T', ' ')}</span>
+                              {entry.isAnchorHit && <span className="mem-badge is-info">★ HIT</span>}
+                              <span className="mem-badge">{entry.id}</span>
+                              <span
+                                className="mem-badge"
+                                style={{
+                                  color: KIND_COLOR[entry.kind],
+                                  borderColor: KIND_COLOR[entry.kind],
+                                }}
+                              >
+                                {entry.kind.toUpperCase()}
+                              </span>
+                              <strong>{entry.title}</strong>
+                              <span className={confBadge.className}>{confBadge.label}</span>
+                              <span className={ttlBadge.className}>{ttlBadge.label}</span>
+                              {typeof entry.score === 'number' && (
+                                <span className="mem-badge is-good">BM25 {entry.score.toFixed(2)}</span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              className="mem-btn is-primary"
+                              onClick={() => handleInspectById(entry.id, 'detail')}
                             >
-                              {entry.kind.toUpperCase()}
-                            </span>
-                            <strong>{entry.title}</strong>
-                            {typeof entry.score === 'number' && (
-                              <span className="mem-badge is-good">BM25 {entry.score.toFixed(2)}</span>
-                            )}
+                              {memDict.recallModeDetail}
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            className="mem-btn is-primary"
-                            onClick={() => handleInspectById(entry.id, 'detail')}
-                          >
-                            {memDict.recallModeDetail}
-                          </button>
+                          <div className="mem-muted">{entry.excerpt}</div>
+                          <div className="mem-row">
+                            {entry.anchorFiles.map((file) => (
+                              <span key={`${entry.id}:${file}`} className="mem-badge">
+                                📄 {file}
+                              </span>
+                            ))}
+                            {entry.sourceConversationId && (
+                              <span className="mem-badge is-purple">
+                                session:{entry.sourceConversationId.slice(0, 12)}
+                              </span>
+                            )}
+                            {entry.tags.map((tag) => (
+                              <span key={`${entry.id}:#${tag}`} className="mem-badge">
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                        <div className="mem-muted">{entry.excerpt}</div>
-                        <div className="mem-row">
-                          {entry.anchorFiles.map((file) => (
-                            <span key={`${entry.id}:${file}`} className="mem-badge">
-                              📄 {file}
-                            </span>
-                          ))}
-                          {entry.sourceConversationId && (
-                            <span className="mem-badge is-purple">
-                              session:{entry.sourceConversationId.slice(0, 12)}
-                            </span>
-                          )}
-                          {entry.tags.map((tag) => (
-                            <span key={`${entry.id}:#${tag}`} className="mem-badge">
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ))}
 
@@ -877,88 +1316,106 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                 (filtered.length === 0 ? (
                   <div className="mem-card mem-muted">{memDict.emptyMemories}</div>
                 ) : (
-                  filtered.map((m) => (
-                    <div key={m.id} className={`mem-item-card ${m.drifted ? 'is-drifted' : ''}`}>
-                      <div className="mem-row is-between">
-                        <div className="mem-row">
-                          <span
-                            className="mem-badge"
-                            style={{ color: KIND_COLOR[m.kind], borderColor: KIND_COLOR[m.kind] }}
-                          >
-                            {m.kind.toUpperCase()}
-                          </span>
-                          <strong>{m.title}</strong>
-                          <span className="mem-badge">{m.id}</span>
-                          {typeof m.score === 'number' && (
-                            <span className="mem-badge is-good">BM25 {m.score.toFixed(2)}</span>
-                          )}
-                          {m.pinned && <span className="mem-badge is-info">★ PINNED</span>}
-                          {m.drifted ? (
-                            <span className="mem-badge is-warn">⚠ {memDict.stale}</span>
-                          ) : (
-                            <span className="mem-badge is-good">✓ {memDict.fresh}</span>
-                          )}
-                        </div>
-                        <div className="mem-row">
-                          <button
-                            type="button"
-                            className="mem-btn is-primary"
-                            onClick={() => void handleInjectContext(m.title, m.content)}
-                          >
-                            {memDict.injectContext}
-                          </button>
-                          <button
-                            type="button"
-                            className="mem-btn"
-                            onClick={() => void handleTogglePin(m.id)}
-                          >
-                            {m.pinned ? 'Unpin' : 'Pin'}
-                          </button>
-                          {m.drifted && (
+                  filtered.map((m) => {
+                    const confBadge = renderConfidenceBadge(getEffectiveConfidence(m));
+                    const ttlBadge = renderTtlBadge(m);
+                    const status = getEffectiveHygieneStatus(m);
+                    const isSelected = selectedIdSet.has(m.id);
+                    return (
+                      <div
+                        key={m.id}
+                        className={`mem-item-card ${m.drifted ? 'is-drifted' : ''} ${status === 'stale_ttl' ? 'is-stale-ttl' : ''} ${isSelected ? 'is-selected' : ''}`}
+                      >
+                        <div className="mem-row is-between">
+                          <div className="mem-row">
+                            <input
+                              type="checkbox"
+                              className="mem-item-checkbox"
+                              aria-label={`Select ${m.title}`}
+                              checked={isSelected}
+                              onChange={() => handleToggleSelect(m.id)}
+                            />
+                            <span
+                              className="mem-badge"
+                              style={{ color: KIND_COLOR[m.kind], borderColor: KIND_COLOR[m.kind] }}
+                            >
+                              {m.kind.toUpperCase()}
+                            </span>
+                            <strong>{m.title}</strong>
+                            <span className="mem-badge">{m.id}</span>
+                            <span className={confBadge.className}>{confBadge.label}</span>
+                            <span className={ttlBadge.className}>{ttlBadge.label}</span>
+                            {typeof m.score === 'number' && (
+                              <span className="mem-badge is-good">BM25 {m.score.toFixed(2)}</span>
+                            )}
+                            {m.pinned && <span className="mem-badge is-info">★ PINNED</span>}
+                            {m.drifted ? (
+                              <span className="mem-badge is-warn">⚠ {memDict.stale}</span>
+                            ) : (
+                              <span className="mem-badge is-good">✓ {memDict.fresh}</span>
+                            )}
+                          </div>
+                          <div className="mem-row">
+                            <button
+                              type="button"
+                              className="mem-btn is-primary"
+                              onClick={() => void handleInjectContext(m.title, m.content)}
+                            >
+                              {memDict.injectContext}
+                            </button>
                             <button
                               type="button"
                               className="mem-btn"
-                              onClick={() => void handleReverifyDrift(m.id)}
+                              onClick={() => void handleTogglePin(m.id)}
                             >
-                              Verify
+                              {m.pinned ? 'Unpin' : 'Pin'}
                             </button>
-                          )}
-                          <button
-                            type="button"
-                            className="mem-btn"
-                            aria-label={`${memDict.forget}: ${m.title}`}
-                            onClick={() => void handleDeleteMemory(m.id)}
-                          >
-                            {memDict.forget}
-                          </button>
+                            {m.drifted && (
+                              <button
+                                type="button"
+                                className="mem-btn"
+                                onClick={() => void handleReverifyDrift(m.id)}
+                              >
+                                Verify
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="mem-btn"
+                              aria-label={`${memDict.forget}: ${m.title}`}
+                              onClick={() => void handleDeleteMemory(m.id)}
+                            >
+                              {memDict.forget}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="mem-content">{m.content}</div>
+                        <div className="mem-row">
+                          {m.anchors.map((a) => (
+                            <button
+                              key={`${a.filePath}:${a.symbol ?? ''}`}
+                              type="button"
+                              className={`mem-anchor-chip ${
+                                a.driftStatus === 'drifted' || a.driftStatus === 'missing'
+                                  ? 'is-drifted'
+                                  : ''
+                              }`}
+                              title={`${a.filePath} (${a.driftStatus ?? 'tracked'}) — click to open in side pane`}
+                              onClick={() => void handleOpenAnchor(a)}
+                            >
+                              📄 {a.basename}
+                              {a.symbol ? `::${a.symbol}` : ''}
+                            </button>
+                          ))}
+                          {m.tags.map((tag) => (
+                            <span key={tag} className="mem-badge">
+                              #{tag}
+                            </span>
+                          ))}
                         </div>
                       </div>
-                      <div className="mem-content">{m.content}</div>
-                      <div className="mem-row">
-                        {m.anchors.map((a) => (
-                          <button
-                            key={`${a.filePath}:${a.symbol ?? ''}`}
-                            type="button"
-                            className={`mem-anchor-chip ${
-                              a.driftStatus === 'drifted' || a.driftStatus === 'missing'
-                                ? 'is-drifted'
-                                : ''
-                            }`}
-                            title={`${a.filePath} (${a.driftStatus ?? 'tracked'}) — click to open in side pane`}
-                            onClick={() => void handleOpenAnchor(a)}
-                          >
-                            📄 {a.basename}
-                            {a.symbol ? `::${a.symbol}` : ''}
-                          </button>
-                        ))}
-                        {m.tags.map((tag) => (
-                          <span key={tag} className="mem-badge">
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ))}
             </div>
           )}
@@ -1135,6 +1592,35 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                 value={newAnchor}
                 onChange={(e) => setNewAnchor(e.target.value)}
               />
+              <div className="mem-form-grid">
+                <label className="mem-field">
+                  <span className="mem-field-label">Confidence</span>
+                  <select
+                    className="mem-select"
+                    aria-label="Confidence"
+                    value={newConfidence}
+                    onChange={(e) => setNewConfidence(e.target.value as MemoryConfidence)}
+                  >
+                    <option value="normal">Normal (Default)</option>
+                    <option value="verified">Verified (High Trust)</option>
+                    <option value="tentative">Tentative (Needs Review)</option>
+                  </select>
+                </label>
+                <label className="mem-field">
+                  <span className="mem-field-label">TTL (days, optional 1-365)</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={365}
+                    step={1}
+                    className="mem-input"
+                    placeholder="No expiry"
+                    aria-label="TTL (days)"
+                    value={newTtlDays}
+                    onChange={(e) => setNewTtlDays(e.target.value)}
+                  />
+                </label>
+              </div>
               <label className="mem-checkbox-row">
                 <input
                   type="checkbox"

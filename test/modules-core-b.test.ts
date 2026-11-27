@@ -740,8 +740,8 @@ describe('Builder B Modules (canvas, mem, remote)', () => {
             const allTools = await client.listTools();
             const names = new Set(allTools.tools.map((t) => t.name));
 
-            // 4 + 6 = 10 canvas, 3 + 7 = 10 mem, 4 + 11 = 15 remote -> 35 tools total
-            assert.equal(allTools.tools.length, 35);
+            // 4 + 6 = 10 canvas, 3 + 9 = 12 mem, 4 + 11 = 15 remote -> 37 tools total
+            assert.equal(allTools.tools.length, 37);
 
             const expectedAppTools = [
               'app_canvas_list_boards',
@@ -753,6 +753,8 @@ describe('Builder B Modules (canvas, mem, remote)', () => {
               'app_mem_get_state',
               'app_mem_search',
               'app_mem_recall_layered',
+              'app_mem_get_hygiene_summary',
+              'app_mem_batch_hygiene',
               'app_mem_add_memory',
               'app_mem_toggle_pin',
               'app_mem_reverify_drift',
