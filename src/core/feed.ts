@@ -13,7 +13,7 @@ import {
   type PresetId,
 } from './config.js';
 
-export const FEED_SNAPSHOT_VERSION = '0.8.0' as const;
+export const FEED_SNAPSHOT_VERSION = '0.9.0' as const;
 export const FEED_SNAPSHOT_FILENAME = 'feed-snapshot.json' as const;
 export const MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
 export const MAX_FEED_ALERTS = 6;

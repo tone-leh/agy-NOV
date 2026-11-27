@@ -1,3 +1,4 @@
+import path from 'node:path';
 import type { McpServer, RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getModuleDataDir, resolveNovDataDir } from '../../core/config.js';
@@ -9,14 +10,19 @@ import type {
 import {
   ALLOWED_VERIFY_EXECUTABLES,
   appendEvidenceToState,
+  buildPrDeliverySummary,
   buildVerifyStateView,
   clearVerifyHistory,
   clearVerifyHistoryInState,
+  createDemoSpecSummaryForPr,
   createDemoVerifyDetection,
   createDemoVerifyState,
   createEvidenceId,
   detectWorkspaceVerifyCommands,
+  listVerifyWorktreesReadOnly,
+  loadSpecSummaryForPrReadOnly,
   loadVerifyStateReadOnly,
+  resolveAllowedVerifyTargetRoot,
   runVerifyChecksLive,
   updateVerifyPolicy,
   validateAndBuildPolicy,
@@ -27,6 +33,7 @@ import {
   type VerifyStateFile,
   type VerifyStateView,
   type VerifyTrigger,
+  type VerifyWorktreeOption,
 } from './core.js';
 
 function toHandle(name: string, tool: RegisteredTool): ModuleToolHandle {
@@ -71,10 +78,48 @@ const POLICY_PATCH_INPUT_SCHEMA = {
     ),
 };
 
+function buildDemoVerifyWorktrees(workspaceRoot: string): VerifyWorktreeOption[] {
+  const mainRoot = path.resolve(workspaceRoot);
+  return [
+    { path: mainRoot, branch: 'main', isMain: true },
+    {
+      path: path.join(mainRoot, '.agy-worktrees', 'feat-verify-gate'),
+      branch: 'feat/verify-gate',
+      isMain: false,
+    },
+  ];
+}
+
+function resolveDemoWorktreeTarget(
+  demoWorktrees: readonly VerifyWorktreeOption[],
+  worktreePath?: string,
+): { ok: true; branch?: string; worktreePath?: string } | { ok: false; error: string } {
+  if (!worktreePath || !worktreePath.trim()) {
+    return { ok: true, branch: demoWorktrees[0]?.branch ?? 'main' };
+  }
+  const normalized = path.resolve(worktreePath.trim());
+  const matched = demoWorktrees.find((w) => path.resolve(w.path) === normalized);
+  if (!matched) {
+    return {
+      ok: false,
+      error: `Refused: "${worktreePath}" is not the workspace root or a registered demo Git worktree.`,
+    };
+  }
+  return {
+    ok: true,
+    branch: matched.branch ?? 'main',
+    worktreePath: matched.path,
+  };
+}
+
 function runDemoChecksInMemory(
   demoState: VerifyStateFile,
-  opts: { commandId?: string; conversationId?: string; trigger: VerifyTrigger },
+  demoWorktrees: readonly VerifyWorktreeOption[],
+  opts: { commandId?: string; conversationId?: string; trigger: VerifyTrigger; worktreePath?: string },
 ): { ok: true; run: VerifyEvidenceRecord } | { ok: false; error: string } {
+  const resolvedWt = resolveDemoWorktreeTarget(demoWorktrees, opts.worktreePath);
+  if (!resolvedWt.ok) return resolvedWt;
+
   const targetCommands = opts.commandId
     ? demoState.policy.commands.filter((c) => c.id === opts.commandId)
     : demoState.policy.commands.filter((c) => c.enabled);
@@ -113,6 +158,8 @@ function runDemoChecksInMemory(
       results.length > 0
         ? `[demo] All ${results.length} verification command(s) passed in ${durationMs}ms.`
         : '[demo] No enabled verification commands configured; check passed.',
+    ...(resolvedWt.branch ? { targetBranch: resolvedWt.branch } : {}),
+    ...(resolvedWt.worktreePath ? { targetWorktree: resolvedWt.worktreePath } : {}),
   };
 
   appendEvidenceToState(demoState, run);
@@ -131,6 +178,9 @@ export function registerVerifyModule(
 
   // In demo mode keep synthetic policy & verification evidence strictly in memory (zero disk writes)
   const demoState: VerifyStateFile | null = isDemo ? createDemoVerifyState() : null;
+  const demoWorktrees: VerifyWorktreeOption[] = isDemo
+    ? buildDemoVerifyWorktrees(workspaceRoot)
+    : [];
 
   const APP_ONLY_META = {
     ui: {
@@ -144,6 +194,9 @@ export function registerVerifyModule(
 
   const getStateView = (): VerifyStateView =>
     buildVerifyStateView(getCurrentStateFile(), isDemo ? 'demo' : 'live');
+
+  const getAvailableWorktrees = (): VerifyWorktreeOption[] =>
+    isDemo ? demoWorktrees.map((w) => ({ ...w })) : listVerifyWorktreesReadOnly(workspaceRoot);
 
   const getDetectedStack = (): DetectedWorkspaceVerifyResult =>
     isDemo ? createDemoVerifyDetection() : detectWorkspaceVerifyCommands(workspaceRoot);
@@ -168,12 +221,13 @@ export function registerVerifyModule(
   const executeChecks = async (opts: {
     commandId?: string;
     conversationId?: string;
+    worktreePath?: string;
     trigger: VerifyTrigger;
   }): Promise<
     { ok: true; run: VerifyEvidenceRecord; state: VerifyStateView } | { ok: false; error: string }
   > => {
     if (isDemo && demoState) {
-      const demoRes = runDemoChecksInMemory(demoState, opts);
+      const demoRes = runDemoChecksInMemory(demoState, demoWorktrees, opts);
       if (!demoRes.ok) return demoRes;
       return { ok: true, run: demoRes.run, state: getStateView() };
     }
@@ -265,7 +319,7 @@ export function registerVerifyModule(
     {
       title: 'Run Verify Gate Checks',
       description:
-        'Execute configured allowlisted verification commands via execFile (shell: false), redact secrets from outputs, record evidence, and update session verification state.',
+        'Execute configured allowlisted verification commands via execFile (shell: false), optionally targeting a registered Git worktree, redact secrets from outputs, record evidence, and update session verification state.',
       inputSchema: {
         commandId: z
           .string()
@@ -277,10 +331,20 @@ export function registerVerifyModule(
           .min(1)
           .optional()
           .describe('Optional conversation ID whose dirty-file verification state should be updated'),
+        worktreePath: z
+          .string()
+          .min(1)
+          .optional()
+          .describe('Optional registered Git worktree path belonging to this repository to run checks inside'),
       },
     },
-    async ({ commandId, conversationId }) => {
-      const res = await executeChecks({ commandId, conversationId, trigger: 'manual' });
+    async ({ commandId, conversationId, worktreePath }) => {
+      const res = await executeChecks({
+        commandId,
+        conversationId,
+        worktreePath,
+        trigger: 'manual',
+      });
       if (!res.ok) {
         return {
           isError: true,
@@ -288,8 +352,9 @@ export function registerVerifyModule(
         };
       }
       const { run } = res;
+      const targetTag = run.targetBranch ? ` [${run.targetBranch}]` : '';
       const lines = [
-        `Verify Run ${run.id} [${run.outcome.toUpperCase()}]: ${run.summary}`,
+        `Verify Run ${run.id} [${run.outcome.toUpperCase()}]${targetTag}: ${run.summary}`,
         ...run.results.map(
           (r) =>
             `- [${r.passed ? 'PASS' : 'FAIL'}] ${r.commandId} (${r.executable} ${r.args.join(' ')}) exit=${r.exitCode ?? (r.timedOut ? 'TIMEOUT' : 'ERR')} (${r.durationMs}ms)${r.outputTail ? `\n  ${r.outputTail.slice(0, 240)}` : ''}`,
@@ -355,17 +420,18 @@ export function registerVerifyModule(
   );
   modelTools.push(toHandle('verify_get_evidence', getEvidenceTool));
 
-  // App-only tools (4)
+  // App-only tools
   server.registerTool(
     'app_verify_get_state',
     {
       title: 'Get Verify Gate State (App Only)',
-      description: 'Fetch Verify Gate policy, tracked sessions, redacted evidence, and summary stats for the UI.',
+      description: 'Fetch Verify Gate policy, tracked sessions, redacted evidence, available worktrees, and summary stats for the UI.',
       inputSchema: {},
       _meta: APP_ONLY_META,
     },
     async () => {
       const view = getStateView();
+      const availableWorktrees = getAvailableWorktrees();
       return {
         content: [{ type: 'text', text: 'ok' }],
         structuredContent: {
@@ -375,6 +441,7 @@ export function registerVerifyModule(
           evidence: view.evidence,
           stats: view.stats,
           updatedAt: view.updatedAt,
+          availableWorktrees,
         },
       };
     },
@@ -410,15 +477,21 @@ export function registerVerifyModule(
     'app_verify_run_checks',
     {
       title: 'Run Verify Gate Checks (App Only)',
-      description: 'Trigger verification checks from the Verify Gate UI.',
+      description: 'Trigger verification checks from the Verify Gate UI, optionally targeting a registered Git worktree.',
       inputSchema: {
         commandId: z.string().min(1).optional(),
         conversationId: z.string().min(1).optional(),
+        worktreePath: z.string().min(1).optional(),
       },
       _meta: APP_ONLY_META,
     },
-    async ({ commandId, conversationId }) => {
-      const res = await executeChecks({ commandId, conversationId, trigger: 'app-ui' });
+    async ({ commandId, conversationId, worktreePath }) => {
+      const res = await executeChecks({
+        commandId,
+        conversationId,
+        worktreePath,
+        trigger: 'app-ui',
+      });
       if (!res.ok) {
         return {
           isError: true,
@@ -491,9 +564,74 @@ export function registerVerifyModule(
     },
   );
 
+  server.registerTool(
+    'app_verify_pr_summary',
+    {
+      title: 'Generate PR Delivery Verification Evidence (App Only)',
+      description:
+        'Read-only generator for a sanitized Markdown PR delivery evidence summary combining latest Verify Gate checks, target branch/worktree, and active Spec progress.',
+      inputSchema: {
+        worktreePath: z.string().min(1).optional(),
+        evidenceId: z.string().min(1).optional(),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ worktreePath, evidenceId }) => {
+      let resolvedBranch: string | undefined;
+      let resolvedWorktree: string | undefined;
+
+      if (worktreePath) {
+        if (isDemo) {
+          const demoTarget = resolveDemoWorktreeTarget(demoWorktrees, worktreePath);
+          if (!demoTarget.ok) {
+            return {
+              isError: true,
+              content: [{ type: 'text', text: demoTarget.error }],
+            };
+          }
+          resolvedBranch = demoTarget.branch;
+          resolvedWorktree = demoTarget.worktreePath;
+        } else {
+          try {
+            const liveTarget = resolveAllowedVerifyTargetRoot(workspaceRoot, worktreePath);
+            resolvedBranch = liveTarget.branch;
+            resolvedWorktree = liveTarget.targetRoot;
+          } catch (err) {
+            return {
+              isError: true,
+              content: [{ type: 'text', text: err instanceof Error ? err.message : String(err) }],
+            };
+          }
+        }
+      }
+
+      const currentState = getCurrentStateFile();
+      const specSummary = isDemo
+        ? createDemoSpecSummaryForPr()
+        : loadSpecSummaryForPrReadOnly(rootDataDir);
+      const summary = buildPrDeliverySummary(currentState, {
+        workspaceRoot,
+        worktreePath: resolvedWorktree,
+        branch: resolvedBranch,
+        specSummary,
+        mode: isDemo ? 'demo' : 'live',
+        evidenceId,
+      });
+
+      return {
+        content: [{ type: 'text', text: summary.markdown }],
+        structuredContent: { ...summary },
+      };
+    },
+  );
+
   return {
     moduleId: 'verify',
     modelTools,
-    exemptReadOnlyAppTools: ['app_verify_get_state', 'app_verify_detect_commands'],
+    exemptReadOnlyAppTools: [
+      'app_verify_get_state',
+      'app_verify_detect_commands',
+      'app_verify_pr_summary',
+    ],
   };
 }

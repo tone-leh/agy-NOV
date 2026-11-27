@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { McpServer, RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { getModuleDataDir } from '../../core/config.js';
+import { getModuleDataDir, resolveNovDataDir } from '../../core/config.js';
 import type { ModuleRegistrationResult, ModuleToolHandle, NovRuntimeOptions } from '../../core/types.js';
 import {
   AnnotationStore,
@@ -18,19 +18,31 @@ import {
   DEMO_REPO_KEY,
 } from './demo-data.js';
 import { extractCodeSnippet } from './diff-parser.js';
-import { scanGitDiff } from './git-diff.js';
+import { resolveAllowedReviewTarget, scanGitDiff } from './git-diff.js';
 import { readReviewSignal } from './hook.js';
 import { buildReviewPrompt } from './prompt-builder.js';
 import type {
   AnnotationCategory,
   ReviewScope,
   ReviewSession,
+  ReviewSpecCompliance,
+  ReviewSpecComplianceItem,
   ReviewSummary,
+  Stage1ChecklistItem,
 } from './types.js';
 
 const SCOPE_ENUM = z.enum(['working', 'staged', 'unstaged', 'head~1', 'commit-range']);
 const CATEGORY_ENUM = z.enum(['security', 'bug', 'refactor', 'question', 'nit']);
 const SIDE_ENUM = z.enum(['new', 'old']);
+const STAGE1_ITEM_SCHEMA = z.object({
+  id: z.string().min(1).max(64),
+  title: z.string().min(1).max(240),
+  status: z.string().max(32).optional(),
+  checked: z.boolean(),
+  note: z.string().max(400).optional(),
+});
+
+const MAX_SPEC_STATE_BYTES = 2 * 1024 * 1024; // 2 MiB read guard
 
 export const DEFAULT_SUMMARY_MAX_FILES = 100;
 
@@ -42,14 +54,121 @@ function wrapModelTool(name: string, tool: RegisteredTool): ModuleToolHandle {
   };
 }
 
-function resolveEffectiveRepoPath(
-  requestedRepoPath: string | undefined,
-  workspaceRoot: string,
-  moduleDataDir: string,
-): string {
-  if (requestedRepoPath && requestedRepoPath.trim()) {
-    return path.resolve(requestedRepoPath.trim());
+/**
+ * Pure read-only loader for the active Spec compliance checklist from
+ * `<rootDataDir>/modules/spec/state.json`.
+ * Never creates directories or writes to disk; returns null when missing or invalid.
+ */
+export function loadActiveSpecComplianceReadOnly(
+  rootDataDir: string,
+): ReviewSpecCompliance | null {
+  if (!rootDataDir || typeof rootDataDir !== 'string' || rootDataDir.includes('\0')) {
+    return null;
   }
+  const specStatePath = path.join(getModuleDataDir(rootDataDir, 'spec'), 'state.json');
+  let st: fs.Stats;
+  try {
+    st = fs.lstatSync(specStatePath);
+  } catch {
+    return null;
+  }
+  if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_SPEC_STATE_BYTES) {
+    return null;
+  }
+
+  let parsed: unknown;
+  try {
+    const noFollow = fs.constants.O_NOFOLLOW ?? 0;
+    const fd = fs.openSync(specStatePath, fs.constants.O_RDONLY | noFollow);
+    let raw = '';
+    try {
+      const fdStat = fs.fstatSync(fd);
+      if (!fdStat.isFile() || fdStat.size > MAX_SPEC_STATE_BYTES) return null;
+      const buf = Buffer.alloc(fdStat.size);
+      let offset = 0;
+      while (offset < fdStat.size) {
+        const n = fs.readSync(fd, buf, offset, fdStat.size - offset, offset);
+        if (n <= 0) break;
+        offset += n;
+      }
+      raw = buf.subarray(0, offset).toString('utf8');
+    } finally {
+      fs.closeSync(fd);
+    }
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return null;
+  }
+  const obj = parsed as Record<string, unknown>;
+  const activeSpecId = typeof obj.activeSpecId === 'string' ? obj.activeSpecId.trim() : '';
+  if (!activeSpecId || !Array.isArray(obj.specs)) {
+    return null;
+  }
+
+  const matched = obj.specs.find(
+    (s): s is Record<string, unknown> =>
+      Boolean(s && typeof s === 'object' && !Array.isArray(s) && (s as Record<string, unknown>).id === activeSpecId),
+  );
+  if (!matched) {
+    return null;
+  }
+
+  const specId = typeof matched.id === 'string' ? matched.id : activeSpecId;
+  const title =
+    typeof matched.title === 'string' && matched.title.trim() ? matched.title.trim() : specId;
+  const status = typeof matched.status === 'string' && matched.status.trim() ? matched.status.trim() : 'draft';
+  const mode = typeof matched.mode === 'string' && matched.mode.trim() ? matched.mode.trim() : undefined;
+
+  const rawTasks = Array.isArray(matched.tasks) ? matched.tasks : [];
+  const items: ReviewSpecComplianceItem[] = [];
+  for (const rawTask of rawTasks.slice(0, 100)) {
+    if (!rawTask || typeof rawTask !== 'object' || Array.isArray(rawTask)) continue;
+    const t = rawTask as Record<string, unknown>;
+    const taskId = typeof t.id === 'string' && t.id.trim() ? t.id.trim() : `t-${items.length + 1}`;
+    const taskTitle =
+      typeof t.title === 'string' && t.title.trim() ? t.title.trim().slice(0, 240) : taskId;
+    const taskStatus =
+      typeof t.status === 'string' && t.status.trim() ? t.status.trim() : 'pending';
+    items.push({
+      id: taskId,
+      title: taskTitle,
+      status: taskStatus,
+      checked: taskStatus === 'done',
+    });
+  }
+
+  if (items.length === 0 && Array.isArray(matched.acceptanceCriteria)) {
+    for (const rawCrit of matched.acceptanceCriteria.slice(0, 50)) {
+      if (typeof rawCrit !== 'string' || !rawCrit.trim()) continue;
+      const done = status === 'completed';
+      items.push({
+        id: `ac-${items.length + 1}`,
+        title: rawCrit.trim().slice(0, 240),
+        status: done ? 'done' : 'pending',
+        checked: done,
+      });
+    }
+  }
+
+  const totalTasks = items.length;
+  const doneTasks = items.filter((item) => item.checked).length;
+
+  return {
+    specId,
+    title,
+    status,
+    ...(mode ? { mode } : {}),
+    totalTasks,
+    doneTasks,
+    items,
+  };
+}
+
+function resolveBaseWorkspaceRoot(workspaceRoot: string, moduleDataDir: string): string {
   if (workspaceRoot && workspaceRoot.trim()) {
     return path.resolve(workspaceRoot.trim());
   }
@@ -62,10 +181,12 @@ function resolveEffectiveRepoPath(
 
 function buildSessionData(
   store: AnnotationStore,
+  rootDataDir: string,
   moduleDataDir: string,
   opts: NovRuntimeOptions,
   params: {
     repoPath?: string;
+    worktreePath?: string;
     scope?: ReviewScope;
     commitRange?: string;
     ignoreWhitespace?: boolean;
@@ -75,9 +196,10 @@ function buildSessionData(
   const scope: ReviewScope = params.scope ?? 'working';
   const useDemo = params.demo ?? Boolean(opts.demoMode);
   const ignoreWhitespace = Boolean(params.ignoreWhitespace);
+  const requestedTarget = params.worktreePath?.trim() || params.repoPath?.trim() || undefined;
 
   if (useDemo) {
-    const demoBase = createDemoSession(scope);
+    const demoBase = createDemoSession(scope, requestedTarget);
     const demoFiles = buildDemoFiles();
     store.seedIfEmpty(
       DEMO_REPO_KEY,
@@ -97,9 +219,13 @@ function buildSessionData(
     };
   }
 
-  const targetRepo = resolveEffectiveRepoPath(params.repoPath, opts.workspaceRoot, moduleDataDir);
+  const baseWorkspace = resolveBaseWorkspaceRoot(opts.workspaceRoot, moduleDataDir);
+  const { targetRepoPath, availableWorktrees } = resolveAllowedReviewTarget(
+    baseWorkspace,
+    requestedTarget,
+  );
   const scan = scanGitDiff({
-    repoPath: targetRepo,
+    repoPath: targetRepoPath,
     scope,
     commitRange: params.commitRange,
     ignoreWhitespace,
@@ -108,6 +234,7 @@ function buildSessionData(
   const annotations = evaluateAnnotationStaleness(savedAnnotations, scan.files);
   const viewedFiles = store.getViewedFiles(scan.repoKey, scope);
   const signal = readReviewSignal(moduleDataDir);
+  const specCompliance = loadActiveSpecComplianceReadOnly(rootDataDir);
 
   return {
     repoPath: scan.repoPath,
@@ -130,6 +257,8 @@ function buildSessionData(
     viewedFiles,
     annotations,
     signal,
+    availableWorktrees,
+    specCompliance,
   };
 }
 
@@ -222,8 +351,12 @@ export function registerReviewModule(
   opts: NovRuntimeOptions,
   uiResourceUri: string,
 ): ModuleRegistrationResult {
-  const moduleDataDir = getModuleDataDir(opts.dataDir, 'review');
-  const store = new AnnotationStore(moduleDataDir);
+  const rootDataDir = resolveNovDataDir(opts.dataDir);
+  const moduleDataDir = getModuleDataDir(rootDataDir, 'review');
+  const store = new AnnotationStore(moduleDataDir, {
+    inMemoryOnly: Boolean(opts.demoMode),
+    inMemoryRepoKeys: [DEMO_REPO_KEY],
+  });
 
   const APP_ONLY_META = {
     ui: { visibility: ['app'] },
@@ -237,7 +370,8 @@ export function registerReviewModule(
       description:
         'Open the interactive PR-grade inline diff reviewer and annotation studio in agy-NOV. All arguments are optional; pass {} to inspect the active workspace working tree.',
       inputSchema: {
-        repoPath: z.string().optional().describe('Optional path to a Git repository; defaults to active workspace'),
+        repoPath: z.string().optional().describe('Optional path to a Git repository or registered worktree; defaults to active workspace'),
+        worktreePath: z.string().optional().describe('Optional registered Git worktree path belonging to the active repository'),
         scope: SCOPE_ENUM.optional().describe('Diff scope: working (default), staged, unstaged, head~1, or commit-range'),
         commitRange: z.string().optional().describe('Git commit range when scope is commit-range (e.g. HEAD~2..HEAD)'),
         ignoreWhitespace: z.boolean().optional().describe('Ignore whitespace-only changes (git diff -w)'),
@@ -248,10 +382,11 @@ export function registerReviewModule(
         ui: { resourceUri: uiResourceUri },
       },
     },
-    async ({ repoPath, scope, commitRange, ignoreWhitespace, selectedFile, demo }) => {
+    async ({ repoPath, worktreePath, scope, commitRange, ignoreWhitespace, selectedFile, demo }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, {
+        const session = buildSessionData(store, rootDataDir, moduleDataDir, opts, {
           repoPath,
+          worktreePath,
           scope,
           commitRange,
           ignoreWhitespace,
@@ -264,6 +399,7 @@ export function registerReviewModule(
             novModule: 'review',
             launch: {
               repoPath: session.repoPath,
+              worktreePath: session.repoPath,
               scope: session.scope,
               commitRange: session.commitRange,
               ignoreWhitespace: session.ignoreWhitespace,
@@ -290,17 +426,19 @@ export function registerReviewModule(
       description:
         'Return a concise, token-efficient summary of changed Git files, additions/deletions, risk tags (security-sensitive, large, config, test), and open inline review annotations.',
       inputSchema: {
-        repoPath: z.string().optional().describe('Optional path to a Git repository'),
+        repoPath: z.string().optional().describe('Optional path to a Git repository or registered worktree'),
+        worktreePath: z.string().optional().describe('Optional registered Git worktree path belonging to the active repository'),
         scope: SCOPE_ENUM.optional().describe('Diff scope (default: working)'),
         commitRange: z.string().optional().describe('Optional Git range when scope is commit-range'),
         ignoreWhitespace: z.boolean().optional().describe('Ignore whitespace-only changes (git diff -w)'),
         demo: z.boolean().optional().describe('Use built-in synthetic demo diff'),
       },
     },
-    async ({ repoPath, scope, commitRange, ignoreWhitespace, demo }) => {
+    async ({ repoPath, worktreePath, scope, commitRange, ignoreWhitespace, demo }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, {
+        const session = buildSessionData(store, rootDataDir, moduleDataDir, opts, {
           repoPath,
+          worktreePath,
           scope,
           commitRange,
           ignoreWhitespace,
@@ -326,9 +464,10 @@ export function registerReviewModule(
     'app_review_get_diff',
     {
       title: 'Get Full Diff Session (App Only)',
-      description: 'Fetch parsed diff hunks, file risk tags, viewed states, and annotations for the Diff Review UI.',
+      description: 'Fetch parsed diff hunks, file risk tags, viewed states, annotations, available worktrees, and active spec compliance for the Diff Review UI.',
       inputSchema: {
         repoPath: z.string().optional(),
+        worktreePath: z.string().optional(),
         scope: SCOPE_ENUM.optional(),
         commitRange: z.string().optional(),
         ignoreWhitespace: z.boolean().optional(),
@@ -336,10 +475,11 @@ export function registerReviewModule(
       },
       _meta: APP_ONLY_META,
     },
-    async ({ repoPath, scope, commitRange, ignoreWhitespace, demo }) => {
+    async ({ repoPath, worktreePath, scope, commitRange, ignoreWhitespace, demo }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, {
+        const session = buildSessionData(store, rootDataDir, moduleDataDir, opts, {
           repoPath,
+          worktreePath,
           scope,
           commitRange,
           ignoreWhitespace,
@@ -589,22 +729,35 @@ export function registerReviewModule(
     'app_review_build_prompt',
     {
       title: 'Build Structured Review Prompt (App Only)',
-      description: 'Package open (or selected) inline annotations into a structured file:line prompt for the agent.',
+      description: 'Package Stage 1 spec compliance checks and Stage 2 file:line inline annotations into a structured review prompt for the agent.',
       inputSchema: {
         repoPath: z.string().optional(),
+        worktreePath: z.string().optional(),
         scope: SCOPE_ENUM.optional(),
         commitRange: z.string().optional(),
         ignoreWhitespace: z.boolean().optional(),
         demo: z.boolean().optional(),
         includeResolved: z.boolean().optional(),
         annotationIds: z.array(z.string()).optional(),
+        stage1Checklist: z.array(STAGE1_ITEM_SCHEMA).max(100).optional(),
       },
       _meta: APP_ONLY_META,
     },
-    async ({ repoPath, scope, commitRange, ignoreWhitespace, demo, includeResolved, annotationIds }) => {
+    async ({
+      repoPath,
+      worktreePath,
+      scope,
+      commitRange,
+      ignoreWhitespace,
+      demo,
+      includeResolved,
+      annotationIds,
+      stage1Checklist,
+    }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, {
+        const session = buildSessionData(store, rootDataDir, moduleDataDir, opts, {
           repoPath,
+          worktreePath,
           scope,
           commitRange,
           ignoreWhitespace,
@@ -627,6 +780,8 @@ export function registerReviewModule(
           files: session.files,
           includeResolved,
           annotationIds,
+          specCompliance: session.specCompliance,
+          stage1Checklist: stage1Checklist as Stage1ChecklistItem[] | undefined,
         });
         return {
           content: [{ type: 'text', text: built.markdown }],

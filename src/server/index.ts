@@ -59,7 +59,7 @@ import { registerWorktreeModule } from '../modules/worktree/register.js';
 import { registerXrayModule } from '../modules/xray/register.js';
 
 export const UI_RESOURCE_URI = 'ui://agy-nov/app.html';
-export const NOV_VERSION = '0.8.0';
+export const NOV_VERSION = '0.9.0';
 
 const UI_ENTRYPOINT_META = {
   ui: { resourceUri: UI_RESOURCE_URI },

@@ -12,12 +12,14 @@ import {
   createWorktree,
   getWorktreeDiffSummary,
   inspectWorktrees,
+  previewWorktreeIncludeForWorkspace,
   type CleanupWorktreeOptions,
   type CleanupWorktreeResult,
   type CreateWorktreeOptions,
   type CreateWorktreeResult,
   type DemoWorktreeStore,
   type WorktreeDiffSummaryResult,
+  type WorktreeIncludePreviewResult,
   type WorktreeInspectResult,
 } from './core.js';
 
@@ -99,6 +101,11 @@ export function registerWorktreeModule(
   const runList = async (): Promise<WorktreeInspectResult> =>
     isDemo && demoStore ? demoStore.list() : inspectWorktrees(workspaceRoot);
 
+  const runPreviewInclude = async (): Promise<WorktreeIncludePreviewResult> =>
+    isDemo && demoStore
+      ? demoStore.previewInclude()
+      : previewWorktreeIncludeForWorkspace(workspaceRoot);
+
   const runCreate = async (opts: CreateWorktreeOptions): Promise<CreateWorktreeResult> =>
     isDemo && demoStore ? demoStore.create(opts) : createWorktree(workspaceRoot, opts);
 
@@ -147,7 +154,7 @@ export function registerWorktreeModule(
     {
       title: 'Create Git Worktree',
       description:
-        'Create an isolated Git worktree inside `<repo>/.agy-worktrees/<slug>` for a new or existing branch, optionally carrying uncommitted changes from the current worktree without mutating it.',
+        'Create an isolated Git worktree inside `<repo>/.agy-worktrees/<slug>` for a new or existing branch, optionally carrying uncommitted changes and safely copying whitelisted non-sensitive files declared in `.worktreeinclude`.',
       inputSchema: {
         branch: z
           .string()
@@ -167,15 +174,30 @@ export function registerWorktreeModule(
           .boolean()
           .optional()
           .describe('When true, extract git diff HEAD from the current worktree and apply it cleanly to the new worktree'),
+        applyInclude: z
+          .boolean()
+          .optional()
+          .describe('When true (default), safely copy validated non-sensitive files listed in .worktreeinclude into the new worktree'),
       },
     },
-    async ({ branch, baseRef, dirName, carryUncommitted }) => {
+    async ({ branch, baseRef, dirName, carryUncommitted, applyInclude }) => {
       try {
-        const result = await runCreate({ branch, baseRef, dirName, carryUncommitted });
+        const result = await runCreate({ branch, baseRef, dirName, carryUncommitted, applyInclude });
         const lines = [
           `Created worktree for branch "${result.created.branch ?? branch}" at ${result.created.path}.`,
           `Carried uncommitted changes: ${result.carriedUncommitted ? 'yes' : 'no'}.`,
         ];
+        if (result.includedFiles.length > 0) {
+          lines.push(`Included (.worktreeinclude): ${result.includedFiles.join(', ')}`);
+        }
+        if (result.skippedSensitive.length > 0) {
+          lines.push(
+            `Blocked sensitive (.worktreeinclude): ${result.skippedSensitive.join(', ')}`,
+          );
+        }
+        if (result.skippedInvalid.length > 0) {
+          lines.push(`Skipped invalid (.worktreeinclude): ${result.skippedInvalid.join(', ')}`);
+        }
         if (result.warning) {
           lines.push(`Warning: ${result.warning}`);
         }
@@ -304,15 +326,48 @@ export function registerWorktreeModule(
         baseRef: z.string().min(1).optional(),
         dirName: z.string().min(1).optional(),
         carryUncommitted: z.boolean().optional(),
+        applyInclude: z.boolean().optional(),
       },
       _meta: APP_ONLY_META,
     },
-    async ({ branch, baseRef, dirName, carryUncommitted }) => {
+    async ({ branch, baseRef, dirName, carryUncommitted, applyInclude }) => {
       try {
-        const result = await runCreate({ branch, baseRef, dirName, carryUncommitted });
+        const result = await runCreate({ branch, baseRef, dirName, carryUncommitted, applyInclude });
         return {
           content: [{ type: 'text', text: 'created' }],
           structuredContent: { ...result },
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: formatErrorMessage(err) }],
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    'app_worktree_preview_include',
+    {
+      title: 'Preview .worktreeinclude Whitelist (App Only)',
+      description:
+        'Read-only preview of `.worktreeinclude` eligible files, blocked sensitive paths, and invalid entries.',
+      inputSchema: {},
+      _meta: APP_ONLY_META,
+    },
+    async () => {
+      try {
+        const preview = await runPreviewInclude();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: preview.hasConfig
+                ? `eligible=${preview.eligibleFiles.length}, blockedSensitive=${preview.skippedSensitive.length}, invalid=${preview.skippedInvalid.length}`
+                : 'no .worktreeinclude configured',
+            },
+          ],
+          structuredContent: { ...preview },
         };
       } catch (err) {
         return {
@@ -381,6 +436,6 @@ export function registerWorktreeModule(
   return {
     moduleId: 'worktree',
     modelTools,
-    exemptReadOnlyAppTools: ['app_worktree_list'],
+    exemptReadOnlyAppTools: ['app_worktree_list', 'app_worktree_preview_include'],
   };
 }

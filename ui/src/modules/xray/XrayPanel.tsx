@@ -1,5 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import type { HostCapabilitiesSummary, NovBridge } from '../../bridge.js';
+import type {
+  CleanForkLaunchResult,
+  CleanForkPackPayload,
+  HostCapabilitiesSummary,
+  NovBridge,
+} from '../../bridge.js';
 import { useNovI18n } from '../../i18n/index.js';
 import { ContextCharts } from './ContextCharts';
 import { FileTreePanel } from './FileTreePanel';
@@ -80,6 +85,11 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(false);
   const [exportingKind, setExportingKind] = useState<ExportKind | null>(null);
+  const [cleanForkPack, setCleanForkPack] = useState<CleanForkPackPayload | null>(null);
+  const [cleanForkLoading, setCleanForkLoading] = useState(false);
+  const [cleanForkLaunching, setCleanForkLaunching] = useState(false);
+  const [showCleanForkPreview, setShowCleanForkPreview] = useState(false);
+  const [lastForkResult, setLastForkResult] = useState<CleanForkLaunchResult | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [localToast, setLocalToast] = useState<string | null>(null);
 
@@ -142,13 +152,37 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
     }
   }, [bridge]);
 
+  const fetchCleanForkPack = useCallback(
+    async (conversationId?: string, silent = true): Promise<CleanForkPackPayload | null> => {
+      setCleanForkLoading(true);
+      try {
+        const pack = await bridge.buildCleanForkPack(
+          conversationId ? { conversationId } : {},
+        );
+        if (pack && typeof pack.promptMarkdown === 'string') {
+          setCleanForkPack(pack);
+          return pack;
+        }
+        return null;
+      } catch (err) {
+        if (!silent) {
+          notify(err instanceof Error ? err.message : String(err));
+        }
+        return null;
+      } finally {
+        setCleanForkLoading(false);
+      }
+    },
+    [bridge, notify],
+  );
+
   const fetchSessionsAndDetail = useCallback(
     async (sessionId?: string, silent = false) => {
       loadedOnceRef.current = true;
       setLoading(true);
       setLoadError(null);
       try {
-        const [listRes, detailRes, costRes] = await Promise.all([
+        const [listRes, detailRes, costRes, forkPack] = await Promise.all([
           bridge.callTool<{ sessions?: SessionSummary[] }>('app_xray_list_sessions', { limit: 25 }),
           bridge.callTool<{ detail?: SessionDetail | null }>(
             'app_xray_get_session_detail',
@@ -156,6 +190,9 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
           ),
           bridge
             .callTool<{ analytics?: CostAnalyticsReport }>('app_xray_get_cost_analytics', {})
+            .catch(() => null),
+          bridge
+            .buildCleanForkPack(sessionId ? { conversationId: sessionId } : {})
             .catch(() => null),
         ]);
         const list = Array.isArray(listRes?.sessions) ? listRes.sessions : [];
@@ -165,6 +202,9 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
         }
         if (costRes?.analytics) {
           setAnalytics(costRes.analytics);
+        }
+        if (forkPack && typeof forkPack.promptMarkdown === 'string') {
+          setCleanForkPack(forkPack);
         }
         if (!silent) {
           notify(x.refresh);
@@ -236,13 +276,19 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
     setLoading(true);
     setLoadError(null);
     try {
-      const res = await bridge.callTool<{ detail?: SessionDetail | null }>(
-        'app_xray_get_session_detail',
-        { sessionId },
-      );
+      const [res, forkPack] = await Promise.all([
+        bridge.callTool<{ detail?: SessionDetail | null }>(
+          'app_xray_get_session_detail',
+          { sessionId },
+        ),
+        bridge.buildCleanForkPack({ conversationId: sessionId }).catch(() => null),
+      ]);
       if (res?.detail) {
         setDetail(res.detail);
         setTab('overview');
+      }
+      if (forkPack && typeof forkPack.promptMarkdown === 'string') {
+        setCleanForkPack(forkPack);
       }
     } catch (err) {
       notify(err instanceof Error ? err.message : String(err));
@@ -412,6 +458,44 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
     }
   };
 
+  const handleLaunchCleanFork = async () => {
+    if (cleanForkLaunching) return;
+    setCleanForkLaunching(true);
+    try {
+      const pack = (await fetchCleanForkPack(detail?.summary.id, false)) ?? cleanForkPack;
+      if (!pack || !pack.promptMarkdown) {
+        notify(dict.common.empty);
+        return;
+      }
+      const outcome = await bridge.startCleanFork(pack.promptMarkdown);
+      setLastForkResult(outcome);
+      if (outcome.mode === 'new_conversation') {
+        notify(
+          outcome.conversationId
+            ? `Clean Fork started in fresh session (${outcome.conversationId})`
+            : 'Clean Fork started in fresh session',
+        );
+      } else if (outcome.mode === 'context') {
+        notify('Clean Fork pack attached to model context (fallback)');
+      } else {
+        notify(`${dict.common.copied} · Clean Fork Pack`);
+      }
+    } catch (err) {
+      notify(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCleanForkLaunching(false);
+    }
+  };
+
+  const handleCopyCleanFork = async () => {
+    const pack = cleanForkPack ?? (await fetchCleanForkPack(detail?.summary.id, false));
+    if (!pack?.promptMarkdown) {
+      notify(dict.common.empty);
+      return;
+    }
+    await deliverExportPayload(pack.promptMarkdown, 'Clean Fork Pack', false);
+  };
+
   const canOpenFile = caps.isWorkbench || caps.message || caps.updateModelContext;
   const canAttachContext = caps.isWorkbench || caps.updateModelContext;
 
@@ -432,6 +516,110 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
   const hasAnyTrendActivity = Boolean(
     analytics?.dailyTrend.some((d) => d.totalTokens > 0 || d.estimatedUsd > 0),
   );
+
+  const renderCleanForkCard = () => {
+    const sec = cleanForkPack?.sections;
+    const capabilityHint = caps.message
+      ? 'Host supports message target="new" — launches a fresh background conversation directly.'
+      : 'Host surface lacks direct new-session messaging — falls back to model context attachment or clipboard copy.';
+    return (
+      <section className="xr-card" aria-label="Clean Fork (Fresh Session)">
+        <div className="xr-section-title">
+          <span>Clean Fork (Fresh Session)</span>
+          <span className={`xr-badge ${caps.message ? 'xr-sev-good' : 'xr-sev-warn'}`}>
+            {caps.message ? 'New Session Ready' : 'Context / Copy Fallback'}
+          </span>
+        </div>
+        <div className="xr-kpi-sub" style={{ marginTop: 4, marginBottom: 8 }}>
+          {capabilityHint}
+        </div>
+        <div className="xr-step-badges" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+          <span className={`xr-badge ${sec?.hasHandoff ? 'xr-sev-info' : ''}`}>
+            Handoff: {sec ? (sec.hasHandoff ? 'Ready' : 'None') : '—'}
+          </span>
+          <span className={`xr-badge ${sec?.activeSpecTitle ? 'xr-sev-good' : ''}`}>
+            Spec: {sec?.activeSpecTitle ? sec.activeSpecTitle : 'None'}
+          </span>
+          <span className="xr-badge xr-mono">
+            Ready Tasks: {sec ? sec.readyTasksCount : '—'}
+          </span>
+          <span className="xr-badge xr-mono">
+            Mem Anchors: {sec ? sec.memAnchorsCount : '—'}
+          </span>
+          {cleanForkPack && (
+            <span className="xr-badge xr-mono">
+              ~{fmtTokens(cleanForkPack.estimatedTokens)} tok · {cleanForkPack.totalBytes} B
+              {cleanForkPack.truncated ? ' (Truncated)' : ''}
+            </span>
+          )}
+        </div>
+        <div className="xr-export-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <button
+            type="button"
+            className="xr-btn xr-btn-primary"
+            disabled={cleanForkLaunching || cleanForkLoading}
+            onClick={() => void handleLaunchCleanFork()}
+          >
+            {cleanForkLaunching ? dict.common.loading : 'Clean Fork (Fresh Session)'}
+          </button>
+          <button
+            type="button"
+            className="xr-btn"
+            disabled={cleanForkLoading}
+            onClick={async () => {
+              if (!showCleanForkPreview && !cleanForkPack) {
+                await fetchCleanForkPack(detail?.summary.id, false);
+              }
+              setShowCleanForkPreview((prev) => !prev);
+            }}
+          >
+            {showCleanForkPreview ? 'Hide Preview' : 'Preview Pack'}
+          </button>
+          <button
+            type="button"
+            className="xr-btn"
+            disabled={cleanForkLoading}
+            onClick={() => void handleCopyCleanFork()}
+          >
+            Copy Pack
+          </button>
+          <button
+            type="button"
+            className="xr-btn"
+            disabled={cleanForkLoading}
+            onClick={() => void fetchCleanForkPack(detail?.summary.id, false)}
+          >
+            {cleanForkLoading ? dict.common.loading : x.refresh}
+          </button>
+        </div>
+        {lastForkResult && (
+          <div className="xr-kpi-sub xr-mono" style={{ marginTop: 6 }}>
+            Last Fork: {lastForkResult.mode}
+            {lastForkResult.conversationId ? ` · ${lastForkResult.conversationId}` : ''}
+          </div>
+        )}
+        {showCleanForkPreview && cleanForkPack && (
+          <pre
+            style={{
+              marginTop: 8,
+              padding: 10,
+              maxHeight: 220,
+              overflow: 'auto',
+              borderRadius: 8,
+              border: '1px solid var(--nov-border)',
+              background: 'var(--nov-bg-0)',
+              fontFamily: 'var(--nov-font-mono)',
+              fontSize: 11,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
+            {cleanForkPack.promptMarkdown}
+          </pre>
+        )}
+      </section>
+    );
+  };
 
   const renderCostTab = () => {
     if (analyticsLoading && !analytics) {
@@ -728,10 +916,13 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
       ) : loading && !detail ? (
         <div className="xr-card xr-empty-state">{dict.common.loading}</div>
       ) : !detail ? (
-        <div className="xr-card xr-empty-state">
-          <strong>{dict.common.empty}</strong>
-          <div className="xr-empty-sub">{x.refresh}</div>
-        </div>
+        <main className="xr-main">
+          {renderCleanForkCard()}
+          <div className="xr-card xr-empty-state">
+            <strong>{dict.common.empty}</strong>
+            <div className="xr-empty-sub">{x.refresh}</div>
+          </div>
+        </main>
       ) : (
         <main className="xr-main">
           <section className="xr-kpi-grid" aria-label={x.title}>
@@ -771,6 +962,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
           </section>
           {tab === 'overview' && (
             <>
+              {renderCleanForkCard()}
               <ContextCharts detail={detail} />
               {((detail.swarmLineage && detail.swarmLineage.totalSubagents > 0) ||
                 (detail.modelBreakdown && detail.modelBreakdown.length > 0)) && (

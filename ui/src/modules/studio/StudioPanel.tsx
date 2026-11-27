@@ -173,6 +173,21 @@ interface StudioHttpProbeResult {
   truncated?: boolean;
 }
 
+interface NativeFileViewerPayload {
+  kind: 'opaque-uri' | 'svg' | 'data' | 'openapi';
+  targetTab: 'studio' | 'canvas';
+  fileName: string;
+  extension: string;
+  relPath?: string;
+  resourceUri?: string;
+  bytes?: number;
+  mode?: 'live' | 'demo';
+  readOnly?: boolean;
+  note?: string;
+  data?: StudioDataResult;
+  openApi?: ParsedOpenApiSpec;
+}
+
 const STUDIO_AUX_LABELS: Record<
   ResolvedUiLocale,
   {
@@ -458,6 +473,7 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
   const [openApiSpec, setOpenApiSpec] = useState<ParsedOpenApiSpec | null>(null);
   const [openApiFilter, setOpenApiFilter] = useState('');
   const [selectedEndpointId, setSelectedEndpointId] = useState<string | null>(null);
+  const [fileViewerBanner, setFileViewerBanner] = useState<NativeFileViewerPayload | null>(null);
 
   const [copiedTarget, setCopiedTarget] = useState<string | null>(null);
 
@@ -480,9 +496,33 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
   }, [active, loadSources]);
 
   useEffect(() => {
-    if (!active || !incomingEvent) return;
+    if (!incomingEvent) return;
+    const sc = incomingEvent.structuredContent;
+    const rawFv =
+      sc && typeof sc === 'object' && sc.fileViewer && typeof sc.fileViewer === 'object'
+        ? (sc.fileViewer as NativeFileViewerPayload)
+        : null;
+    if (rawFv && typeof rawFv.fileName === 'string' && typeof rawFv.kind === 'string') {
+      if (rawFv.targetTab === 'studio' || rawFv.kind === 'data' || rawFv.kind === 'openapi' || rawFv.kind === 'opaque-uri') {
+        setFileViewerBanner(rawFv);
+        if (rawFv.kind === 'data' && rawFv.data) {
+          setTab('data');
+          setDataPath(rawFv.relPath || rawFv.data.filePath || rawFv.fileName);
+          setSqlQuery('');
+          setDataFilter('');
+          setDataResult(rawFv.data);
+        } else if (rawFv.kind === 'openapi' && rawFv.openApi) {
+          setTab('http');
+          setOpenApiPath(rawFv.relPath || rawFv.openApi.filePath || rawFv.fileName);
+          setOpenApiSpec(rawFv.openApi);
+          setOpenApiFilter('');
+          setSelectedEndpointId(null);
+        }
+      }
+    }
+    if (!active) return;
     const tool = incomingEvent.toolName ?? '';
-    const mod = incomingEvent.structuredContent?.novModule;
+    const mod = sc?.novModule;
     if (tool.startsWith('studio_') || tool.startsWith('app_studio_') || mod === 'studio') {
       void loadSources();
     }
@@ -864,6 +904,61 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
           </button>
         </div>
       </section>
+
+      {fileViewerBanner && (
+        <section
+          className="nov-p-card"
+          aria-label="Native File Viewer"
+          style={{
+            borderColor: 'var(--nov-accent)',
+            background: 'var(--nov-bg-1)',
+          }}
+        >
+          <div className="nov-p-row">
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
+              <span className="nov-badge is-accent">Native File Viewer</span>
+              <span className="nov-badge is-offline">READ-ONLY</span>
+              <strong style={{ fontSize: '12.5px' }}>{fileViewerBanner.fileName}</strong>
+              <span className="nov-badge">{fileViewerBanner.extension}</span>
+              {typeof fileViewerBanner.bytes === 'number' && (
+                <span className="nov-badge">{formatBytes(fileViewerBanner.bytes)}</span>
+              )}
+              {fileViewerBanner.kind === 'openapi' && fileViewerBanner.openApi && (
+                <span className="nov-badge is-network">
+                  {fileViewerBanner.openApi.totalEndpoints} endpoints
+                </span>
+              )}
+              {fileViewerBanner.kind === 'data' && fileViewerBanner.data && (
+                <span className="nov-badge">
+                  {fileViewerBanner.data.returnedRows ?? fileViewerBanner.data.rows?.length ?? 0} rows
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              className="nov-p-btn"
+              onClick={() => setFileViewerBanner(null)}
+            >
+              ×
+            </button>
+          </div>
+          {fileViewerBanner.relPath && (
+            <div style={{ fontSize: '11.5px', fontFamily: 'var(--nov-font-mono)', color: 'var(--nov-text-2)' }}>
+              {fileViewerBanner.relPath}
+            </div>
+          )}
+          {fileViewerBanner.resourceUri && (
+            <div style={{ fontSize: '11.5px', fontFamily: 'var(--nov-font-mono)', color: 'var(--nov-text-2)', wordBreak: 'break-all' }}>
+              URI: {fileViewerBanner.resourceUri}
+            </div>
+          )}
+          {fileViewerBanner.note && (
+            <div style={{ fontSize: '12px', color: 'var(--nov-text-1)', marginTop: '4px' }}>
+              {fileViewerBanner.note}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* TAB 1: Local Data (SQLite / CSV / JSON) */}
       {tab === 'data' && (

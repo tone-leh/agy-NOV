@@ -8,7 +8,13 @@ import {
   detectLineRiskHint,
   parseUnifiedDiff,
 } from './diff-parser.js';
-import type { DiffFile, DiffHunk, DiffLine, ReviewScope } from './types.js';
+import type {
+  DiffFile,
+  DiffHunk,
+  DiffLine,
+  ReviewScope,
+  ReviewWorktreeOption,
+} from './types.js';
 
 export interface ScanGitDiffOptions {
   repoPath: string;
@@ -94,7 +100,12 @@ function runGit(cwd: string, args: string[], maxBuffer = MAX_GIT_BUFFER): GitRun
       cwd,
       encoding: 'utf8',
       maxBuffer,
+      timeout: 10_000,
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: '0',
+      },
     });
     return { ok: true, stdout, stderr: '', isMaxBuffer: false };
   } catch (err) {
@@ -116,6 +127,203 @@ function runGit(cwd: string, args: string[], maxBuffer = MAX_GIT_BUFFER): GitRun
       isMaxBuffer,
     };
   }
+}
+
+export interface ReviewWorktreeContext {
+  isGitRepo: boolean;
+  toplevelReal: string;
+  mainRootReal: string;
+  worktrees: ReviewWorktreeOption[];
+}
+
+function parseReviewWorktreePorcelain(
+  output: string,
+): Array<{ rawPath: string; branch: string | null; isMain: boolean; bare: boolean }> {
+  const entries: Array<{ rawPath: string; branch: string | null; isMain: boolean; bare: boolean }> = [];
+  let current: { rawPath?: string; branch: string | null; bare: boolean } | null = null;
+
+  const flush = () => {
+    if (!current || !current.rawPath) return;
+    entries.push({
+      rawPath: current.rawPath,
+      branch: current.branch,
+      isMain: entries.length === 0,
+      bare: current.bare,
+    });
+    current = null;
+  };
+
+  for (const line of output.split(/\r?\n/)) {
+    if (line.trim() === '') {
+      flush();
+      continue;
+    }
+    if (line.startsWith('worktree ')) {
+      flush();
+      current = {
+        rawPath: line.slice('worktree '.length),
+        branch: null,
+        bare: false,
+      };
+      continue;
+    }
+    if (!current) continue;
+    if (line.startsWith('branch ')) {
+      current.branch = line.slice('branch '.length).trim().replace(/^refs\/heads\//, '');
+    } else if (line === 'detached') {
+      current.branch = null;
+    } else if (line === 'bare') {
+      current.bare = true;
+    }
+  }
+  flush();
+  return entries;
+}
+
+function checkWorktreeDirtyReadOnly(worktreeRealPath: string): boolean {
+  const res = runGit(worktreeRealPath, ['status', '--porcelain'], 1024 * 1024);
+  if (!res.ok) return false;
+  for (const rawLine of res.stdout.split(/\r?\n/)) {
+    if (!rawLine || rawLine.length < 4) continue;
+    const xy = rawLine.slice(0, 2);
+    const relPath = rawLine.slice(3);
+    if (xy === '??' && (relPath === '.agy-worktrees' || relPath.startsWith('.agy-worktrees/'))) {
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Pure read-only discovery of all active registered Git worktrees belonging to `workspaceRoot`.
+ */
+export function listGitWorktreesReadOnly(workspaceRoot: string): ReviewWorktreeContext {
+  const fallback = workspaceRoot ? path.resolve(workspaceRoot) : process.cwd();
+  if (!workspaceRoot || workspaceRoot.includes('\0') || !fs.existsSync(fallback)) {
+    return { isGitRepo: false, toplevelReal: fallback, mainRootReal: fallback, worktrees: [] };
+  }
+  let stat: fs.Stats;
+  try {
+    stat = fs.statSync(fallback);
+  } catch {
+    return { isGitRepo: false, toplevelReal: fallback, mainRootReal: fallback, worktrees: [] };
+  }
+  if (!stat.isDirectory()) {
+    return { isGitRepo: false, toplevelReal: fallback, mainRootReal: fallback, worktrees: [] };
+  }
+
+  const topRes = runGit(fallback, ['rev-parse', '--show-toplevel'], 1024 * 1024);
+  if (!topRes.ok || !topRes.stdout.trim()) {
+    return { isGitRepo: false, toplevelReal: fallback, mainRootReal: fallback, worktrees: [] };
+  }
+
+  let toplevelReal: string;
+  try {
+    toplevelReal = fs.realpathSync(path.resolve(topRes.stdout.trim()));
+  } catch {
+    toplevelReal = path.resolve(topRes.stdout.trim());
+  }
+
+  const listRes = runGit(toplevelReal, ['worktree', 'list', '--porcelain'], 2 * 1024 * 1024);
+  if (!listRes.ok) {
+    return { isGitRepo: false, toplevelReal, mainRootReal: toplevelReal, worktrees: [] };
+  }
+
+  const parsed = parseReviewWorktreePorcelain(listRes.stdout);
+  const worktrees: ReviewWorktreeOption[] = [];
+  for (const item of parsed) {
+    if (item.bare) continue;
+    let realPath: string;
+    try {
+      const resolved = path.resolve(item.rawPath);
+      if (!fs.statSync(resolved).isDirectory()) continue;
+      realPath = fs.realpathSync(resolved);
+    } catch {
+      continue;
+    }
+    worktrees.push({
+      path: realPath,
+      branch: item.branch,
+      isMain: item.isMain,
+      isDirty: checkWorktreeDirtyReadOnly(realPath),
+    });
+  }
+
+  const mainRootReal = worktrees.find((w) => w.isMain)?.path ?? toplevelReal;
+  return {
+    isGitRepo: true,
+    toplevelReal,
+    mainRootReal,
+    worktrees,
+  };
+}
+
+/**
+ * Strictly validate that an optional requested worktree/repo path matches either the
+ * main repository root or an active registered Git worktree of `mainWorkspaceRoot`
+ * (using `realpathSync` and refusing symlink leaves or external directories).
+ */
+export function resolveAllowedReviewTarget(
+  mainWorkspaceRoot: string,
+  requestedPath?: string,
+): { targetRepoPath: string; availableWorktrees: ReviewWorktreeOption[] } {
+  const ctx = listGitWorktreesReadOnly(mainWorkspaceRoot);
+
+  if (!requestedPath || !requestedPath.trim()) {
+    return {
+      targetRepoPath: ctx.isGitRepo ? ctx.toplevelReal : path.resolve(mainWorkspaceRoot),
+      availableWorktrees: ctx.worktrees,
+    };
+  }
+
+  const trimmed = requestedPath.trim();
+  if (trimmed.includes('\0')) {
+    throw new Error('Invalid worktree path: NUL byte is disallowed.');
+  }
+
+  const resolvedRequested = path.resolve(trimmed);
+  let lstat: fs.Stats;
+  try {
+    lstat = fs.lstatSync(resolvedRequested);
+  } catch {
+    throw new Error(`Review target path does not exist or is not accessible: ${trimmed}`);
+  }
+  if (lstat.isSymbolicLink()) {
+    throw new Error(`Refused: review target path "${trimmed}" must not be a symbolic link.`);
+  }
+  if (!lstat.isDirectory()) {
+    throw new Error(`Refused: review target path "${trimmed}" is not a directory.`);
+  }
+
+  const realRequested = fs.realpathSync(resolvedRequested);
+
+  if (!ctx.isGitRepo) {
+    let mainReal: string;
+    try {
+      mainReal = fs.realpathSync(path.resolve(mainWorkspaceRoot));
+    } catch {
+      mainReal = path.resolve(mainWorkspaceRoot);
+    }
+    if (realRequested === mainReal) {
+      return { targetRepoPath: realRequested, availableWorktrees: [] };
+    }
+    throw new Error(
+      `Refused: "${trimmed}" is outside the active workspace (not a registered Git worktree).`,
+    );
+  }
+
+  const matched = ctx.worktrees.find((w) => w.path === realRequested);
+  if (!matched) {
+    throw new Error(
+      `Refused: "${trimmed}" is not the main repository or a registered Git worktree for this workspace.`,
+    );
+  }
+
+  return {
+    targetRepoPath: matched.path,
+    availableWorktrees: ctx.worktrees,
+  };
 }
 
 function formatGitDiffFailure(res: GitRunResult, scopeLabel: string, maxBufferBytes: number): {
@@ -361,7 +569,12 @@ export function scanGitDiff(options: ScanGitDiffOptions): ScanGitDiffResult {
     };
   }
 
-  const repoRoot = path.resolve(topLevelRes.stdout.trim());
+  let repoRoot = path.resolve(topLevelRes.stdout.trim());
+  try {
+    repoRoot = fs.realpathSync(repoRoot);
+  } catch {
+    // Keep resolved path when realpath fails
+  }
   const repoName = path.basename(repoRoot);
   const repoKey = computeRepoKey(repoRoot);
 

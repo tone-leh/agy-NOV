@@ -1,6 +1,11 @@
 import React from 'react';
 import { useNovI18n } from '../../i18n/index.js';
-import type { DiffViewMode, FileFilterMode, ReviewScope } from './types';
+import type {
+  DiffViewMode,
+  FileFilterMode,
+  ReviewScope,
+  ReviewWorktreeOption,
+} from './types';
 
 interface HeaderBarProps {
   repoName: string;
@@ -19,6 +24,9 @@ interface HeaderBarProps {
   totalDeletions: number;
   loading: boolean;
   sidebarOpen: boolean;
+  availableWorktrees?: ReviewWorktreeOption[];
+  activeWorktreePath?: string;
+  onWorktreeChange?: (worktreePath: string) => void;
   onToggleSidebar: () => void;
   onScopeChange: (scope: ReviewScope) => void;
   onCommitRangeChange: (range: string) => void;
@@ -48,6 +56,9 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   totalDeletions,
   loading,
   sidebarOpen,
+  availableWorktrees,
+  activeWorktreePath,
+  onWorktreeChange,
   onToggleSidebar,
   onScopeChange,
   onCommitRangeChange,
@@ -154,6 +165,28 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       </div>
 
       <div className="rv-header-controls">
+        {Array.isArray(availableWorktrees) && availableWorktrees.length > 0 && onWorktreeChange && (
+          <select
+            className="rv-scope-select rv-worktree-select"
+            value={activeWorktreePath ?? availableWorktrees[0]?.path ?? ''}
+            onChange={(e) => onWorktreeChange(e.target.value)}
+            aria-label="Target Worktree"
+            title="Switch review target between main repository and active Git worktrees"
+          >
+            {availableWorktrees.map((wt) => {
+              const prefix = wt.isMain ? 'Main' : 'WT';
+              const name = wt.branch || '(detached)';
+              const dirty = wt.isDirty ? ' *' : '';
+              return (
+                <option key={wt.path} value={wt.path}>
+                  [{prefix}] {name}
+                  {dirty}
+                </option>
+              );
+            })}
+          </select>
+        )}
+
         <select
           className="rv-scope-select"
           value={scope}

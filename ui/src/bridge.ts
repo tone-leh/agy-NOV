@@ -209,6 +209,24 @@ export interface ImportConfigResultPayload {
   snapshot: NovConfigSnapshot;
 }
 
+export interface CleanForkLaunchResult {
+  mode: 'new_conversation' | 'context' | 'copied';
+  conversationId?: string;
+}
+
+export interface CleanForkPackPayload {
+  promptMarkdown: string;
+  estimatedTokens: number;
+  totalBytes: number;
+  truncated: boolean;
+  sections: {
+    hasHandoff: boolean;
+    activeSpecTitle: string | null;
+    readyTasksCount: number;
+    memAnchorsCount: number;
+  };
+}
+
 const ToggleAuxPaneResultSchema = z
   .object({
     isError: z.boolean().optional(),
@@ -274,7 +292,7 @@ export class NovBridge {
       return;
     }
 
-    const app = new McpApp({ name: 'agy-NOV', version: '0.8.0' }, {});
+    const app = new McpApp({ name: 'agy-NOV', version: '0.9.0' }, {});
     this.app = app;
 
     app.ontoolresult = (result) => {
@@ -518,6 +536,68 @@ export class NovBridge {
       // ignore
     }
     return 'copied';
+  }
+
+  async startCleanFork(text: string): Promise<CleanForkLaunchResult> {
+    await this.readyPromise;
+    if (this.isWorkbenchMode || !this.app) {
+      this.notifyWorkbenchHost('cleanFork', { text, target: 'new' });
+      try {
+        await navigator.clipboard?.writeText(text);
+      } catch {
+        // clipboard may be restricted
+      }
+      return { mode: 'new_conversation', conversationId: 'workbench-fork-preview' };
+    }
+
+    if (this.capabilities.message) {
+      try {
+        const res = (await this.app.sendMessage({
+          role: 'user',
+          content: [{ type: 'text', text }],
+          _meta: { 'com.google.antigravity/message': { target: 'new' } },
+        } as Parameters<McpApp['sendMessage']>[0])) as
+          | { _meta?: Record<string, unknown> }
+          | undefined;
+        const agyMeta = res?._meta?.['com.google.antigravity/message'] as
+          | { conversationId?: unknown }
+          | undefined;
+        const conversationId =
+          typeof agyMeta?.conversationId === 'string' && agyMeta.conversationId.trim()
+            ? agyMeta.conversationId.trim()
+            : undefined;
+        return {
+          mode: 'new_conversation',
+          ...(conversationId ? { conversationId } : {}),
+        };
+      } catch {
+        // fall through to updateModelContext
+      }
+    }
+
+    if (this.capabilities.updateModelContext) {
+      try {
+        await this.app.updateModelContext({
+          content: [{ type: 'text', text }],
+        });
+        return { mode: 'context' };
+      } catch {
+        // fall through to clipboard
+      }
+    }
+
+    try {
+      await navigator.clipboard?.writeText(text);
+    } catch {
+      // ignore clipboard restrictions
+    }
+    return { mode: 'copied' };
+  }
+
+  buildCleanForkPack(
+    args: { conversationId?: string; maxBytes?: number } = {},
+  ): Promise<CleanForkPackPayload> {
+    return this.callTool<CleanForkPackPayload>('app_xray_build_clean_fork_pack', args);
   }
 
   async updateModelContext(text: string): Promise<'context' | 'copied'> {

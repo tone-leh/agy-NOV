@@ -1,14 +1,30 @@
 import crypto from 'node:crypto';
 import dns from 'node:dns/promises';
 import net from 'node:net';
-import type { ChannelConfig } from './types.js';
+import type { ApprovalRiskCard, ChannelConfig } from './types.js';
 import { redactText } from './config.js';
+import { redactLiveStreamText } from './live-stream.js';
 
 export interface NotificationPayload {
   title: string;
   body: string;
   level: 'info' | 'warn' | 'success';
   actionUrl?: string;
+  riskCard?: ApprovalRiskCard;
+}
+
+export function formatApprovalRiskCardLine(riskCard: ApprovalRiskCard): string {
+  const riskLabel = riskCard.riskLevel.toUpperCase();
+  const filesCount =
+    typeof riskCard.affectedFilesCount === 'number' && Number.isFinite(riskCard.affectedFilesCount)
+      ? Math.max(0, Math.floor(riskCard.affectedFilesCount))
+      : 0;
+  const verifyLabel = (riskCard.verifyStatus || 'unknown').toUpperCase();
+  const target = riskCard.targetSummary
+    ? redactLiveStreamText(riskCard.targetSummary).replace(/\s+/g, ' ').trim().slice(0, 80)
+    : '';
+  const baseLine = `Risk: ${riskLabel} | Files: ${filesCount} | Verify: ${verifyLabel}`;
+  return target ? `${baseLine} | Target: ${target}` : baseLine;
 }
 
 export interface ChannelSendOptions {
@@ -269,8 +285,14 @@ export async function sendToChannel(
   rawPayload: NotificationPayload,
   opts: ChannelSendOptions = {},
 ): Promise<ChannelDispatchResult> {
-  const title = redactText(rawPayload.title);
-  const body = redactText(rawPayload.body);
+  const title = redactLiveStreamText(redactText(rawPayload.title));
+  const riskLine = rawPayload.riskCard ? formatApprovalRiskCardLine(rawPayload.riskCard) : '';
+  const rawBodyWithRisk = riskLine
+    ? rawPayload.body
+      ? `${riskLine}\n${rawPayload.body}`
+      : riskLine
+    : rawPayload.body;
+  const body = redactLiveStreamText(redactText(rawBodyWithRisk));
   const cleanActionUrl = sanitizeActionUrl(rawPayload.actionUrl);
   const footer = cleanActionUrl ? `\nOpen Remote Hub: ${cleanActionUrl}` : '';
 

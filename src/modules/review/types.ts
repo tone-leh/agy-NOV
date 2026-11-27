@@ -88,6 +88,38 @@ export interface ReviewSignal {
   conversationId?: string;
 }
 
+export interface ReviewWorktreeOption {
+  path: string;
+  branch: string | null;
+  isMain: boolean;
+  isDirty?: boolean;
+}
+
+export interface ReviewSpecComplianceItem {
+  id: string;
+  title: string;
+  status: string;
+  checked: boolean;
+}
+
+export interface ReviewSpecCompliance {
+  specId: string;
+  title: string;
+  status: string;
+  mode?: string;
+  totalTasks: number;
+  doneTasks: number;
+  items: ReviewSpecComplianceItem[];
+}
+
+export interface Stage1ChecklistItem {
+  id: string;
+  title: string;
+  status?: string;
+  checked: boolean;
+  note?: string;
+}
+
 export interface ReviewSession {
   repoPath: string;
   repoName: string;
@@ -109,6 +141,8 @@ export interface ReviewSession {
   viewedFiles: string[];
   annotations: ReviewAnnotation[];
   signal?: ReviewSignal | null;
+  availableWorktrees?: ReviewWorktreeOption[];
+  specCompliance?: ReviewSpecCompliance | null;
 }
 
 export interface ReviewSummaryFile {
@@ -155,6 +189,8 @@ export interface PromptBuildOptions {
   files?: DiffFile[];
   includeResolved?: boolean;
   annotationIds?: string[];
+  specCompliance?: ReviewSpecCompliance | null;
+  stage1Checklist?: Stage1ChecklistItem[];
 }
 
 export interface BuiltReviewPrompt {

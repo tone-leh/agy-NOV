@@ -1,7 +1,8 @@
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { getModuleDataDir } from '../../core/config.js';
 import { atomicWriteJson } from '../../core/utils.js';
 
 export const ALLOWED_VERIFY_EXECUTABLES: ReadonlySet<string> = new Set([
@@ -245,6 +246,8 @@ export interface VerifyEvidenceRecord {
   results: VerifyCommandRunResult[];
   summary: string;
   reason?: string;
+  targetBranch?: string;
+  targetWorktree?: string;
 }
 
 export interface VerifyStats {
@@ -297,17 +300,120 @@ export const DEFAULT_VERIFY_POLICY: VerifyPolicy = {
   ],
 };
 
+function stripPrivateBlocksLinear(input: string): string {
+  if (!input || (!input.includes('<') && !input.includes('>'))) return input;
+  const lower = input.toLowerCase();
+  if (!lower.includes('<private')) return input;
+
+  let out = '';
+  let cursor = 0;
+  let depth = 0;
+  let i = 0;
+  const n = input.length;
+
+  while (i < n) {
+    const lt = input.indexOf('<', i);
+    if (lt < 0) {
+      if (depth === 0) out += input.slice(cursor);
+      break;
+    }
+    if (lower.startsWith('<private', lt)) {
+      const after = lt + 8;
+      if (after < n && (input[after] === '>' || /\s/.test(input[after]))) {
+        const gt = input.indexOf('>', after);
+        if (gt >= 0) {
+          if (depth === 0) {
+            out += input.slice(cursor, lt);
+            out += '[REDACTED_PRIVATE]';
+          }
+          depth += 1;
+          i = gt + 1;
+          cursor = i;
+          continue;
+        }
+      }
+    } else if (lower.startsWith('</private', lt)) {
+      const after = lt + 9;
+      if (after < n && (input[after] === '>' || /\s/.test(input[after]))) {
+        const gt = input.indexOf('>', after);
+        if (gt >= 0) {
+          if (depth > 0) {
+            depth -= 1;
+          }
+          i = gt + 1;
+          if (depth === 0) {
+            cursor = i;
+          }
+          continue;
+        }
+      }
+    }
+    i = lt + 1;
+  }
+
+  return out;
+}
+
+function redactPemBlocksLinear(input: string): string {
+  if (!input || !input.includes('-----')) return input;
+  const upper = input.toUpperCase();
+  const marker = '-----BEGIN ';
+  if (!upper.includes(marker)) return input;
+
+  let out = '';
+  let pos = 0;
+  while (pos < input.length) {
+    const start = upper.indexOf(marker, pos);
+    if (start < 0) {
+      out += input.slice(pos);
+      break;
+    }
+    const headerEnd = upper.indexOf('-----', start + marker.length);
+    if (headerEnd < 0 || headerEnd - start > 96) {
+      out += input.slice(pos, start + marker.length);
+      pos = start + marker.length;
+      continue;
+    }
+    const headerText = upper.slice(start + marker.length, headerEnd);
+    if (!headerText.includes('PRIVATE KEY')) {
+      out += input.slice(pos, headerEnd + 5);
+      pos = headerEnd + 5;
+      continue;
+    }
+
+    out += input.slice(pos, start);
+    out += '[REDACTED_PRIVATE_KEY]';
+
+    const endMarker = '-----END ';
+    let searchPos = headerEnd + 5;
+    let foundEnd = -1;
+    while (searchPos < input.length) {
+      const eStart = upper.indexOf(endMarker, searchPos);
+      if (eStart < 0) break;
+      const eEnd = upper.indexOf('-----', eStart + endMarker.length);
+      if (eEnd < 0 || eEnd - eStart > 96) {
+        searchPos = eStart + endMarker.length;
+        continue;
+      }
+      const endLabel = upper.slice(eStart + endMarker.length, eEnd);
+      if (endLabel.includes('PRIVATE KEY')) {
+        foundEnd = eEnd + 5;
+        break;
+      }
+      searchPos = eEnd + 5;
+    }
+
+    if (foundEnd >= 0) {
+      pos = foundEnd;
+    } else {
+      // Unclosed/truncated PEM private key -> redact remainder of text safely
+      pos = input.length;
+    }
+  }
+  return out;
+}
+
 const SECRET_REDACTION_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
-  // Full PEM / OpenSSH private key blocks
-  {
-    pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/g,
-    replacement: '[REDACTED_PRIVATE_KEY]',
-  },
-  // Truncated private key block starting with BEGIN PRIVATE KEY
-  {
-    pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*/g,
-    replacement: '[REDACTED_PRIVATE_KEY]',
-  },
   // Bearer & JWT tokens
   {
     pattern: /\bBearer\s+[A-Za-z0-9\-._~+/]+=*/gi,
@@ -333,7 +439,8 @@ const SECRET_REDACTION_PATTERNS: Array<{ pattern: RegExp; replacement: string }>
 
 export function redactVerifyOutput(input: string): string {
   if (!input) return '';
-  let out = input;
+  let out = stripPrivateBlocksLinear(input);
+  out = redactPemBlocksLinear(out);
   for (const { pattern, replacement } of SECRET_REDACTION_PATTERNS) {
     out = out.replace(pattern, replacement);
   }
@@ -1052,6 +1159,15 @@ function normalizeEvidenceFromDisk(raw: unknown): VerifyEvidenceRecord | null {
     }
   }
 
+  const targetBranch =
+    typeof obj.targetBranch === 'string' && obj.targetBranch.trim()
+      ? redactVerifyOutput(obj.targetBranch.trim()).slice(0, 160)
+      : undefined;
+  const targetWorktree =
+    typeof obj.targetWorktree === 'string' && obj.targetWorktree.trim()
+      ? redactVerifyOutput(obj.targetWorktree.trim()).slice(0, 512)
+      : undefined;
+
   return {
     id: obj.id,
     conversationId: typeof obj.conversationId === 'string' ? obj.conversationId : 'default-session',
@@ -1068,6 +1184,8 @@ function normalizeEvidenceFromDisk(raw: unknown): VerifyEvidenceRecord | null {
     results,
     summary: typeof obj.summary === 'string' ? redactVerifyOutput(obj.summary) : '',
     reason: typeof obj.reason === 'string' ? redactVerifyOutput(obj.reason) : undefined,
+    ...(targetBranch ? { targetBranch } : {}),
+    ...(targetWorktree ? { targetWorktree } : {}),
   };
 }
 
@@ -1732,6 +1850,223 @@ export function clearVerifyHistory(
   return { cleared, state: saved };
 }
 
+export interface VerifyWorktreeOption {
+  path: string;
+  branch: string | null;
+  isMain: boolean;
+}
+
+export interface VerifyTargetResolution {
+  targetRoot: string;
+  isWorktree: boolean;
+  branch?: string;
+  worktreePath?: string;
+}
+
+function runReadOnlyGitForVerify(cwd: string, args: string[]): { ok: boolean; stdout: string } {
+  try {
+    const stdout = execFileSync('git', ['-c', 'core.quotepath=false', ...args], {
+      cwd,
+      encoding: 'utf8',
+      timeout: 5_000,
+      maxBuffer: 2 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: '0',
+      },
+    });
+    return { ok: true, stdout };
+  } catch {
+    return { ok: false, stdout: '' };
+  }
+}
+
+function parseVerifyWorktreePorcelain(
+  output: string,
+): Array<{ rawPath: string; branch: string | null; isMain: boolean; bare: boolean }> {
+  const entries: Array<{ rawPath: string; branch: string | null; isMain: boolean; bare: boolean }> = [];
+  let current: { rawPath?: string; branch: string | null; bare: boolean } | null = null;
+
+  const flush = () => {
+    if (!current || !current.rawPath) return;
+    entries.push({
+      rawPath: current.rawPath,
+      branch: current.branch,
+      isMain: entries.length === 0,
+      bare: current.bare,
+    });
+    current = null;
+  };
+
+  for (const line of output.split(/\r?\n/)) {
+    if (line.trim() === '') {
+      flush();
+      continue;
+    }
+    if (line.startsWith('worktree ')) {
+      flush();
+      current = { rawPath: line.slice('worktree '.length), branch: null, bare: false };
+      continue;
+    }
+    if (!current) continue;
+    if (line.startsWith('branch ')) {
+      current.branch = line.slice('branch '.length).trim().replace(/^refs\/heads\//, '');
+    } else if (line === 'detached') {
+      current.branch = null;
+    } else if (line === 'bare') {
+      current.bare = true;
+    }
+  }
+  flush();
+  return entries;
+}
+
+/**
+ * Pure read-only discovery of active registered Git worktrees belonging to `mainWorkspaceRoot`.
+ */
+export function listVerifyWorktreesReadOnly(mainWorkspaceRoot: string): VerifyWorktreeOption[] {
+  if (!mainWorkspaceRoot || typeof mainWorkspaceRoot !== 'string' || mainWorkspaceRoot.includes('\0')) {
+    return [];
+  }
+  let mainReal: string;
+  try {
+    mainReal = fs.realpathSync(path.resolve(mainWorkspaceRoot));
+    if (!fs.statSync(mainReal).isDirectory()) return [];
+  } catch {
+    return [];
+  }
+
+  const topRes = runReadOnlyGitForVerify(mainReal, ['rev-parse', '--show-toplevel']);
+  if (!topRes.ok || !topRes.stdout.trim()) return [];
+
+  let topReal: string;
+  try {
+    topReal = fs.realpathSync(path.resolve(topRes.stdout.trim()));
+  } catch {
+    return [];
+  }
+
+  const listRes = runReadOnlyGitForVerify(topReal, ['worktree', 'list', '--porcelain']);
+  if (!listRes.ok) return [];
+
+  const parsed = parseVerifyWorktreePorcelain(listRes.stdout);
+  const out: VerifyWorktreeOption[] = [];
+  for (const item of parsed) {
+    if (item.bare) continue;
+    try {
+      const resolved = path.resolve(item.rawPath);
+      if (!fs.statSync(resolved).isDirectory()) continue;
+      const realPath = fs.realpathSync(resolved);
+      out.push({
+        path: realPath,
+        branch: item.branch,
+        isMain: item.isMain,
+      });
+    } catch {
+      // Skip non-existent or inaccessible prunable entries
+    }
+  }
+  return out;
+}
+
+function detectGitBranchReadOnly(cwd: string): string | undefined {
+  const sym = runReadOnlyGitForVerify(cwd, ['symbolic-ref', '--short', 'HEAD']);
+  if (sym.ok && sym.stdout.trim()) {
+    return sym.stdout.trim();
+  }
+  const sha = runReadOnlyGitForVerify(cwd, ['rev-parse', '--short', 'HEAD']);
+  if (sha.ok && sha.stdout.trim()) {
+    return `detached@${sha.stdout.trim()}`;
+  }
+  return undefined;
+}
+
+/**
+ * Resolve and authorize the target execution directory for Verify Gate checks.
+ * - When `worktreePath` is omitted, returns the canonicalized `mainWorkspaceRoot`.
+ * - When `worktreePath` is provided, verifies it is not a symlink leaf and strictly matches
+ *   either `mainWorkspaceRoot` or an active Git worktree listed by `git worktree list --porcelain`
+ *   for `mainWorkspaceRoot` (with matching `realpathSync`). Refuses all arbitrary external paths.
+ */
+export function resolveAllowedVerifyTargetRoot(
+  mainWorkspaceRoot: string,
+  worktreePath?: string,
+): VerifyTargetResolution {
+  if (!mainWorkspaceRoot || typeof mainWorkspaceRoot !== 'string' || mainWorkspaceRoot.includes('\0')) {
+    throw new Error('Invalid mainWorkspaceRoot: must be a non-empty path without NUL bytes.');
+  }
+
+  let mainRealRoot: string;
+  try {
+    mainRealRoot = fs.realpathSync(path.resolve(mainWorkspaceRoot));
+    if (!fs.statSync(mainRealRoot).isDirectory()) {
+      throw new Error('Workspace root is not a directory.');
+    }
+  } catch (err) {
+    throw new Error(
+      `Invalid workspaceRoot "${mainWorkspaceRoot}": ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  if (worktreePath === undefined || worktreePath.trim() === '') {
+    const branch = detectGitBranchReadOnly(mainRealRoot);
+    return {
+      targetRoot: mainRealRoot,
+      isWorktree: false,
+      ...(branch ? { branch } : {}),
+    };
+  }
+
+  const trimmed = worktreePath.trim();
+  if (trimmed.includes('\0')) {
+    throw new Error('Invalid worktreePath: NUL byte is disallowed.');
+  }
+
+  const resolvedCandidate = path.resolve(trimmed);
+  let candidateLstat: fs.Stats;
+  try {
+    candidateLstat = fs.lstatSync(resolvedCandidate);
+  } catch {
+    throw new Error(`Verify target worktree does not exist or is inaccessible: ${trimmed}`);
+  }
+  if (candidateLstat.isSymbolicLink()) {
+    throw new Error(`Refused: verify target worktree "${trimmed}" must not be a symbolic link.`);
+  }
+  if (!candidateLstat.isDirectory()) {
+    throw new Error(`Refused: verify target worktree "${trimmed}" is not a directory.`);
+  }
+
+  const realCandidate = fs.realpathSync(resolvedCandidate);
+  const worktrees = listVerifyWorktreesReadOnly(mainRealRoot);
+
+  if (realCandidate === mainRealRoot) {
+    const matchedMain = worktrees.find((w) => w.path === mainRealRoot);
+    const branch = matchedMain?.branch ?? detectGitBranchReadOnly(mainRealRoot);
+    return {
+      targetRoot: mainRealRoot,
+      isWorktree: false,
+      ...(branch ? { branch } : {}),
+      worktreePath: mainRealRoot,
+    };
+  }
+
+  const matched = worktrees.find((w) => w.path === realCandidate);
+  if (!matched) {
+    throw new Error(
+      `Refused: "${trimmed}" is not the workspace root or a registered Git worktree for this repository.`,
+    );
+  }
+
+  const branch = matched.branch ?? detectGitBranchReadOnly(matched.path);
+  return {
+    targetRoot: matched.path,
+    isWorktree: !matched.isMain,
+    ...(branch ? { branch } : {}),
+    worktreePath: matched.path,
+  };
+}
+
 export async function runVerifyChecksLive(
   moduleDataDir: string,
   workspaceRoot: string,
@@ -1739,11 +2074,23 @@ export async function runVerifyChecksLive(
     commandId?: string;
     conversationId?: string;
     trigger?: VerifyTrigger;
+    worktreePath?: string;
   } = {},
 ): Promise<
   | { ok: true; run: VerifyEvidenceRecord; state: VerifyStateFile }
   | { ok: false; error: string }
 > {
+  let targetResolution: VerifyTargetResolution;
+  try {
+    targetResolution = resolveAllowedVerifyTargetRoot(workspaceRoot, options.worktreePath);
+  } catch (err) {
+    return {
+      ok: false,
+      error: redactVerifyOutput(err instanceof Error ? err.message : String(err)),
+    };
+  }
+
+  const executionRoot = targetResolution.targetRoot;
   const initialState = loadVerifyStateReadOnly(moduleDataDir);
   let targetCommands: VerifyCommandSpec[];
 
@@ -1763,7 +2110,7 @@ export async function runVerifyChecksLive(
     initialLastEditAt.set(id, sess.lastEditAt);
   }
 
-  const runOut = await runVerifyCommands(targetCommands, workspaceRoot);
+  const runOut = await runVerifyCommands(targetCommands, executionRoot);
   const nowIso = new Date().toISOString();
   const convId = options.conversationId?.trim() || 'manual';
 
@@ -1772,7 +2119,7 @@ export async function runVerifyChecksLive(
 
   let realWorkspace: string | undefined;
   try {
-    realWorkspace = resolveRealPathWithMissingTail(workspaceRoot);
+    realWorkspace = resolveRealPathWithMissingTail(executionRoot);
   } catch {
     realWorkspace = undefined;
   }
@@ -1801,7 +2148,7 @@ export async function runVerifyChecksLive(
   const dirtyFilesSet = new Set<string>();
   const emptyFilesSet = new Set<string>();
   for (const s of targetSessions) {
-    const curEmpty = scanEmptyWorkspaceFiles(s.workspaceRoot ?? workspaceRoot, [
+    const curEmpty = scanEmptyWorkspaceFiles(s.workspaceRoot ?? executionRoot, [
       ...s.dirtyFiles,
       ...s.emptyFiles,
     ]);
@@ -1849,6 +2196,10 @@ export async function runVerifyChecksLive(
     emptyFiles: [...emptyFilesSet],
     results: runOut.results,
     summary,
+    ...(targetResolution.branch ? { targetBranch: targetResolution.branch } : {}),
+    ...(options.worktreePath || targetResolution.isWorktree
+      ? { targetWorktree: executionRoot }
+      : {}),
   };
 
   appendEvidenceToState(state, record);
@@ -2335,5 +2686,308 @@ export function createDemoVerifyDetection(): DetectedWorkspaceVerifyResult {
   return {
     detectedStacks: ['node', 'typescript'],
     recommendations,
+  };
+}
+
+export interface PrDeliverySpecSummary {
+  specId: string;
+  title: string;
+  status: string;
+  mode?: string;
+  totalTasks: number;
+  doneTasks: number;
+  tasks: Array<{ id: string; title: string; status: string }>;
+}
+
+export interface BuildPrDeliverySummaryOptions {
+  workspaceRoot?: string;
+  worktreePath?: string;
+  branch?: string;
+  specSummary?: PrDeliverySpecSummary | null;
+  mode?: 'live' | 'demo';
+  evidenceId?: string;
+}
+
+export interface PrDeliverySummaryResult {
+  mode: 'live' | 'demo';
+  markdown: string;
+  passed: boolean;
+  branch?: string;
+  worktreePath?: string;
+  evidenceId?: string;
+  specId?: string;
+  checksTotal: number;
+  checksPassed: number;
+}
+
+const MAX_PR_SPEC_STATE_BYTES = 2 * 1024 * 1024; // 2 MiB read guard
+
+/**
+ * Pure read-only Spec loader for PR delivery evidence summary.
+ * Never creates directories or writes to disk; returns null when absent or invalid.
+ */
+export function loadSpecSummaryForPrReadOnly(rootDataDir: string): PrDeliverySpecSummary | null {
+  if (!rootDataDir || typeof rootDataDir !== 'string' || rootDataDir.includes('\0')) {
+    return null;
+  }
+  const specStatePath = path.join(getModuleDataDir(rootDataDir, 'spec'), 'state.json');
+  let st: fs.Stats;
+  try {
+    st = fs.lstatSync(specStatePath);
+  } catch {
+    return null;
+  }
+  if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_PR_SPEC_STATE_BYTES) {
+    return null;
+  }
+
+  let parsed: unknown;
+  try {
+    const noFollow = fs.constants.O_NOFOLLOW ?? 0;
+    const fd = fs.openSync(specStatePath, fs.constants.O_RDONLY | noFollow);
+    let raw = '';
+    try {
+      const fdStat = fs.fstatSync(fd);
+      if (!fdStat.isFile() || fdStat.size > MAX_PR_SPEC_STATE_BYTES) return null;
+      const buf = Buffer.alloc(fdStat.size);
+      let offset = 0;
+      while (offset < fdStat.size) {
+        const n = fs.readSync(fd, buf, offset, fdStat.size - offset, offset);
+        if (n <= 0) break;
+        offset += n;
+      }
+      raw = buf.subarray(0, offset).toString('utf8');
+    } finally {
+      fs.closeSync(fd);
+    }
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+  const obj = parsed as Record<string, unknown>;
+  const activeSpecId = typeof obj.activeSpecId === 'string' ? obj.activeSpecId.trim() : '';
+  if (!activeSpecId || !Array.isArray(obj.specs)) return null;
+
+  const matched = obj.specs.find(
+    (s): s is Record<string, unknown> =>
+      Boolean(s && typeof s === 'object' && !Array.isArray(s) && (s as Record<string, unknown>).id === activeSpecId),
+  );
+  if (!matched) return null;
+
+  const specId = typeof matched.id === 'string' ? matched.id : activeSpecId;
+  const title = redactVerifyOutput(
+    typeof matched.title === 'string' && matched.title.trim() ? matched.title.trim() : specId,
+  ).slice(0, 180);
+  const status = typeof matched.status === 'string' && matched.status.trim() ? matched.status.trim() : 'draft';
+  const mode = typeof matched.mode === 'string' && matched.mode.trim() ? matched.mode.trim() : undefined;
+
+  const rawTasks = Array.isArray(matched.tasks) ? matched.tasks : [];
+  const tasks: Array<{ id: string; title: string; status: string }> = [];
+  for (const rawTask of rawTasks.slice(0, 100)) {
+    if (!rawTask || typeof rawTask !== 'object' || Array.isArray(rawTask)) continue;
+    const t = rawTask as Record<string, unknown>;
+    const taskId = typeof t.id === 'string' && t.id.trim() ? t.id.trim() : `t-${tasks.length + 1}`;
+    const taskTitle = redactVerifyOutput(
+      typeof t.title === 'string' && t.title.trim() ? t.title.trim() : taskId,
+    ).slice(0, 200);
+    const taskStatus =
+      typeof t.status === 'string' && t.status.trim() ? t.status.trim() : 'pending';
+    tasks.push({ id: taskId, title: taskTitle, status: taskStatus });
+  }
+
+  const doneTasks = tasks.filter((t) => t.status === 'done').length;
+  return {
+    specId,
+    title,
+    status,
+    ...(mode ? { mode } : {}),
+    totalTasks: tasks.length,
+    doneTasks,
+    tasks,
+  };
+}
+
+export function createDemoSpecSummaryForPr(): PrDeliverySpecSummary {
+  const tasks = [
+    { id: 't1', title: 'Configure allowlisted typecheck and unit test commands', status: 'done' },
+    { id: 't2', title: 'Enforce Stop-hook verification gate with anti-loop guardrail', status: 'done' },
+    { id: 't3', title: 'Generate redacted PR delivery evidence summary', status: 'done' },
+  ];
+  return {
+    specId: 'spec-verify-pipeline',
+    title: 'Verify Gate & PR Evidence Pipeline',
+    status: 'approved',
+    mode: 'full',
+    totalTasks: tasks.length,
+    doneTasks: tasks.length,
+    tasks,
+  };
+}
+
+function formatSafeWorktreeLabel(
+  worktreePath: string | undefined,
+  workspaceRoot: string | undefined,
+): string | undefined {
+  if (!worktreePath || !worktreePath.trim()) return undefined;
+  if (workspaceRoot && workspaceRoot.trim()) {
+    try {
+      const realRoot = resolveRealPathWithMissingTail(workspaceRoot);
+      const realWt = resolveRealPathWithMissingTail(worktreePath);
+      if (realWt === realRoot) return 'workspace root';
+      const rel = path.relative(realRoot, realWt).split(path.sep).join('/');
+      if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) {
+        return rel;
+      }
+    } catch {
+      // Fall back to basename
+    }
+  }
+  return path.basename(worktreePath) || 'worktree';
+}
+
+function escapeMdTableCell(text: string): string {
+  return text.replace(/\|/g, '\\|').replace(/\r?\n+/g, ' ').trim();
+}
+
+/**
+ * Pure read-only generator for a sanitized Markdown PR delivery evidence block.
+ * Combines latest Verify Gate evidence, target branch/worktree metadata, and active Spec progress.
+ * Redacts all secret patterns and never performs any disk writes.
+ */
+export function buildPrDeliverySummary(
+  state: VerifyStateFile,
+  opts: BuildPrDeliverySummaryOptions = {},
+): PrDeliverySummaryResult {
+  const mode: 'live' | 'demo' = opts.mode ?? 'live';
+  const evidenceList = Array.isArray(state.evidence) ? state.evidence : [];
+
+  let chosen: VerifyEvidenceRecord | undefined;
+  if (opts.evidenceId) {
+    chosen = evidenceList.find((e) => e.id === opts.evidenceId);
+  }
+  if (!chosen && opts.worktreePath) {
+    let normalizedWanted = opts.worktreePath;
+    try {
+      normalizedWanted = resolveRealPathWithMissingTail(opts.worktreePath);
+    } catch {
+      // keep raw
+    }
+    chosen = evidenceList.find((e) => {
+      if (!e.targetWorktree) return false;
+      try {
+        return resolveRealPathWithMissingTail(e.targetWorktree) === normalizedWanted;
+      } catch {
+        return e.targetWorktree === normalizedWanted;
+      }
+    });
+  }
+  if (!chosen) {
+    chosen = evidenceList[0];
+  }
+
+  const branch = opts.branch || chosen?.targetBranch;
+  const effectiveWorktree = opts.worktreePath || chosen?.targetWorktree;
+  const safeWorktreeLabel = formatSafeWorktreeLabel(effectiveWorktree, opts.workspaceRoot);
+  const spec = opts.specSummary ?? null;
+
+  const results = chosen?.results ?? [];
+  const checksTotal = results.length;
+  const checksPassed = results.filter((r) => r.passed).length;
+  const passed = Boolean(chosen?.passed);
+
+  const statusBadge = !chosen
+    ? 'NOT RUN'
+    : chosen.outcome === 'pass'
+      ? 'PASS'
+      : chosen.outcome === 'blocked'
+        ? 'BLOCKED'
+        : chosen.outcome === 'guardrail-allow'
+          ? 'GUARDRAIL-ALLOW'
+          : 'FAIL';
+
+  const lines: string[] = [
+    '## PR Delivery Verification Evidence',
+    '',
+    `- **Verify Gate Status**: \`${statusBadge}\`${chosen ? ` (\`${chosen.id}\`, ${chosen.durationMs}ms, ${chosen.timestamp})` : ''}`,
+  ];
+
+  if (branch || safeWorktreeLabel) {
+    const targetParts: string[] = [];
+    if (branch) targetParts.push(`Branch: \`${branch}\``);
+    if (safeWorktreeLabel) targetParts.push(`Worktree: \`${safeWorktreeLabel}\``);
+    lines.push(`- **Target**: ${targetParts.join(' · ')}`);
+  }
+
+  if (spec) {
+    const modeTag = spec.mode ? ` · \`${spec.mode}\`` : '';
+    lines.push(
+      `- **Active Spec**: \`${spec.specId}\` — ${spec.title} (\`${spec.status}\`${modeTag}, ${spec.doneTasks}/${spec.totalTasks} tasks done)`,
+    );
+  }
+
+  if (chosen?.summary) {
+    lines.push(`- **Summary**: ${redactVerifyOutput(chosen.summary)}`);
+  }
+
+  lines.push('');
+  lines.push('### Verification Checks');
+  lines.push('');
+
+  if (!chosen) {
+    lines.push('_No verification runs recorded yet._');
+  } else if (results.length === 0) {
+    lines.push('_No enabled verification commands were executed in this run._');
+  } else {
+    lines.push('| Status | Check | Command | Exit | Duration | Notes |');
+    lines.push('| --- | --- | --- | --- | --- | --- |');
+    for (const r of results) {
+      const cmdStr = escapeMdTableCell(`${r.executable} ${r.args.join(' ')}`.trim());
+      const exitStr = r.timedOut ? 'TIMEOUT' : r.exitCode === null ? 'ERR' : String(r.exitCode);
+      const snippet = formatFailureTailSnippet(r.outputTail || r.error || '', 2, 140);
+      const notes = snippet ? escapeMdTableCell(snippet) : '—';
+      lines.push(
+        `| ${r.passed ? 'PASS' : 'FAIL'} | ${escapeMdTableCell(r.label || r.commandId)} | \`${cmdStr}\` | ${exitStr} | ${r.durationMs}ms | ${notes} |`,
+      );
+    }
+  }
+
+  if (spec && spec.tasks.length > 0) {
+    lines.push('');
+    lines.push('### Spec Compliance Progress');
+    lines.push('');
+    for (const t of spec.tasks) {
+      const mark = t.status === 'done' ? 'x' : ' ';
+      lines.push(`- [${mark}] \`${t.id}\`: ${t.title} _(${t.status})_`);
+    }
+  }
+
+  if (chosen && chosen.dirtyFiles.length > 0) {
+    lines.push('');
+    lines.push(
+      `### Verified Files (${chosen.dirtyFiles.length})`,
+    );
+    lines.push('');
+    for (const file of chosen.dirtyFiles.slice(0, 20)) {
+      lines.push(`- \`${file}\``);
+    }
+    if (chosen.dirtyFiles.length > 20) {
+      lines.push(`- _... and ${chosen.dirtyFiles.length - 20} more file(s)_`);
+    }
+  }
+
+  const finalMarkdown = redactVerifyOutput(lines.join('\n'));
+
+  return {
+    mode,
+    markdown: finalMarkdown,
+    passed,
+    ...(branch ? { branch } : {}),
+    ...(effectiveWorktree ? { worktreePath: effectiveWorktree } : {}),
+    ...(chosen?.id ? { evidenceId: chosen.id } : {}),
+    ...(spec?.specId ? { specId: spec.specId } : {}),
+    checksTotal,
+    checksPassed,
   };
 }

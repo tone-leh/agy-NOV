@@ -22,6 +22,16 @@ export function renderMobilePwaHtml(): string {
     .pill.warn { color:var(--warn); background:rgba(245,158,11,0.16); }
     .pill.ro { color:var(--good); background:rgba(16,185,129,0.14); border:1px solid rgba(16,185,129,0.35); font-size:10px; }
     .pill.err { color:#fda4af; background:rgba(244,63,94,0.16); }
+    .pill.risk-high { color:#fecdd3; background:rgba(244,63,94,0.22); border:1px solid rgba(244,63,94,0.45); font-weight:700; }
+    .pill.risk-medium { color:#fde68a; background:rgba(245,158,11,0.2); border:1px solid rgba(245,158,11,0.42); font-weight:700; }
+    .pill.risk-low { color:#a7f3d0; background:rgba(16,185,129,0.18); border:1px solid rgba(16,185,129,0.38); font-weight:700; }
+    .pill.v-pass { color:#6ee7b7; background:rgba(16,185,129,0.16); border:1px solid rgba(16,185,129,0.35); }
+    .pill.v-fail { color:#fda4af; background:rgba(244,63,94,0.18); border:1px solid rgba(244,63,94,0.38); }
+    .pill.v-blocked { color:#fcd34d; background:rgba(245,158,11,0.18); border:1px solid rgba(245,158,11,0.38); }
+    .pill.v-muted { color:var(--muted); background:#0b111b; border:1px solid var(--border); }
+    .risk-meta { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:7px; }
+    .risk-target { font-size:12px; color:var(--fg); margin-top:6px; word-break:break-word; }
+    .risk-verify-note { font-size:11px; color:var(--muted); margin-top:4px; word-break:break-word; }
     .item { background:var(--card2); border:1px solid var(--border); border-radius:11px; padding:10px; margin-bottom:8px; }
     .item-head { display:flex; justify-content:space-between; gap:8px; align-items:center; }
     .conv-trigger { width:100%; background:transparent; color:inherit; border:none; padding:0; text-align:left; font:inherit; cursor:pointer; }
@@ -181,6 +191,21 @@ export function renderMobilePwaHtml(): string {
         }
       }
 
+      function riskBadgeMeta(level) {
+        if (level === 'high') return { cls: 'pill risk-high', label: 'HIGH' };
+        if (level === 'medium') return { cls: 'pill risk-medium', label: 'MED' };
+        if (level === 'low') return { cls: 'pill risk-low', label: 'LOW' };
+        return { cls: 'pill warn', label: 'ACTION' };
+      }
+
+      function verifyBadgeMeta(status) {
+        if (status === 'pass') return { cls: 'pill v-pass', label: 'Verify: PASS' };
+        if (status === 'fail') return { cls: 'pill v-fail', label: 'Verify: FAIL' };
+        if (status === 'blocked') return { cls: 'pill v-blocked', label: 'Verify: BLOCKED' };
+        if (status === 'idle') return { cls: 'pill v-muted', label: 'Verify: IDLE' };
+        return { cls: 'pill v-muted', label: 'Verify: UNKNOWN' };
+      }
+
       function renderApprovals(list) {
         const pending = (Array.isArray(list) ? list : []).filter(function (a) {
           return a && a.status === 'pending';
@@ -194,14 +219,43 @@ export function renderMobilePwaHtml(): string {
         const nodes = pending.map(function (a) {
           const item = document.createElement('div');
           item.className = 'item';
+          const rc = a && typeof a.riskCard === 'object' && a.riskCard ? a.riskCard : null;
 
           const head = document.createElement('div');
           head.className = 'item-head';
           head.appendChild(createTextElement('strong', '', String(a.toolName || 'tool')));
-          head.appendChild(createTextElement('span', 'pill warn', 'Action Needed'));
+          const rb = rc ? riskBadgeMeta(String(rc.riskLevel || '')) : { cls: 'pill warn', label: 'Action Needed' };
+          head.appendChild(createTextElement('span', rb.cls, rb.label));
           item.appendChild(head);
 
-          item.appendChild(createTextElement('div', 'cmd', String(a.summary || '')));
+          if (rc) {
+            const metaRow = document.createElement('div');
+            metaRow.className = 'risk-meta';
+            const filesCount =
+              typeof rc.affectedFilesCount === 'number' && isFinite(rc.affectedFilesCount)
+                ? Math.max(0, Math.floor(rc.affectedFilesCount))
+                : 0;
+            metaRow.appendChild(
+              createTextElement('span', 'pill', String(filesCount) + (filesCount === 1 ? ' file' : ' files')),
+            );
+            const vb = verifyBadgeMeta(String(rc.verifyStatus || 'unknown'));
+            metaRow.appendChild(createTextElement('span', vb.cls, vb.label));
+            item.appendChild(metaRow);
+
+            if (rc.targetSummary) {
+              item.appendChild(createTextElement('div', 'risk-target', String(rc.targetSummary)));
+            }
+            if (rc.commandPreview) {
+              item.appendChild(createTextElement('div', 'cmd', String(rc.commandPreview)));
+            } else if (a.summary) {
+              item.appendChild(createTextElement('div', 'cmd', String(a.summary)));
+            }
+            if (rc.verifySummary) {
+              item.appendChild(createTextElement('div', 'risk-verify-note', 'Verify: ' + String(rc.verifySummary)));
+            }
+          } else {
+            item.appendChild(createTextElement('div', 'cmd', String(a.summary || '')));
+          }
 
           const row = document.createElement('div');
           row.className = 'row';

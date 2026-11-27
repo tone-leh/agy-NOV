@@ -49,6 +49,19 @@ export interface RuntimeInfo {
   startedAt: string;
 }
 
+export type ApprovalRiskLevel = 'high' | 'medium' | 'low';
+
+export type ApprovalVerifyStatus = 'pass' | 'fail' | 'blocked' | 'idle' | 'unknown';
+
+export interface ApprovalRiskCard {
+  riskLevel: ApprovalRiskLevel;
+  affectedFilesCount: number;
+  targetSummary: string;
+  commandPreview?: string;
+  verifyStatus: ApprovalVerifyStatus;
+  verifySummary?: string;
+}
+
 export interface ApprovalRequest {
   id: string;
   conversationId: string;
@@ -60,7 +73,10 @@ export interface ApprovalRequest {
   status: 'pending' | 'approved' | 'denied' | 'expired';
   decidedBy?: string;
   decidedAt?: string;
+  riskCard?: ApprovalRiskCard;
 }
+
+export type PendingApproval = ApprovalRequest;
 
 export interface AuditEntry {
   id: string;

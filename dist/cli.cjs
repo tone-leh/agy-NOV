@@ -3671,7 +3671,7 @@ ${footerLine}`;
 }
 
 // src/server/cli.ts
-var CLI_VERSION = "0.8.0";
+var CLI_VERSION = "0.9.0";
 function printHelp() {
   console.log(`agy-NOV CLI (v${CLI_VERSION}) \u2014 The 100% Native Modular Super-Workbench for Antigravity 2.0
 
@@ -4032,6 +4032,12 @@ function runDoctor(dataDir) {
     "mcp_config.json",
     "hooks.json",
     "skills/agy-nov/SKILL.md",
+    "skills/nov-spec/SKILL.md",
+    "skills/nov-debug/SKILL.md",
+    "skills/nov-review/SKILL.md",
+    "skills/nov-handoff/SKILL.md",
+    "agents/nov-blind-reviewer.md",
+    "agents/nov-security-auditor.md",
     "assets/logo.svg",
     "dist/server.cjs",
     "dist/hook.cjs",

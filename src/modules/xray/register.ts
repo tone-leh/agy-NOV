@@ -10,6 +10,11 @@ import {
   renderUsageCsv,
 } from './analytics.js';
 import {
+  buildCleanForkPack,
+  CLEAN_FORK_HARD_MAX_BYTES,
+  CLEAN_FORK_MIN_MAX_BYTES,
+} from './clean-fork.js';
+import {
   listSessions,
   loadSessionDetail,
   readLiveHookState,
@@ -418,6 +423,39 @@ export function registerXrayModule(
     },
   );
 
+  server.registerTool(
+    'app_xray_build_clean_fork_pack',
+    {
+      title: 'Build Clean Fork Context Pack (App Only)',
+      description:
+        'Aggregate a read-only, secret-redacted Clean Fork continuation pack combining X-Ray handoff, active Spec ready tasks, and core Mem code anchors within a bounded UTF-8 byte budget.',
+      inputSchema: {
+        conversationId: z.string().optional(),
+        maxBytes: z
+          .number()
+          .int()
+          .min(CLEAN_FORK_MIN_MAX_BYTES)
+          .max(CLEAN_FORK_HARD_MAX_BYTES)
+          .optional(),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ conversationId, maxBytes }) => {
+      const pack = buildCleanForkPack({
+        rootDataDir: opts.dataDir,
+        workspaceRoot: opts.workspaceRoot,
+        brainDir: opts.brainDir,
+        demoMode: opts.demoMode,
+        conversationId,
+        maxBytes,
+      });
+      return {
+        content: [{ type: 'text', text: pack.promptMarkdown }],
+        structuredContent: { ...pack },
+      };
+    },
+  );
+
   return {
     moduleId: 'xray',
     modelTools: [
@@ -430,6 +468,7 @@ export function registerXrayModule(
       'app_xray_list_sessions',
       'app_xray_get_session_detail',
       'app_xray_get_cost_analytics',
+      'app_xray_build_clean_fork_pack',
     ],
   };
 }

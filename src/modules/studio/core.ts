@@ -428,6 +428,10 @@ export function isSensitiveStudioPath(relPathInput: string): boolean {
 
   const ext = path.posix.extname(lowerBase);
   if (SENSITIVE_EXTENSIONS.has(ext)) return true;
+  // Catch double-extension sensitive files such as `config.env.csv` or `cert.pem.csv`
+  if (/(?:\.env(?:$|\.)|\.(?:pem|key|p12|pfx|jks|keystore)(?:$|\.))/.test(lowerBase)) {
+    return true;
+  }
 
   return false;
 }

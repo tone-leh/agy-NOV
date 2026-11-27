@@ -1111,6 +1111,7 @@ describe('Verify Gate — McpServer registration, tool contract & dynamic enable
       assert.deepEqual(reg.exemptReadOnlyAppTools, [
         'app_verify_get_state',
         'app_verify_detect_commands',
+        'app_verify_pr_summary',
       ]);
 
       const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -1130,6 +1131,7 @@ describe('Verify Gate — McpServer registration, tool contract & dynamic enable
           'app_verify_run_checks',
           'app_verify_clear_history',
           'app_verify_detect_commands',
+          'app_verify_pr_summary',
         ];
         assert.deepEqual(
           listed.tools.map((t) => t.name),

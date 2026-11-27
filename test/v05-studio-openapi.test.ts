@@ -509,7 +509,7 @@ describe('v0.5.0 Studio OpenAPI 2.0 / 3.x parser & loopback endpoint collection'
         reg.modelTools.map((t) => t.name),
         MODULE_CATALOG.studio.modelToolNames,
       );
-      assert.deepEqual(reg.exemptReadOnlyAppTools, ['app_studio_list_sources']);
+      assert.deepEqual(reg.exemptReadOnlyAppTools, ['app_studio_list_sources', 'app_nov_file_viewer']);
 
       const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
       const client = new Client({ name: 'studio-openapi-client', version: '0.5.0' });

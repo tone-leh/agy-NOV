@@ -1401,6 +1401,181 @@
   flex-wrap: wrap;
 }
 
+/* Two-Stage Review (Stage 1 Spec Compliance + Stage 2 Code Quality) */
+.mod-review .rv-worktree-select {
+  max-width: 210px;
+  font-family: var(--nov-font-mono);
+  font-size: 11.5px;
+}
+
+.mod-review .rv-twostage-bar {
+  flex: 0 0 auto;
+  background: var(--nov-bg-1);
+  border-bottom: 1px solid var(--nov-border);
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mod-review .rv-twostage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mod-review .rv-twostage-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  border: 0;
+  background: transparent;
+  color: var(--nov-text-0);
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.mod-review .rv-twostage-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--nov-border);
+  background: var(--nov-bg-2);
+  color: var(--nov-text-1);
+}
+
+.mod-review .rv-twostage-pill.is-spec {
+  border-color: var(--nov-accent);
+  background: var(--nov-accent-soft);
+  color: var(--nov-accent);
+}
+
+.mod-review .rv-twostage-pill.is-code {
+  border-color: var(--rv-cat-bug);
+  color: var(--rv-cat-bug);
+}
+
+.mod-review .rv-twostage-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.mod-review .rv-twostage-col {
+  background: var(--nov-bg-0);
+  border: 1px solid var(--nov-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.mod-review .rv-twostage-col-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--nov-text-0);
+}
+
+.mod-review .rv-twostage-meta {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--nov-text-2);
+}
+
+.mod-review .rv-twostage-spec-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nov-text-0);
+}
+
+.mod-review .rv-twostage-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mod-review .rv-twostage-check-item label {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11.5px;
+  cursor: pointer;
+  color: var(--nov-text-1);
+}
+
+.mod-review .rv-twostage-check-item code {
+  font-family: var(--nov-font-mono);
+  font-size: 10.5px;
+  color: var(--nov-accent);
+}
+
+.mod-review .rv-twostage-check-item .is-done {
+  text-decoration: line-through;
+  color: var(--nov-text-2);
+}
+
+.mod-review .rv-twostage-status {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--nov-text-2);
+}
+
+.mod-review .rv-twostage-cat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.mod-review .rv-twostage-cat {
+  font-family: var(--nov-font-mono);
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--nov-border);
+  color: var(--nov-text-2);
+}
+
+.mod-review .rv-twostage-cat.has-items.is-security {
+  border-color: var(--rv-cat-security);
+  color: var(--rv-cat-security);
+}
+
+.mod-review .rv-twostage-cat.has-items.is-bug {
+  border-color: var(--rv-cat-bug);
+  color: var(--rv-cat-bug);
+}
+
+.mod-review .rv-twostage-cat.has-items.is-refactor {
+  border-color: var(--rv-cat-refactor);
+  color: var(--rv-cat-refactor);
+}
+
+.mod-review .rv-twostage-cat.has-items.is-question {
+  border-color: var(--rv-cat-question);
+  color: var(--rv-cat-question);
+}
+
+.mod-review .rv-twostage-empty {
+  font-size: 11.5px;
+  color: var(--nov-text-2);
+}
+
 @media (max-width: 560px) {
   .mod-review .rv-btn-label-sm {
     display: none;

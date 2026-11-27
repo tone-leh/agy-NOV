@@ -1,8 +1,12 @@
 import crypto from 'node:crypto';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import path from 'node:path';
 import type {
   ApprovalRequest,
+  ApprovalRiskCard,
+  ApprovalRiskLevel,
+  ApprovalVerifyStatus,
   AuditEntry,
   GatewayStatus,
   PublicGatewayStatus,
@@ -23,12 +27,77 @@ import {
 import { broadcastChannels, type ChannelSendOptions } from './channels.js';
 import { ConversationClient } from './conversation-client.js';
 import {
+  buildApprovalRiskCard,
+  MAX_RISK_COMMAND_PREVIEW_CHARS,
+  MAX_RISK_TARGET_SUMMARY_CHARS,
+  MAX_RISK_VERIFY_SUMMARY_CHARS,
+  type BuildApprovalRiskCardParams,
+} from './hook.js';
+import {
   clampLiveStreamLimit,
   InvalidConversationIdError,
   isValidConversationId,
   readConversationLiveStream,
+  redactLiveStreamText,
 } from './live-stream.js';
 import { renderMobilePwaHtml } from './mobile-pwa.js';
+
+export { buildApprovalRiskCard, type BuildApprovalRiskCardParams };
+
+const VALID_RISK_LEVELS = new Set<ApprovalRiskLevel>(['high', 'medium', 'low']);
+const VALID_VERIFY_STATUSES = new Set<ApprovalVerifyStatus>([
+  'pass',
+  'fail',
+  'blocked',
+  'idle',
+  'unknown',
+]);
+
+function deriveRootDataDir(moduleDataDir: string): string | undefined {
+  const resolved = path.resolve(moduleDataDir);
+  const parent = path.dirname(resolved);
+  if (path.basename(parent) === 'modules') {
+    return path.dirname(parent);
+  }
+  return undefined;
+}
+
+function sanitizeCardLine(raw: unknown, maxChars: number): string {
+  if (typeof raw !== 'string') return '';
+  const cleaned = redactLiveStreamText(raw).replace(/\s+/g, ' ').trim();
+  if (cleaned.length <= maxChars) return cleaned;
+  return `${cleaned.slice(0, Math.max(1, maxChars - 1)).trimEnd()}…`;
+}
+
+function sanitizeIncomingRiskCard(raw: unknown): ApprovalRiskCard | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.riskLevel !== 'string' || !VALID_RISK_LEVELS.has(r.riskLevel as ApprovalRiskLevel)) {
+    return undefined;
+  }
+  const verifyStatus: ApprovalVerifyStatus =
+    typeof r.verifyStatus === 'string' &&
+    VALID_VERIFY_STATUSES.has(r.verifyStatus as ApprovalVerifyStatus)
+      ? (r.verifyStatus as ApprovalVerifyStatus)
+      : 'unknown';
+  const affectedFilesCount =
+    typeof r.affectedFilesCount === 'number' && Number.isFinite(r.affectedFilesCount)
+      ? Math.max(0, Math.floor(r.affectedFilesCount))
+      : 0;
+  const targetSummary = sanitizeCardLine(r.targetSummary, MAX_RISK_TARGET_SUMMARY_CHARS);
+  if (!targetSummary) return undefined;
+  const commandPreview = sanitizeCardLine(r.commandPreview, MAX_RISK_COMMAND_PREVIEW_CHARS);
+  const verifySummary = sanitizeCardLine(r.verifySummary, MAX_RISK_VERIFY_SUMMARY_CHARS);
+
+  return {
+    riskLevel: r.riskLevel as ApprovalRiskLevel,
+    affectedFilesCount,
+    targetSummary,
+    ...(commandPreview ? { commandPreview } : {}),
+    verifyStatus,
+    ...(verifySummary ? { verifySummary } : {}),
+  };
+}
 
 export const MAX_BODY_BYTES = 64 * 1024; // 64 KiB hard limit
 export const MAX_APPROVALS_RETAINED = 100;
@@ -43,6 +112,7 @@ export interface GatewayOptions {
   channelSendOptions?: ChannelSendOptions;
   demoMode?: boolean;
   brainDirs?: string[];
+  rootDataDir?: string;
 }
 
 interface PairRateState {
@@ -99,6 +169,7 @@ export class RemoteGateway {
   private readonly channelSendOptions?: ChannelSendOptions;
   private readonly demoMode: boolean;
   private readonly brainDirs?: string[];
+  private readonly rootDataDir?: string;
 
   constructor(
     private readonly dataDir: string,
@@ -112,6 +183,7 @@ export class RemoteGateway {
     this.channelSendOptions = options.channelSendOptions;
     this.demoMode = Boolean(options.demoMode);
     this.brainDirs = options.brainDirs;
+    this.rootDataDir = options.rootDataDir ?? deriveRootDataDir(dataDir);
 
     // Strictly read-only initialization: zero directories created, zero config.json written, zero timers started.
     const loaded = loadConfigReadOnly(dataDir);
@@ -323,18 +395,31 @@ export class RemoteGateway {
     summary: string;
     matchedRule: string;
     timeoutSec?: number;
+    toolInput?: Record<string, unknown> | string;
+    riskCard?: ApprovalRiskCard;
   }): Promise<ApprovalRequest> {
     const timeoutMs = Math.max(100, (input.timeoutSec ?? this.config.approvalTimeoutSec) * 1000);
     const now = this.nowFn();
+    const safeSummary = redactLiveStreamText(redactText(input.summary)).slice(0, 400);
+    const riskCard =
+      sanitizeIncomingRiskCard(input.riskCard) ??
+      buildApprovalRiskCard({
+        toolName: input.toolName,
+        toolInput: input.toolInput,
+        summary: safeSummary,
+        matchedRule: input.matchedRule,
+        rootDataDir: this.rootDataDir,
+      });
     const req: ApprovalRequest = {
       id: `apr_${crypto.randomBytes(6).toString('hex')}`,
       conversationId: input.conversationId,
       toolName: input.toolName,
-      summary: redactText(input.summary).slice(0, 400),
+      summary: safeSummary,
       matchedRule: input.matchedRule,
       createdAt: new Date(now).toISOString(),
       expiresAt: new Date(now + timeoutMs).toISOString(),
       status: 'pending',
+      riskCard,
     };
     this.approvals.set(req.id, req);
     this.pruneApprovals();
@@ -356,6 +441,7 @@ export class RemoteGateway {
           level: 'warn',
           // Send clean Mobile PWA base URL only; never attach long-lived Master Token to IM pushes
           actionUrl: pub.mobileUrl,
+          riskCard: req.riskCard,
         },
         this.channelSendOptions,
       );
@@ -672,6 +758,7 @@ export class RemoteGateway {
             summary: String(body.summary ?? ''),
             matchedRule: String(body.matchedRule ?? 'risk'),
             timeoutSec: Number(body.timeoutSec ?? this.config.approvalTimeoutSec),
+            riskCard: sanitizeIncomingRiskCard(body.riskCard),
           });
           const waitMs = Math.min(26_000, Number(body.waitMs ?? 24_000));
           const finalReq = waitMs > 0 ? await this.waitForApproval(created.id, waitMs) : created;

@@ -44,6 +44,10 @@ type ModulePanelComponent = React.FC<{
   onNotify?: (message: string) => void;
   incomingEvent?: ToolResultEvent | null;
   onOpenSettings?: (moduleId: ModuleId) => void;
+  onNavigateModule?: (
+    moduleId: ModuleId,
+    context?: { worktreePath?: string; branch?: string },
+  ) => void;
 }>;
 
 const MODULE_PANEL_REGISTRY: Record<ModuleId, ModulePanelComponent> = {
@@ -211,7 +215,12 @@ export const App: React.FC = () => {
     });
     const unsub = novBridge.onToolResult((evt) => {
       setLastEvent(evt);
-      const mapped = mapIncomingTargetToView(evt.structuredContent?.novModule);
+      const fileViewerTarget = (
+        evt.structuredContent?.fileViewer as { targetTab?: unknown } | undefined
+      )?.targetTab;
+      const mapped = mapIncomingTargetToView(
+        evt.structuredContent?.novModule ?? fileViewerTarget,
+      );
       if (mapped) {
         explicitTargetSeenRef.current = true;
         setActiveView(mapped);
@@ -357,6 +366,25 @@ export const App: React.FC = () => {
     setCmdOpen(true);
   }, []);
 
+  const handleNavigateModule = useCallback(
+    (moduleId: ModuleId, context?: { worktreePath?: string; branch?: string }) => {
+      explicitTargetSeenRef.current = true;
+      if (context && (context.worktreePath || context.branch)) {
+        setLastEvent({
+          toolName: 'nov_internal_navigate',
+          structuredContent: {
+            novModule: moduleId,
+            worktreePath: context.worktreePath,
+            branch: context.branch,
+            context,
+          },
+        });
+      }
+      setActiveView(moduleId);
+    },
+    [],
+  );
+
   const enabledModules = snapshot
     ? MODULE_IDS.filter((id) => snapshot.config.modules[id])
     : DEFAULT_ENABLED_MODULES;
@@ -444,8 +472,17 @@ export const App: React.FC = () => {
     activeView !== 'settings' &&
     MODULE_CATALOG[activeView].uiMode === 'full-height';
 
+  const hasMatchingFileViewer = Boolean(
+    activeView !== 'hub' &&
+      activeView !== 'settings' &&
+      lastEvent?.structuredContent?.fileViewer &&
+      (lastEvent.structuredContent.fileViewer as { targetTab?: unknown })?.targetTab === activeView,
+  );
+
   const ActiveModulePanel =
-    activeView !== 'hub' && activeView !== 'settings' && snapshot?.config.modules[activeView]
+    activeView !== 'hub' &&
+    activeView !== 'settings' &&
+    (snapshot?.config.modules[activeView] || hasMatchingFileViewer)
       ? MODULE_PANEL_REGISTRY[activeView]
       : null;
 
@@ -660,7 +697,8 @@ export const App: React.FC = () => {
           {snapshot &&
             activeView !== 'hub' &&
             activeView !== 'settings' &&
-            !snapshot.config.modules[activeView] && (
+            !snapshot.config.modules[activeView] &&
+            !hasMatchingFileViewer && (
               <div className="nov-disabled-notice">
                 <h3>
                   {formatMessage(dict.moduleOffTitle, { name: dict.modules[activeView].name })}
@@ -687,6 +725,7 @@ export const App: React.FC = () => {
                 setSettingsFocusModule(modId);
                 setActiveView('settings');
               }}
+              onNavigateModule={handleNavigateModule}
             />
           )}
         </main>

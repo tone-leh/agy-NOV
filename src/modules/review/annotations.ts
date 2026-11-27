@@ -96,12 +96,40 @@ export function sanitizeRepoKey(repoKey: string): string {
 
 export class AnnotationStore {
   private readonly sessionsDir: string;
+  private readonly inMemoryOnly: boolean;
+  private readonly inMemoryRepoKeys: Set<string>;
+  private readonly memoryFiles = new Map<string, RepoStoreFile>();
 
-  constructor(dataDir?: string) {
+  constructor(
+    dataDir?: string,
+    options: { inMemoryOnly?: boolean; inMemoryRepoKeys?: readonly string[] } = {},
+  ) {
     const baseDir = dataDir && dataDir.trim()
       ? path.resolve(dataDir.trim())
       : path.join(os.tmpdir(), 'agy-nov-review-data');
     this.sessionsDir = path.join(baseDir, 'sessions');
+    this.inMemoryOnly = Boolean(options.inMemoryOnly);
+    this.inMemoryRepoKeys = new Set(options.inMemoryRepoKeys ?? []);
+  }
+
+  private usesMemory(safeKey: string): boolean {
+    return this.inMemoryOnly || this.inMemoryRepoKeys.has(safeKey);
+  }
+
+  private cloneStoreFile(data: RepoStoreFile): RepoStoreFile {
+    const scopes: Record<string, ScopeState> = {};
+    for (const [k, v] of Object.entries(data.scopes)) {
+      scopes[k] = {
+        annotations: v.annotations.map((a) => ({ ...a })),
+        viewedFiles: [...v.viewedFiles],
+      };
+    }
+    return {
+      version: 1,
+      repoKey: data.repoKey,
+      updatedAt: data.updatedAt,
+      scopes,
+    };
   }
 
   private resolveStorePath(repoKey: string): string {
@@ -116,7 +144,6 @@ export class AnnotationStore {
 
   private loadRepoFile(repoKey: string): RepoStoreFile {
     const safeKey = sanitizeRepoKey(repoKey);
-    const filePath = this.resolveStorePath(safeKey);
     const empty: RepoStoreFile = {
       version: 1,
       repoKey: safeKey,
@@ -124,6 +151,12 @@ export class AnnotationStore {
       scopes: {},
     };
 
+    if (this.usesMemory(safeKey)) {
+      const mem = this.memoryFiles.get(safeKey);
+      return mem ? this.cloneStoreFile(mem) : empty;
+    }
+
+    const filePath = this.resolveStorePath(safeKey);
     if (!fs.existsSync(filePath)) {
       return empty;
     }
@@ -155,9 +188,14 @@ export class AnnotationStore {
   }
 
   private saveRepoFile(data: RepoStoreFile): void {
-    const filePath = this.resolveStorePath(data.repoKey);
-    ensurePrivateDir(this.sessionsDir);
+    const safeKey = sanitizeRepoKey(data.repoKey);
     data.updatedAt = new Date().toISOString();
+    if (this.usesMemory(safeKey)) {
+      this.memoryFiles.set(safeKey, this.cloneStoreFile(data));
+      return;
+    }
+    const filePath = this.resolveStorePath(safeKey);
+    ensurePrivateDir(this.sessionsDir);
     const tmpPath = `${filePath}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
     fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), { encoding: 'utf8', mode: 0o600 });
     fs.renameSync(tmpPath, filePath);

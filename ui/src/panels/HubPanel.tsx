@@ -11,6 +11,9 @@ import {
   type PresetId,
 } from '../../../src/core/catalog.js';
 import type {
+  CleanForkLaunchResult,
+  CleanForkPackPayload,
+  HostCapabilitiesSummary,
   NovBridge,
   NovConfigSnapshot,
   NovFeedAlert,
@@ -67,17 +70,91 @@ export const HubPanel: React.FC<HubPanelProps> = ({
   onApplyPreset,
   onChangeLocale,
   onOpenCommandPalette,
+  onNotify,
 }) => {
   const { dict, prefLocale } = useNovI18n();
   const [hubState, setHubState] = useState<NovHubStatePayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [showQuickStart, setShowQuickStart] = useState(!quickStartDismissedInMemory);
+  const [caps, setCaps] = useState<HostCapabilitiesSummary>(() => bridge.getCapabilities());
+  const [forkPack, setForkPack] = useState<CleanForkPackPayload | null>(null);
+  const [forkLoading, setForkLoading] = useState(false);
+  const [forkLaunching, setForkLaunching] = useState(false);
+  const [showForkPreview, setShowForkPreview] = useState(false);
+  const [lastFork, setLastFork] = useState<CleanForkLaunchResult | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    void bridge.ready().then(() => {
+      if (mounted) setCaps(bridge.getCapabilities());
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [bridge]);
+
+  const loadCleanForkPreview = useCallback(
+    async (silent = true): Promise<CleanForkPackPayload | null> => {
+      setForkLoading(true);
+      try {
+        const pack = await bridge.buildCleanForkPack({});
+        if (pack && typeof pack.promptMarkdown === 'string') {
+          setForkPack(pack);
+          return pack;
+        }
+        return null;
+      } catch (err) {
+        if (!silent) {
+          onNotify?.(err instanceof Error ? err.message : String(err));
+        }
+        return null;
+      } finally {
+        setForkLoading(false);
+      }
+    },
+    [bridge, onNotify],
+  );
+
+  const handleCleanForkLaunch = async () => {
+    if (forkLaunching) return;
+    setForkLaunching(true);
+    try {
+      const pack = (await loadCleanForkPreview(false)) ?? forkPack;
+      if (!pack || !pack.promptMarkdown) {
+        onNotify?.(dict.common.empty);
+        return;
+      }
+      const res = await bridge.startCleanFork(pack.promptMarkdown);
+      setLastFork(res);
+      if (res.mode === 'new_conversation') {
+        onNotify?.(
+          res.conversationId
+            ? `Clean Fork started in fresh session (${res.conversationId})`
+            : 'Clean Fork started in fresh session',
+        );
+      } else if (res.mode === 'context') {
+        onNotify?.('Clean Fork pack attached to model context (fallback)');
+      } else {
+        onNotify?.(`${dict.common.copied} · Clean Fork Pack`);
+      }
+    } catch (err) {
+      onNotify?.(err instanceof Error ? err.message : String(err));
+    } finally {
+      setForkLaunching(false);
+    }
+  };
 
   const loadHub = useCallback(async () => {
     setLoading(true);
     try {
-      const payload = await bridge.getHubState();
+      const [payload, pack] = await Promise.all([
+        bridge.getHubState(),
+        bridge.buildCleanForkPack({}).catch(() => null),
+      ]);
       setHubState(payload);
+      if (pack && typeof pack.promptMarkdown === 'string') {
+        setForkPack(pack);
+      }
     } catch {
       // Graceful fallback when running against an older server without nov_app_get_hub_state
       setHubState(null);
@@ -506,6 +583,93 @@ export const HubPanel: React.FC<HubPanelProps> = ({
               </button>
             )}
           </div>
+        )}
+      </section>
+
+      {/* Clean Fork (Fresh Session) Quick Launch */}
+      <section className="nov-p-card" aria-label="Clean Fork (Fresh Session)">
+        <div className="nov-p-row">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <h3 className="nov-section-title" style={{ margin: 0 }}>
+              Clean Fork (Fresh Session)
+            </h3>
+            <span className={`nov-badge ${caps.message ? 'is-offline' : 'is-network'}`}>
+              {caps.message ? 'New Session Ready' : 'Context / Copy Fallback'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="nov-p-btn is-primary"
+              disabled={forkLaunching || forkLoading}
+              onClick={() => void handleCleanForkLaunch()}
+            >
+              {forkLaunching ? dict.common.loading : 'Clean Fork (Fresh Session)'}
+            </button>
+            <button
+              type="button"
+              className="nov-p-btn"
+              disabled={forkLoading}
+              onClick={async () => {
+                if (!showForkPreview && !forkPack) {
+                  await loadCleanForkPreview(false);
+                }
+                setShowForkPreview((prev) => !prev);
+              }}
+            >
+              {showForkPreview ? 'Hide Preview' : 'Preview Pack'}
+            </button>
+          </div>
+        </div>
+        <p style={{ margin: '6px 0 8px', fontSize: 12, color: 'var(--nov-text-2)' }}>
+          {caps.message
+            ? 'Launches a clean background Antigravity conversation (target="new") preloaded with redacted Handoff, Spec Ready tasks, and Mem anchors.'
+            : 'Current host surface lacks direct new-session messaging; falls back to attaching the Clean Fork pack to model context or copying it to clipboard.'}
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+          <span className={`nov-badge ${forkPack?.sections.hasHandoff ? 'is-accent' : ''}`}>
+            Handoff: {forkPack ? (forkPack.sections.hasHandoff ? 'Ready' : 'None') : '—'}
+          </span>
+          <span className={`nov-badge ${forkPack?.sections.activeSpecTitle ? 'is-offline' : ''}`}>
+            Spec: {forkPack?.sections.activeSpecTitle ?? 'None'}
+          </span>
+          <span className="nov-badge">
+            Ready Tasks: {forkPack ? forkPack.sections.readyTasksCount : '—'}
+          </span>
+          <span className="nov-badge">
+            Mem Anchors: {forkPack ? forkPack.sections.memAnchorsCount : '—'}
+          </span>
+          {forkPack && (
+            <span className="nov-badge">
+              ~{formatCompactNumber(forkPack.estimatedTokens)} tok · {forkPack.totalBytes} B
+              {forkPack.truncated ? ' (Truncated)' : ''}
+            </span>
+          )}
+          {lastFork && (
+            <span className="nov-badge is-accent">
+              Last: {lastFork.mode}
+              {lastFork.conversationId ? ` (${lastFork.conversationId})` : ''}
+            </span>
+          )}
+        </div>
+        {showForkPreview && forkPack && (
+          <pre
+            style={{
+              marginTop: 8,
+              padding: 10,
+              maxHeight: 200,
+              overflow: 'auto',
+              borderRadius: 8,
+              border: '1px solid var(--nov-border)',
+              background: 'var(--nov-bg-0)',
+              fontFamily: 'var(--nov-font-mono)',
+              fontSize: 11,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
+            {forkPack.promptMarkdown}
+          </pre>
         )}
       </section>
 

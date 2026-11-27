@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   getModuleDataDir,
   loadNovConfigReadOnly,
@@ -9,9 +11,35 @@ import {
   matchRiskPattern,
   matchSensitivePath,
   readRuntimeInfo,
-  redactText,
 } from './config.js';
-import type { RemoteConfig, RuntimeInfo } from './types.js';
+import { redactLiveStreamText } from './live-stream.js';
+import type {
+  ApprovalRiskCard,
+  ApprovalRiskLevel,
+  ApprovalVerifyStatus,
+  RemoteConfig,
+  RuntimeInfo,
+} from './types.js';
+
+export const MAX_RISK_TARGET_SUMMARY_CHARS = 120;
+export const MAX_RISK_COMMAND_PREVIEW_CHARS = 160;
+export const MAX_RISK_VERIFY_SUMMARY_CHARS = 120;
+const MAX_VERIFY_STATE_BYTES = 2 * 1024 * 1024;
+
+const COMMAND_TOOL_RE = /(?:^|[_-])(?:run_command|command|shell|bash|zsh|sh|exec|terminal)(?:$|[_-])/i;
+const DELETE_TOOL_RE = /(?:^|[_-])(?:delete|remove|rm|unlink)(?:$|[_-])/i;
+
+const HIGH_RISK_COMMAND_PATTERNS: readonly RegExp[] = [
+  /\brm\s+(?:-[a-zA-Z]*(?:r[a-zA-Z]*f|f[a-zA-Z]*r)|-[a-zA-Z]*r\b[^;&|\r\n]{0,80}-[a-zA-Z]*f\b)/i,
+  /\bgit\s+push\b[^\r\n]{0,160}(?:--force(?:-with-lease)?|\s-f\b)/i,
+  /\bgit\s+reset\s+--hard\b/i,
+  /\bsudo\b/i,
+  /\b(?:drop|truncate)\s+(?:table|database|schema)\b/i,
+  /\b(?:curl|wget)\b[^\r\n]{0,240}\|\s*(?:(?:ba|z|da)?sh|python3?|node|perl|ruby)\b/i,
+  /\bchmod\s+(?:-R\s+)?777\b/i,
+  /\bmkfs\.[a-z0-9]+|\bdd\s+if=/i,
+  /\b(?:shutdown|reboot|poweroff|halt)\b/i,
+];
 
 const FILE_MUTATION_TOOLS = new Set([
   'delete_file',
@@ -38,6 +66,23 @@ const PATH_LIKE_KEYS = new Set([
   'paths',
   'uri',
 ]);
+
+const NESTED_FILE_CONTAINER_KEYS = new Set([
+  'edits',
+  'changes',
+  'operations',
+  'items',
+  'targets',
+]);
+
+export interface BuildApprovalRiskCardParams {
+  toolName: string;
+  toolInput?: Record<string, unknown> | string;
+  summary?: string;
+  matchedRule?: string;
+  rootDataDir?: string;
+  affectedFiles?: string[];
+}
 
 function normalizeToolArgs(raw: unknown): { obj: Record<string, unknown>; text: string } {
   if (raw === undefined || raw === null) {
@@ -103,10 +148,208 @@ function extractSummary(obj: Record<string, unknown>, fallbackText: string): str
   ];
   for (const val of candidates) {
     if (typeof val === 'string' && val.trim()) {
-      return redactText(val).slice(0, 260);
+      return redactLiveStreamText(val).slice(0, 260);
     }
   }
-  return redactText(fallbackText).slice(0, 260);
+  return redactLiveStreamText(fallbackText).slice(0, 260);
+}
+
+function collapseBoundedText(raw: string, maxChars: number): string {
+  const cleaned = redactLiveStreamText(raw).replace(/\s+/g, ' ').trim();
+  if (cleaned.length <= maxChars) return cleaned;
+  return `${cleaned.slice(0, Math.max(1, maxChars - 1)).trimEnd()}…`;
+}
+
+function extractStrictAffectedPaths(value: unknown, depth = 0, insidePathKey = false): string[] {
+  if (depth > 5 || value === null || value === undefined) return [];
+  if (typeof value === 'string') {
+    if (!insidePathKey) return [];
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
+  }
+  if (Array.isArray(value)) {
+    const out: string[] = [];
+    for (const item of value) {
+      out.push(...extractStrictAffectedPaths(item, depth + 1, insidePathKey));
+    }
+    return out;
+  }
+  if (typeof value === 'object') {
+    const out: string[] = [];
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      const lower = k.toLowerCase();
+      if (PATH_LIKE_KEYS.has(lower)) {
+        out.push(...extractStrictAffectedPaths(v, depth + 1, true));
+      } else if (NESTED_FILE_CONTAINER_KEYS.has(lower) || insidePathKey) {
+        out.push(...extractStrictAffectedPaths(v, depth + 1, false));
+      }
+    }
+    return out;
+  }
+  return [];
+}
+
+function extractCommandText(toolName: string, obj: Record<string, unknown>, summary?: string): string | undefined {
+  const rawCandidates = [obj.CommandLine, obj.commandLine, obj.command, obj.cmd, obj.script];
+  for (const val of rawCandidates) {
+    if (typeof val === 'string' && val.trim()) {
+      return val.trim();
+    }
+  }
+  if (COMMAND_TOOL_RE.test(toolName) && typeof summary === 'string' && summary.trim()) {
+    return summary.trim();
+  }
+  return undefined;
+}
+
+function hasHighRiskCommandSignature(text: string): boolean {
+  if (!text) return false;
+  for (const re of HIGH_RISK_COMMAND_PATTERNS) {
+    if (re.test(text)) return true;
+  }
+  return false;
+}
+
+function textMentionsSensitivePath(text: string): boolean {
+  if (!text) return false;
+  if (matchSensitivePath(text)) return true;
+  const tokens = text.split(/[\s"'`=;,()[\]{}]+/).filter(Boolean);
+  for (const tok of tokens) {
+    if (matchSensitivePath(tok)) return true;
+  }
+  return false;
+}
+
+function readVerifyStatusReadOnly(rootDataDir?: string): {
+  verifyStatus: ApprovalVerifyStatus;
+  verifySummary?: string;
+} {
+  if (!rootDataDir || !rootDataDir.trim()) {
+    return { verifyStatus: 'unknown' };
+  }
+  const statePath = path.join(getModuleDataDir(rootDataDir, 'verify'), 'state.json');
+  try {
+    const st = fs.lstatSync(statePath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size <= 0 || st.size > MAX_VERIFY_STATE_BYTES) {
+      return { verifyStatus: 'unknown' };
+    }
+    const parsed: unknown = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { verifyStatus: 'unknown' };
+    }
+    const rec = parsed as Record<string, unknown>;
+    const evidenceRaw = Array.isArray(rec.evidence) ? rec.evidence : [];
+    const latest = evidenceRaw.find(
+      (item): item is Record<string, unknown> =>
+        Boolean(item && typeof item === 'object' && !Array.isArray(item)),
+    );
+    if (!latest) {
+      return { verifyStatus: 'idle' };
+    }
+    const outcome = typeof latest.outcome === 'string' ? latest.outcome.toLowerCase() : '';
+    let verifyStatus: ApprovalVerifyStatus;
+    if (outcome === 'blocked' || latest.blocked === true) {
+      verifyStatus = 'blocked';
+    } else if (outcome === 'pass' || outcome === 'guardrail-allow' || latest.passed === true) {
+      verifyStatus = 'pass';
+    } else {
+      verifyStatus = 'fail';
+    }
+    const verifySummary =
+      typeof latest.summary === 'string' && latest.summary.trim()
+        ? collapseBoundedText(latest.summary, MAX_RISK_VERIFY_SUMMARY_CHARS)
+        : undefined;
+    return {
+      verifyStatus,
+      ...(verifySummary ? { verifySummary } : {}),
+    };
+  } catch {
+    return { verifyStatus: 'unknown' };
+  }
+}
+
+/**
+ * Pure deterministic risk-card builder for Remote 2.5 approvals.
+ * Performs strictly read-only inspection of verify/state.json (zero mkdir / zero disk writes)
+ * and linear O(n) secret redaction on all summaries and command previews.
+ */
+export function buildApprovalRiskCard(params: BuildApprovalRiskCardParams): ApprovalRiskCard {
+  const toolName = (params.toolName || 'unknown').trim() || 'unknown';
+  const normalized = normalizeToolArgs(params.toolInput);
+  const rawPaths = [
+    ...(Array.isArray(params.affectedFiles)
+      ? params.affectedFiles.filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
+      : []),
+    ...extractStrictAffectedPaths(normalized.obj),
+  ];
+
+  // If a file mutation tool was called without structured toolInput (e.g. gateway fallback), use summary when path-like
+  if (
+    rawPaths.length === 0 &&
+    FILE_MUTATION_TOOLS.has(toolName.toLowerCase()) &&
+    typeof params.summary === 'string' &&
+    params.summary.trim() &&
+    !/\s/.test(params.summary.trim())
+  ) {
+    rawPaths.push(params.summary.trim());
+  }
+
+  const uniquePaths = Array.from(new Set(rawPaths.map((p) => p.trim()).filter(Boolean)));
+  const affectedFilesCount = uniquePaths.length;
+
+  const commandRaw = extractCommandText(toolName, normalized.obj, params.summary);
+  const commandPreview = commandRaw
+    ? collapseBoundedText(commandRaw, MAX_RISK_COMMAND_PREVIEW_CHARS)
+    : undefined;
+
+  const matchedRule = (params.matchedRule ?? '').trim();
+  const isSensitiveTarget =
+    matchedRule.toLowerCase().startsWith('sensitive_path:') ||
+    uniquePaths.some((p) => Boolean(matchSensitivePath(p))) ||
+    textMentionsSensitivePath(commandRaw ?? '') ||
+    textMentionsSensitivePath(params.summary ?? '');
+
+  const isHighRiskCmd =
+    hasHighRiskCommandSignature(commandRaw ?? '') ||
+    hasHighRiskCommandSignature(params.summary ?? '') ||
+    hasHighRiskCommandSignature(matchedRule);
+
+  const isCommandTool = COMMAND_TOOL_RE.test(toolName) || Boolean(commandRaw);
+  const isDeleteTool = DELETE_TOOL_RE.test(toolName);
+
+  let riskLevel: ApprovalRiskLevel;
+  if (isHighRiskCmd || isSensitiveTarget || (isDeleteTool && affectedFilesCount > 1)) {
+    riskLevel = 'high';
+  } else if (isCommandTool || affectedFilesCount >= 2 || isDeleteTool) {
+    riskLevel = 'medium';
+  } else {
+    riskLevel = 'low';
+  }
+
+  let rawTargetSummary = '';
+  if (uniquePaths.length > 0) {
+    const first = uniquePaths[0];
+    rawTargetSummary =
+      uniquePaths.length > 1 ? `${first} (+${uniquePaths.length - 1} more)` : first;
+  } else if (commandRaw) {
+    rawTargetSummary = commandRaw;
+  } else if (params.summary && params.summary.trim()) {
+    rawTargetSummary = params.summary.trim();
+  } else {
+    rawTargetSummary = toolName;
+  }
+
+  const targetSummary = collapseBoundedText(rawTargetSummary, MAX_RISK_TARGET_SUMMARY_CHARS);
+  const { verifyStatus, verifySummary } = readVerifyStatusReadOnly(params.rootDataDir);
+
+  return {
+    riskLevel,
+    affectedFilesCount,
+    targetSummary,
+    ...(commandPreview ? { commandPreview } : {}),
+    verifyStatus,
+    ...(verifySummary ? { verifySummary } : {}),
+  };
 }
 
 /**
@@ -165,6 +408,13 @@ export async function handleRemotePreToolHook(
   }
 
   const summary = extractSummary(toolArgsObj, rawArgsText);
+  const riskCard = buildApprovalRiskCard({
+    toolName,
+    toolInput: toolArgsObj,
+    summary,
+    matchedRule: matched,
+    rootDataDir,
+  });
 
   if (!config.remoteApprovalEnabled) {
     return {
@@ -194,6 +444,7 @@ export async function handleRemotePreToolHook(
         toolName,
         summary,
         matchedRule: matched,
+        riskCard,
         timeoutSec: config.approvalTimeoutSec,
         waitMs,
       }),

@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ModuleId } from '../../../../src/core/catalog.js';
 import type { NovBridge } from '../../bridge.js';
 import { useNovI18n } from '../../i18n/index.js';
 
@@ -7,6 +8,7 @@ export interface NovModulePanelProps {
   active: boolean;
   onNotify?: (message: string) => void;
   incomingEvent?: { toolName?: string; structuredContent: Record<string, unknown> } | null;
+  onNavigateModule?: (moduleId: ModuleId, context?: { worktreePath?: string; branch?: string }) => void;
 }
 
 interface RadarBoard {
@@ -42,10 +44,19 @@ interface RadarBoard {
   }>;
 }
 
-export const RadarPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNotify }) => {
+type RadarSession = RadarBoard['sessions'][number];
+type RadarViewMode = 'kanban' | 'list';
+
+export const RadarPanel: React.FC<NovModulePanelProps> = ({
+  bridge,
+  active,
+  onNotify,
+  onNavigateModule,
+}) => {
   const { dict } = useNovI18n();
   const [board, setBoard] = useState<RadarBoard | null>(null);
   const [busy, setBusy] = useState(false);
+  const [viewMode, setViewMode] = useState<RadarViewMode>('kanban');
 
   const loadBoard = useCallback(async () => {
     try {
@@ -98,7 +109,7 @@ export const RadarPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
     }
   };
 
-  const statusLabel = (st: RadarBoard['sessions'][number]['status']): string => {
+  const statusLabel = (st: RadarSession['status']): string => {
     switch (st) {
       case 'running':
         return dict.radar.running;
@@ -113,21 +124,132 @@ export const RadarPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
     }
   };
 
-  const statusBadgeClass = (st: RadarBoard['sessions'][number]['status']): string => {
+  const statusBadgeClass = (st: RadarSession['status']): string => {
     if (st === 'completed') return 'nov-badge is-offline';
     if (st === 'awaiting_approval' || st === 'stalled' || st === 'error') return 'nov-badge is-network';
     return 'nov-badge is-accent';
   };
 
+  const kanbanLanes = useMemo(() => {
+    const sessions = board?.sessions ?? [];
+    return [
+      {
+        id: 'awaiting_approval',
+        title: `Awaiting Approval (${dict.radar.awaiting})`,
+        accentColor: 'var(--nov-warn)',
+        highlightBg: 'var(--nov-warn-soft)',
+        priority: true,
+        items: sessions.filter((s) => s.status === 'awaiting_approval'),
+      },
+      {
+        id: 'running',
+        title: `Running (${dict.radar.running})`,
+        accentColor: 'var(--nov-accent)',
+        highlightBg: undefined,
+        priority: false,
+        items: sessions.filter((s) => s.status === 'running'),
+      },
+      {
+        id: 'stalled_error',
+        title: `Stalled / Error (${dict.radar.stalled} / ${dict.radar.error})`,
+        accentColor: 'var(--nov-danger)',
+        highlightBg: undefined,
+        priority: false,
+        items: sessions.filter((s) => s.status === 'stalled' || s.status === 'error'),
+      },
+      {
+        id: 'completed',
+        title: `Completed (${dict.radar.completed})`,
+        accentColor: 'var(--nov-success)',
+        highlightBg: undefined,
+        priority: false,
+        items: sessions.filter((s) => s.status === 'completed'),
+      },
+    ];
+  }, [board?.sessions, dict.radar]);
+
+  const renderSessionCard = (s: RadarSession, highlightApproval = false) => (
+    <div
+      key={s.conversationId}
+      className="nov-p-item"
+      style={
+        highlightApproval
+          ? {
+              borderColor: 'var(--nov-warn)',
+              background: 'var(--nov-bg-0)',
+            }
+          : undefined
+      }
+    >
+      <div className="nov-p-row" style={{ flexWrap: 'wrap', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <span className={statusBadgeClass(s.status)}>{statusLabel(s.status)}</span>
+          <strong>{s.workspaceName}</strong>
+          <span style={{ fontSize: '11px', color: 'var(--nov-text-2)' }}>{s.conversationId}</span>
+          {s.isSubagent && (
+            <span className="nov-badge is-accent">
+              {dict.radar.subagents}
+              {s.agentRole ? `: ${s.agentRole}` : ''}
+            </span>
+          )}
+          {s.isOrphanSubagent && (
+            <span className="nov-badge is-network">{dict.radar.orphanSubagents}</span>
+          )}
+          {s.unread && <span className="nov-badge is-network">{dict.radar.unread}</span>}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="nov-p-btn"
+            disabled={busy}
+            onClick={() => onNavigateModule?.('review')}
+          >
+            Open Review
+          </button>
+          {s.unread && (
+            <button
+              type="button"
+              className="nov-open-btn"
+              disabled={busy}
+              onClick={() => void ackSession(s.conversationId)}
+            >
+              {dict.radar.ackBtn}
+            </button>
+          )}
+        </div>
+      </div>
+      <div style={{ fontSize: '11.5px', color: 'var(--nov-text-1)' }}>
+        {dict.radar.lastTool}: <code>{s.lastToolName ?? '—'}</code> · {s.stepCount}{' '}
+        {dict.radar.steps} · {s.idleMinutes}m
+      </div>
+    </div>
+  );
+
   return (
     <div className="nov-p-page">
       <section className="nov-p-card">
-        <div className="nov-p-row">
+        <div className="nov-p-row" style={{ flexWrap: 'wrap', gap: '8px' }}>
           <div>
             <h2 className="nov-hero-title">{dict.radar.title}</h2>
             <p className="nov-hero-sub">{dict.radar.subtitle}</p>
           </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="nov-p-tabs" role="group" aria-label="Board View">
+              <button
+                type="button"
+                className={`nov-preset-btn ${viewMode === 'kanban' ? 'is-active' : ''}`}
+                onClick={() => setViewMode('kanban')}
+              >
+                Kanban
+              </button>
+              <button
+                type="button"
+                className={`nov-preset-btn ${viewMode === 'list' ? 'is-active' : ''}`}
+                onClick={() => setViewMode('list')}
+              >
+                List
+              </button>
+            </div>
             <button type="button" className="nov-p-btn" onClick={() => void loadBoard()}>
               {dict.common.refresh}
             </button>
@@ -152,19 +274,19 @@ export const RadarPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
 
         <div className="nov-p-stat-grid">
           <div className="nov-p-stat">
-            <div className="nov-p-stat-label">{dict.radar.running}</div>
-            <div className="nov-p-stat-val">{board?.counts.running ?? 0}</div>
-          </div>
-          <div className="nov-p-stat">
             <div className="nov-p-stat-label">{dict.radar.awaiting}</div>
             <div className="nov-p-stat-val" style={{ color: 'var(--nov-warn)' }}>
               {board?.counts.awaiting_approval ?? 0}
             </div>
           </div>
           <div className="nov-p-stat">
+            <div className="nov-p-stat-label">{dict.radar.running}</div>
+            <div className="nov-p-stat-val">{board?.counts.running ?? 0}</div>
+          </div>
+          <div className="nov-p-stat">
             <div className="nov-p-stat-label">{dict.radar.stalled}</div>
             <div className="nov-p-stat-val" style={{ color: 'var(--nov-danger)' }}>
-              {board?.counts.stalled ?? 0}
+              {(board?.counts.stalled ?? 0) + (board?.counts.error ?? 0)}
             </div>
           </div>
           <div className="nov-p-stat">
@@ -194,45 +316,75 @@ export const RadarPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
       <section className="nov-p-card">
         {!board || board.sessions.length === 0 ? (
           <p style={{ margin: 0, color: 'var(--nov-text-2)' }}>{dict.radar.emptyBoard}</p>
-        ) : (
+        ) : viewMode === 'list' ? (
           <div className="nov-p-list">
-            {board.sessions.map((s) => (
-              <div key={s.conversationId} className="nov-p-item">
-                <div className="nov-p-row">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span className={statusBadgeClass(s.status)}>{statusLabel(s.status)}</span>
-                    <strong>{s.workspaceName}</strong>
-                    <span style={{ fontSize: '11.5px', color: 'var(--nov-text-2)' }}>
-                      {s.conversationId}
-                    </span>
-                    {s.isSubagent && (
-                      <span className="nov-badge is-accent">
-                        {dict.radar.subagents}
-                        {s.agentRole ? `: ${s.agentRole}` : ''}
-                      </span>
-                    )}
-                    {s.isOrphanSubagent && (
-                      <span className="nov-badge is-network">{dict.radar.orphanSubagents}</span>
-                    )}
-                    {s.unread && <span className="nov-badge is-network">{dict.radar.unread}</span>}
-                  </div>
-                  {s.unread && (
-                    <button
-                      type="button"
-                      className="nov-open-btn"
-                      disabled={busy}
-                      onClick={() => void ackSession(s.conversationId)}
+            {board.sessions.map((s) => renderSessionCard(s, s.status === 'awaiting_approval'))}
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+              gap: '10px',
+              alignItems: 'start',
+            }}
+          >
+            {kanbanLanes.map((lane) => {
+              const isHighlighted = lane.priority && lane.items.length > 0;
+              return (
+                <div
+                  key={lane.id}
+                  style={{
+                    borderRadius: '10px',
+                    border: isHighlighted
+                      ? `2px solid ${lane.accentColor}`
+                      : '1px solid var(--nov-border)',
+                    background: isHighlighted ? lane.highlightBg : 'var(--nov-bg-1)',
+                    padding: '10px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                    minWidth: 0,
+                  }}
+                >
+                  <div className="nov-p-row" style={{ gap: '6px' }}>
+                    <strong
+                      style={{
+                        fontSize: '12px',
+                        color: lane.priority ? lane.accentColor : 'var(--nov-text-0)',
+                      }}
                     >
-                      {dict.radar.ackBtn}
-                    </button>
+                      {lane.priority ? '● ' : ''}
+                      {lane.title}
+                    </strong>
+                    <span
+                      className="nov-badge"
+                      style={{
+                        borderColor: lane.accentColor,
+                        color: lane.accentColor,
+                      }}
+                    >
+                      {lane.items.length}
+                    </span>
+                  </div>
+                  {lane.items.length === 0 ? (
+                    <div
+                      style={{
+                        fontSize: '11.5px',
+                        color: 'var(--nov-text-2)',
+                        padding: '6px 2px',
+                      }}
+                    >
+                      {dict.common.empty}
+                    </div>
+                  ) : (
+                    <div className="nov-p-list">
+                      {lane.items.map((s) => renderSessionCard(s, lane.priority))}
+                    </div>
                   )}
                 </div>
-                <div style={{ fontSize: '11.5px', color: 'var(--nov-text-1)' }}>
-                  {dict.radar.lastTool}: <code>{s.lastToolName ?? '—'}</code> · {s.stepCount}{' '}
-                  {dict.radar.steps} · {s.idleMinutes}m
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

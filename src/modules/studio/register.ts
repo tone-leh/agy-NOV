@@ -28,6 +28,11 @@ import {
   type StudioSourceFilterCategory,
   type StudioSourcesResult,
 } from './core.js';
+import {
+  FILE_VIEWER_EXTENSIONS,
+  openNativeFileViewer,
+  type NativeFileViewerResult,
+} from './file-viewer.js';
 
 function toHandle(name: string, tool: RegisteredTool): ModuleToolHandle {
   return {
@@ -460,9 +465,76 @@ export function registerStudioModule(
     },
   );
 
+  const FILE_VIEWER_META = {
+    ui: { resourceUri: uiResourceUri, visibility: ['app'] as ['app'] },
+    'com.google.antigravity/ui': {
+      entrypoints: [
+        {
+          type: 'file',
+          extensions: [...FILE_VIEWER_EXTENSIONS],
+          title: 'agy-NOV File Viewer',
+        },
+      ],
+    },
+  };
+
+  const formatFileViewerText = (res: NativeFileViewerResult): string => {
+    if (res.kind === 'opaque-uri') {
+      return `agy-NOV File Viewer (opaque URI): ${res.fileName} -> ${res.targetTab} (${res.note ?? 'read-only metadata'})`;
+    }
+    if (res.kind === 'svg') {
+      return `agy-NOV File Viewer (SVG): ${res.fileName} -> canvas (${res.bytes ?? 0} B, ${res.svg?.lineCount ?? 0} lines)`;
+    }
+    if (res.kind === 'openapi') {
+      return `agy-NOV File Viewer (OpenAPI): ${res.fileName} -> studio (${res.openApi?.totalEndpoints ?? 0} endpoints)`;
+    }
+    return `agy-NOV File Viewer (Data): ${res.fileName} -> studio (${res.data?.returnedRows ?? 0} rows)`;
+  };
+
+  server.registerTool(
+    'app_nov_file_viewer',
+    {
+      title: 'agy-NOV Native File Viewer (App Only)',
+      description:
+        'Read-only MCP Apps file entrypoint for SQLite, CSV/TSV, SVG, and OpenAPI YAML files with strict workspace realpath boundaries and SVG sanitization.',
+      inputSchema: {
+        file: z
+          .object({
+            name: z.string().optional(),
+            resourceUri: z.string().optional(),
+            uri: z.string().optional(),
+          })
+          .optional(),
+        path: z.string().optional(),
+        limit: z.number().int().min(1).max(STUDIO_MAX_DATA_ROWS).optional(),
+      },
+      _meta: FILE_VIEWER_META,
+    },
+    async ({ file, path: filePath, limit }) => {
+      try {
+        const result = await openNativeFileViewer(
+          { file, path: filePath, limit },
+          { workspaceRoot, demoMode: isDemo, demoService },
+        );
+        return {
+          content: [{ type: 'text', text: formatFileViewerText(result) }],
+          structuredContent: {
+            novModule: result.targetTab,
+            fileViewer: result,
+          },
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: formatErrorMessage(err) }],
+        };
+      }
+    },
+  );
+
   return {
     moduleId: 'studio',
     modelTools,
-    exemptReadOnlyAppTools: ['app_studio_list_sources'],
+    exemptReadOnlyAppTools: ['app_studio_list_sources', 'app_nov_file_viewer'],
   };
 }

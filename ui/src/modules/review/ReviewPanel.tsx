@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ModuleId } from '../../../../src/core/catalog.js';
 import type { HostCapabilitiesSummary, NovBridge } from '../../bridge.js';
 import { useNovI18n } from '../../i18n/index.js';
 import { DiffViewer } from './DiffViewer';
@@ -16,6 +17,7 @@ import {
   type ReviewAnnotation,
   type ReviewScope,
   type ReviewSession,
+  type Stage1ChecklistItem,
 } from './types';
 import './styles.css';
 
@@ -24,6 +26,7 @@ export interface NovModulePanelProps {
   active: boolean;
   onNotify?: (message: string) => void;
   incomingEvent?: { toolName?: string; structuredContent: Record<string, unknown> } | null;
+  onNavigateModule?: (moduleId: ModuleId, context?: { worktreePath?: string; branch?: string }) => void;
 }
 
 const VALID_SCOPES = new Set<ReviewScope>(['working', 'staged', 'unstaged', 'head~1', 'commit-range']);
@@ -43,6 +46,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
   active,
   onNotify,
   incomingEvent,
+  onNavigateModule,
 }) => {
   const { dict } = useNovI18n();
   const r = dict.panels.review;
@@ -61,10 +65,14 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
   const [hostNotice, setHostNotice] = useState<string | null>(null);
 
   const [repoPath, setRepoPath] = useState<string | undefined>(undefined);
+  const [worktreePath, setWorktreePath] = useState<string | undefined>(undefined);
   const [demoMode, setDemoMode] = useState<boolean | undefined>(undefined);
   const [scope, setScope] = useState<ReviewScope>('working');
   const [commitRange, setCommitRange] = useState('HEAD~1..HEAD');
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [twoStageOpen, setTwoStageOpen] = useState(false);
+  const [stage1Overrides, setStage1Overrides] = useState<Record<string, boolean>>({});
+  const lastSpecIdRef = useRef<string | null>(null);
 
   const [viewMode, setViewMode] = useState<DiffViewMode>('unified');
   const [filterMode, setFilterMode] = useState<FileFilterMode>('all');
@@ -135,7 +143,8 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       setError(null);
       try {
         const args: Record<string, unknown> = {};
-        if (query.repoPath) args.repoPath = query.repoPath;
+        if (query.worktreePath) args.worktreePath = query.worktreePath;
+        else if (query.repoPath) args.repoPath = query.repoPath;
         if (query.scope) args.scope = query.scope;
         if (query.commitRange) args.commitRange = query.commitRange;
         if (query.ignoreWhitespace !== undefined) args.ignoreWhitespace = query.ignoreWhitespace;
@@ -165,7 +174,17 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
           setIgnoreWhitespace(nextSession.ignoreWhitespace);
         }
         setRepoPath(nextSession.isDemo ? undefined : nextSession.repoPath);
+        setWorktreePath(nextSession.repoPath);
         setDemoMode(nextSession.isDemo);
+
+        const nextSpecId = nextSession.specCompliance?.specId ?? null;
+        if (nextSpecId !== lastSpecIdRef.current) {
+          lastSpecIdRef.current = nextSpecId;
+          setStage1Overrides({});
+          if (nextSpecId) {
+            setTwoStageOpen(true);
+          }
+        }
 
         setSelectedFile((prev) => {
           if (preferredFile && nextSession.files.some((f) => f.path === preferredFile)) {
@@ -196,17 +215,29 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
     }
   }, [active, loadDiff]);
 
-  // React to incoming tool results directed at Review
+  // React to incoming tool results or navigation events directed at Review
   useEffect(() => {
     if (!incomingEvent || incomingEvent === lastEventRef.current) return;
     const sc = incomingEvent.structuredContent;
     if (!sc || typeof sc !== 'object') return;
 
     const toolName = incomingEvent.toolName ?? '';
+    const contextObj =
+      sc.context && typeof sc.context === 'object'
+        ? (sc.context as { worktreePath?: string; branch?: string })
+        : null;
+    const directWorktreePath =
+      typeof sc.worktreePath === 'string' && sc.worktreePath.trim()
+        ? sc.worktreePath.trim()
+        : typeof contextObj?.worktreePath === 'string' && contextObj.worktreePath.trim()
+          ? contextObj.worktreePath.trim()
+          : undefined;
+
     const launch =
       sc.launch && typeof sc.launch === 'object'
         ? (sc.launch as {
             repoPath?: string;
+            worktreePath?: string;
             scope?: string;
             commitRange?: string;
             ignoreWhitespace?: boolean;
@@ -226,9 +257,11 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       if (typeof launch.ignoreWhitespace === 'boolean') {
         setIgnoreWhitespace(launch.ignoreWhitespace);
       }
+      const launchWorktree = launch.worktreePath?.trim() || directWorktreePath;
       void loadDiff(
         {
           repoPath: launch.demo ? undefined : launch.repoPath,
+          worktreePath: launch.demo ? undefined : launchWorktree,
           scope: nextScope,
           commitRange: launch.commitRange,
           ignoreWhitespace: nextIgnoreWs,
@@ -236,6 +269,18 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
         },
         launch.selectedFile,
       );
+      return;
+    }
+
+    if (directWorktreePath) {
+      lastEventRef.current = incomingEvent;
+      void loadDiff({
+        worktreePath: directWorktreePath,
+        scope,
+        commitRange: scope === 'commit-range' ? commitRange : undefined,
+        ignoreWhitespace,
+        demo: demoMode,
+      });
       return;
     }
 
@@ -250,6 +295,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
         setIgnoreWhitespace(nextSession.ignoreWhitespace);
       }
       setRepoPath(nextSession.isDemo ? undefined : nextSession.repoPath);
+      setWorktreePath(nextSession.repoPath);
       setDemoMode(nextSession.isDemo);
       setSelectedFile((prev) =>
         prev && nextSession.files.some((f) => f.path === prev)
@@ -263,13 +309,14 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       lastEventRef.current = incomingEvent;
       void loadDiff({
         repoPath,
+        worktreePath,
         scope,
         commitRange: scope === 'commit-range' ? commitRange : undefined,
         ignoreWhitespace,
         demo: demoMode,
       });
     }
-  }, [incomingEvent, loadDiff, repoPath, scope, commitRange, ignoreWhitespace, demoMode]);
+  }, [incomingEvent, loadDiff, repoPath, worktreePath, scope, commitRange, ignoreWhitespace, demoMode]);
 
   const viewedSet = useMemo(() => new Set(session?.viewedFiles ?? []), [session?.viewedFiles]);
 
@@ -325,20 +372,68 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
     [session?.annotations, activeFile?.path],
   );
 
+  const effectiveStage1Checklist = useMemo<Stage1ChecklistItem[]>(() => {
+    const spec = session?.specCompliance;
+    if (!spec || !Array.isArray(spec.items)) return [];
+    return spec.items.map((item) => ({
+      id: item.id,
+      title: item.title,
+      status: item.status,
+      checked: item.id in stage1Overrides ? stage1Overrides[item.id] : item.checked,
+    }));
+  }, [session?.specCompliance, stage1Overrides]);
+
+  const stage1CheckedCount = useMemo(
+    () => effectiveStage1Checklist.filter((item) => item.checked).length,
+    [effectiveStage1Checklist],
+  );
+
+  const stage2CategoryCounts = useMemo(() => {
+    const counts: Record<AnnotationCategory, number> = {
+      security: 0,
+      bug: 0,
+      refactor: 0,
+      question: 0,
+      nit: 0,
+    };
+    for (const ann of session?.annotations ?? []) {
+      if (!ann.resolved) {
+        counts[ann.category] = (counts[ann.category] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }, [session?.annotations]);
+
   // Instant local prompt preview; authoritative server prompt is fetched on Preview / Send / Copy
   useEffect(() => {
     if (!session) {
       setPreviewMarkdown('');
       return;
     }
-    setPreviewMarkdown(buildLocalReviewPrompt(session));
-  }, [session]);
+    setPreviewMarkdown(buildLocalReviewPrompt(session, effectiveStage1Checklist));
+  }, [session, effectiveStage1Checklist]);
+
+  const handleWorktreeChange = (nextWorktreePath: string) => {
+    setWorktreePath(nextWorktreePath);
+    void loadDiff({
+      worktreePath: nextWorktreePath,
+      scope,
+      commitRange: scope === 'commit-range' ? commitRange : undefined,
+      ignoreWhitespace,
+      demo: demoMode,
+    });
+  };
+
+  const handleToggleStage1Item = (id: string, currentChecked: boolean) => {
+    setStage1Overrides((prev) => ({ ...prev, [id]: !currentChecked }));
+  };
 
   const handleScopeChange = (nextScope: ReviewScope) => {
     setScope(nextScope);
     if (nextScope !== 'commit-range') {
       void loadDiff({
         repoPath,
+        worktreePath,
         scope: nextScope,
         ignoreWhitespace,
         demo: demoMode,
@@ -349,6 +444,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
   const handleCommitRangeApply = () => {
     void loadDiff({
       repoPath,
+      worktreePath,
       scope: 'commit-range',
       commitRange,
       ignoreWhitespace,
@@ -361,6 +457,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
     setIgnoreWhitespace(next);
     void loadDiff({
       repoPath,
+      worktreePath,
       scope,
       commitRange: scope === 'commit-range' ? commitRange : undefined,
       ignoreWhitespace: next,
@@ -371,6 +468,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
   const handleRefresh = () => {
     void loadDiff({
       repoPath,
+      worktreePath,
       scope,
       commitRange: scope === 'commit-range' ? commitRange : undefined,
       ignoreWhitespace,
@@ -517,10 +615,16 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       const args: Record<string, unknown> = {
         scope: session.scope,
       };
-      if (!session.isDemo && session.repoPath) args.repoPath = session.repoPath;
+      if (session.repoPath) {
+        args.worktreePath = session.repoPath;
+        if (!session.isDemo) args.repoPath = session.repoPath;
+      }
       if (session.commitRange) args.commitRange = session.commitRange;
       if (ignoreWhitespace) args.ignoreWhitespace = true;
       if (session.isDemo !== undefined) args.demo = session.isDemo;
+      if (effectiveStage1Checklist.length > 0) {
+        args.stage1Checklist = effectiveStage1Checklist;
+      }
 
       const built = await bridge.callTool<BuiltReviewPrompt>('app_review_build_prompt', args);
       if (typeof built?.markdown === 'string') {
@@ -557,8 +661,10 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
     return session.annotations.filter((a) => !a.resolved).length;
   }, [session]);
 
+  const hasTwoStagePayload = Boolean(session?.specCompliance || openAnnotationsCount > 0);
+
   const handleQuickCopyPrompt = async () => {
-    if (openAnnotationsCount === 0) return;
+    if (!hasTwoStagePayload) return;
     const md = await handleRefreshPreview();
     try {
       await navigator.clipboard?.writeText(md);
@@ -569,7 +675,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
   };
 
   const handleQuickSendFixes = async () => {
-    if (openAnnotationsCount === 0) return;
+    if (!hasTwoStagePayload) return;
     const md = await handleRefreshPreview();
     await bridge.sendMessage(md);
     onNotify?.(r.sendFixes);
@@ -596,6 +702,9 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
         totalDeletions={session?.totalDeletions ?? 0}
         loading={loading}
         sidebarOpen={sidebarOpen}
+        availableWorktrees={session?.availableWorktrees}
+        activeWorktreePath={session?.repoPath}
+        onWorktreeChange={handleWorktreeChange}
         onToggleSidebar={() => setSidebarOpen((v) => !v)}
         onScopeChange={handleScopeChange}
         onCommitRangeChange={setCommitRange}
@@ -647,30 +756,143 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
         </div>
       )}
 
-      {openAnnotationsCount > 0 && (
-        <div className="rv-banner rv-banner-info">
-          <span>
-            {r.annotations}: <strong>{openAnnotationsCount}</strong>
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      {session && (
+        <section className="rv-twostage-bar" aria-label="Two-Stage Review">
+          <div className="rv-twostage-head">
             <button
               type="button"
-              className="rv-btn rv-btn-subtle"
-              onClick={() => void handleQuickCopyPrompt()}
+              className="rv-twostage-toggle"
+              aria-expanded={twoStageOpen}
+              onClick={() => setTwoStageOpen((v) => !v)}
             >
-              {r.copyPrompt}
+              <span>{twoStageOpen ? '▾' : '▸'}</span>
+              <strong>Two-Stage Review</strong>
+              {session.specCompliance ? (
+                <span className="rv-twostage-pill is-spec">
+                  Stage 1 · Spec {stage1CheckedCount}/{effectiveStage1Checklist.length}
+                </span>
+              ) : (
+                <span className="rv-twostage-pill">Stage 1 · No active spec</span>
+              )}
+              <span className="rv-twostage-pill is-code">
+                Stage 2 · {openAnnotationsCount} {r.annotations}
+              </span>
             </button>
-            {(caps.message || caps.isWorkbench) && (
-              <button
-                type="button"
-                className="rv-btn rv-btn-primary"
-                onClick={() => void handleQuickSendFixes()}
-              >
-                {r.sendFixes}
-              </button>
-            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              {hasTwoStagePayload && (
+                <button
+                  type="button"
+                  className="rv-btn rv-btn-subtle"
+                  onClick={() => void handleQuickCopyPrompt()}
+                >
+                  {r.copyPrompt}
+                </button>
+              )}
+              {hasTwoStagePayload && (caps.message || caps.isWorkbench) && (
+                <button
+                  type="button"
+                  className="rv-btn rv-btn-primary"
+                  onClick={() => void handleQuickSendFixes()}
+                >
+                  {r.sendFixes}
+                </button>
+              )}
+              {onNavigateModule && (
+                <button
+                  type="button"
+                  className="rv-btn rv-btn-subtle"
+                  onClick={() =>
+                    onNavigateModule('verify', {
+                      worktreePath: session.repoPath,
+                      branch: session.branch,
+                    })
+                  }
+                >
+                  {dict.modules.verify.shortLabel} →
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+
+          {twoStageOpen && (
+            <div className="rv-twostage-body">
+              <div className="rv-twostage-col">
+                <div className="rv-twostage-col-title">
+                  <span>Stage 1 · Spec Compliance Checklist</span>
+                  {session.specCompliance && (
+                    <span className="rv-twostage-meta">
+                      <code>{session.specCompliance.specId}</code> · {session.specCompliance.status}
+                    </span>
+                  )}
+                </div>
+                {session.specCompliance ? (
+                  <>
+                    <div className="rv-twostage-spec-title">{session.specCompliance.title}</div>
+                    {effectiveStage1Checklist.length === 0 ? (
+                      <div className="rv-twostage-empty">No tasks defined in active spec.</div>
+                    ) : (
+                      <ul className="rv-twostage-checklist">
+                        {effectiveStage1Checklist.map((item) => (
+                          <li key={item.id} className="rv-twostage-check-item">
+                            <label>
+                              <input
+                                type="checkbox"
+                                checked={item.checked}
+                                onChange={() => handleToggleStage1Item(item.id, item.checked)}
+                              />
+                              <code>{item.id}</code>
+                              <span className={item.checked ? 'is-done' : ''}>{item.title}</span>
+                              {item.status && (
+                                <span className="rv-twostage-status">{item.status}</span>
+                              )}
+                            </label>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                ) : (
+                  <div className="rv-twostage-empty">
+                    No active Spec found. Activate a Spec in Spec Flow to link Stage 1 compliance checks.
+                  </div>
+                )}
+              </div>
+
+              <div className="rv-twostage-col">
+                <div className="rv-twostage-col-title">
+                  <span>Stage 2 · Code Quality Annotations</span>
+                  <span className="rv-twostage-meta">
+                    {openAnnotationsCount} open · {session.annotations.length - openAnnotationsCount}{' '}
+                    {r.resolved}
+                  </span>
+                </div>
+                <div className="rv-twostage-cat-row">
+                  {(['security', 'bug', 'refactor', 'question', 'nit'] as AnnotationCategory[]).map(
+                    (cat) => (
+                      <span
+                        key={cat}
+                        className={`rv-twostage-cat is-${cat} ${stage2CategoryCounts[cat] > 0 ? 'has-items' : ''}`}
+                      >
+                        {cat.toUpperCase()}: {stage2CategoryCounts[cat]}
+                      </span>
+                    ),
+                  )}
+                </div>
+                {openAnnotationsCount === 0 ? (
+                  <div className="rv-twostage-empty">
+                    Click any diff line below to attach pinpoint file:line annotations.
+                  </div>
+                ) : (
+                  <div className="rv-twostage-empty">
+                    Two-stage prompt packages Stage 1 Spec checks + {openAnnotationsCount} prioritized
+                    file:line annotation(s).
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
       )}
 
       <main className={`rv-studio-body ${compact ? 'is-compact' : ''}`}>

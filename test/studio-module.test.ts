@@ -819,7 +819,7 @@ describe('v0.4.0 Workspace Studio module', () => {
         reg.modelTools.map((t) => t.name),
         MODULE_CATALOG.studio.modelToolNames,
       );
-      assert.deepEqual(reg.exemptReadOnlyAppTools, ['app_studio_list_sources']);
+      assert.deepEqual(reg.exemptReadOnlyAppTools, ['app_studio_list_sources', 'app_nov_file_viewer']);
       assert.equal(fs.existsSync(absentDataDir), false);
 
       const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -831,6 +831,7 @@ describe('v0.4.0 Workspace Studio module', () => {
         const listedTools = await client.listTools();
         const toolNames = listedTools.tools.map((t) => t.name).sort();
         assert.deepEqual(toolNames, [
+          'app_nov_file_viewer',
           'app_studio_http_probe',
           'app_studio_inspect_data',
           'app_studio_inspect_document',

@@ -42,6 +42,7 @@ export function registerRemoteModule(
   const convClient = new ConversationClient({ demoMode: opts.demoMode });
   const gateway = new RemoteGateway(dataDir, convClient, {
     demoMode: opts.demoMode,
+    rootDataDir,
     ...(brainDirs ? { brainDirs } : {}),
   });
 

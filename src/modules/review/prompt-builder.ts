@@ -5,6 +5,7 @@ import type {
   DiffFile,
   PromptBuildOptions,
   ReviewAnnotation,
+  Stage1ChecklistItem,
 } from './types.js';
 
 const CATEGORY_ORDER: Record<AnnotationCategory, number> = {
@@ -32,6 +33,21 @@ export function formatLineAnchor(ann: Pick<ReviewAnnotation, 'filePath' | 'start
   return `${ann.filePath}:${range}${sideTag}`;
 }
 
+function resolveStage1Items(options: PromptBuildOptions): Stage1ChecklistItem[] {
+  if (Array.isArray(options.stage1Checklist) && options.stage1Checklist.length > 0) {
+    return options.stage1Checklist;
+  }
+  if (options.specCompliance && Array.isArray(options.specCompliance.items)) {
+    return options.specCompliance.items.map((item) => ({
+      id: item.id,
+      title: item.title,
+      status: item.status,
+      checked: item.checked,
+    }));
+  }
+  return [];
+}
+
 export function buildReviewPrompt(options: PromptBuildOptions): BuiltReviewPrompt {
   const categoryCounts: Record<AnnotationCategory, number> = {
     security: 0,
@@ -47,7 +63,11 @@ export function buildReviewPrompt(options: PromptBuildOptions): BuiltReviewPromp
     items = items.filter((a) => idSet.has(a.id));
   }
 
-  if (items.length === 0) {
+  const spec = options.specCompliance ?? null;
+  const stage1Items = resolveStage1Items(options);
+  const hasTwoStage = Boolean(spec || stage1Items.length > 0);
+
+  if (items.length === 0 && !hasTwoStage) {
     return {
       markdown: `No pending review annotations for \`${options.repoName}\` (${options.scope}).`,
       annotationCount: 0,
@@ -93,19 +113,58 @@ export function buildReviewPrompt(options: PromptBuildOptions): BuiltReviewPromp
       ? `${options.scope} (${options.commitRange})`
       : options.scope;
 
-  const lines: string[] = [
-    `# Code Review Feedback — ${options.repoName}`,
-    '',
-    `- **Branch**: \`${options.branch ?? 'current'}\` | **Scope**: \`${scopeLabel}\``,
-    `- **Items**: ${items.length} annotation${items.length === 1 ? '' : 's'} across ${sortedFileEntries.length} file${sortedFileEntries.length === 1 ? '' : 's'} (${severitySummary})`,
-    '',
-    'Please address each inline review item below in priority order:',
-    '',
-  ];
+  const lines: string[] = [];
+
+  if (hasTwoStage) {
+    const checkedCount = stage1Items.filter((item) => item.checked).length;
+    lines.push(`# Two-Stage Code Review Feedback — ${options.repoName}`);
+    lines.push('');
+    lines.push(`- **Branch**: \`${options.branch ?? 'current'}\` | **Scope**: \`${scopeLabel}\``);
+    if (spec) {
+      const modeTag = spec.mode ? ` · mode: \`${spec.mode}\`` : '';
+      lines.push(
+        `- **Active Spec**: \`${spec.specId}\` — ${spec.title} (status: \`${spec.status}\`${modeTag}, progress: ${spec.doneTasks}/${spec.totalTasks})`,
+      );
+    }
+    lines.push(
+      `- **Stage 1 Spec Checklist**: ${checkedCount}/${stage1Items.length} verified | **Stage 2 Annotations**: ${items.length} across ${sortedFileEntries.length} file${sortedFileEntries.length === 1 ? '' : 's'}${severitySummary ? ` (${severitySummary})` : ''}`,
+    );
+    lines.push('');
+    lines.push('## Stage 1: Spec Compliance Checklist');
+    lines.push('');
+    if (stage1Items.length === 0) {
+      lines.push('_No checklist tasks defined in the active spec._');
+    } else {
+      for (const item of stage1Items) {
+        const mark = item.checked ? 'x' : ' ';
+        const statusSuffix = item.status ? ` _(${item.status})_` : '';
+        const noteSuffix = item.note?.trim() ? ` — ${item.note.trim()}` : '';
+        lines.push(`- [${mark}] \`${item.id}\`: ${item.title}${statusSuffix}${noteSuffix}`);
+      }
+    }
+    lines.push('');
+    lines.push('## Stage 2: Code Quality Annotations (`file:line`)');
+    lines.push('');
+    if (items.length === 0) {
+      lines.push('_No pending inline code quality annotations._');
+      lines.push('');
+    }
+  } else {
+    lines.push(`# Code Review Feedback — ${options.repoName}`);
+    lines.push('');
+    lines.push(`- **Branch**: \`${options.branch ?? 'current'}\` | **Scope**: \`${scopeLabel}\``);
+    lines.push(
+      `- **Items**: ${items.length} annotation${items.length === 1 ? '' : 's'} across ${sortedFileEntries.length} file${sortedFileEntries.length === 1 ? '' : 's'} (${severitySummary})`,
+    );
+    lines.push('');
+    lines.push('Please address each inline review item below in priority order:');
+    lines.push('');
+  }
 
   let counter = 1;
+  const fileHeadingPrefix = hasTwoStage ? '###' : '##';
   for (const [filePath, fileAnnotations] of sortedFileEntries) {
-    lines.push(`## \`${filePath}\``);
+    lines.push(`${fileHeadingPrefix} \`${filePath}\``);
     lines.push('');
 
     const diffFile = fileMap.get(filePath);
@@ -133,6 +192,9 @@ export function buildReviewPrompt(options: PromptBuildOptions): BuiltReviewPromp
 
   lines.push('---');
   lines.push('### Expectations');
+  if (hasTwoStage) {
+    lines.push('- Complete all unchecked Stage 1 Spec Compliance items before closing the review.');
+  }
   lines.push('- Prioritize `[SECURITY]` and `[BUG]` items first, keeping changes focused on the annotated lines.');
   lines.push('- Answer `[QUESTION]` items directly with code references before changing behavior unless a fix is asked for.');
   lines.push('- Run the relevant typecheck/tests after applying edits, then summarize each item resolved by file and line.');

@@ -3259,8 +3259,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path40) {
-      let input2 = path40;
+    function removeDotSegments(path45) {
+      let input2 = path45;
       const output2 = [];
       let nextSlash = -1;
       let len = 0;
@@ -3334,11 +3334,11 @@ var require_utils = __commonJS({
       }
       return output2.join("");
     }
-    function removeDotSegmentsRelative(path40) {
-      if (path40 === "" || path40[0] === "/") {
-        return removeDotSegments(path40);
+    function removeDotSegmentsRelative(path45) {
+      if (path45 === "" || path45[0] === "/") {
+        return removeDotSegments(path45);
       }
-      const segments = path40.split("/");
+      const segments = path45.split("/");
       const last = segments.length - 1;
       const output2 = [];
       let trailingDirectory = false;
@@ -3701,8 +3701,8 @@ var require_schemes = __commonJS({
       }
       if (wsComponent.resourceName) {
         const queryIndex = wsComponent.resourceName.indexOf("?");
-        const path40 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
-        wsComponent.path = path40 && path40 !== "/" ? path40 : void 0;
+        const path45 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
+        wsComponent.path = path45 && path45 !== "/" ? path45 : void 0;
         wsComponent.query = queryIndex === -1 ? void 0 : wsComponent.resourceName.slice(queryIndex + 1);
         wsComponent.resourceName = void 0;
       }
@@ -7239,12 +7239,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs34, exportName) {
+    function addFormats(ajv, list, fs37, exportName) {
       var _a3;
       var _b;
       (_a3 = (_b = ajv.opts.code).formats) !== null && _a3 !== void 0 ? _a3 : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs34[f]);
+        ajv.addFormat(f, fs37[f]);
     }
     module2.exports = exports2 = formatsPlugin;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -7261,8 +7261,8 @@ __export(index_exports, {
   createNovServer: () => createNovServer
 });
 module.exports = __toCommonJS(index_exports);
-var import_node_fs33 = __toESM(require("node:fs"), 1);
-var import_node_path39 = __toESM(require("node:path"), 1);
+var import_node_fs36 = __toESM(require("node:fs"), 1);
+var import_node_path44 = __toESM(require("node:path"), 1);
 
 // node_modules/zod/v3/helpers/util.js
 var util;
@@ -7638,8 +7638,8 @@ function getErrorMap() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path40, errorMaps, issueData } = params;
-  const fullPath = [...path40, ...issueData.path || []];
+  const { data, path: path45, errorMaps, issueData } = params;
+  const fullPath = [...path45, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -7754,11 +7754,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path40, key) {
+  constructor(parent, value, path45, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path40;
+    this._path = path45;
     this._key = key;
   }
   get path() {
@@ -11714,10 +11714,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path40) {
-  if (!path40)
+function getElementAtPath(obj, path45) {
+  if (!path45)
     return obj;
-  return path40.reduce((acc, key) => acc?.[key], obj);
+  return path45.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -12057,11 +12057,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path40, issues) {
+function prefixIssues(path45, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path40);
+    iss.path.unshift(path45);
     return iss;
   });
 }
@@ -12523,16 +12523,16 @@ function flattenError(error62, mapper = (issue2) => issue2.message) {
 }
 function formatError(error62, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error63, path40 = []) => {
+  const processError = (error63, path45 = []) => {
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path40, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path45, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path40, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path45, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path40, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path45, ...issue2.path]);
       } else {
-        const fullpath = [...path40, ...issue2.path];
+        const fullpath = [...path45, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -12571,17 +12571,17 @@ function formatError(error62, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error62, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error63, path40 = []) => {
+  const processError = (error63, path45 = []) => {
     var _a3;
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path40, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path45, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path40, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path45, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path40, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path45, ...issue2.path]);
       } else {
-        const fullpath = [...path40, ...issue2.path];
+        const fullpath = [...path45, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -12620,8 +12620,8 @@ function treeifyError(error62, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path40 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path40) {
+  const path45 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path45) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -28172,11 +28172,11 @@ function normalizeObjectSchema(schema) {
   }
   return void 0;
 }
-function getDotPath(path40) {
-  if (path40.length === 0) {
+function getDotPath(path45) {
+  if (path45.length === 0) {
     return "object root";
   }
-  return path40.reduce((acc, seg, index) => {
+  return path45.reduce((acc, seg, index) => {
     if (index === 0) {
       return String(seg);
     }
@@ -30403,13 +30403,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path40 = ref.slice(1).split("/").filter(Boolean);
-  if (path40.length === 0) {
+  const path45 = ref.slice(1).split("/").filter(Boolean);
+  if (path45.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path40[0] === defsKey) {
-    const key = path40[1] === void 0 ? void 0 : decodeJSONPointerSegment(path40[1]);
+  if (path45[0] === defsKey) {
+    const key = path45[1] === void 0 ? void 0 : decodeJSONPointerSegment(path45[1]);
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -38484,7 +38484,7 @@ function resetNovConfig(rootDataDir) {
 var import_node_crypto = __toESM(require("node:crypto"), 1);
 var import_node_fs3 = __toESM(require("node:fs"), 1);
 var import_node_path3 = __toESM(require("node:path"), 1);
-var FEED_SNAPSHOT_VERSION = "0.8.0";
+var FEED_SNAPSHOT_VERSION = "0.9.0";
 var FEED_SNAPSHOT_FILENAME = "feed-snapshot.json";
 var MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
 var MAX_FEED_ALERTS = 6;
@@ -47217,469 +47217,6 @@ function detectLanIpv4() {
   return "127.0.0.1";
 }
 
-// src/modules/remote/channels.ts
-var TELEGRAM_BOT_TOKEN_RE = /^\d+:[A-Za-z0-9_-]{20,}$/;
-var TELEGRAM_CHAT_ID_RE = /^(?:-?\d{5,20}|@[A-Za-z][A-Za-z0-9_]{4,31})$/;
-function validateTelegramBotToken(token) {
-  const trimmed = token.trim();
-  if (!TELEGRAM_BOT_TOKEN_RE.test(trimmed)) {
-    throw new Error('Invalid Telegram botToken format (expected "<digits>:<token>")');
-  }
-  return trimmed;
-}
-function validateTelegramChatId(chatId) {
-  const trimmed = chatId.trim();
-  if (!TELEGRAM_CHAT_ID_RE.test(trimmed)) {
-    throw new Error("Invalid Telegram chatId format (expected numeric chat ID or @channel_username)");
-  }
-  return trimmed;
-}
-function isBlockedIpv4Octets(a, b, c, _d) {
-  if (a === 0) return true;
-  if (a === 10) return true;
-  if (a === 100 && b >= 64 && b <= 127) return true;
-  if (a === 127) return true;
-  if (a === 169 && b === 254) return true;
-  if (a === 172 && b >= 16 && b <= 31) return true;
-  if (a === 192 && b === 0 && (c === 0 || c === 2)) return true;
-  if (a === 192 && b === 168) return true;
-  if (a === 198 && (b === 18 || b === 19)) return true;
-  if (a >= 224) return true;
-  return false;
-}
-function parseIpv4Octets(ip) {
-  const parts = ip.split(".");
-  if (parts.length !== 4) return null;
-  const nums = parts.map((p) => /^\d+$/.test(p) ? Number(p) : -1);
-  if (nums.some((n) => n < 0 || n > 255)) return null;
-  return [nums[0], nums[1], nums[2], nums[3]];
-}
-function parseIpv6Groups(rawIp) {
-  const ip = rawIp.toLowerCase().split("%")[0];
-  let normalized = ip;
-  const lastColon = normalized.lastIndexOf(":");
-  if (lastColon >= 0 && normalized.slice(lastColon + 1).includes(".")) {
-    const octets = parseIpv4Octets(normalized.slice(lastColon + 1));
-    if (!octets) return null;
-    const hi = (octets[0] << 8 | octets[1]).toString(16);
-    const lo = (octets[2] << 8 | octets[3]).toString(16);
-    normalized = `${normalized.slice(0, lastColon + 1)}${hi}:${lo}`;
-  }
-  const doubleColonParts = normalized.split("::");
-  if (doubleColonParts.length > 2) return null;
-  const parseChunk = (s) => {
-    if (!s) return [];
-    const items = s.split(":");
-    const out = [];
-    for (const item of items) {
-      if (!/^[0-9a-f]{1,4}$/.test(item)) return null;
-      out.push(parseInt(item, 16));
-    }
-    return out;
-  };
-  if (doubleColonParts.length === 1) {
-    const groups = parseChunk(doubleColonParts[0]);
-    return groups && groups.length === 8 ? groups : null;
-  }
-  const head = parseChunk(doubleColonParts[0]);
-  const tail = parseChunk(doubleColonParts[1]);
-  if (!head || !tail) return null;
-  const missing = 8 - head.length - tail.length;
-  if (missing < 1) return null;
-  return [...head, ...Array(missing).fill(0), ...tail];
-}
-function isBlockedIpAddress(rawIp) {
-  const clean = rawIp.replace(/^\[|\]$/g, "").split("%")[0].trim().toLowerCase();
-  const ver = import_node_net.default.isIP(clean);
-  if (ver === 4) {
-    const octets = parseIpv4Octets(clean);
-    return !octets || isBlockedIpv4Octets(...octets);
-  }
-  if (ver === 6) {
-    const g = parseIpv6Groups(clean);
-    if (!g) return true;
-    if (g.every((n) => n === 0)) return true;
-    if (g.slice(0, 7).every((n) => n === 0) && g[7] === 1) return true;
-    if (g.slice(0, 5).every((n) => n === 0) && g[5] === 65535) {
-      return isBlockedIpv4Octets(g[6] >> 8, g[6] & 255, g[7] >> 8, g[7] & 255);
-    }
-    if (g[0] === 100 && g[1] === 65435 && g[2] === 0 && g[3] === 0 && g[4] === 0 && g[5] === 0) {
-      return isBlockedIpv4Octets(g[6] >> 8, g[6] & 255, g[7] >> 8, g[7] & 255);
-    }
-    if (g[0] === 8194) {
-      return isBlockedIpv4Octets(g[1] >> 8, g[1] & 255, g[2] >> 8, g[2] & 255);
-    }
-    if ((g[0] & 65024) === 64512) return true;
-    if ((g[0] & 65472) === 65152) return true;
-    if ((g[0] & 65472) === 65216) return true;
-    if ((g[0] & 65280) === 65280) return true;
-    return false;
-  }
-  return false;
-}
-function isLoopbackHost(hostname3) {
-  const clean = hostname3.replace(/^\[|\]$/g, "").replace(/\.$/, "").toLowerCase();
-  if (clean === "localhost" || clean === "::1") return true;
-  if (import_node_net.default.isIP(clean) === 4) {
-    const octets = parseIpv4Octets(clean);
-    return Boolean(octets && octets[0] === 127);
-  }
-  return false;
-}
-function validateWebhookUrl(rawUrl, opts = {}) {
-  let parsed;
-  try {
-    parsed = new URL(rawUrl.trim());
-  } catch {
-    throw new Error("Invalid webhook URL");
-  }
-  if (parsed.username || parsed.password) {
-    throw new Error("Webhook URL must not embed credentials");
-  }
-  const host = parsed.hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "").toLowerCase();
-  if (!host) {
-    throw new Error("Webhook URL is missing hostname");
-  }
-  if (opts.allowInsecureLocalhostForTests) {
-    if ((parsed.protocol === "http:" || parsed.protocol === "https:") && isLoopbackHost(host)) {
-      return parsed;
-    }
-    throw new Error("Test localhost bypass only permits loopback http(s) endpoints");
-  }
-  if (parsed.protocol !== "https:") {
-    throw new Error("Webhook URL must use https://");
-  }
-  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) {
-    throw new Error(`Webhook host "${host}" is blocked (loopback/local host)`);
-  }
-  if (import_node_net.default.isIP(host) !== 0) {
-    if (isBlockedIpAddress(host)) {
-      throw new Error(`Webhook target IP "${host}" is blocked (private/loopback/link-local)`);
-    }
-  }
-  return parsed;
-}
-async function assertSafeResolvedTarget(parsed, opts = {}) {
-  if (opts.allowInsecureLocalhostForTests) return;
-  const host = parsed.hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "").toLowerCase();
-  if (import_node_net.default.isIP(host) !== 0) {
-    if (isBlockedIpAddress(host)) {
-      throw new Error(`Webhook target IP "${host}" is blocked (private/loopback/link-local)`);
-    }
-    return;
-  }
-  const records = await import_promises.default.lookup(host, { all: true });
-  if (records.length === 0) {
-    throw new Error(`Webhook host "${host}" did not resolve`);
-  }
-  for (const rec of records) {
-    if (isBlockedIpAddress(rec.address)) {
-      throw new Error(`Webhook host "${host}" resolved to blocked address ${rec.address}`);
-    }
-  }
-}
-function sanitizeActionUrl(rawUrl) {
-  if (!rawUrl) return void 0;
-  try {
-    const parsed = new URL(rawUrl);
-    parsed.searchParams.delete("token");
-    parsed.searchParams.delete("pairingToken");
-    parsed.searchParams.delete("pin");
-    parsed.searchParams.delete("pairingPin");
-    return parsed.toString();
-  } catch {
-    return void 0;
-  }
-}
-function signFeishu(timestampSec, secret) {
-  const stringToSign = `${timestampSec}
-${secret}`;
-  return import_node_crypto8.default.createHmac("sha256", stringToSign).update("").digest("base64");
-}
-function signDingTalk(timestampMs, secret) {
-  const stringToSign = `${timestampMs}
-${secret}`;
-  const hmac = import_node_crypto8.default.createHmac("sha256", secret).update(stringToSign).digest("base64");
-  return encodeURIComponent(hmac);
-}
-async function postJson(url2, body, opts = {}) {
-  const parsed = validateWebhookUrl(url2, opts);
-  await assertSafeResolvedTarget(parsed, opts);
-  const res = await fetch(parsed.toString(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    redirect: "error",
-    signal: AbortSignal.timeout(6e3)
-  });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
-}
-async function sendToChannel(channel, rawPayload, opts = {}) {
-  const title = redactText(rawPayload.title);
-  const body = redactText(rawPayload.body);
-  const cleanActionUrl = sanitizeActionUrl(rawPayload.actionUrl);
-  const footer = cleanActionUrl ? `
-Open Remote Hub: ${cleanActionUrl}` : "";
-  try {
-    switch (channel.kind) {
-      case "telegram": {
-        if (!channel.botToken || !channel.chatId) {
-          return { channelId: channel.id, kind: channel.kind, ok: false, error: "Missing botToken or chatId" };
-        }
-        const botToken = validateTelegramBotToken(channel.botToken);
-        const chatId = validateTelegramChatId(channel.chatId);
-        const url2 = `https://api.telegram.org/bot${botToken}/sendMessage`;
-        await postJson(url2, {
-          chat_id: chatId,
-          text: `${title}
-
-${body}${footer}`,
-          disable_web_page_preview: true
-        });
-        return { channelId: channel.id, kind: channel.kind, ok: true };
-      }
-      case "feishu": {
-        if (!channel.webhookUrl) {
-          return { channelId: channel.id, kind: channel.kind, ok: false, error: "Missing webhookUrl" };
-        }
-        const payload = {
-          msg_type: "interactive",
-          card: {
-            header: {
-              title: { tag: "plain_text", content: title },
-              template: rawPayload.level === "warn" ? "orange" : rawPayload.level === "success" ? "green" : "blue"
-            },
-            elements: [
-              { tag: "markdown", content: `${body}${footer}` }
-            ]
-          }
-        };
-        if (channel.secret) {
-          const ts = String(Math.floor(Date.now() / 1e3));
-          payload.timestamp = ts;
-          payload.sign = signFeishu(ts, channel.secret);
-        }
-        await postJson(channel.webhookUrl, payload, opts);
-        return { channelId: channel.id, kind: channel.kind, ok: true };
-      }
-      case "dingtalk": {
-        if (!channel.webhookUrl) {
-          return { channelId: channel.id, kind: channel.kind, ok: false, error: "Missing webhookUrl" };
-        }
-        const validated = validateWebhookUrl(channel.webhookUrl, opts);
-        if (channel.secret) {
-          const ts = Date.now();
-          const sign = signDingTalk(ts, channel.secret);
-          validated.searchParams.set("timestamp", String(ts));
-          validated.searchParams.set("sign", decodeURIComponent(sign));
-        }
-        await postJson(
-          validated.toString(),
-          {
-            msgtype: "markdown",
-            markdown: { title, text: `### ${title}
-
-${body}${footer}` }
-          },
-          opts
-        );
-        return { channelId: channel.id, kind: channel.kind, ok: true };
-      }
-      case "wecom": {
-        if (!channel.webhookUrl) {
-          return { channelId: channel.id, kind: channel.kind, ok: false, error: "Missing webhookUrl" };
-        }
-        await postJson(
-          channel.webhookUrl,
-          {
-            msgtype: "markdown",
-            markdown: { content: `**${title}**
-${body}${footer}` }
-          },
-          opts
-        );
-        return { channelId: channel.id, kind: channel.kind, ok: true };
-      }
-      case "slack": {
-        if (!channel.webhookUrl) {
-          return { channelId: channel.id, kind: channel.kind, ok: false, error: "Missing webhookUrl" };
-        }
-        await postJson(channel.webhookUrl, { text: `*${title}*
-${body}${footer}` }, opts);
-        return { channelId: channel.id, kind: channel.kind, ok: true };
-      }
-      case "discord": {
-        if (!channel.webhookUrl) {
-          return { channelId: channel.id, kind: channel.kind, ok: false, error: "Missing webhookUrl" };
-        }
-        await postJson(channel.webhookUrl, { content: `**${title}**
-${body}${footer}` }, opts);
-        return { channelId: channel.id, kind: channel.kind, ok: true };
-      }
-      default: {
-        if (!channel.webhookUrl) {
-          return { channelId: channel.id, kind: channel.kind, ok: false, error: "Missing webhookUrl" };
-        }
-        await postJson(
-          channel.webhookUrl,
-          { title, body, level: rawPayload.level, actionUrl: cleanActionUrl },
-          opts
-        );
-        return { channelId: channel.id, kind: channel.kind, ok: true };
-      }
-    }
-  } catch (err) {
-    return {
-      channelId: channel.id,
-      kind: channel.kind,
-      ok: false,
-      error: err instanceof Error ? err.message : String(err)
-    };
-  }
-}
-async function broadcastChannels(channels, payload, opts = {}) {
-  const active = channels.filter((c) => c.enabled);
-  if (active.length === 0) return [];
-  return Promise.all(active.map((c) => sendToChannel(c, payload, opts)));
-}
-
-// src/modules/remote/conversation-client.ts
-function normalizeConversation(raw) {
-  const id = raw.id ?? "unknown";
-  const summary = raw.state?.summary ?? "";
-  const title = raw.annotations?.title || summary || `Conversation ${id.slice(0, 8)}`;
-  return {
-    id,
-    title,
-    summary,
-    runState: raw.state?.runState ?? "RUN_STATE_IDLE",
-    updateTime: raw.state?.updateTime ?? (/* @__PURE__ */ new Date()).toISOString(),
-    tags: raw.annotations?.tags ?? [],
-    pinned: Boolean(raw.annotations?.pinned),
-    starred: Boolean(raw.annotations?.starred),
-    archived: Boolean(raw.annotations?.archived)
-  };
-}
-var ConversationClient = class {
-  constructor(opts = {}) {
-    this.opts = opts;
-    this.demoStore = [
-      {
-        id: "conv-demo-001",
-        title: "Migrate billing webhooks to idempotent queue",
-        summary: "Running integration test suite after adding Stripe idempotency keys",
-        runState: "RUN_STATE_RUNNING",
-        updateTime: new Date(Date.now() - 25e3).toISOString(),
-        tags: ["backend", "goal"],
-        pinned: true,
-        starred: true,
-        archived: false
-      },
-      {
-        id: "conv-demo-002",
-        title: "Nightly dependency security audit",
-        summary: "Completed npm audit triage; 2 low-severity advisories documented",
-        runState: "RUN_STATE_IDLE",
-        updateTime: new Date(Date.now() - 18 * 6e4).toISOString(),
-        tags: ["automation"],
-        pinned: false,
-        starred: false,
-        archived: false
-      },
-      {
-        id: "conv-demo-003",
-        title: "Refactor iOS push notification payload",
-        summary: "Updated APNs collapse-id header and verified sandbox delivery",
-        runState: "RUN_STATE_IDLE",
-        updateTime: new Date(Date.now() - 2 * 36e5).toISOString(),
-        tags: ["mobile"],
-        pinned: false,
-        starred: true,
-        archived: false
-      }
-    ];
-  }
-  demoStore;
-  get lsAddress() {
-    return this.opts.lsAddress || process.env.ANTIGRAVITY_LS_ADDRESS;
-  }
-  get csrfToken() {
-    return this.opts.csrfToken || process.env.ANTIGRAVITY_CSRF_TOKEN;
-  }
-  get isLive() {
-    return !this.opts.demoMode && Boolean(this.lsAddress && this.csrfToken);
-  }
-  async rpc(method, body) {
-    const res = await fetch(`http://${this.lsAddress}/product.v1.ConversationService/${method}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Connect-Protocol-Version": "1",
-        "x-antigravity-csrf-token": this.csrfToken ?? ""
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(5e3)
-    });
-    if (!res.ok) {
-      throw new Error(`ConversationService/${method} failed: HTTP ${res.status}`);
-    }
-    return await res.json();
-  }
-  async listConversations(pageSize = 20) {
-    if (!this.isLive) {
-      return { conversations: this.demoStore.slice(0, pageSize), live: false };
-    }
-    try {
-      const data = await this.rpc("ListConversations", {
-        pageSize,
-        includeArchived: false
-      });
-      return {
-        conversations: (data.conversations ?? []).map(normalizeConversation),
-        live: true
-      };
-    } catch {
-      return { conversations: this.demoStore.slice(0, pageSize), live: false };
-    }
-  }
-  async createConversation(input2) {
-    if (!this.isLive) {
-      const created = {
-        id: `conv-remote-${Date.now().toString(36)}`,
-        title: input2.title || input2.prompt.slice(0, 64),
-        summary: input2.prompt.slice(0, 120),
-        runState: "RUN_STATE_RUNNING",
-        updateTime: (/* @__PURE__ */ new Date()).toISOString(),
-        tags: input2.tags ?? ["agy-remote"],
-        pinned: false,
-        starred: false,
-        archived: false
-      };
-      this.demoStore.unshift(created);
-      return { conversation: created, live: false };
-    }
-    const payload = {
-      title: input2.title,
-      model: input2.model ?? "flash",
-      tags: input2.tags ?? ["agy-remote"],
-      prompt: [{ text: input2.prompt }]
-    };
-    const projectId = this.opts.projectId || process.env.ANTIGRAVITY_PROJECT_ID;
-    if (projectId) payload.projectId = projectId;
-    const data = await this.rpc("CreateConversation", payload);
-    return {
-      conversation: normalizeConversation(data.conversation ?? {}),
-      live: true
-    };
-  }
-};
-
-// src/modules/remote/gateway.ts
-var import_node_crypto9 = __toESM(require("node:crypto"), 1);
-var import_node_http = __toESM(require("node:http"), 1);
-
 // src/modules/remote/live-stream.ts
 var import_node_child_process = require("node:child_process");
 var import_node_fs13 = __toESM(require("node:fs"), 1);
@@ -47710,14 +47247,106 @@ var FILE_ARG_KEYS = [
   "Uri"
 ];
 var EXTRA_SENSITIVE_BASENAME_RE = /(?:^\.env(?:\.|$)|\.(?:pem|key|p12|pfx|jks|keystore|kdbx|crt|der)$|^id_(?:rsa|ed25519|ecdsa|dsa)(?:\.pub)?$|^(?:authorized_keys|known_hosts|\.npmrc|\.netrc|\.pypirc|kubeconfig)$|(?:secret|credential|password|passwd|private[_-]?key|token))/i;
+function stripRemotePrivateBlocksLinear(input2) {
+  if (!input2 || !input2.includes("<")) return input2;
+  const lower = input2.toLowerCase();
+  if (!lower.includes("<private")) return input2;
+  let out = "";
+  let cursor = 0;
+  let depth = 0;
+  let i = 0;
+  const n = input2.length;
+  while (i < n) {
+    const lt = input2.indexOf("<", i);
+    if (lt < 0) {
+      if (depth === 0) out += input2.slice(cursor);
+      break;
+    }
+    if (lower.startsWith("<private", lt)) {
+      const after = lt + 8;
+      if (after < n && (input2[after] === ">" || /\s/.test(input2[after]))) {
+        const gt = input2.indexOf(">", after);
+        if (gt >= 0) {
+          if (depth === 0) {
+            out += input2.slice(cursor, lt);
+            out += "[REDACTED_PRIVATE]";
+          }
+          depth += 1;
+          i = gt + 1;
+          cursor = i;
+          continue;
+        }
+      }
+    } else if (lower.startsWith("</private", lt)) {
+      const after = lt + 9;
+      if (after < n && (input2[after] === ">" || /\s/.test(input2[after]))) {
+        const gt = input2.indexOf(">", after);
+        if (gt >= 0) {
+          if (depth > 0) depth -= 1;
+          i = gt + 1;
+          if (depth === 0) cursor = i;
+          continue;
+        }
+      }
+    }
+    i = lt + 1;
+  }
+  return out;
+}
+function redactRemotePemBlocksLinear(input2) {
+  if (!input2 || !input2.includes("-----")) return input2;
+  const upper = input2.toUpperCase();
+  const marker = "-----BEGIN ";
+  if (!upper.includes(marker)) return input2;
+  let out = "";
+  let pos = 0;
+  while (pos < input2.length) {
+    const start = upper.indexOf(marker, pos);
+    if (start < 0) {
+      out += input2.slice(pos);
+      break;
+    }
+    const headerEnd = upper.indexOf("-----", start + marker.length);
+    if (headerEnd < 0 || headerEnd - start > 96) {
+      out += input2.slice(pos, start + marker.length);
+      pos = start + marker.length;
+      continue;
+    }
+    const headerText = upper.slice(start + marker.length, headerEnd);
+    if (!headerText.includes("PRIVATE KEY")) {
+      out += input2.slice(pos, headerEnd + 5);
+      pos = headerEnd + 5;
+      continue;
+    }
+    out += input2.slice(pos, start);
+    out += "[REDACTED_PRIVATE_KEY]";
+    const endMarker = "-----END ";
+    let searchPos = headerEnd + 5;
+    let foundEnd = -1;
+    while (searchPos < input2.length) {
+      const eStart = upper.indexOf(endMarker, searchPos);
+      if (eStart < 0) break;
+      const eEnd = upper.indexOf("-----", eStart + endMarker.length);
+      if (eEnd < 0 || eEnd - eStart > 96) {
+        searchPos = eStart + endMarker.length;
+        continue;
+      }
+      const endLabel = upper.slice(eStart + endMarker.length, eEnd);
+      if (endLabel.includes("PRIVATE KEY")) {
+        foundEnd = eEnd + 5;
+        break;
+      }
+      searchPos = eEnd + 5;
+    }
+    if (foundEnd >= 0) {
+      pos = foundEnd;
+    } else {
+      pos = input2.length;
+    }
+  }
+  return out;
+}
 var STRONG_SECRET_PATTERNS = [
-  // Complete PEM private key blocks (case-insensitive, bounded body prevents multi-block lazy backtracking)
-  [
-    /-----BEGIN [A-Z0-9 -]*PRIVATE KEY-----[\s\S]{0,8192}?-----END [A-Z0-9 -]*PRIVATE KEY-----/gi,
-    "[REDACTED_PRIVATE_KEY]"
-  ],
-  // Truncated PEM private key blocks missing an END line (case-insensitive)
-  [/-----BEGIN [A-Z0-9 -]*PRIVATE KEY-----[\s\S]*/gi, "[REDACTED_PRIVATE_KEY]"],
   // Bearer / Basic credentials
   [/\bBearer\s+[A-Za-z0-9\-._~+/]+=*/gi, "Bearer [REDACTED]"],
   [/\bBasic\s+[A-Za-z0-9+/]+=*/gi, "Basic [REDACTED]"],
@@ -47767,7 +47396,10 @@ function clampLiveStreamLimit(limit) {
   return Math.min(MAX_LIVE_STREAM_LIMIT, Math.max(MIN_LIVE_STREAM_LIMIT, Math.floor(limit)));
 }
 function redactLiveStreamText(raw) {
-  let out = redactText(raw);
+  if (!raw) return "";
+  let out = stripRemotePrivateBlocksLinear(raw);
+  out = redactRemotePemBlocksLinear(out);
+  out = redactText(out);
   for (const [pattern, replacement] of STRONG_SECRET_PATTERNS) {
     out = out.replace(pattern, replacement);
   }
@@ -48257,6 +47889,705 @@ async function detectLocalTunnelTools(opts = {}) {
   };
 }
 
+// src/modules/remote/channels.ts
+function formatApprovalRiskCardLine(riskCard) {
+  const riskLabel = riskCard.riskLevel.toUpperCase();
+  const filesCount = typeof riskCard.affectedFilesCount === "number" && Number.isFinite(riskCard.affectedFilesCount) ? Math.max(0, Math.floor(riskCard.affectedFilesCount)) : 0;
+  const verifyLabel = (riskCard.verifyStatus || "unknown").toUpperCase();
+  const target = riskCard.targetSummary ? redactLiveStreamText(riskCard.targetSummary).replace(/\s+/g, " ").trim().slice(0, 80) : "";
+  const baseLine = `Risk: ${riskLabel} | Files: ${filesCount} | Verify: ${verifyLabel}`;
+  return target ? `${baseLine} | Target: ${target}` : baseLine;
+}
+var TELEGRAM_BOT_TOKEN_RE = /^\d+:[A-Za-z0-9_-]{20,}$/;
+var TELEGRAM_CHAT_ID_RE = /^(?:-?\d{5,20}|@[A-Za-z][A-Za-z0-9_]{4,31})$/;
+function validateTelegramBotToken(token) {
+  const trimmed = token.trim();
+  if (!TELEGRAM_BOT_TOKEN_RE.test(trimmed)) {
+    throw new Error('Invalid Telegram botToken format (expected "<digits>:<token>")');
+  }
+  return trimmed;
+}
+function validateTelegramChatId(chatId) {
+  const trimmed = chatId.trim();
+  if (!TELEGRAM_CHAT_ID_RE.test(trimmed)) {
+    throw new Error("Invalid Telegram chatId format (expected numeric chat ID or @channel_username)");
+  }
+  return trimmed;
+}
+function isBlockedIpv4Octets(a, b, c, _d) {
+  if (a === 0) return true;
+  if (a === 10) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true;
+  if (a === 127) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 0 && (c === 0 || c === 2)) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 198 && (b === 18 || b === 19)) return true;
+  if (a >= 224) return true;
+  return false;
+}
+function parseIpv4Octets(ip) {
+  const parts = ip.split(".");
+  if (parts.length !== 4) return null;
+  const nums = parts.map((p) => /^\d+$/.test(p) ? Number(p) : -1);
+  if (nums.some((n) => n < 0 || n > 255)) return null;
+  return [nums[0], nums[1], nums[2], nums[3]];
+}
+function parseIpv6Groups(rawIp) {
+  const ip = rawIp.toLowerCase().split("%")[0];
+  let normalized = ip;
+  const lastColon = normalized.lastIndexOf(":");
+  if (lastColon >= 0 && normalized.slice(lastColon + 1).includes(".")) {
+    const octets = parseIpv4Octets(normalized.slice(lastColon + 1));
+    if (!octets) return null;
+    const hi = (octets[0] << 8 | octets[1]).toString(16);
+    const lo = (octets[2] << 8 | octets[3]).toString(16);
+    normalized = `${normalized.slice(0, lastColon + 1)}${hi}:${lo}`;
+  }
+  const doubleColonParts = normalized.split("::");
+  if (doubleColonParts.length > 2) return null;
+  const parseChunk = (s) => {
+    if (!s) return [];
+    const items = s.split(":");
+    const out = [];
+    for (const item of items) {
+      if (!/^[0-9a-f]{1,4}$/.test(item)) return null;
+      out.push(parseInt(item, 16));
+    }
+    return out;
+  };
+  if (doubleColonParts.length === 1) {
+    const groups = parseChunk(doubleColonParts[0]);
+    return groups && groups.length === 8 ? groups : null;
+  }
+  const head = parseChunk(doubleColonParts[0]);
+  const tail = parseChunk(doubleColonParts[1]);
+  if (!head || !tail) return null;
+  const missing = 8 - head.length - tail.length;
+  if (missing < 1) return null;
+  return [...head, ...Array(missing).fill(0), ...tail];
+}
+function isBlockedIpAddress(rawIp) {
+  const clean = rawIp.replace(/^\[|\]$/g, "").split("%")[0].trim().toLowerCase();
+  const ver = import_node_net.default.isIP(clean);
+  if (ver === 4) {
+    const octets = parseIpv4Octets(clean);
+    return !octets || isBlockedIpv4Octets(...octets);
+  }
+  if (ver === 6) {
+    const g = parseIpv6Groups(clean);
+    if (!g) return true;
+    if (g.every((n) => n === 0)) return true;
+    if (g.slice(0, 7).every((n) => n === 0) && g[7] === 1) return true;
+    if (g.slice(0, 5).every((n) => n === 0) && g[5] === 65535) {
+      return isBlockedIpv4Octets(g[6] >> 8, g[6] & 255, g[7] >> 8, g[7] & 255);
+    }
+    if (g[0] === 100 && g[1] === 65435 && g[2] === 0 && g[3] === 0 && g[4] === 0 && g[5] === 0) {
+      return isBlockedIpv4Octets(g[6] >> 8, g[6] & 255, g[7] >> 8, g[7] & 255);
+    }
+    if (g[0] === 8194) {
+      return isBlockedIpv4Octets(g[1] >> 8, g[1] & 255, g[2] >> 8, g[2] & 255);
+    }
+    if ((g[0] & 65024) === 64512) return true;
+    if ((g[0] & 65472) === 65152) return true;
+    if ((g[0] & 65472) === 65216) return true;
+    if ((g[0] & 65280) === 65280) return true;
+    return false;
+  }
+  return false;
+}
+function isLoopbackHost(hostname3) {
+  const clean = hostname3.replace(/^\[|\]$/g, "").replace(/\.$/, "").toLowerCase();
+  if (clean === "localhost" || clean === "::1") return true;
+  if (import_node_net.default.isIP(clean) === 4) {
+    const octets = parseIpv4Octets(clean);
+    return Boolean(octets && octets[0] === 127);
+  }
+  return false;
+}
+function validateWebhookUrl(rawUrl, opts = {}) {
+  let parsed;
+  try {
+    parsed = new URL(rawUrl.trim());
+  } catch {
+    throw new Error("Invalid webhook URL");
+  }
+  if (parsed.username || parsed.password) {
+    throw new Error("Webhook URL must not embed credentials");
+  }
+  const host = parsed.hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "").toLowerCase();
+  if (!host) {
+    throw new Error("Webhook URL is missing hostname");
+  }
+  if (opts.allowInsecureLocalhostForTests) {
+    if ((parsed.protocol === "http:" || parsed.protocol === "https:") && isLoopbackHost(host)) {
+      return parsed;
+    }
+    throw new Error("Test localhost bypass only permits loopback http(s) endpoints");
+  }
+  if (parsed.protocol !== "https:") {
+    throw new Error("Webhook URL must use https://");
+  }
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) {
+    throw new Error(`Webhook host "${host}" is blocked (loopback/local host)`);
+  }
+  if (import_node_net.default.isIP(host) !== 0) {
+    if (isBlockedIpAddress(host)) {
+      throw new Error(`Webhook target IP "${host}" is blocked (private/loopback/link-local)`);
+    }
+  }
+  return parsed;
+}
+async function assertSafeResolvedTarget(parsed, opts = {}) {
+  if (opts.allowInsecureLocalhostForTests) return;
+  const host = parsed.hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "").toLowerCase();
+  if (import_node_net.default.isIP(host) !== 0) {
+    if (isBlockedIpAddress(host)) {
+      throw new Error(`Webhook target IP "${host}" is blocked (private/loopback/link-local)`);
+    }
+    return;
+  }
+  const records = await import_promises.default.lookup(host, { all: true });
+  if (records.length === 0) {
+    throw new Error(`Webhook host "${host}" did not resolve`);
+  }
+  for (const rec of records) {
+    if (isBlockedIpAddress(rec.address)) {
+      throw new Error(`Webhook host "${host}" resolved to blocked address ${rec.address}`);
+    }
+  }
+}
+function sanitizeActionUrl(rawUrl) {
+  if (!rawUrl) return void 0;
+  try {
+    const parsed = new URL(rawUrl);
+    parsed.searchParams.delete("token");
+    parsed.searchParams.delete("pairingToken");
+    parsed.searchParams.delete("pin");
+    parsed.searchParams.delete("pairingPin");
+    return parsed.toString();
+  } catch {
+    return void 0;
+  }
+}
+function signFeishu(timestampSec, secret) {
+  const stringToSign = `${timestampSec}
+${secret}`;
+  return import_node_crypto8.default.createHmac("sha256", stringToSign).update("").digest("base64");
+}
+function signDingTalk(timestampMs, secret) {
+  const stringToSign = `${timestampMs}
+${secret}`;
+  const hmac = import_node_crypto8.default.createHmac("sha256", secret).update(stringToSign).digest("base64");
+  return encodeURIComponent(hmac);
+}
+async function postJson(url2, body, opts = {}) {
+  const parsed = validateWebhookUrl(url2, opts);
+  await assertSafeResolvedTarget(parsed, opts);
+  const res = await fetch(parsed.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    redirect: "error",
+    signal: AbortSignal.timeout(6e3)
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+}
+async function sendToChannel(channel, rawPayload, opts = {}) {
+  const title = redactLiveStreamText(redactText(rawPayload.title));
+  const riskLine = rawPayload.riskCard ? formatApprovalRiskCardLine(rawPayload.riskCard) : "";
+  const rawBodyWithRisk = riskLine ? rawPayload.body ? `${riskLine}
+${rawPayload.body}` : riskLine : rawPayload.body;
+  const body = redactLiveStreamText(redactText(rawBodyWithRisk));
+  const cleanActionUrl = sanitizeActionUrl(rawPayload.actionUrl);
+  const footer = cleanActionUrl ? `
+Open Remote Hub: ${cleanActionUrl}` : "";
+  try {
+    switch (channel.kind) {
+      case "telegram": {
+        if (!channel.botToken || !channel.chatId) {
+          return { channelId: channel.id, kind: channel.kind, ok: false, error: "Missing botToken or chatId" };
+        }
+        const botToken = validateTelegramBotToken(channel.botToken);
+        const chatId = validateTelegramChatId(channel.chatId);
+        const url2 = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        await postJson(url2, {
+          chat_id: chatId,
+          text: `${title}
+
+${body}${footer}`,
+          disable_web_page_preview: true
+        });
+        return { channelId: channel.id, kind: channel.kind, ok: true };
+      }
+      case "feishu": {
+        if (!channel.webhookUrl) {
+          return { channelId: channel.id, kind: channel.kind, ok: false, error: "Missing webhookUrl" };
+        }
+        const payload = {
+          msg_type: "interactive",
+          card: {
+            header: {
+              title: { tag: "plain_text", content: title },
+              template: rawPayload.level === "warn" ? "orange" : rawPayload.level === "success" ? "green" : "blue"
+            },
+            elements: [
+              { tag: "markdown", content: `${body}${footer}` }
+            ]
+          }
+        };
+        if (channel.secret) {
+          const ts = String(Math.floor(Date.now() / 1e3));
+          payload.timestamp = ts;
+          payload.sign = signFeishu(ts, channel.secret);
+        }
+        await postJson(channel.webhookUrl, payload, opts);
+        return { channelId: channel.id, kind: channel.kind, ok: true };
+      }
+      case "dingtalk": {
+        if (!channel.webhookUrl) {
+          return { channelId: channel.id, kind: channel.kind, ok: false, error: "Missing webhookUrl" };
+        }
+        const validated = validateWebhookUrl(channel.webhookUrl, opts);
+        if (channel.secret) {
+          const ts = Date.now();
+          const sign = signDingTalk(ts, channel.secret);
+          validated.searchParams.set("timestamp", String(ts));
+          validated.searchParams.set("sign", decodeURIComponent(sign));
+        }
+        await postJson(
+          validated.toString(),
+          {
+            msgtype: "markdown",
+            markdown: { title, text: `### ${title}
+
+${body}${footer}` }
+          },
+          opts
+        );
+        return { channelId: channel.id, kind: channel.kind, ok: true };
+      }
+      case "wecom": {
+        if (!channel.webhookUrl) {
+          return { channelId: channel.id, kind: channel.kind, ok: false, error: "Missing webhookUrl" };
+        }
+        await postJson(
+          channel.webhookUrl,
+          {
+            msgtype: "markdown",
+            markdown: { content: `**${title}**
+${body}${footer}` }
+          },
+          opts
+        );
+        return { channelId: channel.id, kind: channel.kind, ok: true };
+      }
+      case "slack": {
+        if (!channel.webhookUrl) {
+          return { channelId: channel.id, kind: channel.kind, ok: false, error: "Missing webhookUrl" };
+        }
+        await postJson(channel.webhookUrl, { text: `*${title}*
+${body}${footer}` }, opts);
+        return { channelId: channel.id, kind: channel.kind, ok: true };
+      }
+      case "discord": {
+        if (!channel.webhookUrl) {
+          return { channelId: channel.id, kind: channel.kind, ok: false, error: "Missing webhookUrl" };
+        }
+        await postJson(channel.webhookUrl, { content: `**${title}**
+${body}${footer}` }, opts);
+        return { channelId: channel.id, kind: channel.kind, ok: true };
+      }
+      default: {
+        if (!channel.webhookUrl) {
+          return { channelId: channel.id, kind: channel.kind, ok: false, error: "Missing webhookUrl" };
+        }
+        await postJson(
+          channel.webhookUrl,
+          { title, body, level: rawPayload.level, actionUrl: cleanActionUrl },
+          opts
+        );
+        return { channelId: channel.id, kind: channel.kind, ok: true };
+      }
+    }
+  } catch (err) {
+    return {
+      channelId: channel.id,
+      kind: channel.kind,
+      ok: false,
+      error: err instanceof Error ? err.message : String(err)
+    };
+  }
+}
+async function broadcastChannels(channels, payload, opts = {}) {
+  const active = channels.filter((c) => c.enabled);
+  if (active.length === 0) return [];
+  return Promise.all(active.map((c) => sendToChannel(c, payload, opts)));
+}
+
+// src/modules/remote/conversation-client.ts
+function normalizeConversation(raw) {
+  const id = raw.id ?? "unknown";
+  const summary = raw.state?.summary ?? "";
+  const title = raw.annotations?.title || summary || `Conversation ${id.slice(0, 8)}`;
+  return {
+    id,
+    title,
+    summary,
+    runState: raw.state?.runState ?? "RUN_STATE_IDLE",
+    updateTime: raw.state?.updateTime ?? (/* @__PURE__ */ new Date()).toISOString(),
+    tags: raw.annotations?.tags ?? [],
+    pinned: Boolean(raw.annotations?.pinned),
+    starred: Boolean(raw.annotations?.starred),
+    archived: Boolean(raw.annotations?.archived)
+  };
+}
+var ConversationClient = class {
+  constructor(opts = {}) {
+    this.opts = opts;
+    this.demoStore = [
+      {
+        id: "conv-demo-001",
+        title: "Migrate billing webhooks to idempotent queue",
+        summary: "Running integration test suite after adding Stripe idempotency keys",
+        runState: "RUN_STATE_RUNNING",
+        updateTime: new Date(Date.now() - 25e3).toISOString(),
+        tags: ["backend", "goal"],
+        pinned: true,
+        starred: true,
+        archived: false
+      },
+      {
+        id: "conv-demo-002",
+        title: "Nightly dependency security audit",
+        summary: "Completed npm audit triage; 2 low-severity advisories documented",
+        runState: "RUN_STATE_IDLE",
+        updateTime: new Date(Date.now() - 18 * 6e4).toISOString(),
+        tags: ["automation"],
+        pinned: false,
+        starred: false,
+        archived: false
+      },
+      {
+        id: "conv-demo-003",
+        title: "Refactor iOS push notification payload",
+        summary: "Updated APNs collapse-id header and verified sandbox delivery",
+        runState: "RUN_STATE_IDLE",
+        updateTime: new Date(Date.now() - 2 * 36e5).toISOString(),
+        tags: ["mobile"],
+        pinned: false,
+        starred: true,
+        archived: false
+      }
+    ];
+  }
+  demoStore;
+  get lsAddress() {
+    return this.opts.lsAddress || process.env.ANTIGRAVITY_LS_ADDRESS;
+  }
+  get csrfToken() {
+    return this.opts.csrfToken || process.env.ANTIGRAVITY_CSRF_TOKEN;
+  }
+  get isLive() {
+    return !this.opts.demoMode && Boolean(this.lsAddress && this.csrfToken);
+  }
+  async rpc(method, body) {
+    const res = await fetch(`http://${this.lsAddress}/product.v1.ConversationService/${method}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Connect-Protocol-Version": "1",
+        "x-antigravity-csrf-token": this.csrfToken ?? ""
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(5e3)
+    });
+    if (!res.ok) {
+      throw new Error(`ConversationService/${method} failed: HTTP ${res.status}`);
+    }
+    return await res.json();
+  }
+  async listConversations(pageSize = 20) {
+    if (!this.isLive) {
+      return { conversations: this.demoStore.slice(0, pageSize), live: false };
+    }
+    try {
+      const data = await this.rpc("ListConversations", {
+        pageSize,
+        includeArchived: false
+      });
+      return {
+        conversations: (data.conversations ?? []).map(normalizeConversation),
+        live: true
+      };
+    } catch {
+      return { conversations: this.demoStore.slice(0, pageSize), live: false };
+    }
+  }
+  async createConversation(input2) {
+    if (!this.isLive) {
+      const created = {
+        id: `conv-remote-${Date.now().toString(36)}`,
+        title: input2.title || input2.prompt.slice(0, 64),
+        summary: input2.prompt.slice(0, 120),
+        runState: "RUN_STATE_RUNNING",
+        updateTime: (/* @__PURE__ */ new Date()).toISOString(),
+        tags: input2.tags ?? ["agy-remote"],
+        pinned: false,
+        starred: false,
+        archived: false
+      };
+      this.demoStore.unshift(created);
+      return { conversation: created, live: false };
+    }
+    const payload = {
+      title: input2.title,
+      model: input2.model ?? "flash",
+      tags: input2.tags ?? ["agy-remote"],
+      prompt: [{ text: input2.prompt }]
+    };
+    const projectId = this.opts.projectId || process.env.ANTIGRAVITY_PROJECT_ID;
+    if (projectId) payload.projectId = projectId;
+    const data = await this.rpc("CreateConversation", payload);
+    return {
+      conversation: normalizeConversation(data.conversation ?? {}),
+      live: true
+    };
+  }
+};
+
+// src/modules/remote/gateway.ts
+var import_node_crypto9 = __toESM(require("node:crypto"), 1);
+var import_node_http = __toESM(require("node:http"), 1);
+var import_node_path18 = __toESM(require("node:path"), 1);
+
+// src/modules/remote/hook.ts
+var import_node_fs14 = __toESM(require("node:fs"), 1);
+var import_node_path17 = __toESM(require("node:path"), 1);
+var MAX_RISK_TARGET_SUMMARY_CHARS = 120;
+var MAX_RISK_COMMAND_PREVIEW_CHARS = 160;
+var MAX_RISK_VERIFY_SUMMARY_CHARS = 120;
+var MAX_VERIFY_STATE_BYTES = 2 * 1024 * 1024;
+var COMMAND_TOOL_RE = /(?:^|[_-])(?:run_command|command|shell|bash|zsh|sh|exec|terminal)(?:$|[_-])/i;
+var DELETE_TOOL_RE = /(?:^|[_-])(?:delete|remove|rm|unlink)(?:$|[_-])/i;
+var HIGH_RISK_COMMAND_PATTERNS = [
+  /\brm\s+(?:-[a-zA-Z]*(?:r[a-zA-Z]*f|f[a-zA-Z]*r)|-[a-zA-Z]*r\b[^;&|\r\n]{0,80}-[a-zA-Z]*f\b)/i,
+  /\bgit\s+push\b[^\r\n]{0,160}(?:--force(?:-with-lease)?|\s-f\b)/i,
+  /\bgit\s+reset\s+--hard\b/i,
+  /\bsudo\b/i,
+  /\b(?:drop|truncate)\s+(?:table|database|schema)\b/i,
+  /\b(?:curl|wget)\b[^\r\n]{0,240}\|\s*(?:(?:ba|z|da)?sh|python3?|node|perl|ruby)\b/i,
+  /\bchmod\s+(?:-R\s+)?777\b/i,
+  /\bmkfs\.[a-z0-9]+|\bdd\s+if=/i,
+  /\b(?:shutdown|reboot|poweroff|halt)\b/i
+];
+var FILE_MUTATION_TOOLS = /* @__PURE__ */ new Set([
+  "delete_file",
+  "write_file",
+  "edit_file",
+  "write_to_file",
+  "replace_file_content",
+  "multi_replace_file_content"
+]);
+var PATH_LIKE_KEYS = /* @__PURE__ */ new Set([
+  "path",
+  "file_path",
+  "filepath",
+  "target_file",
+  "targetfile",
+  "target_path",
+  "targetpath",
+  "absolutepath",
+  "absolute_path",
+  "filename",
+  "file",
+  "files",
+  "paths",
+  "uri"
+]);
+var NESTED_FILE_CONTAINER_KEYS = /* @__PURE__ */ new Set([
+  "edits",
+  "changes",
+  "operations",
+  "items",
+  "targets"
+]);
+function normalizeToolArgs(raw) {
+  if (raw === void 0 || raw === null) {
+    return { obj: {}, text: "{}" };
+  }
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return { obj: parsed, text: JSON.stringify(parsed) };
+        }
+      } catch {
+      }
+    }
+    return { obj: { raw: trimmed }, text: trimmed };
+  }
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return { obj: raw, text: JSON.stringify(raw) };
+  }
+  return { obj: {}, text: JSON.stringify(raw) };
+}
+function collapseBoundedText(raw, maxChars) {
+  const cleaned = redactLiveStreamText(raw).replace(/\s+/g, " ").trim();
+  if (cleaned.length <= maxChars) return cleaned;
+  return `${cleaned.slice(0, Math.max(1, maxChars - 1)).trimEnd()}\u2026`;
+}
+function extractStrictAffectedPaths(value, depth = 0, insidePathKey = false) {
+  if (depth > 5 || value === null || value === void 0) return [];
+  if (typeof value === "string") {
+    if (!insidePathKey) return [];
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
+  }
+  if (Array.isArray(value)) {
+    const out = [];
+    for (const item of value) {
+      out.push(...extractStrictAffectedPaths(item, depth + 1, insidePathKey));
+    }
+    return out;
+  }
+  if (typeof value === "object") {
+    const out = [];
+    for (const [k, v] of Object.entries(value)) {
+      const lower = k.toLowerCase();
+      if (PATH_LIKE_KEYS.has(lower)) {
+        out.push(...extractStrictAffectedPaths(v, depth + 1, true));
+      } else if (NESTED_FILE_CONTAINER_KEYS.has(lower) || insidePathKey) {
+        out.push(...extractStrictAffectedPaths(v, depth + 1, false));
+      }
+    }
+    return out;
+  }
+  return [];
+}
+function extractCommandText(toolName, obj, summary) {
+  const rawCandidates = [obj.CommandLine, obj.commandLine, obj.command, obj.cmd, obj.script];
+  for (const val of rawCandidates) {
+    if (typeof val === "string" && val.trim()) {
+      return val.trim();
+    }
+  }
+  if (COMMAND_TOOL_RE.test(toolName) && typeof summary === "string" && summary.trim()) {
+    return summary.trim();
+  }
+  return void 0;
+}
+function hasHighRiskCommandSignature(text) {
+  if (!text) return false;
+  for (const re of HIGH_RISK_COMMAND_PATTERNS) {
+    if (re.test(text)) return true;
+  }
+  return false;
+}
+function textMentionsSensitivePath(text) {
+  if (!text) return false;
+  if (matchSensitivePath(text)) return true;
+  const tokens = text.split(/[\s"'`=;,()[\]{}]+/).filter(Boolean);
+  for (const tok of tokens) {
+    if (matchSensitivePath(tok)) return true;
+  }
+  return false;
+}
+function readVerifyStatusReadOnly(rootDataDir) {
+  if (!rootDataDir || !rootDataDir.trim()) {
+    return { verifyStatus: "unknown" };
+  }
+  const statePath = import_node_path17.default.join(getModuleDataDir(rootDataDir, "verify"), "state.json");
+  try {
+    const st = import_node_fs14.default.lstatSync(statePath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size <= 0 || st.size > MAX_VERIFY_STATE_BYTES) {
+      return { verifyStatus: "unknown" };
+    }
+    const parsed = JSON.parse(import_node_fs14.default.readFileSync(statePath, "utf8"));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { verifyStatus: "unknown" };
+    }
+    const rec = parsed;
+    const evidenceRaw = Array.isArray(rec.evidence) ? rec.evidence : [];
+    const latest = evidenceRaw.find(
+      (item) => Boolean(item && typeof item === "object" && !Array.isArray(item))
+    );
+    if (!latest) {
+      return { verifyStatus: "idle" };
+    }
+    const outcome = typeof latest.outcome === "string" ? latest.outcome.toLowerCase() : "";
+    let verifyStatus;
+    if (outcome === "blocked" || latest.blocked === true) {
+      verifyStatus = "blocked";
+    } else if (outcome === "pass" || outcome === "guardrail-allow" || latest.passed === true) {
+      verifyStatus = "pass";
+    } else {
+      verifyStatus = "fail";
+    }
+    const verifySummary = typeof latest.summary === "string" && latest.summary.trim() ? collapseBoundedText(latest.summary, MAX_RISK_VERIFY_SUMMARY_CHARS) : void 0;
+    return {
+      verifyStatus,
+      ...verifySummary ? { verifySummary } : {}
+    };
+  } catch {
+    return { verifyStatus: "unknown" };
+  }
+}
+function buildApprovalRiskCard(params) {
+  const toolName = (params.toolName || "unknown").trim() || "unknown";
+  const normalized = normalizeToolArgs(params.toolInput);
+  const rawPaths = [
+    ...Array.isArray(params.affectedFiles) ? params.affectedFiles.filter((p) => typeof p === "string" && p.trim().length > 0) : [],
+    ...extractStrictAffectedPaths(normalized.obj)
+  ];
+  if (rawPaths.length === 0 && FILE_MUTATION_TOOLS.has(toolName.toLowerCase()) && typeof params.summary === "string" && params.summary.trim() && !/\s/.test(params.summary.trim())) {
+    rawPaths.push(params.summary.trim());
+  }
+  const uniquePaths = Array.from(new Set(rawPaths.map((p) => p.trim()).filter(Boolean)));
+  const affectedFilesCount = uniquePaths.length;
+  const commandRaw = extractCommandText(toolName, normalized.obj, params.summary);
+  const commandPreview = commandRaw ? collapseBoundedText(commandRaw, MAX_RISK_COMMAND_PREVIEW_CHARS) : void 0;
+  const matchedRule = (params.matchedRule ?? "").trim();
+  const isSensitiveTarget = matchedRule.toLowerCase().startsWith("sensitive_path:") || uniquePaths.some((p) => Boolean(matchSensitivePath(p))) || textMentionsSensitivePath(commandRaw ?? "") || textMentionsSensitivePath(params.summary ?? "");
+  const isHighRiskCmd = hasHighRiskCommandSignature(commandRaw ?? "") || hasHighRiskCommandSignature(params.summary ?? "") || hasHighRiskCommandSignature(matchedRule);
+  const isCommandTool = COMMAND_TOOL_RE.test(toolName) || Boolean(commandRaw);
+  const isDeleteTool = DELETE_TOOL_RE.test(toolName);
+  let riskLevel;
+  if (isHighRiskCmd || isSensitiveTarget || isDeleteTool && affectedFilesCount > 1) {
+    riskLevel = "high";
+  } else if (isCommandTool || affectedFilesCount >= 2 || isDeleteTool) {
+    riskLevel = "medium";
+  } else {
+    riskLevel = "low";
+  }
+  let rawTargetSummary = "";
+  if (uniquePaths.length > 0) {
+    const first = uniquePaths[0];
+    rawTargetSummary = uniquePaths.length > 1 ? `${first} (+${uniquePaths.length - 1} more)` : first;
+  } else if (commandRaw) {
+    rawTargetSummary = commandRaw;
+  } else if (params.summary && params.summary.trim()) {
+    rawTargetSummary = params.summary.trim();
+  } else {
+    rawTargetSummary = toolName;
+  }
+  const targetSummary = collapseBoundedText(rawTargetSummary, MAX_RISK_TARGET_SUMMARY_CHARS);
+  const { verifyStatus, verifySummary } = readVerifyStatusReadOnly(params.rootDataDir);
+  return {
+    riskLevel,
+    affectedFilesCount,
+    targetSummary,
+    ...commandPreview ? { commandPreview } : {},
+    verifyStatus,
+    ...verifySummary ? { verifySummary } : {}
+  };
+}
+
 // src/modules/remote/mobile-pwa.ts
 function renderMobilePwaHtml() {
   return `<!doctype html>
@@ -48282,6 +48613,16 @@ function renderMobilePwaHtml() {
     .pill.warn { color:var(--warn); background:rgba(245,158,11,0.16); }
     .pill.ro { color:var(--good); background:rgba(16,185,129,0.14); border:1px solid rgba(16,185,129,0.35); font-size:10px; }
     .pill.err { color:#fda4af; background:rgba(244,63,94,0.16); }
+    .pill.risk-high { color:#fecdd3; background:rgba(244,63,94,0.22); border:1px solid rgba(244,63,94,0.45); font-weight:700; }
+    .pill.risk-medium { color:#fde68a; background:rgba(245,158,11,0.2); border:1px solid rgba(245,158,11,0.42); font-weight:700; }
+    .pill.risk-low { color:#a7f3d0; background:rgba(16,185,129,0.18); border:1px solid rgba(16,185,129,0.38); font-weight:700; }
+    .pill.v-pass { color:#6ee7b7; background:rgba(16,185,129,0.16); border:1px solid rgba(16,185,129,0.35); }
+    .pill.v-fail { color:#fda4af; background:rgba(244,63,94,0.18); border:1px solid rgba(244,63,94,0.38); }
+    .pill.v-blocked { color:#fcd34d; background:rgba(245,158,11,0.18); border:1px solid rgba(245,158,11,0.38); }
+    .pill.v-muted { color:var(--muted); background:#0b111b; border:1px solid var(--border); }
+    .risk-meta { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:7px; }
+    .risk-target { font-size:12px; color:var(--fg); margin-top:6px; word-break:break-word; }
+    .risk-verify-note { font-size:11px; color:var(--muted); margin-top:4px; word-break:break-word; }
     .item { background:var(--card2); border:1px solid var(--border); border-radius:11px; padding:10px; margin-bottom:8px; }
     .item-head { display:flex; justify-content:space-between; gap:8px; align-items:center; }
     .conv-trigger { width:100%; background:transparent; color:inherit; border:none; padding:0; text-align:left; font:inherit; cursor:pointer; }
@@ -48441,6 +48782,21 @@ function renderMobilePwaHtml() {
         }
       }
 
+      function riskBadgeMeta(level) {
+        if (level === 'high') return { cls: 'pill risk-high', label: 'HIGH' };
+        if (level === 'medium') return { cls: 'pill risk-medium', label: 'MED' };
+        if (level === 'low') return { cls: 'pill risk-low', label: 'LOW' };
+        return { cls: 'pill warn', label: 'ACTION' };
+      }
+
+      function verifyBadgeMeta(status) {
+        if (status === 'pass') return { cls: 'pill v-pass', label: 'Verify: PASS' };
+        if (status === 'fail') return { cls: 'pill v-fail', label: 'Verify: FAIL' };
+        if (status === 'blocked') return { cls: 'pill v-blocked', label: 'Verify: BLOCKED' };
+        if (status === 'idle') return { cls: 'pill v-muted', label: 'Verify: IDLE' };
+        return { cls: 'pill v-muted', label: 'Verify: UNKNOWN' };
+      }
+
       function renderApprovals(list) {
         const pending = (Array.isArray(list) ? list : []).filter(function (a) {
           return a && a.status === 'pending';
@@ -48454,14 +48810,43 @@ function renderMobilePwaHtml() {
         const nodes = pending.map(function (a) {
           const item = document.createElement('div');
           item.className = 'item';
+          const rc = a && typeof a.riskCard === 'object' && a.riskCard ? a.riskCard : null;
 
           const head = document.createElement('div');
           head.className = 'item-head';
           head.appendChild(createTextElement('strong', '', String(a.toolName || 'tool')));
-          head.appendChild(createTextElement('span', 'pill warn', 'Action Needed'));
+          const rb = rc ? riskBadgeMeta(String(rc.riskLevel || '')) : { cls: 'pill warn', label: 'Action Needed' };
+          head.appendChild(createTextElement('span', rb.cls, rb.label));
           item.appendChild(head);
 
-          item.appendChild(createTextElement('div', 'cmd', String(a.summary || '')));
+          if (rc) {
+            const metaRow = document.createElement('div');
+            metaRow.className = 'risk-meta';
+            const filesCount =
+              typeof rc.affectedFilesCount === 'number' && isFinite(rc.affectedFilesCount)
+                ? Math.max(0, Math.floor(rc.affectedFilesCount))
+                : 0;
+            metaRow.appendChild(
+              createTextElement('span', 'pill', String(filesCount) + (filesCount === 1 ? ' file' : ' files')),
+            );
+            const vb = verifyBadgeMeta(String(rc.verifyStatus || 'unknown'));
+            metaRow.appendChild(createTextElement('span', vb.cls, vb.label));
+            item.appendChild(metaRow);
+
+            if (rc.targetSummary) {
+              item.appendChild(createTextElement('div', 'risk-target', String(rc.targetSummary)));
+            }
+            if (rc.commandPreview) {
+              item.appendChild(createTextElement('div', 'cmd', String(rc.commandPreview)));
+            } else if (a.summary) {
+              item.appendChild(createTextElement('div', 'cmd', String(a.summary)));
+            }
+            if (rc.verifySummary) {
+              item.appendChild(createTextElement('div', 'risk-verify-note', 'Verify: ' + String(rc.verifySummary)));
+            }
+          } else {
+            item.appendChild(createTextElement('div', 'cmd', String(a.summary || '')));
+          }
 
           const row = document.createElement('div');
           row.className = 'row';
@@ -48723,6 +49108,49 @@ function renderMobilePwaHtml() {
 }
 
 // src/modules/remote/gateway.ts
+var VALID_RISK_LEVELS = /* @__PURE__ */ new Set(["high", "medium", "low"]);
+var VALID_VERIFY_STATUSES = /* @__PURE__ */ new Set([
+  "pass",
+  "fail",
+  "blocked",
+  "idle",
+  "unknown"
+]);
+function deriveRootDataDir(moduleDataDir) {
+  const resolved = import_node_path18.default.resolve(moduleDataDir);
+  const parent = import_node_path18.default.dirname(resolved);
+  if (import_node_path18.default.basename(parent) === "modules") {
+    return import_node_path18.default.dirname(parent);
+  }
+  return void 0;
+}
+function sanitizeCardLine(raw, maxChars) {
+  if (typeof raw !== "string") return "";
+  const cleaned = redactLiveStreamText(raw).replace(/\s+/g, " ").trim();
+  if (cleaned.length <= maxChars) return cleaned;
+  return `${cleaned.slice(0, Math.max(1, maxChars - 1)).trimEnd()}\u2026`;
+}
+function sanitizeIncomingRiskCard(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return void 0;
+  const r = raw;
+  if (typeof r.riskLevel !== "string" || !VALID_RISK_LEVELS.has(r.riskLevel)) {
+    return void 0;
+  }
+  const verifyStatus = typeof r.verifyStatus === "string" && VALID_VERIFY_STATUSES.has(r.verifyStatus) ? r.verifyStatus : "unknown";
+  const affectedFilesCount = typeof r.affectedFilesCount === "number" && Number.isFinite(r.affectedFilesCount) ? Math.max(0, Math.floor(r.affectedFilesCount)) : 0;
+  const targetSummary = sanitizeCardLine(r.targetSummary, MAX_RISK_TARGET_SUMMARY_CHARS);
+  if (!targetSummary) return void 0;
+  const commandPreview = sanitizeCardLine(r.commandPreview, MAX_RISK_COMMAND_PREVIEW_CHARS);
+  const verifySummary = sanitizeCardLine(r.verifySummary, MAX_RISK_VERIFY_SUMMARY_CHARS);
+  return {
+    riskLevel: r.riskLevel,
+    affectedFilesCount,
+    targetSummary,
+    ...commandPreview ? { commandPreview } : {},
+    verifyStatus,
+    ...verifySummary ? { verifySummary } : {}
+  };
+}
 var MAX_BODY_BYTES = 64 * 1024;
 var MAX_APPROVALS_RETAINED = 100;
 var PAIR_MAX_FAILURES = 5;
@@ -48758,6 +49186,7 @@ var RemoteGateway = class {
     this.channelSendOptions = options.channelSendOptions;
     this.demoMode = Boolean(options.demoMode);
     this.brainDirs = options.brainDirs;
+    this.rootDataDir = options.rootDataDir ?? deriveRootDataDir(dataDir);
     const loaded = loadConfigReadOnly(dataDir);
     this.config = loaded.config;
     this.configPersisted = loaded.persisted;
@@ -48785,6 +49214,7 @@ var RemoteGateway = class {
   channelSendOptions;
   demoMode;
   brainDirs;
+  rootDataDir;
   resolveInitialPinExpiryInMemory() {
     const now = this.nowFn();
     const parsed = this.config.pairingPinExpiresAt ? Date.parse(this.config.pairingPinExpiresAt) : NaN;
@@ -48963,15 +49393,24 @@ var RemoteGateway = class {
   async createApproval(input2) {
     const timeoutMs = Math.max(100, (input2.timeoutSec ?? this.config.approvalTimeoutSec) * 1e3);
     const now = this.nowFn();
+    const safeSummary = redactLiveStreamText(redactText(input2.summary)).slice(0, 400);
+    const riskCard = sanitizeIncomingRiskCard(input2.riskCard) ?? buildApprovalRiskCard({
+      toolName: input2.toolName,
+      toolInput: input2.toolInput,
+      summary: safeSummary,
+      matchedRule: input2.matchedRule,
+      rootDataDir: this.rootDataDir
+    });
     const req = {
       id: `apr_${import_node_crypto9.default.randomBytes(6).toString("hex")}`,
       conversationId: input2.conversationId,
       toolName: input2.toolName,
-      summary: redactText(input2.summary).slice(0, 400),
+      summary: safeSummary,
       matchedRule: input2.matchedRule,
       createdAt: new Date(now).toISOString(),
       expiresAt: new Date(now + timeoutMs).toISOString(),
-      status: "pending"
+      status: "pending",
+      riskCard
     };
     this.approvals.set(req.id, req);
     this.pruneApprovals();
@@ -48992,7 +49431,8 @@ var RemoteGateway = class {
 Rule: \`${req.matchedRule}\``,
           level: "warn",
           // Send clean Mobile PWA base URL only; never attach long-lived Master Token to IM pushes
-          actionUrl: pub.mobileUrl
+          actionUrl: pub.mobileUrl,
+          riskCard: req.riskCard
         },
         this.channelSendOptions
       );
@@ -49267,7 +49707,8 @@ Rule: \`${req.matchedRule}\``,
             toolName: String(body.toolName ?? "run_command"),
             summary: String(body.summary ?? ""),
             matchedRule: String(body.matchedRule ?? "risk"),
-            timeoutSec: Number(body.timeoutSec ?? this.config.approvalTimeoutSec)
+            timeoutSec: Number(body.timeoutSec ?? this.config.approvalTimeoutSec),
+            riskCard: sanitizeIncomingRiskCard(body.riskCard)
           });
           const waitMs = Math.min(26e3, Number(body.waitMs ?? 24e3));
           const finalReq = waitMs > 0 ? await this.waitForApproval(created.id, waitMs) : created;
@@ -49520,6 +49961,7 @@ function registerRemoteModule(server, opts, uiResourceUri, initialEnabled) {
   const convClient = new ConversationClient({ demoMode: opts.demoMode });
   const gateway = new RemoteGateway(dataDir, convClient, {
     demoMode: opts.demoMode,
+    rootDataDir,
     ...brainDirs ? { brainDirs } : {}
   });
   let moduleEnabled = Boolean(initialEnabled);
@@ -50151,14 +50593,14 @@ function registerRemoteModule(server, opts, uiResourceUri, initialEnabled) {
 }
 
 // src/modules/review/register.ts
-var import_node_fs17 = __toESM(require("node:fs"), 1);
-var import_node_path21 = __toESM(require("node:path"), 1);
+var import_node_fs18 = __toESM(require("node:fs"), 1);
+var import_node_path23 = __toESM(require("node:path"), 1);
 
 // src/modules/review/annotations.ts
 var import_node_crypto10 = __toESM(require("node:crypto"), 1);
-var import_node_fs14 = __toESM(require("node:fs"), 1);
+var import_node_fs15 = __toESM(require("node:fs"), 1);
 var import_node_os4 = __toESM(require("node:os"), 1);
-var import_node_path17 = __toESM(require("node:path"), 1);
+var import_node_path19 = __toESM(require("node:path"), 1);
 var SAFE_REPO_KEY_RE = /^[a-zA-Z0-9_-]{4,64}$/;
 var MAX_FILE_PATH_LENGTH = 1024;
 var MAX_COMMENT_LENGTH = 16e3;
@@ -50205,33 +50647,60 @@ function sanitizeRepoKey(repoKey) {
 }
 var AnnotationStore = class {
   sessionsDir;
-  constructor(dataDir) {
-    const baseDir = dataDir && dataDir.trim() ? import_node_path17.default.resolve(dataDir.trim()) : import_node_path17.default.join(import_node_os4.default.tmpdir(), "agy-nov-review-data");
-    this.sessionsDir = import_node_path17.default.join(baseDir, "sessions");
+  inMemoryOnly;
+  inMemoryRepoKeys;
+  memoryFiles = /* @__PURE__ */ new Map();
+  constructor(dataDir, options = {}) {
+    const baseDir = dataDir && dataDir.trim() ? import_node_path19.default.resolve(dataDir.trim()) : import_node_path19.default.join(import_node_os4.default.tmpdir(), "agy-nov-review-data");
+    this.sessionsDir = import_node_path19.default.join(baseDir, "sessions");
+    this.inMemoryOnly = Boolean(options.inMemoryOnly);
+    this.inMemoryRepoKeys = new Set(options.inMemoryRepoKeys ?? []);
+  }
+  usesMemory(safeKey) {
+    return this.inMemoryOnly || this.inMemoryRepoKeys.has(safeKey);
+  }
+  cloneStoreFile(data) {
+    const scopes = {};
+    for (const [k, v] of Object.entries(data.scopes)) {
+      scopes[k] = {
+        annotations: v.annotations.map((a) => ({ ...a })),
+        viewedFiles: [...v.viewedFiles]
+      };
+    }
+    return {
+      version: 1,
+      repoKey: data.repoKey,
+      updatedAt: data.updatedAt,
+      scopes
+    };
   }
   resolveStorePath(repoKey) {
     const safeKey = sanitizeRepoKey(repoKey);
-    const target = import_node_path17.default.resolve(this.sessionsDir, `${safeKey}.json`);
-    const rel = import_node_path17.default.relative(this.sessionsDir, target);
-    if (rel.startsWith("..") || import_node_path17.default.isAbsolute(rel)) {
+    const target = import_node_path19.default.resolve(this.sessionsDir, `${safeKey}.json`);
+    const rel = import_node_path19.default.relative(this.sessionsDir, target);
+    if (rel.startsWith("..") || import_node_path19.default.isAbsolute(rel)) {
       throw new Error("Blocked path traversal attempt in AnnotationStore.");
     }
     return target;
   }
   loadRepoFile(repoKey) {
     const safeKey = sanitizeRepoKey(repoKey);
-    const filePath = this.resolveStorePath(safeKey);
     const empty = {
       version: 1,
       repoKey: safeKey,
       updatedAt: (/* @__PURE__ */ new Date()).toISOString(),
       scopes: {}
     };
-    if (!import_node_fs14.default.existsSync(filePath)) {
+    if (this.usesMemory(safeKey)) {
+      const mem = this.memoryFiles.get(safeKey);
+      return mem ? this.cloneStoreFile(mem) : empty;
+    }
+    const filePath = this.resolveStorePath(safeKey);
+    if (!import_node_fs15.default.existsSync(filePath)) {
       return empty;
     }
     try {
-      const raw = import_node_fs14.default.readFileSync(filePath, "utf8");
+      const raw = import_node_fs15.default.readFileSync(filePath, "utf8");
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== "object" || !parsed.scopes || typeof parsed.scopes !== "object") {
         return empty;
@@ -50256,12 +50725,17 @@ var AnnotationStore = class {
     }
   }
   saveRepoFile(data) {
-    const filePath = this.resolveStorePath(data.repoKey);
-    ensurePrivateDir(this.sessionsDir);
+    const safeKey = sanitizeRepoKey(data.repoKey);
     data.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+    if (this.usesMemory(safeKey)) {
+      this.memoryFiles.set(safeKey, this.cloneStoreFile(data));
+      return;
+    }
+    const filePath = this.resolveStorePath(safeKey);
+    ensurePrivateDir(this.sessionsDir);
     const tmpPath = `${filePath}.${process.pid}.${import_node_crypto10.default.randomBytes(4).toString("hex")}.tmp`;
-    import_node_fs14.default.writeFileSync(tmpPath, JSON.stringify(data, null, 2), { encoding: "utf8", mode: 384 });
-    import_node_fs14.default.renameSync(tmpPath, filePath);
+    import_node_fs15.default.writeFileSync(tmpPath, JSON.stringify(data, null, 2), { encoding: "utf8", mode: 384 });
+    import_node_fs15.default.renameSync(tmpPath, filePath);
   }
   ensureScope(data, scope) {
     if (!data.scopes[scope]) {
@@ -50442,7 +50916,7 @@ function evaluateAnnotationStaleness(annotations, files) {
 
 // src/modules/review/diff-parser.ts
 var import_node_crypto11 = __toESM(require("node:crypto"), 1);
-var import_node_path18 = __toESM(require("node:path"), 1);
+var import_node_path20 = __toESM(require("node:path"), 1);
 
 // src/modules/review/diff-helpers.ts
 function extractCodeSnippet(file2, startLine, endLine, side = "new", maxSnippetLines = 8) {
@@ -50741,7 +51215,7 @@ function parseUnifiedDiff(rawDiff, options = {}) {
   const finalizeCurrent = () => {
     if (!current) return;
     const effectivePath = current.status === "deleted" ? current.oldPath || current.newPath : current.newPath || current.oldPath;
-    const absolutePath = options.repoPath && effectivePath && effectivePath !== "/dev/null" ? import_node_path18.default.resolve(options.repoPath, effectivePath) : void 0;
+    const absolutePath = options.repoPath && effectivePath && effectivePath !== "/dev/null" ? import_node_path20.default.resolve(options.repoPath, effectivePath) : void 0;
     const riskTags = classifyRiskTags(
       effectivePath,
       current.additions,
@@ -50923,6 +51397,60 @@ function parseUnifiedDiff(rawDiff, options = {}) {
 // src/modules/review/demo-data.ts
 var DEMO_REPO_KEY = "demo-agy-review-01";
 var DEMO_REPO_PATH = "/workspace/acme-auth-service";
+var DEMO_WORKTREE_PATH = "/workspace/acme-auth-service/.agy-worktrees/feat-token-refresh-guard";
+function buildDemoAvailableWorktrees() {
+  return [
+    {
+      path: DEMO_REPO_PATH,
+      branch: "main",
+      isMain: true,
+      isDirty: false
+    },
+    {
+      path: DEMO_WORKTREE_PATH,
+      branch: "feat/token-refresh-guard",
+      isMain: false,
+      isDirty: true
+    }
+  ];
+}
+function buildDemoSpecCompliance() {
+  const items = [
+    {
+      id: "t1",
+      title: "Enforce per-IP sliding rate limit before JWT verification",
+      status: "done",
+      checked: true
+    },
+    {
+      id: "t2",
+      title: "Accept bearer tokens strictly from Authorization header (reject URL query tokens)",
+      status: "in_progress",
+      checked: false
+    },
+    {
+      id: "t3",
+      title: "Return HTTP 401 and null context on invalid or expired JWT (no guest fallback)",
+      status: "pending",
+      checked: false
+    },
+    {
+      id: "t4",
+      title: "Add unit tests covering 429 rate-limit threshold and sessionId propagation",
+      status: "done",
+      checked: true
+    }
+  ];
+  return {
+    specId: "spec-token-refresh-guard",
+    title: "Token Refresh & Rate-Limit Hardening",
+    status: "approved",
+    mode: "delta",
+    totalTasks: items.length,
+    doneTasks: items.filter((i) => i.status === "done").length,
+    items
+  };
+}
 var DEMO_UNIFIED_DIFF = `diff --git a/src/auth/token-middleware.ts b/src/auth/token-middleware.ts
 index 8e11c20..f72a903 100644
 --- a/src/auth/token-middleware.ts
@@ -51068,14 +51596,25 @@ function buildDemoSeedAnnotations(files, scope = "working") {
     }
   ];
 }
-function createDemoSession(scope = "working") {
+function createDemoSession(scope = "working", requestedWorktreePath) {
+  const availableWorktrees = buildDemoAvailableWorktrees();
+  let activeWt = availableWorktrees[1];
+  if (requestedWorktreePath && requestedWorktreePath.trim()) {
+    const matched = availableWorktrees.find((w) => w.path === requestedWorktreePath.trim());
+    if (!matched) {
+      throw new Error(
+        `Refused: "${requestedWorktreePath}" is not a registered demo worktree.`
+      );
+    }
+    activeWt = matched;
+  }
   const files = buildDemoFiles();
   const annotations = buildDemoSeedAnnotations(files, scope);
   return {
-    repoPath: DEMO_REPO_PATH,
+    repoPath: activeWt.path,
     repoName: "acme-auth-service (Demo)",
     repoKey: DEMO_REPO_KEY,
-    branch: "feat/token-refresh-guard",
+    branch: activeWt.branch ?? "feat/token-refresh-guard",
     headCommit: "f72a903",
     scope,
     isGitRepo: true,
@@ -51095,16 +51634,18 @@ function createDemoSession(scope = "working") {
       lastWriteAt: (/* @__PURE__ */ new Date()).toISOString(),
       updatedAt: (/* @__PURE__ */ new Date()).toISOString(),
       changeCount: 3,
-      workspacePaths: [DEMO_REPO_PATH]
-    }
+      workspacePaths: [activeWt.path]
+    },
+    availableWorktrees,
+    specCompliance: buildDemoSpecCompliance()
   };
 }
 
 // src/modules/review/git-diff.ts
 var import_node_crypto12 = __toESM(require("node:crypto"), 1);
 var import_node_child_process2 = require("node:child_process");
-var import_node_fs15 = __toESM(require("node:fs"), 1);
-var import_node_path19 = __toESM(require("node:path"), 1);
+var import_node_fs16 = __toESM(require("node:fs"), 1);
+var import_node_path21 = __toESM(require("node:path"), 1);
 var MAX_GIT_BUFFER = 20 * 1024 * 1024;
 var DEFAULT_MAX_LINES_PER_FILE2 = 600;
 var DEFAULT_MAX_TOTAL_LINES2 = 3500;
@@ -51138,7 +51679,7 @@ function validateCommitRange(range) {
   return trimmed;
 }
 function computeRepoKey(repoPath) {
-  const resolved = import_node_path19.default.resolve(repoPath);
+  const resolved = import_node_path21.default.resolve(repoPath);
   return import_node_crypto12.default.createHash("sha256").update(resolved).digest("hex").slice(0, 16);
 }
 function runGit(cwd, args, maxBuffer = MAX_GIT_BUFFER) {
@@ -51147,7 +51688,12 @@ function runGit(cwd, args, maxBuffer = MAX_GIT_BUFFER) {
       cwd,
       encoding: "utf8",
       maxBuffer,
-      stdio: ["ignore", "pipe", "pipe"]
+      timeout: 1e4,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: "0"
+      }
     });
     return { ok: true, stdout, stderr: "", isMaxBuffer: false };
   } catch (err) {
@@ -51163,6 +51709,165 @@ function runGit(cwd, args, maxBuffer = MAX_GIT_BUFFER) {
       isMaxBuffer
     };
   }
+}
+function parseReviewWorktreePorcelain(output2) {
+  const entries = [];
+  let current = null;
+  const flush = () => {
+    if (!current || !current.rawPath) return;
+    entries.push({
+      rawPath: current.rawPath,
+      branch: current.branch,
+      isMain: entries.length === 0,
+      bare: current.bare
+    });
+    current = null;
+  };
+  for (const line of output2.split(/\r?\n/)) {
+    if (line.trim() === "") {
+      flush();
+      continue;
+    }
+    if (line.startsWith("worktree ")) {
+      flush();
+      current = {
+        rawPath: line.slice("worktree ".length),
+        branch: null,
+        bare: false
+      };
+      continue;
+    }
+    if (!current) continue;
+    if (line.startsWith("branch ")) {
+      current.branch = line.slice("branch ".length).trim().replace(/^refs\/heads\//, "");
+    } else if (line === "detached") {
+      current.branch = null;
+    } else if (line === "bare") {
+      current.bare = true;
+    }
+  }
+  flush();
+  return entries;
+}
+function checkWorktreeDirtyReadOnly(worktreeRealPath) {
+  const res = runGit(worktreeRealPath, ["status", "--porcelain"], 1024 * 1024);
+  if (!res.ok) return false;
+  for (const rawLine of res.stdout.split(/\r?\n/)) {
+    if (!rawLine || rawLine.length < 4) continue;
+    const xy = rawLine.slice(0, 2);
+    const relPath = rawLine.slice(3);
+    if (xy === "??" && (relPath === ".agy-worktrees" || relPath.startsWith(".agy-worktrees/"))) {
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
+function listGitWorktreesReadOnly(workspaceRoot) {
+  const fallback = workspaceRoot ? import_node_path21.default.resolve(workspaceRoot) : process.cwd();
+  if (!workspaceRoot || workspaceRoot.includes("\0") || !import_node_fs16.default.existsSync(fallback)) {
+    return { isGitRepo: false, toplevelReal: fallback, mainRootReal: fallback, worktrees: [] };
+  }
+  let stat;
+  try {
+    stat = import_node_fs16.default.statSync(fallback);
+  } catch {
+    return { isGitRepo: false, toplevelReal: fallback, mainRootReal: fallback, worktrees: [] };
+  }
+  if (!stat.isDirectory()) {
+    return { isGitRepo: false, toplevelReal: fallback, mainRootReal: fallback, worktrees: [] };
+  }
+  const topRes = runGit(fallback, ["rev-parse", "--show-toplevel"], 1024 * 1024);
+  if (!topRes.ok || !topRes.stdout.trim()) {
+    return { isGitRepo: false, toplevelReal: fallback, mainRootReal: fallback, worktrees: [] };
+  }
+  let toplevelReal;
+  try {
+    toplevelReal = import_node_fs16.default.realpathSync(import_node_path21.default.resolve(topRes.stdout.trim()));
+  } catch {
+    toplevelReal = import_node_path21.default.resolve(topRes.stdout.trim());
+  }
+  const listRes = runGit(toplevelReal, ["worktree", "list", "--porcelain"], 2 * 1024 * 1024);
+  if (!listRes.ok) {
+    return { isGitRepo: false, toplevelReal, mainRootReal: toplevelReal, worktrees: [] };
+  }
+  const parsed = parseReviewWorktreePorcelain(listRes.stdout);
+  const worktrees = [];
+  for (const item of parsed) {
+    if (item.bare) continue;
+    let realPath;
+    try {
+      const resolved = import_node_path21.default.resolve(item.rawPath);
+      if (!import_node_fs16.default.statSync(resolved).isDirectory()) continue;
+      realPath = import_node_fs16.default.realpathSync(resolved);
+    } catch {
+      continue;
+    }
+    worktrees.push({
+      path: realPath,
+      branch: item.branch,
+      isMain: item.isMain,
+      isDirty: checkWorktreeDirtyReadOnly(realPath)
+    });
+  }
+  const mainRootReal = worktrees.find((w) => w.isMain)?.path ?? toplevelReal;
+  return {
+    isGitRepo: true,
+    toplevelReal,
+    mainRootReal,
+    worktrees
+  };
+}
+function resolveAllowedReviewTarget(mainWorkspaceRoot, requestedPath) {
+  const ctx = listGitWorktreesReadOnly(mainWorkspaceRoot);
+  if (!requestedPath || !requestedPath.trim()) {
+    return {
+      targetRepoPath: ctx.isGitRepo ? ctx.toplevelReal : import_node_path21.default.resolve(mainWorkspaceRoot),
+      availableWorktrees: ctx.worktrees
+    };
+  }
+  const trimmed = requestedPath.trim();
+  if (trimmed.includes("\0")) {
+    throw new Error("Invalid worktree path: NUL byte is disallowed.");
+  }
+  const resolvedRequested = import_node_path21.default.resolve(trimmed);
+  let lstat;
+  try {
+    lstat = import_node_fs16.default.lstatSync(resolvedRequested);
+  } catch {
+    throw new Error(`Review target path does not exist or is not accessible: ${trimmed}`);
+  }
+  if (lstat.isSymbolicLink()) {
+    throw new Error(`Refused: review target path "${trimmed}" must not be a symbolic link.`);
+  }
+  if (!lstat.isDirectory()) {
+    throw new Error(`Refused: review target path "${trimmed}" is not a directory.`);
+  }
+  const realRequested = import_node_fs16.default.realpathSync(resolvedRequested);
+  if (!ctx.isGitRepo) {
+    let mainReal;
+    try {
+      mainReal = import_node_fs16.default.realpathSync(import_node_path21.default.resolve(mainWorkspaceRoot));
+    } catch {
+      mainReal = import_node_path21.default.resolve(mainWorkspaceRoot);
+    }
+    if (realRequested === mainReal) {
+      return { targetRepoPath: realRequested, availableWorktrees: [] };
+    }
+    throw new Error(
+      `Refused: "${trimmed}" is outside the active workspace (not a registered Git worktree).`
+    );
+  }
+  const matched = ctx.worktrees.find((w) => w.path === realRequested);
+  if (!matched) {
+    throw new Error(
+      `Refused: "${trimmed}" is not the main repository or a registered Git worktree for this workspace.`
+    );
+  }
+  return {
+    targetRepoPath: matched.path,
+    availableWorktrees: ctx.worktrees
+  };
 }
 function formatGitDiffFailure(res, scopeLabel, maxBufferBytes) {
   if (res.isMaxBuffer) {
@@ -51187,9 +51892,9 @@ function isBinaryBuffer(buf) {
 }
 function buildUntrackedDiffFile(repoRoot, relPath, maxLinesPerFile, remainingGlobalLines, maxUntrackedBytes) {
   const normalizedRel = relPath.replace(/\\/g, "/");
-  const absPath = import_node_path19.default.resolve(repoRoot, normalizedRel);
-  const relativeCheck = import_node_path19.default.relative(repoRoot, absPath);
-  if (relativeCheck.startsWith("..") || import_node_path19.default.isAbsolute(relativeCheck)) {
+  const absPath = import_node_path21.default.resolve(repoRoot, normalizedRel);
+  const relativeCheck = import_node_path21.default.relative(repoRoot, absPath);
+  if (relativeCheck.startsWith("..") || import_node_path21.default.isAbsolute(relativeCheck)) {
     const file3 = {
       path: normalizedRel,
       status: "untracked",
@@ -51206,7 +51911,7 @@ function buildUntrackedDiffFile(repoRoot, relPath, maxLinesPerFile, remainingGlo
   }
   let stat;
   try {
-    stat = import_node_fs15.default.lstatSync(absPath);
+    stat = import_node_fs16.default.lstatSync(absPath);
   } catch {
     const file3 = {
       path: normalizedRel,
@@ -51241,13 +51946,13 @@ function buildUntrackedDiffFile(repoRoot, relPath, maxLinesPerFile, remainingGlo
   const readBytes = Math.min(stat.size, maxUntrackedBytes);
   const buf = Buffer.alloc(readBytes);
   try {
-    const fd = import_node_fs15.default.openSync(absPath, "r");
+    const fd = import_node_fs16.default.openSync(absPath, "r");
     try {
       if (readBytes > 0) {
-        import_node_fs15.default.readSync(fd, buf, 0, readBytes, 0);
+        import_node_fs16.default.readSync(fd, buf, 0, readBytes, 0);
       }
     } finally {
-      import_node_fs15.default.closeSync(fd);
+      import_node_fs16.default.closeSync(fd);
     }
   } catch {
     const file3 = {
@@ -51329,7 +52034,7 @@ function listUntrackedFiles(repoRoot) {
   return res.stdout.split("\0").filter((p) => p.length > 0);
 }
 function scanGitDiff(options) {
-  const requestedPath = import_node_path19.default.resolve(options.repoPath || process.cwd());
+  const requestedPath = import_node_path21.default.resolve(options.repoPath || process.cwd());
   const scope = options.scope ?? "working";
   const ignoreWhitespace = Boolean(options.ignoreWhitespace);
   const wsArgs = ignoreWhitespace ? ["-w"] : [];
@@ -51337,10 +52042,10 @@ function scanGitDiff(options) {
   const maxTotalLines = options.maxTotalLines ?? DEFAULT_MAX_TOTAL_LINES2;
   const maxUntrackedBytes = options.maxUntrackedBytes ?? DEFAULT_MAX_UNTRACKED_BYTES;
   const maxGitBuffer = options.maxGitBuffer ?? MAX_GIT_BUFFER;
-  if (!import_node_fs15.default.existsSync(requestedPath)) {
+  if (!import_node_fs16.default.existsSync(requestedPath)) {
     return {
       repoPath: requestedPath,
-      repoName: import_node_path19.default.basename(requestedPath) || "workspace",
+      repoName: import_node_path21.default.basename(requestedPath) || "workspace",
       repoKey: computeRepoKey(requestedPath),
       branch: "none",
       scope,
@@ -51358,7 +52063,7 @@ function scanGitDiff(options) {
   if (!topLevelRes.ok || !topLevelRes.stdout.trim()) {
     return {
       repoPath: requestedPath,
-      repoName: import_node_path19.default.basename(requestedPath) || "workspace",
+      repoName: import_node_path21.default.basename(requestedPath) || "workspace",
       repoKey: computeRepoKey(requestedPath),
       branch: "no-git",
       scope,
@@ -51372,8 +52077,12 @@ function scanGitDiff(options) {
       files: []
     };
   }
-  const repoRoot = import_node_path19.default.resolve(topLevelRes.stdout.trim());
-  const repoName = import_node_path19.default.basename(repoRoot);
+  let repoRoot = import_node_path21.default.resolve(topLevelRes.stdout.trim());
+  try {
+    repoRoot = import_node_fs16.default.realpathSync(repoRoot);
+  } catch {
+  }
+  const repoName = import_node_path21.default.basename(repoRoot);
   const repoKey = computeRepoKey(repoRoot);
   const branchRes = runGit(repoRoot, ["symbolic-ref", "--short", "HEAD"]);
   let branch = branchRes.ok ? branchRes.stdout.trim() : "";
@@ -51524,14 +52233,14 @@ function scanGitDiff(options) {
 }
 
 // src/modules/review/hook.ts
-var import_node_fs16 = __toESM(require("node:fs"), 1);
-var import_node_path20 = __toESM(require("node:path"), 1);
+var import_node_fs17 = __toESM(require("node:fs"), 1);
+var import_node_path22 = __toESM(require("node:path"), 1);
 function readReviewSignal(moduleDataDir) {
   if (!moduleDataDir) return null;
-  const signalPath = import_node_path20.default.join(moduleDataDir, "review-signal.json");
-  if (!import_node_fs16.default.existsSync(signalPath)) return null;
+  const signalPath = import_node_path22.default.join(moduleDataDir, "review-signal.json");
+  if (!import_node_fs17.default.existsSync(signalPath)) return null;
   try {
-    const parsed = JSON.parse(import_node_fs16.default.readFileSync(signalPath, "utf8"));
+    const parsed = JSON.parse(import_node_fs17.default.readFileSync(signalPath, "utf8"));
     return {
       lastEvent: parsed.lastEvent,
       lastToolName: parsed.lastToolName,
@@ -51566,6 +52275,20 @@ function formatLineAnchor(ann) {
   const sideTag = ann.side === "old" ? " (removed lines)" : "";
   return `${ann.filePath}:${range}${sideTag}`;
 }
+function resolveStage1Items(options) {
+  if (Array.isArray(options.stage1Checklist) && options.stage1Checklist.length > 0) {
+    return options.stage1Checklist;
+  }
+  if (options.specCompliance && Array.isArray(options.specCompliance.items)) {
+    return options.specCompliance.items.map((item) => ({
+      id: item.id,
+      title: item.title,
+      status: item.status,
+      checked: item.checked
+    }));
+  }
+  return [];
+}
 function buildReviewPrompt(options) {
   const categoryCounts = {
     security: 0,
@@ -51579,7 +52302,10 @@ function buildReviewPrompt(options) {
     const idSet = new Set(options.annotationIds);
     items = items.filter((a) => idSet.has(a.id));
   }
-  if (items.length === 0) {
+  const spec = options.specCompliance ?? null;
+  const stage1Items = resolveStage1Items(options);
+  const hasTwoStage = Boolean(spec || stage1Items.length > 0);
+  if (items.length === 0 && !hasTwoStage) {
     return {
       markdown: `No pending review annotations for \`${options.repoName}\` (${options.scope}).`,
       annotationCount: 0,
@@ -51612,18 +52338,56 @@ function buildReviewPrompt(options) {
   });
   const severitySummary = ["security", "bug", "refactor", "question", "nit"].filter((cat) => categoryCounts[cat] > 0).map((cat) => `${CATEGORY_BADGE[cat]} ${categoryCounts[cat]}`).join(" \xB7 ");
   const scopeLabel = options.scope === "commit-range" && options.commitRange ? `${options.scope} (${options.commitRange})` : options.scope;
-  const lines = [
-    `# Code Review Feedback \u2014 ${options.repoName}`,
-    "",
-    `- **Branch**: \`${options.branch ?? "current"}\` | **Scope**: \`${scopeLabel}\``,
-    `- **Items**: ${items.length} annotation${items.length === 1 ? "" : "s"} across ${sortedFileEntries.length} file${sortedFileEntries.length === 1 ? "" : "s"} (${severitySummary})`,
-    "",
-    "Please address each inline review item below in priority order:",
-    ""
-  ];
+  const lines = [];
+  if (hasTwoStage) {
+    const checkedCount = stage1Items.filter((item) => item.checked).length;
+    lines.push(`# Two-Stage Code Review Feedback \u2014 ${options.repoName}`);
+    lines.push("");
+    lines.push(`- **Branch**: \`${options.branch ?? "current"}\` | **Scope**: \`${scopeLabel}\``);
+    if (spec) {
+      const modeTag = spec.mode ? ` \xB7 mode: \`${spec.mode}\`` : "";
+      lines.push(
+        `- **Active Spec**: \`${spec.specId}\` \u2014 ${spec.title} (status: \`${spec.status}\`${modeTag}, progress: ${spec.doneTasks}/${spec.totalTasks})`
+      );
+    }
+    lines.push(
+      `- **Stage 1 Spec Checklist**: ${checkedCount}/${stage1Items.length} verified | **Stage 2 Annotations**: ${items.length} across ${sortedFileEntries.length} file${sortedFileEntries.length === 1 ? "" : "s"}${severitySummary ? ` (${severitySummary})` : ""}`
+    );
+    lines.push("");
+    lines.push("## Stage 1: Spec Compliance Checklist");
+    lines.push("");
+    if (stage1Items.length === 0) {
+      lines.push("_No checklist tasks defined in the active spec._");
+    } else {
+      for (const item of stage1Items) {
+        const mark = item.checked ? "x" : " ";
+        const statusSuffix = item.status ? ` _(${item.status})_` : "";
+        const noteSuffix = item.note?.trim() ? ` \u2014 ${item.note.trim()}` : "";
+        lines.push(`- [${mark}] \`${item.id}\`: ${item.title}${statusSuffix}${noteSuffix}`);
+      }
+    }
+    lines.push("");
+    lines.push("## Stage 2: Code Quality Annotations (`file:line`)");
+    lines.push("");
+    if (items.length === 0) {
+      lines.push("_No pending inline code quality annotations._");
+      lines.push("");
+    }
+  } else {
+    lines.push(`# Code Review Feedback \u2014 ${options.repoName}`);
+    lines.push("");
+    lines.push(`- **Branch**: \`${options.branch ?? "current"}\` | **Scope**: \`${scopeLabel}\``);
+    lines.push(
+      `- **Items**: ${items.length} annotation${items.length === 1 ? "" : "s"} across ${sortedFileEntries.length} file${sortedFileEntries.length === 1 ? "" : "s"} (${severitySummary})`
+    );
+    lines.push("");
+    lines.push("Please address each inline review item below in priority order:");
+    lines.push("");
+  }
   let counter = 1;
+  const fileHeadingPrefix = hasTwoStage ? "###" : "##";
   for (const [filePath, fileAnnotations] of sortedFileEntries) {
-    lines.push(`## \`${filePath}\``);
+    lines.push(`${fileHeadingPrefix} \`${filePath}\``);
     lines.push("");
     const diffFile = fileMap.get(filePath);
     for (const ann of fileAnnotations) {
@@ -51646,6 +52410,9 @@ function buildReviewPrompt(options) {
   }
   lines.push("---");
   lines.push("### Expectations");
+  if (hasTwoStage) {
+    lines.push("- Complete all unchecked Stage 1 Spec Compliance items before closing the review.");
+  }
   lines.push("- Prioritize `[SECURITY]` and `[BUG]` items first, keeping changes focused on the annotated lines.");
   lines.push("- Answer `[QUESTION]` items directly with code references before changing behavior unless a fix is asked for.");
   lines.push("- Run the relevant typecheck/tests after applying edits, then summarize each item resolved by file and line.");
@@ -51661,6 +52428,14 @@ function buildReviewPrompt(options) {
 var SCOPE_ENUM = external_exports.enum(["working", "staged", "unstaged", "head~1", "commit-range"]);
 var CATEGORY_ENUM = external_exports.enum(["security", "bug", "refactor", "question", "nit"]);
 var SIDE_ENUM = external_exports.enum(["new", "old"]);
+var STAGE1_ITEM_SCHEMA = external_exports.object({
+  id: external_exports.string().min(1).max(64),
+  title: external_exports.string().min(1).max(240),
+  status: external_exports.string().max(32).optional(),
+  checked: external_exports.boolean(),
+  note: external_exports.string().max(400).optional()
+});
+var MAX_SPEC_STATE_BYTES = 2 * 1024 * 1024;
 var DEFAULT_SUMMARY_MAX_FILES = 100;
 function wrapModelTool2(name, tool) {
   return {
@@ -51669,25 +52444,117 @@ function wrapModelTool2(name, tool) {
     disable: () => tool.disable()
   };
 }
-function resolveEffectiveRepoPath(requestedRepoPath, workspaceRoot, moduleDataDir) {
-  if (requestedRepoPath && requestedRepoPath.trim()) {
-    return import_node_path21.default.resolve(requestedRepoPath.trim());
+function loadActiveSpecComplianceReadOnly(rootDataDir) {
+  if (!rootDataDir || typeof rootDataDir !== "string" || rootDataDir.includes("\0")) {
+    return null;
   }
+  const specStatePath = import_node_path23.default.join(getModuleDataDir(rootDataDir, "spec"), "state.json");
+  let st;
+  try {
+    st = import_node_fs18.default.lstatSync(specStatePath);
+  } catch {
+    return null;
+  }
+  if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_SPEC_STATE_BYTES) {
+    return null;
+  }
+  let parsed;
+  try {
+    const noFollow = import_node_fs18.default.constants.O_NOFOLLOW ?? 0;
+    const fd = import_node_fs18.default.openSync(specStatePath, import_node_fs18.default.constants.O_RDONLY | noFollow);
+    let raw = "";
+    try {
+      const fdStat = import_node_fs18.default.fstatSync(fd);
+      if (!fdStat.isFile() || fdStat.size > MAX_SPEC_STATE_BYTES) return null;
+      const buf = Buffer.alloc(fdStat.size);
+      let offset = 0;
+      while (offset < fdStat.size) {
+        const n = import_node_fs18.default.readSync(fd, buf, offset, fdStat.size - offset, offset);
+        if (n <= 0) break;
+        offset += n;
+      }
+      raw = buf.subarray(0, offset).toString("utf8");
+    } finally {
+      import_node_fs18.default.closeSync(fd);
+    }
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return null;
+  }
+  const obj = parsed;
+  const activeSpecId = typeof obj.activeSpecId === "string" ? obj.activeSpecId.trim() : "";
+  if (!activeSpecId || !Array.isArray(obj.specs)) {
+    return null;
+  }
+  const matched = obj.specs.find(
+    (s) => Boolean(s && typeof s === "object" && !Array.isArray(s) && s.id === activeSpecId)
+  );
+  if (!matched) {
+    return null;
+  }
+  const specId = typeof matched.id === "string" ? matched.id : activeSpecId;
+  const title = typeof matched.title === "string" && matched.title.trim() ? matched.title.trim() : specId;
+  const status = typeof matched.status === "string" && matched.status.trim() ? matched.status.trim() : "draft";
+  const mode = typeof matched.mode === "string" && matched.mode.trim() ? matched.mode.trim() : void 0;
+  const rawTasks = Array.isArray(matched.tasks) ? matched.tasks : [];
+  const items = [];
+  for (const rawTask of rawTasks.slice(0, 100)) {
+    if (!rawTask || typeof rawTask !== "object" || Array.isArray(rawTask)) continue;
+    const t = rawTask;
+    const taskId = typeof t.id === "string" && t.id.trim() ? t.id.trim() : `t-${items.length + 1}`;
+    const taskTitle = typeof t.title === "string" && t.title.trim() ? t.title.trim().slice(0, 240) : taskId;
+    const taskStatus = typeof t.status === "string" && t.status.trim() ? t.status.trim() : "pending";
+    items.push({
+      id: taskId,
+      title: taskTitle,
+      status: taskStatus,
+      checked: taskStatus === "done"
+    });
+  }
+  if (items.length === 0 && Array.isArray(matched.acceptanceCriteria)) {
+    for (const rawCrit of matched.acceptanceCriteria.slice(0, 50)) {
+      if (typeof rawCrit !== "string" || !rawCrit.trim()) continue;
+      const done = status === "completed";
+      items.push({
+        id: `ac-${items.length + 1}`,
+        title: rawCrit.trim().slice(0, 240),
+        status: done ? "done" : "pending",
+        checked: done
+      });
+    }
+  }
+  const totalTasks = items.length;
+  const doneTasks = items.filter((item) => item.checked).length;
+  return {
+    specId,
+    title,
+    status,
+    ...mode ? { mode } : {},
+    totalTasks,
+    doneTasks,
+    items
+  };
+}
+function resolveBaseWorkspaceRoot(workspaceRoot, moduleDataDir) {
   if (workspaceRoot && workspaceRoot.trim()) {
-    return import_node_path21.default.resolve(workspaceRoot.trim());
+    return import_node_path23.default.resolve(workspaceRoot.trim());
   }
   const signal = readReviewSignal(moduleDataDir);
-  if (signal?.workspacePaths && signal.workspacePaths.length > 0 && import_node_fs17.default.existsSync(signal.workspacePaths[0])) {
-    return import_node_path21.default.resolve(signal.workspacePaths[0]);
+  if (signal?.workspacePaths && signal.workspacePaths.length > 0 && import_node_fs18.default.existsSync(signal.workspacePaths[0])) {
+    return import_node_path23.default.resolve(signal.workspacePaths[0]);
   }
   return process.cwd();
 }
-function buildSessionData(store, moduleDataDir, opts, params) {
+function buildSessionData(store, rootDataDir, moduleDataDir, opts, params) {
   const scope = params.scope ?? "working";
   const useDemo = params.demo ?? Boolean(opts.demoMode);
   const ignoreWhitespace = Boolean(params.ignoreWhitespace);
+  const requestedTarget = params.worktreePath?.trim() || params.repoPath?.trim() || void 0;
   if (useDemo) {
-    const demoBase = createDemoSession(scope);
+    const demoBase = createDemoSession(scope, requestedTarget);
     const demoFiles = buildDemoFiles();
     store.seedIfEmpty(
       DEMO_REPO_KEY,
@@ -51706,9 +52573,13 @@ function buildSessionData(store, moduleDataDir, opts, params) {
       viewedFiles: viewedFiles2
     };
   }
-  const targetRepo = resolveEffectiveRepoPath(params.repoPath, opts.workspaceRoot, moduleDataDir);
+  const baseWorkspace = resolveBaseWorkspaceRoot(opts.workspaceRoot, moduleDataDir);
+  const { targetRepoPath, availableWorktrees } = resolveAllowedReviewTarget(
+    baseWorkspace,
+    requestedTarget
+  );
   const scan = scanGitDiff({
-    repoPath: targetRepo,
+    repoPath: targetRepoPath,
     scope,
     commitRange: params.commitRange,
     ignoreWhitespace
@@ -51717,6 +52588,7 @@ function buildSessionData(store, moduleDataDir, opts, params) {
   const annotations = evaluateAnnotationStaleness(savedAnnotations, scan.files);
   const viewedFiles = store.getViewedFiles(scan.repoKey, scope);
   const signal = readReviewSignal(moduleDataDir);
+  const specCompliance = loadActiveSpecComplianceReadOnly(rootDataDir);
   return {
     repoPath: scan.repoPath,
     repoName: scan.repoName,
@@ -51737,7 +52609,9 @@ function buildSessionData(store, moduleDataDir, opts, params) {
     files: scan.files,
     viewedFiles,
     annotations,
-    signal
+    signal,
+    availableWorktrees,
+    specCompliance
   };
 }
 function buildSummaryFromSession(session, maxFiles = DEFAULT_SUMMARY_MAX_FILES) {
@@ -51819,8 +52693,12 @@ Working tree is clean for scope "${summary.scope}".`;
   return [header, ...fileLines].join("\n");
 }
 function registerReviewModule(server, opts, uiResourceUri) {
-  const moduleDataDir = getModuleDataDir(opts.dataDir, "review");
-  const store = new AnnotationStore(moduleDataDir);
+  const rootDataDir = resolveNovDataDir(opts.dataDir);
+  const moduleDataDir = getModuleDataDir(rootDataDir, "review");
+  const store = new AnnotationStore(moduleDataDir, {
+    inMemoryOnly: Boolean(opts.demoMode),
+    inMemoryRepoKeys: [DEMO_REPO_KEY]
+  });
   const APP_ONLY_META2 = {
     ui: { visibility: ["app"] }
   };
@@ -51830,7 +52708,8 @@ function registerReviewModule(server, opts, uiResourceUri) {
       title: "Open Diff Review",
       description: "Open the interactive PR-grade inline diff reviewer and annotation studio in agy-NOV. All arguments are optional; pass {} to inspect the active workspace working tree.",
       inputSchema: {
-        repoPath: external_exports.string().optional().describe("Optional path to a Git repository; defaults to active workspace"),
+        repoPath: external_exports.string().optional().describe("Optional path to a Git repository or registered worktree; defaults to active workspace"),
+        worktreePath: external_exports.string().optional().describe("Optional registered Git worktree path belonging to the active repository"),
         scope: SCOPE_ENUM.optional().describe("Diff scope: working (default), staged, unstaged, head~1, or commit-range"),
         commitRange: external_exports.string().optional().describe("Git commit range when scope is commit-range (e.g. HEAD~2..HEAD)"),
         ignoreWhitespace: external_exports.boolean().optional().describe("Ignore whitespace-only changes (git diff -w)"),
@@ -51841,10 +52720,11 @@ function registerReviewModule(server, opts, uiResourceUri) {
         ui: { resourceUri: uiResourceUri }
       }
     },
-    async ({ repoPath, scope, commitRange, ignoreWhitespace, selectedFile, demo }) => {
+    async ({ repoPath, worktreePath, scope, commitRange, ignoreWhitespace, selectedFile, demo }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, {
+        const session = buildSessionData(store, rootDataDir, moduleDataDir, opts, {
           repoPath,
+          worktreePath,
           scope,
           commitRange,
           ignoreWhitespace,
@@ -51857,6 +52737,7 @@ function registerReviewModule(server, opts, uiResourceUri) {
             novModule: "review",
             launch: {
               repoPath: session.repoPath,
+              worktreePath: session.repoPath,
               scope: session.scope,
               commitRange: session.commitRange,
               ignoreWhitespace: session.ignoreWhitespace,
@@ -51881,17 +52762,19 @@ function registerReviewModule(server, opts, uiResourceUri) {
       title: "Get Review Diff Summary",
       description: "Return a concise, token-efficient summary of changed Git files, additions/deletions, risk tags (security-sensitive, large, config, test), and open inline review annotations.",
       inputSchema: {
-        repoPath: external_exports.string().optional().describe("Optional path to a Git repository"),
+        repoPath: external_exports.string().optional().describe("Optional path to a Git repository or registered worktree"),
+        worktreePath: external_exports.string().optional().describe("Optional registered Git worktree path belonging to the active repository"),
         scope: SCOPE_ENUM.optional().describe("Diff scope (default: working)"),
         commitRange: external_exports.string().optional().describe("Optional Git range when scope is commit-range"),
         ignoreWhitespace: external_exports.boolean().optional().describe("Ignore whitespace-only changes (git diff -w)"),
         demo: external_exports.boolean().optional().describe("Use built-in synthetic demo diff")
       }
     },
-    async ({ repoPath, scope, commitRange, ignoreWhitespace, demo }) => {
+    async ({ repoPath, worktreePath, scope, commitRange, ignoreWhitespace, demo }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, {
+        const session = buildSessionData(store, rootDataDir, moduleDataDir, opts, {
           repoPath,
+          worktreePath,
           scope,
           commitRange,
           ignoreWhitespace,
@@ -51915,9 +52798,10 @@ function registerReviewModule(server, opts, uiResourceUri) {
     "app_review_get_diff",
     {
       title: "Get Full Diff Session (App Only)",
-      description: "Fetch parsed diff hunks, file risk tags, viewed states, and annotations for the Diff Review UI.",
+      description: "Fetch parsed diff hunks, file risk tags, viewed states, annotations, available worktrees, and active spec compliance for the Diff Review UI.",
       inputSchema: {
         repoPath: external_exports.string().optional(),
+        worktreePath: external_exports.string().optional(),
         scope: SCOPE_ENUM.optional(),
         commitRange: external_exports.string().optional(),
         ignoreWhitespace: external_exports.boolean().optional(),
@@ -51925,10 +52809,11 @@ function registerReviewModule(server, opts, uiResourceUri) {
       },
       _meta: APP_ONLY_META2
     },
-    async ({ repoPath, scope, commitRange, ignoreWhitespace, demo }) => {
+    async ({ repoPath, worktreePath, scope, commitRange, ignoreWhitespace, demo }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, {
+        const session = buildSessionData(store, rootDataDir, moduleDataDir, opts, {
           repoPath,
+          worktreePath,
           scope,
           commitRange,
           ignoreWhitespace,
@@ -52171,22 +53056,35 @@ function registerReviewModule(server, opts, uiResourceUri) {
     "app_review_build_prompt",
     {
       title: "Build Structured Review Prompt (App Only)",
-      description: "Package open (or selected) inline annotations into a structured file:line prompt for the agent.",
+      description: "Package Stage 1 spec compliance checks and Stage 2 file:line inline annotations into a structured review prompt for the agent.",
       inputSchema: {
         repoPath: external_exports.string().optional(),
+        worktreePath: external_exports.string().optional(),
         scope: SCOPE_ENUM.optional(),
         commitRange: external_exports.string().optional(),
         ignoreWhitespace: external_exports.boolean().optional(),
         demo: external_exports.boolean().optional(),
         includeResolved: external_exports.boolean().optional(),
-        annotationIds: external_exports.array(external_exports.string()).optional()
+        annotationIds: external_exports.array(external_exports.string()).optional(),
+        stage1Checklist: external_exports.array(STAGE1_ITEM_SCHEMA).max(100).optional()
       },
       _meta: APP_ONLY_META2
     },
-    async ({ repoPath, scope, commitRange, ignoreWhitespace, demo, includeResolved, annotationIds }) => {
+    async ({
+      repoPath,
+      worktreePath,
+      scope,
+      commitRange,
+      ignoreWhitespace,
+      demo,
+      includeResolved,
+      annotationIds,
+      stage1Checklist
+    }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, {
+        const session = buildSessionData(store, rootDataDir, moduleDataDir, opts, {
           repoPath,
+          worktreePath,
           scope,
           commitRange,
           ignoreWhitespace,
@@ -52208,7 +53106,9 @@ function registerReviewModule(server, opts, uiResourceUri) {
           annotations: enrichedAnnotations,
           files: session.files,
           includeResolved,
-          annotationIds
+          annotationIds,
+          specCompliance: session.specCompliance,
+          stage1Checklist
         });
         return {
           content: [{ type: "text", text: built.markdown }],
@@ -52233,8 +53133,8 @@ function registerReviewModule(server, opts, uiResourceUri) {
 
 // src/modules/spec/core.ts
 var import_node_crypto13 = __toESM(require("node:crypto"), 1);
-var import_node_fs18 = __toESM(require("node:fs"), 1);
-var import_node_path22 = __toESM(require("node:path"), 1);
+var import_node_fs19 = __toESM(require("node:fs"), 1);
+var import_node_path24 = __toESM(require("node:path"), 1);
 var SPEC_ID_RE = /^[a-zA-Z0-9._-]{1,64}$/;
 var SPEC_TASK_ID_RE = /^[a-zA-Z0-9._-]{1,48}$/;
 var SPEC_DELTA_ID_RE = /^[a-zA-Z0-9._-]{1,48}$/;
@@ -52619,7 +53519,7 @@ function buildAnnotationFeedbackPrompt(spec) {
   return lines.join("\n");
 }
 function getSpecStatePath(moduleDataDir) {
-  return import_node_path22.default.join(moduleDataDir, "state.json");
+  return import_node_path24.default.join(moduleDataDir, "state.json");
 }
 function createEmptySpecState() {
   return {
@@ -53056,11 +53956,11 @@ function normalizeSpecFromDisk(raw) {
 }
 function loadSpecStateReadOnly(moduleDataDir) {
   const statePath = getSpecStatePath(moduleDataDir);
-  if (!import_node_fs18.default.existsSync(statePath)) {
+  if (!import_node_fs19.default.existsSync(statePath)) {
     return createEmptySpecState();
   }
   try {
-    const raw = JSON.parse(import_node_fs18.default.readFileSync(statePath, "utf8"));
+    const raw = JSON.parse(import_node_fs19.default.readFileSync(statePath, "utf8"));
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
       return createEmptySpecState();
     }
@@ -54907,17 +55807,17 @@ function registerSpecModule(server, options, uiResourceUri) {
 }
 
 // src/modules/studio/register.ts
-var import_node_path25 = __toESM(require("node:path"), 1);
+var import_node_path28 = __toESM(require("node:path"), 1);
 
 // src/modules/studio/core.ts
 var import_node_child_process3 = require("node:child_process");
-var import_node_fs20 = __toESM(require("node:fs"), 1);
-var import_node_path24 = __toESM(require("node:path"), 1);
+var import_node_fs21 = __toESM(require("node:fs"), 1);
+var import_node_path26 = __toESM(require("node:path"), 1);
 var import_node_zlib = __toESM(require("node:zlib"), 1);
 
 // src/modules/studio/openapi.ts
-var import_node_fs19 = __toESM(require("node:fs"), 1);
-var import_node_path23 = __toESM(require("node:path"), 1);
+var import_node_fs20 = __toESM(require("node:fs"), 1);
+var import_node_path25 = __toESM(require("node:path"), 1);
 var OPENAPI_MAX_FILE_BYTES = 2 * 1024 * 1024;
 var OPENAPI_MAX_YAML_LINES = 2e4;
 var OPENAPI_MAX_DEPTH = 24;
@@ -56096,7 +56996,7 @@ function isLikelyOpenApiDocument(filePath, rawText, format) {
   } else if (/^(?:openapi|swagger)\s*:\s*['"]?[23]\./m.test(head)) {
     return true;
   }
-  const baseLower = import_node_path23.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
+  const baseLower = import_node_path25.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
   if (/(?:^|[-_.])(?:openapi|swagger)(?:[-_.]|$)/i.test(baseLower)) {
     if (format === "json") {
       return /"(?:openapi|swagger)"\s*:/i.test(head);
@@ -56245,7 +57145,7 @@ function parseOpenApiSpecFromContent(filePath, rawContent, ext) {
 }
 function parseStudioOpenApiFile(workspaceRoot, filePath) {
   const resolved = resolveStudioWorkspaceFile(workspaceRoot, filePath);
-  const ext = import_node_path23.default.extname(resolved.relPath).toLowerCase();
+  const ext = import_node_path25.default.extname(resolved.relPath).toLowerCase();
   if (ext !== ".json" && ext !== ".yaml" && ext !== ".yml") {
     throw new Error(
       `Unsupported OpenAPI file extension "${ext || "(none)"}" (supported: .json, .yaml, .yml): ${resolved.relPath}`
@@ -56256,7 +57156,7 @@ function parseStudioOpenApiFile(workspaceRoot, filePath) {
       `OpenAPI file exceeds 2 MiB size limit (${resolved.stat.size} bytes > ${OPENAPI_MAX_FILE_BYTES} bytes): ${resolved.relPath}`
     );
   }
-  const rawText = import_node_fs19.default.readFileSync(resolved.realTarget, "utf8");
+  const rawText = import_node_fs20.default.readFileSync(resolved.realTarget, "utf8");
   return parseOpenApiSpecFromContent(resolved.relPath, rawText, ext);
 }
 function createDemoOpenApiSpec(filePath = "api/openapi.yaml") {
@@ -56552,15 +57452,18 @@ function isSensitiveStudioPath(relPathInput) {
     if (lower.startsWith("credentials")) return true;
     if (lower.includes("secret")) return true;
   }
-  const base = import_node_path24.default.posix.basename(normalized);
+  const base = import_node_path26.default.posix.basename(normalized);
   const lowerBase = base.toLowerCase();
   if (SENSITIVE_EXACT_BASENAMES.has(lowerBase)) return true;
   if (lowerBase.startsWith("id_rsa.") || lowerBase.startsWith("id_ed25519.") || lowerBase.startsWith("id_dsa.") || lowerBase.startsWith("id_ecdsa.")) {
     return true;
   }
   if (/service[-_]?account.*\.json$/i.test(lowerBase)) return true;
-  const ext = import_node_path24.default.posix.extname(lowerBase);
+  const ext = import_node_path26.default.posix.extname(lowerBase);
   if (SENSITIVE_EXTENSIONS3.has(ext)) return true;
+  if (/(?:\.env(?:$|\.)|\.(?:pem|key|p12|pfx|jks|keystore)(?:$|\.))/.test(lowerBase)) {
+    return true;
+  }
   return false;
 }
 function resolveStudioWorkspaceFile(workspaceRoot, targetPath) {
@@ -56570,31 +57473,31 @@ function resolveStudioWorkspaceFile(workspaceRoot, targetPath) {
   if (!targetPath || !targetPath.trim() || targetPath.includes("\0")) {
     throw new Error("Invalid file path");
   }
-  const realRoot = import_node_fs20.default.realpathSync(import_node_path24.default.resolve(workspaceRoot));
+  const realRoot = import_node_fs21.default.realpathSync(import_node_path26.default.resolve(workspaceRoot));
   const cleanedTarget = targetPath.trim();
-  const candidate = import_node_path24.default.isAbsolute(cleanedTarget) ? import_node_path24.default.resolve(cleanedTarget) : import_node_path24.default.resolve(realRoot, cleanedTarget);
-  if (!import_node_path24.default.isAbsolute(cleanedTarget) && isSensitiveStudioPath(cleanedTarget)) {
+  const candidate = import_node_path26.default.isAbsolute(cleanedTarget) ? import_node_path26.default.resolve(cleanedTarget) : import_node_path26.default.resolve(realRoot, cleanedTarget);
+  if (!import_node_path26.default.isAbsolute(cleanedTarget) && isSensitiveStudioPath(cleanedTarget)) {
     throw new Error(`Refused to access sensitive or restricted path: ${cleanedTarget}`);
   }
-  const logicalRel = import_node_path24.default.relative(realRoot, candidate).replace(/\\/g, "/");
+  const logicalRel = import_node_path26.default.relative(realRoot, candidate).replace(/\\/g, "/");
   if (logicalRel && !logicalRel.startsWith("..") && isSensitiveStudioPath(logicalRel)) {
     throw new Error(`Refused to access sensitive or restricted path: ${logicalRel}`);
   }
   let realTarget;
   try {
-    realTarget = import_node_fs20.default.realpathSync(candidate);
+    realTarget = import_node_fs21.default.realpathSync(candidate);
   } catch {
     throw new Error(`File does not exist or cannot be resolved: ${cleanedTarget}`);
   }
-  const prefix = realRoot.endsWith(import_node_path24.default.sep) ? realRoot : `${realRoot}${import_node_path24.default.sep}`;
+  const prefix = realRoot.endsWith(import_node_path26.default.sep) ? realRoot : `${realRoot}${import_node_path26.default.sep}`;
   if (realTarget === realRoot || !realTarget.startsWith(prefix)) {
     throw new Error(`Path escapes workspace boundary: ${cleanedTarget}`);
   }
-  const relPath = import_node_path24.default.relative(realRoot, realTarget).replace(/\\/g, "/");
+  const relPath = import_node_path26.default.relative(realRoot, realTarget).replace(/\\/g, "/");
   if (isSensitiveStudioPath(relPath)) {
     throw new Error(`Refused to access sensitive or restricted path: ${relPath}`);
   }
-  const stat = import_node_fs20.default.statSync(realTarget);
+  const stat = import_node_fs21.default.statSync(realTarget);
   if (!stat.isFile()) {
     throw new Error(`Target is not a regular file: ${relPath}`);
   }
@@ -56613,9 +57516,9 @@ function looksLikeOpenApiFile(realFilePath, baseLower, ext, bytes) {
   if (bytes === 0 || bytes > 256 * 1024) return false;
   let fd = null;
   try {
-    fd = import_node_fs20.default.openSync(realFilePath, "r");
+    fd = import_node_fs21.default.openSync(realFilePath, "r");
     const probe = Buffer.alloc(Math.min(bytes, 2048));
-    const n = import_node_fs20.default.readSync(fd, probe, 0, probe.length, 0);
+    const n = import_node_fs21.default.readSync(fd, probe, 0, probe.length, 0);
     const head = probe.subarray(0, n).toString("utf8");
     if (ext === ".json") {
       return /"(?:openapi|swagger)"\s*:\s*"[23]\./i.test(head);
@@ -56626,7 +57529,7 @@ function looksLikeOpenApiFile(realFilePath, baseLower, ext, bytes) {
   } finally {
     if (fd !== null) {
       try {
-        import_node_fs20.default.closeSync(fd);
+        import_node_fs21.default.closeSync(fd);
       } catch {
       }
     }
@@ -56634,7 +57537,7 @@ function looksLikeOpenApiFile(realFilePath, baseLower, ext, bytes) {
 }
 function classifyStudioSource(realFilePath, baseName, bytes) {
   const lower = baseName.toLowerCase();
-  const ext = import_node_path24.default.extname(lower);
+  const ext = import_node_path26.default.extname(lower);
   if (!ext) return null;
   if (ext === ".json" && SKIP_JSON_LOCK_BASENAMES.has(lower)) {
     return null;
@@ -56683,8 +57586,8 @@ function classifyStudioSource(realFilePath, baseName, bytes) {
 }
 function listStudioSources(workspaceRoot, opts = {}) {
   const category = opts.category ?? "all";
-  const realRoot = import_node_fs20.default.realpathSync(import_node_path24.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path24.default.sep) ? realRoot : `${realRoot}${import_node_path24.default.sep}`;
+  const realRoot = import_node_fs21.default.realpathSync(import_node_path26.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path26.default.sep) ? realRoot : `${realRoot}${import_node_path26.default.sep}`;
   const isInsideRoot = (realCandidate) => realCandidate === realRoot || realCandidate.startsWith(rootPrefix);
   const allSources = [];
   const visitedDirs = /* @__PURE__ */ new Set();
@@ -56699,7 +57602,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
     }
     let realDir;
     try {
-      realDir = import_node_fs20.default.realpathSync(dir);
+      realDir = import_node_fs21.default.realpathSync(dir);
     } catch {
       skippedSymlinks += 1;
       return;
@@ -56712,7 +57615,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
     visitedDirs.add(realDir);
     let entries;
     try {
-      entries = import_node_fs20.default.readdirSync(dir, { withFileTypes: true });
+      entries = import_node_fs21.default.readdirSync(dir, { withFileTypes: true });
     } catch {
       return;
     }
@@ -56722,8 +57625,8 @@ function listStudioSources(workspaceRoot, opts = {}) {
         truncated = true;
         break;
       }
-      const fullPath = import_node_path24.default.join(dir, entry.name);
-      const rawRel = import_node_path24.default.relative(realRoot, fullPath).replace(/\\/g, "/");
+      const fullPath = import_node_path26.default.join(dir, entry.name);
+      const rawRel = import_node_path26.default.relative(realRoot, fullPath).replace(/\\/g, "/");
       if (entry.isDirectory()) {
         if (STUDIO_SKIP_DIRS.has(entry.name) || isSensitiveStudioPath(rawRel)) {
           if (isSensitiveStudioPath(rawRel)) skippedSensitive += 1;
@@ -56736,15 +57639,15 @@ function listStudioSources(workspaceRoot, opts = {}) {
       let isFile = entry.isFile();
       if (entry.isSymbolicLink()) {
         try {
-          realFilePath = import_node_fs20.default.realpathSync(fullPath);
+          realFilePath = import_node_fs21.default.realpathSync(fullPath);
           if (!isInsideRoot(realFilePath)) {
             skippedSymlinks += 1;
             continue;
           }
-          const st = import_node_fs20.default.statSync(realFilePath);
+          const st = import_node_fs21.default.statSync(realFilePath);
           if (st.isDirectory()) {
-            const realRelDir = import_node_path24.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
-            if (STUDIO_SKIP_DIRS.has(import_node_path24.default.basename(realFilePath)) || isSensitiveStudioPath(rawRel) || isSensitiveStudioPath(realRelDir)) {
+            const realRelDir = import_node_path26.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+            if (STUDIO_SKIP_DIRS.has(import_node_path26.default.basename(realFilePath)) || isSensitiveStudioPath(rawRel) || isSensitiveStudioPath(realRelDir)) {
               skippedSensitive += 1;
               continue;
             }
@@ -56759,7 +57662,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
       }
       if (!isFile) continue;
       try {
-        realFilePath = import_node_fs20.default.realpathSync(realFilePath);
+        realFilePath = import_node_fs21.default.realpathSync(realFilePath);
       } catch {
         skippedSymlinks += 1;
         continue;
@@ -56768,7 +57671,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
         skippedSymlinks += 1;
         continue;
       }
-      const realRel = import_node_path24.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+      const realRel = import_node_path26.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
       if (isSensitiveStudioPath(rawRel) || isSensitiveStudioPath(realRel)) {
         skippedSensitive += 1;
         continue;
@@ -56776,7 +57679,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
       if (seenRealFiles.has(realFilePath)) continue;
       let stat;
       try {
-        stat = import_node_fs20.default.statSync(realFilePath);
+        stat = import_node_fs21.default.statSync(realFilePath);
       } catch {
         continue;
       }
@@ -57284,9 +58187,9 @@ function inspectJsonOrNdjson(relPath, format, buf, bytes, filter, limit) {
 function readSqliteHeaderMetadata(realFilePath) {
   let fd = null;
   try {
-    fd = import_node_fs20.default.openSync(realFilePath, "r");
+    fd = import_node_fs21.default.openSync(realFilePath, "r");
     const header = Buffer.alloc(100);
-    const bytesRead = import_node_fs20.default.readSync(fd, header, 0, 100, 0);
+    const bytesRead = import_node_fs21.default.readSync(fd, header, 0, 100, 0);
     if (bytesRead < 16) {
       return { validHeader: false, headerFormat: "unknown" };
     }
@@ -57300,7 +58203,7 @@ function readSqliteHeaderMetadata(realFilePath) {
   } finally {
     if (fd !== null) {
       try {
-        import_node_fs20.default.closeSync(fd);
+        import_node_fs21.default.closeSync(fd);
       } catch {
       }
     }
@@ -57308,12 +58211,12 @@ function readSqliteHeaderMetadata(realFilePath) {
 }
 var SQLITE_COMPANION_SUFFIXES = ["-wal", "-shm", "-journal"];
 function assertSafeSqliteCompanionFiles(realRoot, realDbPath) {
-  const rootPrefix = realRoot.endsWith(import_node_path24.default.sep) ? realRoot : `${realRoot}${import_node_path24.default.sep}`;
+  const rootPrefix = realRoot.endsWith(import_node_path26.default.sep) ? realRoot : `${realRoot}${import_node_path26.default.sep}`;
   for (const suffix of SQLITE_COMPANION_SUFFIXES) {
     const companionPath = `${realDbPath}${suffix}`;
     let lstat;
     try {
-      lstat = import_node_fs20.default.lstatSync(companionPath);
+      lstat = import_node_fs21.default.lstatSync(companionPath);
     } catch (err) {
       const code = err.code;
       if (code === "ENOENT") continue;
@@ -57323,28 +58226,28 @@ function assertSafeSqliteCompanionFiles(realRoot, realDbPath) {
     }
     if (lstat.isSymbolicLink()) {
       throw new Error(
-        `Refused to open SQLite database: companion file "${import_node_path24.default.basename(companionPath)}" is a symbolic link`
+        `Refused to open SQLite database: companion file "${import_node_path26.default.basename(companionPath)}" is a symbolic link`
       );
     }
     if (!lstat.isFile()) {
       throw new Error(
-        `Refused to open SQLite database: companion file "${import_node_path24.default.basename(companionPath)}" is not a regular file`
+        `Refused to open SQLite database: companion file "${import_node_path26.default.basename(companionPath)}" is not a regular file`
       );
     }
     let realCompanion;
     try {
-      realCompanion = import_node_fs20.default.realpathSync(companionPath);
+      realCompanion = import_node_fs21.default.realpathSync(companionPath);
     } catch (err) {
       throw new Error(
-        `Refused to open SQLite database: companion file "${import_node_path24.default.basename(companionPath)}" could not be resolved: ${err instanceof Error ? err.message : String(err)}`
+        `Refused to open SQLite database: companion file "${import_node_path26.default.basename(companionPath)}" could not be resolved: ${err instanceof Error ? err.message : String(err)}`
       );
     }
     if (realCompanion === realRoot || !realCompanion.startsWith(rootPrefix)) {
       throw new Error(
-        `Refused to open SQLite database: companion file "${import_node_path24.default.basename(companionPath)}" escapes workspace boundary`
+        `Refused to open SQLite database: companion file "${import_node_path26.default.basename(companionPath)}" escapes workspace boundary`
       );
     }
-    const companionRel = import_node_path24.default.relative(realRoot, realCompanion).replace(/\\/g, "/");
+    const companionRel = import_node_path26.default.relative(realRoot, realCompanion).replace(/\\/g, "/");
     if (isSensitiveStudioPath(companionRel)) {
       throw new Error(
         `Refused to open SQLite database: companion file "${companionRel}" points to a sensitive path`
@@ -57541,7 +58444,7 @@ async function inspectSqliteDatabase(realRoot, realPath, relPath, bytes, query, 
 }
 async function inspectStudioData(workspaceRoot, opts) {
   const resolved = resolveStudioWorkspaceFile(workspaceRoot, opts.filePath);
-  const ext = import_node_path24.default.extname(resolved.relPath).toLowerCase();
+  const ext = import_node_path26.default.extname(resolved.relPath).toLowerCase();
   const limit = clampDataLimit(opts.limit);
   if (ext === ".sqlite" || ext === ".sqlite3" || ext === ".db") {
     return inspectSqliteDatabase(
@@ -57556,7 +58459,7 @@ async function inspectStudioData(workspaceRoot, opts) {
     );
   }
   if (ext === ".csv" || ext === ".tsv") {
-    const buf = import_node_fs20.default.readFileSync(resolved.realTarget);
+    const buf = import_node_fs21.default.readFileSync(resolved.realTarget);
     return inspectCsvOrTsv(
       resolved.relPath,
       ext === ".tsv" ? "tsv" : "csv",
@@ -57567,7 +58470,7 @@ async function inspectStudioData(workspaceRoot, opts) {
     );
   }
   if (ext === ".json" || ext === ".ndjson" || ext === ".jsonl") {
-    const buf = import_node_fs20.default.readFileSync(resolved.realTarget);
+    const buf = import_node_fs21.default.readFileSync(resolved.realTarget);
     return inspectJsonOrNdjson(
       resolved.relPath,
       ext === ".json" ? "json" : "ndjson",
@@ -58440,8 +59343,8 @@ function parsePdfDocument(relPath, buf, bytes, startLine, maxLines) {
 }
 function inspectStudioDocument(workspaceRoot, opts) {
   const resolved = resolveStudioWorkspaceFile(workspaceRoot, opts.filePath);
-  const ext = import_node_path24.default.extname(resolved.relPath).toLowerCase();
-  const buf = import_node_fs20.default.readFileSync(resolved.realTarget);
+  const ext = import_node_path26.default.extname(resolved.relPath).toLowerCase();
+  const buf = import_node_fs21.default.readFileSync(resolved.realTarget);
   if (ext === ".docx") {
     return parseDocxDocument(resolved.relPath, buf, resolved.stat.size, opts.startLine, opts.maxLines);
   }
@@ -58823,7 +59726,7 @@ function createDemoStudioService(workspaceRoot) {
     }
     const limit = clampDataLimit(opts.limit);
     const needle = opts.filter?.trim().toLowerCase() || "";
-    const base = import_node_path24.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
+    const base = import_node_path26.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
     if (base === "analytics.sqlite" || base.endsWith(".sqlite") || base.endsWith(".db")) {
       const safeSql = opts.query && opts.query.trim() ? validateReadOnlySqliteQuery(opts.query) : void 0;
       if (!safeSql) {
@@ -58908,7 +59811,7 @@ function createDemoStudioService(workspaceRoot) {
     if (!filePath || isSensitiveStudioPath(filePath)) {
       throw new Error(`Refused to access sensitive or invalid path: ${filePath}`);
     }
-    const base = import_node_path24.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
+    const base = import_node_path26.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
     if (base === "architecture.docx" || base.endsWith(".docx")) {
       const allLines = [
         "agy-NOV v0.4.0 Workspace Studio Architecture",
@@ -59103,7 +60006,7 @@ function createDemoStudioService(workspaceRoot) {
       throw new Error(`Refused to access sensitive or invalid path: ${filePath}`);
     }
     const normalized = filePath.replace(/\\/g, "/").replace(/^\.\//, "");
-    const base = import_node_path24.default.posix.basename(normalized).toLowerCase();
+    const base = import_node_path26.default.posix.basename(normalized).toLowerCase();
     if (normalized === "api/openapi.yaml" || base === "openapi.yaml" || base === "openapi.yml" || base === "openapi.json") {
       return createDemoOpenApiSpec("api/openapi.yaml");
     }
@@ -59117,6 +60020,386 @@ function createDemoStudioService(workspaceRoot) {
     inspectDocument,
     httpProbe,
     parseOpenApi
+  };
+}
+
+// src/modules/studio/file-viewer.ts
+var import_node_fs22 = __toESM(require("node:fs"), 1);
+var import_node_path27 = __toESM(require("node:path"), 1);
+var import_node_url3 = require("node:url");
+var FILE_VIEWER_EXTENSIONS = [
+  ".sqlite",
+  ".sqlite3",
+  ".db",
+  ".csv",
+  ".tsv",
+  ".svg",
+  ".openapi.yaml",
+  ".openapi.yml"
+];
+var DOUBLE_SUFFIX_EXTENSIONS = [
+  ".openapi.yaml",
+  ".openapi.yml"
+];
+var SINGLE_SUFFIX_EXTENSIONS = [
+  ".sqlite",
+  ".sqlite3",
+  ".db",
+  ".csv",
+  ".tsv",
+  ".svg"
+];
+var CONTROL_CHARS_RE = /[\x00-\x1f\x7f]/;
+var SCHEME_PREFIX_RE = /^([a-zA-Z][a-zA-Z0-9+.-]*):\/\//;
+var TRAVERSAL_SEGMENT_RE = /(?:^|[\\/])\.\.(?:[\\/]|$)/;
+var SVG_ROOT_RE = /<\s*(?:[a-zA-Z_][\w.-]*:)?svg\b/i;
+var SVG_SCRIPT_TAG_RE = /<\s*(?:[a-zA-Z_][\w.-]*:)?script\b/i;
+var SVG_FOREIGN_OBJECT_RE = /<\s*(?:[a-zA-Z_][\w.-]*:)?foreignobject\b/i;
+var SVG_ACTIVE_EMBED_TAG_RE = /<\s*(?:[a-zA-Z_][\w.-]*:)?(?:iframe|object|embed|applet|base|meta|handler|listener)\b/i;
+var SVG_ENTITY_DECL_RE = /<!\s*entity\b/i;
+var SVG_EVENT_HANDLER_ATTR_RE = /(?:^|[\s"'/])on[a-z][a-z0-9_-]{0,31}\s*=/i;
+var SVG_UNSAFE_PROTOCOL_RE = /(?:javascript|vbscript):|data:(?:text\/html|application\/xhtml\+xml|image\/svg\+xml)/i;
+function matchFileViewerExtension(nameOrPath) {
+  const cleaned = nameOrPath.trim().replace(/[?#].*$/, "");
+  if (!cleaned) return null;
+  const base = import_node_path27.default.posix.basename(cleaned.replace(/\\/g, "/")).toLowerCase();
+  if (!base) return null;
+  for (const ext of DOUBLE_SUFFIX_EXTENSIONS) {
+    if (base.endsWith(ext) && base.length > ext.length) {
+      return ext;
+    }
+  }
+  for (const ext of SINGLE_SUFFIX_EXTENSIONS) {
+    if (base.endsWith(ext) && base.length > ext.length) {
+      return ext;
+    }
+  }
+  return null;
+}
+function resolveFileViewerTargetTab(ext) {
+  return ext === ".svg" ? "canvas" : "studio";
+}
+function decodeSvgEntitiesAndCssEscapesLinear(input2) {
+  const entitiesDecoded = input2.replace(
+    /&#(?:x([0-9a-fA-F]{1,6})|([0-9]{1,7}));?/g,
+    (full, hex3, dec) => {
+      const code = hex3 ? Number.parseInt(hex3, 16) : Number.parseInt(dec ?? "", 10);
+      if (!Number.isFinite(code) || code <= 0 || code > 1114111) return "";
+      try {
+        return String.fromCodePoint(code);
+      } catch {
+        return full;
+      }
+    }
+  );
+  const cssDecoded = entitiesDecoded.replace(
+    /\\([0-9a-fA-F]{1,6})[ \t\r\n\f]?/g,
+    (full, hex3) => {
+      const code = Number.parseInt(hex3, 16);
+      if (!Number.isFinite(code) || code <= 0 || code > 1114111) return "";
+      try {
+        return String.fromCodePoint(code);
+      } catch {
+        return full;
+      }
+    }
+  );
+  return cssDecoded.replace(/[\x00-\x20\x7f]+/g, "");
+}
+function assertSafeSvgContent(svgContent) {
+  if (!svgContent || !svgContent.trim()) {
+    throw new Error("SVG file is empty");
+  }
+  if (!SVG_ROOT_RE.test(svgContent)) {
+    throw new Error("File does not contain a valid <svg> root element");
+  }
+  if (SVG_ENTITY_DECL_RE.test(svgContent)) {
+    throw new Error("Rejected unsafe SVG: <!ENTITY> declarations are forbidden");
+  }
+  if (SVG_SCRIPT_TAG_RE.test(svgContent)) {
+    throw new Error("Rejected unsafe SVG: <script> tags are forbidden");
+  }
+  if (SVG_FOREIGN_OBJECT_RE.test(svgContent)) {
+    throw new Error("Rejected unsafe SVG: <foreignObject> elements are forbidden");
+  }
+  if (SVG_ACTIVE_EMBED_TAG_RE.test(svgContent)) {
+    throw new Error("Rejected unsafe SVG: active embedded HTML elements are forbidden");
+  }
+  if (SVG_EVENT_HANDLER_ATTR_RE.test(svgContent)) {
+    throw new Error("Rejected unsafe SVG: inline on*= event handlers are forbidden");
+  }
+  const normalizedProto = decodeSvgEntitiesAndCssEscapesLinear(svgContent);
+  if (SVG_UNSAFE_PROTOCOL_RE.test(normalizedProto)) {
+    throw new Error(
+      "Rejected unsafe SVG: javascript:, vbscript:, or active data: URIs are forbidden"
+    );
+  }
+}
+function extractSvgMetadata(svgContent, bytes) {
+  const openTagMatch = svgContent.match(/<svg\b[^>]{0,2048}>/i);
+  const openTag = openTagMatch ? openTagMatch[0] : "";
+  const pickAttr = (attrName) => {
+    const re = new RegExp(`\\b${attrName}\\s*=\\s*(?:"([^"]{1,64})"|'([^']{1,64})')`, "i");
+    const m = openTag.match(re);
+    const val = (m?.[1] ?? m?.[2] ?? "").trim();
+    return val || void 0;
+  };
+  const lineCount = svgContent.replace(/\r\n/g, "\n").split("\n").length;
+  return {
+    content: svgContent,
+    bytes,
+    lineCount,
+    ...pickAttr("width") ? { width: pickAttr("width") } : {},
+    ...pickAttr("height") ? { height: pickAttr("height") } : {},
+    ...pickAttr("viewBox") ? { viewBox: pickAttr("viewBox") } : {}
+  };
+}
+function assertCleanInputString(value, label) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw new Error(`Missing ${label}`);
+  }
+  if (CONTROL_CHARS_RE.test(trimmed)) {
+    throw new Error(`Invalid ${label}: control characters are not allowed`);
+  }
+  return trimmed;
+}
+function extractOpaqueFileName(rawResourceUri, explicitName) {
+  if (explicitName && explicitName.trim()) {
+    const cleaned = assertCleanInputString(explicitName, "file.name");
+    return import_node_path27.default.posix.basename(cleaned.replace(/\\/g, "/"));
+  }
+  try {
+    const parsed = new URL(rawResourceUri);
+    const decodedPath = decodeURIComponent(parsed.pathname || "");
+    const base = import_node_path27.default.posix.basename(decodedPath);
+    if (base) return base;
+  } catch {
+  }
+  const stripped = rawResourceUri.replace(/[?#].*$/, "");
+  const tail = stripped.split("/").filter(Boolean).pop() ?? "";
+  return tail || "untitled";
+}
+function buildDemoSvgMarkup(fileName) {
+  const safeLabel = fileName.replace(/[<>&"']/g, "");
+  return [
+    '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="220" viewBox="0 0 480 220">',
+    '  <rect x="8" y="8" width="464" height="204" rx="14" fill="#111827" stroke="#38bdf8" stroke-width="2" />',
+    '  <text x="32" y="64" fill="#f8fafc" font-family="sans-serif" font-size="18" font-weight="700">agy-NOV Safe SVG Preview (Demo)</text>',
+    `  <text x="32" y="102" fill="#94a3b8" font-family="monospace" font-size="13">${safeLabel}</text>`,
+    '  <rect x="32" y="132" width="128" height="40" rx="8" fill="#1e293b" stroke="#10b981" />',
+    '  <text x="52" y="157" fill="#6ee7b7" font-family="monospace" font-size="12">READ-ONLY</text>',
+    "</svg>"
+  ].join("\n");
+}
+function assertNotSensitiveNameOrPath(candidate) {
+  if (isSensitiveStudioPath(candidate)) {
+    throw new Error(`Refused to open sensitive file: ${candidate}`);
+  }
+}
+async function openNativeFileViewer(input2, opts) {
+  const isDemo = opts.demoMode === true;
+  const mode = isDemo ? "demo" : "live";
+  const rawResourceUri = input2.file?.resourceUri?.trim() || input2.file?.uri?.trim() || "";
+  const rawName = input2.file?.name?.trim() || "";
+  const rawPath = input2.path?.trim() || "";
+  if (rawResourceUri) assertCleanInputString(rawResourceUri, "file.resourceUri");
+  if (rawName) assertCleanInputString(rawName, "file.name");
+  if (rawPath) assertCleanInputString(rawPath, "path");
+  const uriSchemeMatch = rawResourceUri.match(SCHEME_PREFIX_RE);
+  if (uriSchemeMatch && uriSchemeMatch[1].toLowerCase() !== "file") {
+    const fileName2 = extractOpaqueFileName(rawResourceUri, rawName);
+    if (rawName) assertNotSensitiveNameOrPath(rawName);
+    assertNotSensitiveNameOrPath(fileName2);
+    try {
+      const parsedOpaque = new URL(rawResourceUri);
+      const decodedPathname = decodeURIComponent(parsedOpaque.pathname || "");
+      if (decodedPathname) assertNotSensitiveNameOrPath(decodedPathname);
+    } catch {
+      const fallbackPath = rawResourceUri.replace(SCHEME_PREFIX_RE, "").replace(/[?#].*$/, "");
+      if (fallbackPath) assertNotSensitiveNameOrPath(fallbackPath);
+    }
+    const ext = (rawName ? matchFileViewerExtension(rawName) : null) ?? matchFileViewerExtension(fileName2) ?? matchFileViewerExtension(rawResourceUri);
+    if (!ext) {
+      throw new Error(
+        `Unsupported file extension for native viewer: ${fileName2} (supported: ${FILE_VIEWER_EXTENSIONS.join(", ")})`
+      );
+    }
+    const targetTab2 = resolveFileViewerTargetTab(ext);
+    return {
+      kind: "opaque-uri",
+      targetTab: targetTab2,
+      fileName: fileName2,
+      extension: ext,
+      resourceUri: rawResourceUri,
+      mode,
+      readOnly: true,
+      note: "Opaque host resource URI detected. Showing read-only metadata without local filesystem reads."
+    };
+  }
+  let localCandidate = "";
+  if (rawResourceUri && rawResourceUri.toLowerCase().startsWith("file://")) {
+    let parsedFileUrl;
+    try {
+      parsedFileUrl = new URL(rawResourceUri);
+    } catch {
+      throw new Error(`Invalid file:// URI: ${rawResourceUri}`);
+    }
+    if (parsedFileUrl.hostname && parsedFileUrl.hostname !== "localhost") {
+      throw new Error(`Remote file:// host is not permitted: ${parsedFileUrl.hostname}`);
+    }
+    try {
+      localCandidate = (0, import_node_url3.fileURLToPath)(parsedFileUrl);
+    } catch {
+      throw new Error(`Unable to decode file:// URI: ${rawResourceUri}`);
+    }
+  } else if (rawPath) {
+    localCandidate = rawPath;
+  } else if (rawName) {
+    localCandidate = rawName;
+  } else {
+    throw new Error("Either file.resourceUri, path, or file.name is required");
+  }
+  assertCleanInputString(localCandidate, "file path");
+  if (TRAVERSAL_SEGMENT_RE.test(localCandidate)) {
+    throw new Error(`Path traversal ("..") is forbidden: ${localCandidate}`);
+  }
+  if (rawPath && TRAVERSAL_SEGMENT_RE.test(rawPath)) {
+    throw new Error(`Path traversal ("..") is forbidden: ${rawPath}`);
+  }
+  if (rawName) assertNotSensitiveNameOrPath(rawName);
+  assertNotSensitiveNameOrPath(localCandidate);
+  const logicalExt = matchFileViewerExtension(localCandidate) ?? (rawName ? matchFileViewerExtension(rawName) : null);
+  if (!logicalExt) {
+    throw new Error(
+      `Unsupported file extension for native viewer: ${import_node_path27.default.basename(localCandidate)} (supported: ${FILE_VIEWER_EXTENSIONS.join(", ")})`
+    );
+  }
+  const boundedLimit = typeof input2.limit === "number" && Number.isFinite(input2.limit) ? Math.max(1, Math.min(STUDIO_MAX_DATA_ROWS, Math.floor(input2.limit))) : void 0;
+  if (isDemo) {
+    const cleanRel = localCandidate.replace(/\\/g, "/").replace(/^\.\//, "");
+    if (import_node_path27.default.isAbsolute(localCandidate)) {
+      const normalizedRoot = import_node_path27.default.resolve(opts.workspaceRoot);
+      const normalizedTarget = import_node_path27.default.resolve(localCandidate);
+      const prefix = normalizedRoot.endsWith(import_node_path27.default.sep) ? normalizedRoot : `${normalizedRoot}${import_node_path27.default.sep}`;
+      if (!normalizedTarget.startsWith(prefix)) {
+        throw new Error(`Path escapes workspace boundary: ${localCandidate}`);
+      }
+    }
+    const fileName2 = import_node_path27.default.posix.basename(cleanRel) || rawName || `sample${logicalExt}`;
+    const targetTab2 = resolveFileViewerTargetTab(logicalExt);
+    if (logicalExt === ".svg") {
+      const svgContent = buildDemoSvgMarkup(fileName2);
+      assertSafeSvgContent(svgContent);
+      const bytes = Buffer.byteLength(svgContent, "utf8");
+      return {
+        kind: "svg",
+        targetTab: targetTab2,
+        fileName: fileName2,
+        extension: logicalExt,
+        relPath: cleanRel,
+        bytes,
+        mode: "demo",
+        readOnly: true,
+        svg: extractSvgMetadata(svgContent, bytes)
+      };
+    }
+    if (logicalExt === ".openapi.yaml" || logicalExt === ".openapi.yml") {
+      const openApi = createDemoOpenApiSpec(cleanRel || "api/sample.openapi.yaml");
+      return {
+        kind: "openapi",
+        targetTab: targetTab2,
+        fileName: fileName2,
+        extension: logicalExt,
+        relPath: cleanRel,
+        bytes: 6144,
+        mode: "demo",
+        readOnly: true,
+        openApi
+      };
+    }
+    const demoFallbackPath = logicalExt === ".sqlite" || logicalExt === ".sqlite3" || logicalExt === ".db" ? "data/app.sqlite" : "data/metrics.csv";
+    const data2 = opts.demoService ? opts.demoService.inspectData({ filePath: demoFallbackPath, limit: boundedLimit }) : {
+      mode: "demo",
+      filePath: cleanRel,
+      format: logicalExt === ".csv" ? "csv" : logicalExt === ".tsv" ? "tsv" : "sqlite",
+      bytes: 1024,
+      columns: ["id", "label"],
+      rows: [{ id: 1, label: "demo" }],
+      totalRows: 1,
+      returnedRows: 1,
+      truncated: false,
+      summary: `Demo preview for ${fileName2}`
+    };
+    return {
+      kind: "data",
+      targetTab: targetTab2,
+      fileName: fileName2,
+      extension: logicalExt,
+      relPath: cleanRel,
+      bytes: data2.bytes,
+      mode: "demo",
+      readOnly: true,
+      data: data2
+    };
+  }
+  const resolved = resolveStudioWorkspaceFile(opts.workspaceRoot, localCandidate);
+  if (resolved.stat.size > STUDIO_MAX_FILE_BYTES) {
+    throw new Error(
+      `File exceeds 10 MiB viewer limit (${resolved.stat.size} bytes > ${STUDIO_MAX_FILE_BYTES} bytes): ${resolved.relPath}`
+    );
+  }
+  const realExt = matchFileViewerExtension(resolved.relPath);
+  if (!realExt) {
+    throw new Error(
+      `Resolved target extension is not permitted for native viewer: ${resolved.relPath}`
+    );
+  }
+  const fileName = import_node_path27.default.posix.basename(resolved.relPath);
+  const targetTab = resolveFileViewerTargetTab(realExt);
+  if (realExt === ".svg") {
+    const svgContent = import_node_fs22.default.readFileSync(resolved.realTarget, "utf8");
+    assertSafeSvgContent(svgContent);
+    return {
+      kind: "svg",
+      targetTab: "canvas",
+      fileName,
+      extension: ".svg",
+      relPath: resolved.relPath,
+      bytes: resolved.stat.size,
+      mode: "live",
+      readOnly: true,
+      svg: extractSvgMetadata(svgContent, resolved.stat.size)
+    };
+  }
+  if (realExt === ".openapi.yaml" || realExt === ".openapi.yml") {
+    const openApi = parseStudioOpenApiFile(opts.workspaceRoot, resolved.relPath);
+    return {
+      kind: "openapi",
+      targetTab: "studio",
+      fileName,
+      extension: realExt,
+      relPath: resolved.relPath,
+      bytes: resolved.stat.size,
+      mode: "live",
+      readOnly: true,
+      openApi
+    };
+  }
+  const data = await inspectStudioData(opts.workspaceRoot, {
+    filePath: resolved.relPath,
+    limit: boundedLimit
+  });
+  return {
+    kind: "data",
+    targetTab: "studio",
+    fileName,
+    extension: realExt,
+    relPath: resolved.relPath,
+    bytes: resolved.stat.size,
+    mode: "live",
+    readOnly: true,
+    data
   };
 }
 
@@ -59200,7 +60483,7 @@ ${preview}`);
   return lines.join("\n");
 }
 function registerStudioModule(server, options, uiResourceUri) {
-  const workspaceRoot = import_node_path25.default.resolve(options.workspaceRoot);
+  const workspaceRoot = import_node_path28.default.resolve(options.workspaceRoot);
   const isDemo = options.demoMode === true;
   const demoService = isDemo ? createDemoStudioService(workspaceRoot) : null;
   const APP_ONLY_META2 = {
@@ -59460,22 +60743,83 @@ function registerStudioModule(server, options, uiResourceUri) {
       }
     }
   );
+  const FILE_VIEWER_META = {
+    ui: { resourceUri: uiResourceUri, visibility: ["app"] },
+    "com.google.antigravity/ui": {
+      entrypoints: [
+        {
+          type: "file",
+          extensions: [...FILE_VIEWER_EXTENSIONS],
+          title: "agy-NOV File Viewer"
+        }
+      ]
+    }
+  };
+  const formatFileViewerText = (res) => {
+    if (res.kind === "opaque-uri") {
+      return `agy-NOV File Viewer (opaque URI): ${res.fileName} -> ${res.targetTab} (${res.note ?? "read-only metadata"})`;
+    }
+    if (res.kind === "svg") {
+      return `agy-NOV File Viewer (SVG): ${res.fileName} -> canvas (${res.bytes ?? 0} B, ${res.svg?.lineCount ?? 0} lines)`;
+    }
+    if (res.kind === "openapi") {
+      return `agy-NOV File Viewer (OpenAPI): ${res.fileName} -> studio (${res.openApi?.totalEndpoints ?? 0} endpoints)`;
+    }
+    return `agy-NOV File Viewer (Data): ${res.fileName} -> studio (${res.data?.returnedRows ?? 0} rows)`;
+  };
+  server.registerTool(
+    "app_nov_file_viewer",
+    {
+      title: "agy-NOV Native File Viewer (App Only)",
+      description: "Read-only MCP Apps file entrypoint for SQLite, CSV/TSV, SVG, and OpenAPI YAML files with strict workspace realpath boundaries and SVG sanitization.",
+      inputSchema: {
+        file: external_exports.object({
+          name: external_exports.string().optional(),
+          resourceUri: external_exports.string().optional(),
+          uri: external_exports.string().optional()
+        }).optional(),
+        path: external_exports.string().optional(),
+        limit: external_exports.number().int().min(1).max(STUDIO_MAX_DATA_ROWS).optional()
+      },
+      _meta: FILE_VIEWER_META
+    },
+    async ({ file: file2, path: filePath, limit }) => {
+      try {
+        const result = await openNativeFileViewer(
+          { file: file2, path: filePath, limit },
+          { workspaceRoot, demoMode: isDemo, demoService }
+        );
+        return {
+          content: [{ type: "text", text: formatFileViewerText(result) }],
+          structuredContent: {
+            novModule: result.targetTab,
+            fileViewer: result
+          }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
   return {
     moduleId: "studio",
     modelTools,
-    exemptReadOnlyAppTools: ["app_studio_list_sources"]
+    exemptReadOnlyAppTools: ["app_studio_list_sources", "app_nov_file_viewer"]
   };
 }
 
 // src/modules/turbo/auto-rtk.ts
 var import_node_crypto15 = __toESM(require("node:crypto"), 1);
-var import_node_fs22 = __toESM(require("node:fs"), 1);
-var import_node_path27 = __toESM(require("node:path"), 1);
+var import_node_fs24 = __toESM(require("node:fs"), 1);
+var import_node_path30 = __toESM(require("node:path"), 1);
 
 // src/modules/turbo/core.ts
 var import_node_crypto14 = __toESM(require("node:crypto"), 1);
-var import_node_fs21 = __toESM(require("node:fs"), 1);
-var import_node_path26 = __toESM(require("node:path"), 1);
+var import_node_fs23 = __toESM(require("node:fs"), 1);
+var import_node_path29 = __toESM(require("node:path"), 1);
 var TURBO_MAX_QUERIES = 8;
 var TURBO_MAX_QUERY_LENGTH = 128;
 var TURBO_MAX_FILE_BYTES = 512 * 1024;
@@ -59724,13 +61068,13 @@ function isSensitiveTurboPath(inputPath) {
       return true;
     }
   }
-  const base = import_node_path26.default.posix.basename(normalized);
+  const base = import_node_path29.default.posix.basename(normalized);
   const lowerBase = base.toLowerCase();
   if (SENSITIVE_EXACT_BASENAMES2.has(lowerBase)) return true;
   if (lowerBase.startsWith("id_rsa.") || lowerBase.startsWith("id_ed25519.") || lowerBase.startsWith("id_dsa.") || lowerBase.startsWith("id_ecdsa.")) {
     return true;
   }
-  const ext = import_node_path26.default.posix.extname(lowerBase);
+  const ext = import_node_path29.default.posix.extname(lowerBase);
   if (SENSITIVE_EXTENSIONS4.has(ext)) return true;
   return false;
 }
@@ -59741,23 +61085,23 @@ function resolveInsideWorkspaceReal(workspaceRoot, targetPath) {
   if (!targetPath || targetPath.includes("\0")) {
     throw new Error("Invalid target path");
   }
-  const realRoot = import_node_fs21.default.realpathSync(import_node_path26.default.resolve(workspaceRoot));
-  const candidate = import_node_path26.default.isAbsolute(targetPath) ? import_node_path26.default.resolve(targetPath) : import_node_path26.default.resolve(realRoot, targetPath);
+  const realRoot = import_node_fs23.default.realpathSync(import_node_path29.default.resolve(workspaceRoot));
+  const candidate = import_node_path29.default.isAbsolute(targetPath) ? import_node_path29.default.resolve(targetPath) : import_node_path29.default.resolve(realRoot, targetPath);
   let realTarget;
   try {
-    realTarget = import_node_fs21.default.realpathSync(candidate);
+    realTarget = import_node_fs23.default.realpathSync(candidate);
   } catch {
     throw new Error(`Target path does not exist or cannot be resolved: ${targetPath}`);
   }
-  const prefix = realRoot.endsWith(import_node_path26.default.sep) ? realRoot : `${realRoot}${import_node_path26.default.sep}`;
+  const prefix = realRoot.endsWith(import_node_path29.default.sep) ? realRoot : `${realRoot}${import_node_path29.default.sep}`;
   if (realTarget !== realRoot && !realTarget.startsWith(prefix)) {
     throw new Error(`Path escapes workspace boundary: ${targetPath}`);
   }
-  const relPath = realTarget === realRoot ? "." : import_node_path26.default.relative(realRoot, realTarget).replace(/\\/g, "/");
+  const relPath = realTarget === realRoot ? "." : import_node_path29.default.relative(realRoot, realTarget).replace(/\\/g, "/");
   return { realRoot, realTarget, relPath };
 }
 function isBinaryFilename(filePath) {
-  const ext = import_node_path26.default.extname(filePath).toLowerCase();
+  const ext = import_node_path29.default.extname(filePath).toLowerCase();
   return BINARY_EXTENSIONS.has(ext);
 }
 function isBufferBinary(buf) {
@@ -59840,13 +61184,13 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
   if (cleanedQueries.length === 0) {
     throw new Error("At least one non-empty query is required");
   }
-  const realRoot = import_node_fs21.default.realpathSync(import_node_path26.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path26.default.sep) ? realRoot : `${realRoot}${import_node_path26.default.sep}`;
+  const realRoot = import_node_fs23.default.realpathSync(import_node_path29.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path29.default.sep) ? realRoot : `${realRoot}${import_node_path29.default.sep}`;
   let searchRoot = realRoot;
   let scope = ".";
   if (opts.directory && opts.directory.trim()) {
     const resolved = resolveInsideWorkspaceReal(realRoot, opts.directory.trim());
-    if (!import_node_path26.default.isAbsolute(opts.directory.trim()) && isSensitiveTurboPath(opts.directory) || isSensitiveTurboPath(resolved.relPath)) {
+    if (!import_node_path29.default.isAbsolute(opts.directory.trim()) && isSensitiveTurboPath(opts.directory) || isSensitiveTurboPath(resolved.relPath)) {
       throw new Error(`Refused to search sensitive directory: ${opts.directory}`);
     }
     searchRoot = resolved.realTarget;
@@ -59884,7 +61228,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
     visitedDirs.add(currentDir);
     let entries;
     try {
-      entries = import_node_fs21.default.readdirSync(currentDir, { withFileTypes: true });
+      entries = import_node_fs23.default.readdirSync(currentDir, { withFileTypes: true });
     } catch {
       continue;
     }
@@ -59894,20 +61238,20 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
         truncated = true;
         break;
       }
-      const fullPath = import_node_path26.default.join(currentDir, entry.name);
-      const rawRel = import_node_path26.default.relative(realRoot, fullPath).replace(/\\/g, "/");
+      const fullPath = import_node_path29.default.join(currentDir, entry.name);
+      const rawRel = import_node_path29.default.relative(realRoot, fullPath).replace(/\\/g, "/");
       if (entry.isDirectory()) {
         if (SKIP_DIRS2.has(entry.name) || isSensitiveTurboPath(rawRel)) {
           if (isSensitiveTurboPath(rawRel)) skippedSensitive += 1;
           continue;
         }
         try {
-          const realSub = import_node_fs21.default.realpathSync(fullPath);
+          const realSub = import_node_fs23.default.realpathSync(fullPath);
           if (!isInsideRealRoot(realSub)) {
             skippedSymlinks += 1;
             continue;
           }
-          const realSubRel = import_node_path26.default.relative(realRoot, realSub).replace(/\\/g, "/");
+          const realSubRel = import_node_path29.default.relative(realRoot, realSub).replace(/\\/g, "/");
           if (isSensitiveTurboPath(realSubRel)) {
             skippedSensitive += 1;
             continue;
@@ -59922,15 +61266,15 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       let isFile = entry.isFile();
       if (entry.isSymbolicLink()) {
         try {
-          realFilePath = import_node_fs21.default.realpathSync(fullPath);
+          realFilePath = import_node_fs23.default.realpathSync(fullPath);
           if (!isInsideRealRoot(realFilePath)) {
             skippedSymlinks += 1;
             continue;
           }
-          const st = import_node_fs21.default.statSync(realFilePath);
+          const st = import_node_fs23.default.statSync(realFilePath);
           if (st.isDirectory()) {
-            const realRelDir = import_node_path26.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
-            if (SKIP_DIRS2.has(import_node_path26.default.basename(realFilePath)) || isSensitiveTurboPath(realRelDir)) {
+            const realRelDir = import_node_path29.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+            if (SKIP_DIRS2.has(import_node_path29.default.basename(realFilePath)) || isSensitiveTurboPath(realRelDir)) {
               skippedSensitive += 1;
               continue;
             }
@@ -59945,7 +61289,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       }
       if (!isFile) continue;
       try {
-        realFilePath = import_node_fs21.default.realpathSync(realFilePath);
+        realFilePath = import_node_fs23.default.realpathSync(realFilePath);
       } catch {
         skippedSymlinks += 1;
         continue;
@@ -59954,7 +61298,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
         skippedSymlinks += 1;
         continue;
       }
-      const realRel = import_node_path26.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+      const realRel = import_node_path29.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
       if (isSensitiveTurboPath(rawRel) || isSensitiveTurboPath(realRel)) {
         skippedSensitive += 1;
         continue;
@@ -59965,7 +61309,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       }
       let stat;
       try {
-        stat = import_node_fs21.default.statSync(realFilePath);
+        stat = import_node_fs23.default.statSync(realFilePath);
       } catch {
         skippedFiles += 1;
         continue;
@@ -59976,7 +61320,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       }
       let buf;
       try {
-        buf = import_node_fs21.default.readFileSync(realFilePath);
+        buf = import_node_fs23.default.readFileSync(realFilePath);
       } catch {
         skippedFiles += 1;
         continue;
@@ -60216,7 +61560,7 @@ var TurboGainTracker = class {
   }
 };
 function detectLanguage(filePath) {
-  const ext = import_node_path26.default.extname(filePath).toLowerCase();
+  const ext = import_node_path29.default.extname(filePath).toLowerCase();
   if (ext === ".ts" || ext === ".tsx" || ext === ".mts" || ext === ".cts") return "typescript";
   if (ext === ".js" || ext === ".jsx" || ext === ".mjs" || ext === ".cjs") return "javascript";
   if (ext === ".py" || ext === ".pyi") return "python";
@@ -61079,20 +62423,20 @@ function extractOutlineSymbols(content, language, maxItems = 120) {
 }
 function readFileOutlineAndSlice(workspaceRoot, filePath, opts = {}) {
   const { realTarget, relPath } = resolveInsideWorkspaceReal(workspaceRoot, filePath);
-  if (!import_node_path26.default.isAbsolute(filePath) && isSensitiveTurboPath(filePath) || isSensitiveTurboPath(relPath)) {
-    throw new Error(`Refused to read sensitive file: ${import_node_path26.default.basename(filePath)}`);
+  if (!import_node_path29.default.isAbsolute(filePath) && isSensitiveTurboPath(filePath) || isSensitiveTurboPath(relPath)) {
+    throw new Error(`Refused to read sensitive file: ${import_node_path29.default.basename(filePath)}`);
   }
   if (isBinaryFilename(realTarget)) {
     throw new Error(`Refused to read binary file: ${relPath}`);
   }
-  const stat = import_node_fs21.default.statSync(realTarget);
+  const stat = import_node_fs23.default.statSync(realTarget);
   if (!stat.isFile()) {
     throw new Error(`Target is not a regular file: ${relPath}`);
   }
   if (stat.size > TURBO_MAX_OUTLINE_FILE_BYTES) {
     throw new Error(`File exceeds ${TURBO_MAX_OUTLINE_FILE_BYTES} byte limit: ${relPath}`);
   }
-  const buf = import_node_fs21.default.readFileSync(realTarget);
+  const buf = import_node_fs23.default.readFileSync(realTarget);
   if (isBufferBinary(buf)) {
     throw new Error(`Detected binary content in file: ${relPath}`);
   }
@@ -61708,7 +63052,7 @@ var CompactedChunkStore = class {
     this.totalRawBytes += rawBytes;
     if (opts.persistStats && dataDir) {
       try {
-        atomicWriteJson(import_node_path26.default.join(dataDir, "stats.json"), {
+        atomicWriteJson(import_node_path29.default.join(dataDir, "stats.json"), {
           schemaVersion: 1,
           totalCompactions: this.totalCompactions,
           totalSavedTokens: this.totalSavedTokens,
@@ -61796,18 +63140,18 @@ var defaultCompactedChunkStore = new CompactedChunkStore(TURBO_MAX_COMPACTED_CHU
 var SNAPSHOT_EXPAND_DIRS = /* @__PURE__ */ new Set(["src", "app", "apps", "packages", "lib", "ui", "test", "tests", "scripts", "cmd", "pkg", "internal"]);
 function buildWorkspaceSnapshot(workspaceRoot) {
   const startedAt = Date.now();
-  const realRoot = import_node_fs21.default.realpathSync(import_node_path26.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path26.default.sep) ? realRoot : `${realRoot}${import_node_path26.default.sep}`;
-  const workspaceName = import_node_path26.default.basename(realRoot) || "workspace";
+  const realRoot = import_node_fs23.default.realpathSync(import_node_path29.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path29.default.sep) ? realRoot : `${realRoot}${import_node_path29.default.sep}`;
+  const workspaceName = import_node_path29.default.basename(realRoot) || "workspace";
   const techStack = [];
   const scripts = [];
   let packageName;
   let packageVersion;
   const hasFile = (name) => {
     try {
-      const candidate = import_node_path26.default.join(realRoot, name);
-      const real = import_node_fs21.default.realpathSync(candidate);
-      return real.startsWith(rootPrefix) && import_node_fs21.default.statSync(real).isFile();
+      const candidate = import_node_path29.default.join(realRoot, name);
+      const real = import_node_fs23.default.realpathSync(candidate);
+      return real.startsWith(rootPrefix) && import_node_fs23.default.statSync(real).isFile();
     } catch {
       return false;
     }
@@ -61815,7 +63159,7 @@ function buildWorkspaceSnapshot(workspaceRoot) {
   if (hasFile("package.json")) {
     techStack.push("Node.js");
     try {
-      const pkg = JSON.parse(import_node_fs21.default.readFileSync(import_node_path26.default.join(realRoot, "package.json"), "utf8"));
+      const pkg = JSON.parse(import_node_fs23.default.readFileSync(import_node_path29.default.join(realRoot, "package.json"), "utf8"));
       if (typeof pkg.name === "string") packageName = pkg.name.slice(0, 64);
       if (typeof pkg.version === "string") packageVersion = pkg.version.slice(0, 32);
       if (pkg.scripts && typeof pkg.scripts === "object") {
@@ -61843,7 +63187,7 @@ function buildWorkspaceSnapshot(workspaceRoot) {
   const maxTreeLines = 28;
   let extraEntries = 0;
   try {
-    const entries = import_node_fs21.default.readdirSync(realRoot, { withFileTypes: true }).sort((a, b) => {
+    const entries = import_node_fs23.default.readdirSync(realRoot, { withFileTypes: true }).sort((a, b) => {
       if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
       return a.name.localeCompare(b.name);
     });
@@ -61851,8 +63195,8 @@ function buildWorkspaceSnapshot(workspaceRoot) {
       if (SKIP_DIRS2.has(entry.name) || isSensitiveTurboPath(entry.name)) continue;
       if (entry.isSymbolicLink()) {
         try {
-          const realEntry = import_node_fs21.default.realpathSync(import_node_path26.default.join(realRoot, entry.name));
-          const realEntryRel = import_node_path26.default.relative(realRoot, realEntry).replace(/\\/g, "/");
+          const realEntry = import_node_fs23.default.realpathSync(import_node_path29.default.join(realRoot, entry.name));
+          const realEntryRel = import_node_path29.default.relative(realRoot, realEntry).replace(/\\/g, "/");
           if (!realEntry.startsWith(rootPrefix) || isSensitiveTurboPath(realEntryRel)) continue;
         } catch {
           continue;
@@ -61866,14 +63210,14 @@ function buildWorkspaceSnapshot(workspaceRoot) {
         treeLines.push(`- ${entry.name}/`);
         if (SNAPSHOT_EXPAND_DIRS.has(entry.name) && treeLines.length < maxTreeLines) {
           try {
-            const subEntries = import_node_fs21.default.readdirSync(import_node_path26.default.join(realRoot, entry.name), { withFileTypes: true }).filter((sub) => {
+            const subEntries = import_node_fs23.default.readdirSync(import_node_path29.default.join(realRoot, entry.name), { withFileTypes: true }).filter((sub) => {
               if (SKIP_DIRS2.has(sub.name) || isSensitiveTurboPath(`${entry.name}/${sub.name}`)) {
                 return false;
               }
               if (sub.isSymbolicLink()) {
                 try {
-                  const realSub = import_node_fs21.default.realpathSync(import_node_path26.default.join(realRoot, entry.name, sub.name));
-                  const realSubRel = import_node_path26.default.relative(realRoot, realSub).replace(/\\/g, "/");
+                  const realSub = import_node_fs23.default.realpathSync(import_node_path29.default.join(realRoot, entry.name, sub.name));
+                  const realSubRel = import_node_path29.default.relative(realRoot, realSub).replace(/\\/g, "/");
                   return realSub.startsWith(rootPrefix) && !isSensitiveTurboPath(realSubRel);
                 } catch {
                   return false;
@@ -62133,12 +63477,12 @@ function isPlatformSystemRootSymlink2(segmentPath) {
   return process.platform === "darwin" && /^\/(?:var|tmp|etc)$/.test(segmentPath);
 }
 function hasUnsafeSymlinkAncestor2(targetPath) {
-  let cur = import_node_path27.default.resolve(targetPath);
-  const root = import_node_path27.default.parse(cur).root;
+  let cur = import_node_path30.default.resolve(targetPath);
+  const root = import_node_path30.default.parse(cur).root;
   while (true) {
     if (!isPlatformSystemRootSymlink2(cur)) {
       try {
-        const st = import_node_fs22.default.lstatSync(cur);
+        const st = import_node_fs24.default.lstatSync(cur);
         if (st.isSymbolicLink()) return true;
       } catch (err) {
         const code = err?.code;
@@ -62146,24 +63490,24 @@ function hasUnsafeSymlinkAncestor2(targetPath) {
       }
     }
     if (cur === root) return false;
-    const parent = import_node_path27.default.dirname(cur);
+    const parent = import_node_path30.default.dirname(cur);
     if (parent === cur) return false;
     cur = parent;
   }
 }
 function isWithinRealBase2(childReal, baseReal) {
   if (childReal === baseReal) return true;
-  const prefix = baseReal.endsWith(import_node_path27.default.sep) ? baseReal : `${baseReal}${import_node_path27.default.sep}`;
+  const prefix = baseReal.endsWith(import_node_path30.default.sep) ? baseReal : `${baseReal}${import_node_path30.default.sep}`;
   return childReal.startsWith(prefix);
 }
 function resolveSafeExistingDir(dirPath) {
   if (!dirPath || typeof dirPath !== "string" || dirPath.includes("\0")) return null;
-  const resolved = import_node_path27.default.resolve(dirPath);
+  const resolved = import_node_path30.default.resolve(dirPath);
   if (hasUnsafeSymlinkAncestor2(resolved)) return null;
   try {
-    const st = import_node_fs22.default.lstatSync(resolved);
+    const st = import_node_fs24.default.lstatSync(resolved);
     if (st.isSymbolicLink() || !st.isDirectory()) return null;
-    return import_node_fs22.default.realpathSync(resolved);
+    return import_node_fs24.default.realpathSync(resolved);
   } catch {
     return null;
   }
@@ -62172,44 +63516,44 @@ function ensureSafePrivateDir(dirPath) {
   if (!dirPath || typeof dirPath !== "string" || dirPath.includes("\0")) {
     throw new Error("Invalid directory path");
   }
-  const resolved = import_node_path27.default.resolve(dirPath);
+  const resolved = import_node_path30.default.resolve(dirPath);
   if (hasUnsafeSymlinkAncestor2(resolved)) {
     throw new Error(`Refused symlink directory path: ${dirPath}`);
   }
-  import_node_fs22.default.mkdirSync(resolved, { recursive: true, mode: 448 });
-  const st = import_node_fs22.default.lstatSync(resolved);
+  import_node_fs24.default.mkdirSync(resolved, { recursive: true, mode: 448 });
+  const st = import_node_fs24.default.lstatSync(resolved);
   if (st.isSymbolicLink() || !st.isDirectory()) {
     throw new Error(`Refused unsafe target directory: ${dirPath}`);
   }
   try {
-    import_node_fs22.default.chmodSync(resolved, 448);
+    import_node_fs24.default.chmodSync(resolved, 448);
   } catch {
   }
-  return import_node_fs22.default.realpathSync(resolved);
+  return import_node_fs24.default.realpathSync(resolved);
 }
 function readSafeJsonFile(dirPath, fileName, maxBytes) {
   const realDir = resolveSafeExistingDir(dirPath);
   if (!realDir) return null;
-  const filePath = import_node_path27.default.join(realDir, fileName);
+  const filePath = import_node_path30.default.join(realDir, fileName);
   try {
-    const st = import_node_fs22.default.lstatSync(filePath);
+    const st = import_node_fs24.default.lstatSync(filePath);
     if (st.isSymbolicLink() || !st.isFile() || st.size > maxBytes) {
       return null;
     }
-    const realFile = import_node_fs22.default.realpathSync(filePath);
+    const realFile = import_node_fs24.default.realpathSync(filePath);
     if (!isWithinRealBase2(realFile, realDir)) {
       return null;
     }
-    return JSON.parse(import_node_fs22.default.readFileSync(realFile, "utf8"));
+    return JSON.parse(import_node_fs24.default.readFileSync(realFile, "utf8"));
   } catch {
     return null;
   }
 }
 function atomicWritePrivateFile(dirPath, fileName, content) {
   const realDir = ensureSafePrivateDir(dirPath);
-  const targetPath = import_node_path27.default.join(realDir, fileName);
+  const targetPath = import_node_path30.default.join(realDir, fileName);
   try {
-    const existing = import_node_fs22.default.lstatSync(targetPath);
+    const existing = import_node_fs24.default.lstatSync(targetPath);
     if (existing.isSymbolicLink() || !existing.isFile()) {
       throw new Error(`Refused to overwrite symlink or non-regular file: ${fileName}`);
     }
@@ -62219,18 +63563,18 @@ function atomicWritePrivateFile(dirPath, fileName, content) {
     }
   }
   const nonce = import_node_crypto15.default.randomBytes(4).toString("hex");
-  const tmpPath = import_node_path27.default.join(realDir, `.${fileName}.tmp.${process.pid}.${Date.now()}.${nonce}`);
+  const tmpPath = import_node_path30.default.join(realDir, `.${fileName}.tmp.${process.pid}.${Date.now()}.${nonce}`);
   try {
-    import_node_fs22.default.writeFileSync(tmpPath, content, { encoding: "utf8", mode: 384, flag: "wx" });
+    import_node_fs24.default.writeFileSync(tmpPath, content, { encoding: "utf8", mode: 384, flag: "wx" });
     try {
-      import_node_fs22.default.chmodSync(tmpPath, 384);
+      import_node_fs24.default.chmodSync(tmpPath, 384);
     } catch {
     }
-    import_node_fs22.default.renameSync(tmpPath, targetPath);
+    import_node_fs24.default.renameSync(tmpPath, targetPath);
     return targetPath;
   } catch (err) {
     try {
-      import_node_fs22.default.unlinkSync(tmpPath);
+      import_node_fs24.default.unlinkSync(tmpPath);
     } catch {
     }
     throw err;
@@ -62306,8 +63650,8 @@ function loadTurboHotspotsReadOnly(moduleDataDir) {
 
 // src/modules/turbo/context-pack.ts
 var import_node_child_process4 = require("node:child_process");
-var import_node_fs23 = __toESM(require("node:fs"), 1);
-var import_node_path28 = __toESM(require("node:path"), 1);
+var import_node_fs25 = __toESM(require("node:fs"), 1);
+var import_node_path31 = __toESM(require("node:path"), 1);
 var CONTEXT_PACK_DEFAULT_MAX_TOKENS = 8e3;
 var CONTEXT_PACK_MIN_TOKENS = 256;
 var CONTEXT_PACK_MAX_TOKENS = 32e3;
@@ -62625,7 +63969,7 @@ function matchSimpleGlob(relPath, pattern) {
   const normPat = pattern.replace(/\\/g, "/").replace(/^\.\//, "");
   if (!normPat) return true;
   if (!normPat.includes("/")) {
-    const base = import_node_path28.default.posix.basename(normPath);
+    const base = import_node_path31.default.posix.basename(normPath);
     return matchSingleSegmentLinear(base, normPat) || matchSingleSegmentLinear(normPath, normPat);
   }
   const pathSegs = normPath.split("/").filter(Boolean);
@@ -62654,7 +63998,7 @@ function matchSimpleGlob(relPath, pattern) {
   return prev[n];
 }
 function isBinaryFilename2(filePath) {
-  return BINARY_EXTENSIONS2.has(import_node_path28.default.extname(filePath).toLowerCase());
+  return BINARY_EXTENSIONS2.has(import_node_path31.default.extname(filePath).toLowerCase());
 }
 function isBufferBinary2(buf) {
   const inspectLen = Math.min(buf.length, 8192);
@@ -62664,7 +64008,7 @@ function isBufferBinary2(buf) {
   return false;
 }
 function detectCodeFenceLang(relPath) {
-  const ext = import_node_path28.default.extname(relPath).toLowerCase();
+  const ext = import_node_path31.default.extname(relPath).toLowerCase();
   const map2 = {
     ".ts": "ts",
     ".tsx": "tsx",
@@ -62782,8 +64126,8 @@ function buildContextPack(workspaceRoot, options = {}) {
   if (!workspaceRoot || workspaceRoot.includes("\0")) {
     throw new Error("Invalid workspace root path");
   }
-  const realRoot = import_node_fs23.default.realpathSync(import_node_path28.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path28.default.sep) ? realRoot : `${realRoot}${import_node_path28.default.sep}`;
+  const realRoot = import_node_fs25.default.realpathSync(import_node_path31.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path31.default.sep) ? realRoot : `${realRoot}${import_node_path31.default.sep}`;
   const maxTokens = Math.max(
     CONTEXT_PACK_MIN_TOKENS,
     Math.min(
@@ -62816,7 +64160,7 @@ function buildContextPack(workspaceRoot, options = {}) {
   if (options.scope && options.scope.trim()) {
     const scopeInput = options.scope.trim();
     const resolved = resolveInsideWorkspaceReal(realRoot, scopeInput);
-    if (!import_node_path28.default.isAbsolute(scopeInput) && isSensitiveTurboPath(scopeInput) || isSensitiveTurboPath(resolved.relPath)) {
+    if (!import_node_path31.default.isAbsolute(scopeInput) && isSensitiveTurboPath(scopeInput) || isSensitiveTurboPath(resolved.relPath)) {
       throw new Error(`Refused to pack sensitive scope: ${scopeInput}`);
     }
     searchRoot = resolved.realTarget;
@@ -62842,7 +64186,7 @@ function buildContextPack(workspaceRoot, options = {}) {
     }
     let lst;
     try {
-      lst = import_node_fs23.default.lstatSync(absPath);
+      lst = import_node_fs25.default.lstatSync(absPath);
     } catch {
       return;
     }
@@ -62853,7 +64197,7 @@ function buildContextPack(workspaceRoot, options = {}) {
     if (!lst.isFile()) return;
     let realFile;
     try {
-      realFile = import_node_fs23.default.realpathSync(absPath);
+      realFile = import_node_fs25.default.realpathSync(absPath);
     } catch {
       skippedSymlinks += 1;
       return;
@@ -62862,7 +64206,7 @@ function buildContextPack(workspaceRoot, options = {}) {
       skippedSymlinks += 1;
       return;
     }
-    const realRel = import_node_path28.default.relative(realRoot, realFile).replace(/\\/g, "/");
+    const realRel = import_node_path31.default.relative(realRoot, realFile).replace(/\\/g, "/");
     if (isSensitiveTurboPath(realRel)) {
       skippedSensitive += 1;
       return;
@@ -62886,7 +64230,7 @@ function buildContextPack(workspaceRoot, options = {}) {
       if (scope !== "." && rel !== scope && !rel.startsWith(scopePrefix)) {
         continue;
       }
-      const abs = import_node_path28.default.resolve(realRoot, rel);
+      const abs = import_node_path31.default.resolve(realRoot, rel);
       if (abs !== realRoot && !abs.startsWith(rootPrefix)) {
         skippedSymlinks += 1;
         continue;
@@ -62896,12 +64240,12 @@ function buildContextPack(workspaceRoot, options = {}) {
   } else {
     let rootStat;
     try {
-      rootStat = import_node_fs23.default.statSync(searchRoot);
+      rootStat = import_node_fs25.default.statSync(searchRoot);
     } catch {
       rootStat = null;
     }
     if (rootStat?.isFile()) {
-      const rel = import_node_path28.default.relative(realRoot, searchRoot).replace(/\\/g, "/");
+      const rel = import_node_path31.default.relative(realRoot, searchRoot).replace(/\\/g, "/");
       inspectCandidateFile(searchRoot, rel);
     } else if (rootStat?.isDirectory()) {
       const visitedDirs = /* @__PURE__ */ new Set();
@@ -62912,7 +64256,7 @@ function buildContextPack(workspaceRoot, options = {}) {
         visitedDirs.add(currentDir);
         let entries;
         try {
-          entries = import_node_fs23.default.readdirSync(currentDir, { withFileTypes: true });
+          entries = import_node_fs25.default.readdirSync(currentDir, { withFileTypes: true });
         } catch {
           continue;
         }
@@ -62923,8 +64267,8 @@ function buildContextPack(workspaceRoot, options = {}) {
             skippedSymlinks += 1;
             continue;
           }
-          const fullPath = import_node_path28.default.join(currentDir, entry.name);
-          const rawRel = import_node_path28.default.relative(realRoot, fullPath).replace(/\\/g, "/");
+          const fullPath = import_node_path31.default.join(currentDir, entry.name);
+          const rawRel = import_node_path31.default.relative(realRoot, fullPath).replace(/\\/g, "/");
           if (entry.isDirectory()) {
             if (SKIP_DIRS3.has(entry.name)) continue;
             if (isSensitiveTurboPath(rawRel)) {
@@ -62932,12 +64276,12 @@ function buildContextPack(workspaceRoot, options = {}) {
               continue;
             }
             try {
-              const realSub = import_node_fs23.default.realpathSync(fullPath);
+              const realSub = import_node_fs25.default.realpathSync(fullPath);
               if (!isInsideRealRoot(realSub)) {
                 skippedSymlinks += 1;
                 continue;
               }
-              const realSubRel = import_node_path28.default.relative(realRoot, realSub).replace(/\\/g, "/");
+              const realSubRel = import_node_path31.default.relative(realRoot, realSub).replace(/\\/g, "/");
               if (isSensitiveTurboPath(realSubRel)) {
                 skippedSensitive += 1;
                 continue;
@@ -62967,7 +64311,7 @@ function buildContextPack(workspaceRoot, options = {}) {
   const prepared = [];
   for (const cand of boundedCandidates) {
     try {
-      const buf = import_node_fs23.default.readFileSync(cand.realPath);
+      const buf = import_node_fs25.default.readFileSync(cand.realPath);
       if (isBufferBinary2(buf)) {
         skippedBinary += 1;
         continue;
@@ -63084,8 +64428,8 @@ ${fence}
 }
 
 // src/modules/turbo/dep-contract.ts
-var import_node_fs24 = __toESM(require("node:fs"), 1);
-var import_node_path29 = __toESM(require("node:path"), 1);
+var import_node_fs26 = __toESM(require("node:fs"), 1);
+var import_node_path32 = __toESM(require("node:path"), 1);
 var MAX_PACKAGE_NAME_LEN = 180;
 var MAX_SYMBOL_FILTER_LEN = 128;
 var MAX_SINGLE_CONTRACT_FILE_BYTES = 512 * 1024;
@@ -63198,13 +64542,13 @@ function normalizeSymbolFilter(rawFilter) {
   return trimmed;
 }
 function checkWorkspacePathSafe(realRoot, rootPrefix, candidateAbs) {
-  const normalizedCandidate = import_node_path29.default.resolve(candidateAbs);
+  const normalizedCandidate = import_node_path32.default.resolve(candidateAbs);
   if (normalizedCandidate !== realRoot && !normalizedCandidate.startsWith(rootPrefix)) {
     return { status: "escaped", reason: "Lexical path escapes workspace boundary" };
   }
   let lstat;
   try {
-    lstat = import_node_fs24.default.lstatSync(normalizedCandidate);
+    lstat = import_node_fs26.default.lstatSync(normalizedCandidate);
   } catch (err) {
     const code = err?.code;
     if (code === "ENOENT" || code === "ENOTDIR") {
@@ -63214,7 +64558,7 @@ function checkWorkspacePathSafe(realRoot, rootPrefix, candidateAbs) {
   }
   let realTarget;
   try {
-    realTarget = import_node_fs24.default.realpathSync(normalizedCandidate);
+    realTarget = import_node_fs26.default.realpathSync(normalizedCandidate);
   } catch {
     if (lstat.isSymbolicLink()) {
       return { status: "escaped", reason: "Dangling or unreadable symlink rejected" };
@@ -63224,16 +64568,16 @@ function checkWorkspacePathSafe(realRoot, rootPrefix, candidateAbs) {
   if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
     return {
       status: "escaped",
-      reason: `Symlink target escapes workspace boundary (${import_node_path29.default.relative(realRoot, normalizedCandidate)})`
+      reason: `Symlink target escapes workspace boundary (${import_node_path32.default.relative(realRoot, normalizedCandidate)})`
     };
   }
   let targetStat;
   try {
-    targetStat = import_node_fs24.default.statSync(realTarget);
+    targetStat = import_node_fs26.default.statSync(realTarget);
   } catch {
     return { status: "invalid", reason: "Cannot stat resolved path" };
   }
-  const relPath = realTarget === realRoot ? "." : import_node_path29.default.relative(realRoot, realTarget).replace(/\\/g, "/");
+  const relPath = realTarget === realRoot ? "." : import_node_path32.default.relative(realRoot, realTarget).replace(/\\/g, "/");
   return {
     status: "ok",
     realPath: realTarget,
@@ -63250,7 +64594,7 @@ function assertNotEscaped(check2, label) {
 }
 function isWithinRealDir(realTarget, realDir) {
   if (realTarget === realDir) return true;
-  const prefix = realDir.endsWith(import_node_path29.default.sep) ? realDir : `${realDir}${import_node_path29.default.sep}`;
+  const prefix = realDir.endsWith(import_node_path32.default.sep) ? realDir : `${realDir}${import_node_path32.default.sep}`;
   return realTarget.startsWith(prefix);
 }
 function readWorkspaceFileSafe(realRoot, rootPrefix, candidateAbs, label, allowNodeModules = false, requiredDirReal) {
@@ -63262,19 +64606,19 @@ function readWorkspaceFileSafe(realRoot, rootPrefix, candidateAbs, label, allowN
   if (requiredDirReal && !isWithinRealDir(check2.realPath, requiredDirReal)) {
     throw new Error(`Path escapes package boundary (${label}): ${check2.relPath}`);
   }
-  const relPosix = check2.relPath.split(import_node_path29.default.sep).join("/");
+  const relPosix = check2.relPath.split(import_node_path32.default.sep).join("/");
   const inAllowedDepDir = allowNodeModules && (relPosix.startsWith("node_modules/") || relPosix.startsWith(".venv/") || relPosix.startsWith("venv/"));
   if (!inAllowedDepDir && isSensitiveTurboPath(check2.relPath)) {
     throw new Error(`Refused to inspect sensitive path: ${check2.relPath}`);
   }
-  if (inAllowedDepDir && isSensitiveTurboPath(import_node_path29.default.basename(check2.realPath))) {
+  if (inAllowedDepDir && isSensitiveTurboPath(import_node_path32.default.basename(check2.realPath))) {
     throw new Error(`Refused to inspect sensitive path: ${check2.relPath}`);
   }
   if ((check2.size ?? 0) > MAX_SINGLE_CONTRACT_FILE_BYTES) {
     return null;
   }
   try {
-    const content = import_node_fs24.default.readFileSync(check2.realPath, "utf8");
+    const content = import_node_fs26.default.readFileSync(check2.realPath, "utf8");
     return { content, relPath: check2.relPath, realPath: check2.realPath };
   } catch {
     return null;
@@ -63328,7 +64672,7 @@ function extractTypesPathFromExportEntry(entry, depth = 0) {
 function mapJsSpecifierToDtsCandidates(baseDir, specifier) {
   const clean = specifier.trim();
   if (!clean.startsWith(".") || clean.includes("\0") || clean.includes("\\")) return [];
-  const rawAbs = import_node_path29.default.resolve(baseDir, clean);
+  const rawAbs = import_node_path32.default.resolve(baseDir, clean);
   const candidates = [];
   if (/\.(?:d\.ts|d\.cts|d\.mts)$/.test(rawAbs)) {
     candidates.push(rawAbs);
@@ -63346,9 +64690,9 @@ function mapJsSpecifierToDtsCandidates(baseDir, specifier) {
     candidates.push(`${rawAbs}.d.ts`);
     candidates.push(`${rawAbs}.d.cts`);
     candidates.push(`${rawAbs}.d.mts`);
-    candidates.push(import_node_path29.default.join(rawAbs, "index.d.ts"));
-    candidates.push(import_node_path29.default.join(rawAbs, "index.d.cts"));
-    candidates.push(import_node_path29.default.join(rawAbs, "index.d.mts"));
+    candidates.push(import_node_path32.default.join(rawAbs, "index.d.ts"));
+    candidates.push(import_node_path32.default.join(rawAbs, "index.d.cts"));
+    candidates.push(import_node_path32.default.join(rawAbs, "index.d.mts"));
   }
   return Array.from(new Set(candidates));
 }
@@ -63483,7 +64827,7 @@ function buildFormattedSnippet(params) {
   if (params.signatures.length > 0) {
     lines.push(`Signatures (${params.signatures.length}):`);
     for (const sig of params.signatures) {
-      const fileTag = sig.sourceFile && sig.sourceFile !== params.entryFile ? ` (${import_node_path29.default.posix.basename(sig.sourceFile)})` : "";
+      const fileTag = sig.sourceFile && sig.sourceFile !== params.entryFile ? ` (${import_node_path32.default.posix.basename(sig.sourceFile)})` : "";
       lines.push(`  L${sig.line} [${sig.kind}]${fileTag} ${sig.signature}`);
     }
   } else {
@@ -63497,15 +64841,15 @@ function inspectNodeDep(realRoot, rootPrefix, packageName, symbolFilter, maxByte
   if (isScoped && segments.length !== 2 || !isScoped && segments.length !== 1) {
     return null;
   }
-  const pkgDirCandidate = import_node_path29.default.join(realRoot, "node_modules", ...segments);
+  const pkgDirCandidate = import_node_path32.default.join(realRoot, "node_modules", ...segments);
   const pkgDirCheck = checkWorkspacePathSafe(realRoot, rootPrefix, pkgDirCandidate);
   assertNotEscaped(pkgDirCheck, `node_modules/${packageName}`);
   if (pkgDirCheck.status !== "ok" || !pkgDirCheck.isDirectory || !pkgDirCheck.realPath) {
     return null;
   }
   const pkgRealDir = pkgDirCheck.realPath;
-  const pkgPrefix = pkgRealDir.endsWith(import_node_path29.default.sep) ? pkgRealDir : `${pkgRealDir}${import_node_path29.default.sep}`;
-  const pkgJsonPath = import_node_path29.default.join(pkgRealDir, "package.json");
+  const pkgPrefix = pkgRealDir.endsWith(import_node_path32.default.sep) ? pkgRealDir : `${pkgRealDir}${import_node_path32.default.sep}`;
+  const pkgJsonPath = import_node_path32.default.join(pkgRealDir, "package.json");
   const pkgJsonFile = readWorkspaceFileSafe(
     realRoot,
     rootPrefix,
@@ -63535,12 +64879,12 @@ function inspectNodeDep(realRoot, rootPrefix, packageName, symbolFilter, maxByte
     const rootExp = pkgJson.exports["."];
     const expTypes = extractTypesPathFromExportEntry(rootExp ?? pkgJson.exports);
     if (expTypes) {
-      dtsCandidates.push(import_node_path29.default.resolve(pkgRealDir, expTypes));
+      dtsCandidates.push(import_node_path32.default.resolve(pkgRealDir, expTypes));
     }
   }
   for (const field of [pkgJson.types, pkgJson.typings]) {
     if (typeof field === "string" && field.trim()) {
-      dtsCandidates.push(import_node_path29.default.resolve(pkgRealDir, field.trim()));
+      dtsCandidates.push(import_node_path32.default.resolve(pkgRealDir, field.trim()));
     }
   }
   if (typeof pkgJson.main === "string" && pkgJson.main.trim()) {
@@ -63549,18 +64893,18 @@ function inspectNodeDep(realRoot, rootPrefix, packageName, symbolFilter, maxByte
     dtsCandidates.push(...mapJsSpecifierToDtsCandidates(pkgRealDir, spec));
   }
   dtsCandidates.push(
-    import_node_path29.default.join(pkgRealDir, "index.d.ts"),
-    import_node_path29.default.join(pkgRealDir, "index.d.cts"),
-    import_node_path29.default.join(pkgRealDir, "index.d.mts"),
-    import_node_path29.default.join(pkgRealDir, "dist", "index.d.ts"),
-    import_node_path29.default.join(pkgRealDir, "lib", "index.d.ts"),
-    import_node_path29.default.join(pkgRealDir, "types", "index.d.ts")
+    import_node_path32.default.join(pkgRealDir, "index.d.ts"),
+    import_node_path32.default.join(pkgRealDir, "index.d.cts"),
+    import_node_path32.default.join(pkgRealDir, "index.d.mts"),
+    import_node_path32.default.join(pkgRealDir, "dist", "index.d.ts"),
+    import_node_path32.default.join(pkgRealDir, "lib", "index.d.ts"),
+    import_node_path32.default.join(pkgRealDir, "types", "index.d.ts")
   );
   const typesPkgName = isScoped ? `${segments[0].slice(1)}__${segments[1]}` : segments[0];
-  const atTypesDirAbs = import_node_path29.default.join(realRoot, "node_modules", "@types", typesPkgName);
+  const atTypesDirAbs = import_node_path32.default.join(realRoot, "node_modules", "@types", typesPkgName);
   const atTypesCheck = checkWorkspacePathSafe(realRoot, rootPrefix, atTypesDirAbs);
   const atTypesRealDir = atTypesCheck.status === "ok" && atTypesCheck.isDirectory ? atTypesCheck.realPath : void 0;
-  const atTypesIndex = import_node_path29.default.join(atTypesRealDir ?? atTypesDirAbs, "index.d.ts");
+  const atTypesIndex = import_node_path32.default.join(atTypesRealDir ?? atTypesDirAbs, "index.d.ts");
   dtsCandidates.push(atTypesIndex);
   let primaryDts = null;
   let primaryAllowedDir = pkgRealDir;
@@ -63596,7 +64940,7 @@ function inspectNodeDep(realRoot, rootPrefix, packageName, symbolFilter, maxByte
       if (current.depth >= MAX_REEXPORT_DEPTH) continue;
       for (const spec of parsed.reexportSpecifiers) {
         if (visited.size >= MAX_REEXPORT_FILES || totalReadBytes >= MAX_TOTAL_DTS_BYTES) break;
-        const nextCandidates = mapJsSpecifierToDtsCandidates(import_node_path29.default.dirname(current.file.realPath), spec);
+        const nextCandidates = mapJsSpecifierToDtsCandidates(import_node_path32.default.dirname(current.file.realPath), spec);
         for (const nextAbs of nextCandidates) {
           if (!isWithinRealDir(nextAbs, primaryAllowedDir)) {
             continue;
@@ -63698,25 +65042,25 @@ function normalizePyName(name) {
 function findPythonSitePackagesDirs(realRoot, rootPrefix) {
   const dirs = [];
   for (const venvName of [".venv", "venv"]) {
-    const venvAbs = import_node_path29.default.join(realRoot, venvName);
+    const venvAbs = import_node_path32.default.join(realRoot, venvName);
     const venvCheck = checkWorkspacePathSafe(realRoot, rootPrefix, venvAbs);
     assertNotEscaped(venvCheck, venvName);
     if (venvCheck.status !== "ok" || !venvCheck.isDirectory || !venvCheck.realPath) continue;
-    const winSite = import_node_path29.default.join(venvCheck.realPath, "Lib", "site-packages");
+    const winSite = import_node_path32.default.join(venvCheck.realPath, "Lib", "site-packages");
     const winCheck = checkWorkspacePathSafe(realRoot, rootPrefix, winSite);
     assertNotEscaped(winCheck, `${venvName}/Lib/site-packages`);
     if (winCheck.status === "ok" && winCheck.isDirectory && winCheck.realPath) {
       dirs.push(winCheck.realPath);
     }
-    const unixLib = import_node_path29.default.join(venvCheck.realPath, "lib");
+    const unixLib = import_node_path32.default.join(venvCheck.realPath, "lib");
     const unixLibCheck = checkWorkspacePathSafe(realRoot, rootPrefix, unixLib);
     assertNotEscaped(unixLibCheck, `${venvName}/lib`);
     if (unixLibCheck.status === "ok" && unixLibCheck.isDirectory && unixLibCheck.realPath) {
       try {
-        const subEntries = import_node_fs24.default.readdirSync(unixLibCheck.realPath, { withFileTypes: true });
+        const subEntries = import_node_fs26.default.readdirSync(unixLibCheck.realPath, { withFileTypes: true });
         for (const sub of subEntries) {
           if (!sub.name.startsWith("python")) continue;
-          const sp = import_node_path29.default.join(unixLibCheck.realPath, sub.name, "site-packages");
+          const sp = import_node_path32.default.join(unixLibCheck.realPath, sub.name, "site-packages");
           const spCheck = checkWorkspacePathSafe(realRoot, rootPrefix, sp);
           assertNotEscaped(spCheck, `${venvName}/lib/${sub.name}/site-packages`);
           if (spCheck.status === "ok" && spCheck.isDirectory && spCheck.realPath) {
@@ -63740,7 +65084,7 @@ function inspectPythonDep(realRoot, rootPrefix, packageName, symbolFilter, maxBy
   const siteDirs = findPythonSitePackagesDirs(realRoot, rootPrefix);
   for (const spDir of siteDirs) {
     try {
-      const entries = import_node_fs24.default.readdirSync(spDir, { withFileTypes: true });
+      const entries = import_node_fs26.default.readdirSync(spDir, { withFileTypes: true });
       for (const entry of entries) {
         if (!entry.name.endsWith(".dist-info")) continue;
         const base = entry.name.slice(0, -".dist-info".length);
@@ -63748,7 +65092,7 @@ function inspectPythonDep(realRoot, rootPrefix, packageName, symbolFilter, maxBy
         if (dashIdx <= 0) continue;
         const distPkg = normalizePyName(base.slice(0, dashIdx));
         if (distPkg !== normTarget) continue;
-        const metaPath = import_node_path29.default.join(spDir, entry.name, "METADATA");
+        const metaPath = import_node_path32.default.join(spDir, entry.name, "METADATA");
         const metaRead = readWorkspaceFileSafe(realRoot, rootPrefix, metaPath, `${packageName} METADATA`, true, spDir);
         if (metaRead) {
           foundInVenv = true;
@@ -63764,12 +65108,12 @@ function inspectPythonDep(realRoot, rootPrefix, packageName, symbolFilter, maxBy
     } catch {
     }
     const candidates = [
-      import_node_path29.default.join(spDir, normTarget, "__init__.pyi"),
-      import_node_path29.default.join(spDir, normTarget, "__init__.py"),
-      import_node_path29.default.join(spDir, packageName, "__init__.pyi"),
-      import_node_path29.default.join(spDir, packageName, "__init__.py"),
-      import_node_path29.default.join(spDir, `${normTarget}.pyi`),
-      import_node_path29.default.join(spDir, `${normTarget}.py`)
+      import_node_path32.default.join(spDir, normTarget, "__init__.pyi"),
+      import_node_path32.default.join(spDir, normTarget, "__init__.py"),
+      import_node_path32.default.join(spDir, packageName, "__init__.pyi"),
+      import_node_path32.default.join(spDir, packageName, "__init__.py"),
+      import_node_path32.default.join(spDir, `${normTarget}.pyi`),
+      import_node_path32.default.join(spDir, `${normTarget}.py`)
     ];
     for (const cand of Array.from(new Set(candidates))) {
       const read = readWorkspaceFileSafe(realRoot, rootPrefix, cand, `${packageName} python stub`, true, spDir);
@@ -63784,7 +65128,7 @@ function inspectPythonDep(realRoot, rootPrefix, packageName, symbolFilter, maxBy
   }
   let manifestSource = null;
   if (!version2) {
-    const reqFile = readWorkspaceFileSafe(realRoot, rootPrefix, import_node_path29.default.join(realRoot, "requirements.txt"), "requirements.txt");
+    const reqFile = readWorkspaceFileSafe(realRoot, rootPrefix, import_node_path32.default.join(realRoot, "requirements.txt"), "requirements.txt");
     if (reqFile) {
       const lines = reqFile.content.split(/\r?\n/);
       for (let i = 0; i < lines.length; i += 1) {
@@ -63809,7 +65153,7 @@ function inspectPythonDep(realRoot, rootPrefix, packageName, symbolFilter, maxBy
     }
   }
   if (!version2) {
-    const pyproj = readWorkspaceFileSafe(realRoot, rootPrefix, import_node_path29.default.join(realRoot, "pyproject.toml"), "pyproject.toml");
+    const pyproj = readWorkspaceFileSafe(realRoot, rootPrefix, import_node_path32.default.join(realRoot, "pyproject.toml"), "pyproject.toml");
     if (pyproj) {
       const lines = pyproj.content.split(/\r?\n/);
       for (let i = 0; i < lines.length; i += 1) {
@@ -63876,7 +65220,7 @@ function inspectPythonDep(realRoot, rootPrefix, packageName, symbolFilter, maxBy
   };
 }
 function inspectGoDep(realRoot, rootPrefix, packageName, symbolFilter, maxBytes) {
-  const goMod = readWorkspaceFileSafe(realRoot, rootPrefix, import_node_path29.default.join(realRoot, "go.mod"), "go.mod");
+  const goMod = readWorkspaceFileSafe(realRoot, rootPrefix, import_node_path32.default.join(realRoot, "go.mod"), "go.mod");
   if (!goMod) return null;
   const lines = goMod.content.split(/\r?\n/);
   const lowerPkg = packageName.toLowerCase();
@@ -63972,7 +65316,7 @@ function inspectGoDep(realRoot, rootPrefix, packageName, symbolFilter, maxBytes)
 function inspectRustDep(realRoot, rootPrefix, packageName, symbolFilter, maxBytes) {
   if (packageName.includes("/") || packageName.startsWith("@")) return null;
   const normTarget = normalizePyName(packageName);
-  const cargoLock = readWorkspaceFileSafe(realRoot, rootPrefix, import_node_path29.default.join(realRoot, "Cargo.lock"), "Cargo.lock");
+  const cargoLock = readWorkspaceFileSafe(realRoot, rootPrefix, import_node_path32.default.join(realRoot, "Cargo.lock"), "Cargo.lock");
   if (cargoLock) {
     const lines = cargoLock.content.split(/\r?\n/);
     const packages = [];
@@ -64069,7 +65413,7 @@ function inspectRustDep(realRoot, rootPrefix, packageName, symbolFilter, maxByte
       };
     }
   }
-  const cargoToml = readWorkspaceFileSafe(realRoot, rootPrefix, import_node_path29.default.join(realRoot, "Cargo.toml"), "Cargo.toml");
+  const cargoToml = readWorkspaceFileSafe(realRoot, rootPrefix, import_node_path32.default.join(realRoot, "Cargo.toml"), "Cargo.toml");
   if (cargoToml) {
     const lines = cargoToml.content.split(/\r?\n/);
     let inDeps = false;
@@ -64134,8 +65478,8 @@ function inspectLockedDepContract(workspaceRoot, packageName, options = {}) {
       TURBO_MAX_TOOL_TEXT_BYTES
     )
   );
-  const realRoot = import_node_fs24.default.realpathSync(import_node_path29.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path29.default.sep) ? realRoot : `${realRoot}${import_node_path29.default.sep}`;
+  const realRoot = import_node_fs26.default.realpathSync(import_node_path32.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path32.default.sep) ? realRoot : `${realRoot}${import_node_path32.default.sep}`;
   const nodeResult = inspectNodeDep(realRoot, rootPrefix, cleanPkg, symbolFilter, maxBytes);
   if (nodeResult) return nodeResult;
   const pythonResult = inspectPythonDep(realRoot, rootPrefix, cleanPkg, symbolFilter, maxBytes);
@@ -64164,8 +65508,8 @@ ${notFoundNote}`;
 }
 
 // src/modules/turbo/references.ts
-var import_node_fs25 = __toESM(require("node:fs"), 1);
-var import_node_path30 = __toESM(require("node:path"), 1);
+var import_node_fs27 = __toESM(require("node:fs"), 1);
+var import_node_path33 = __toESM(require("node:path"), 1);
 var VALID_SYMBOL_IDENTIFIER_RE = /^[A-Za-z_$][A-Za-z0-9_$]{0,127}$/;
 var DEFAULT_MAX_FILES = 800;
 var MAX_ALLOWED_FILES = 3e3;
@@ -64267,7 +65611,7 @@ function isIdentCharCode(code) {
   code === 36;
 }
 function isBinaryFilename3(filePath) {
-  return BINARY_EXTENSIONS3.has(import_node_path30.default.extname(filePath).toLowerCase());
+  return BINARY_EXTENSIONS3.has(import_node_path33.default.extname(filePath).toLowerCase());
 }
 function isBufferBinary3(buf) {
   const inspectLen = Math.min(buf.length, 8192);
@@ -64277,9 +65621,9 @@ function isBufferBinary3(buf) {
   return false;
 }
 function usesHashComments(filePath) {
-  const ext = import_node_path30.default.extname(filePath).toLowerCase();
+  const ext = import_node_path33.default.extname(filePath).toLowerCase();
   if (HASH_COMMENT_EXTS.has(ext)) return true;
-  const base = import_node_path30.default.basename(filePath).toLowerCase();
+  const base = import_node_path33.default.basename(filePath).toLowerCase();
   return base === "makefile" || base === "dockerfile";
 }
 function scanLineForSymbolLinear(line, symbol2, inBlockComment, hashComments, isRust) {
@@ -64428,14 +65772,14 @@ function findSymbolReferences(workspaceRoot, symbol2, options = {}) {
   if (!workspaceRoot || workspaceRoot.includes("\0")) {
     throw new Error("Invalid workspace root path");
   }
-  const realRoot = import_node_fs25.default.realpathSync(import_node_path30.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path30.default.sep) ? realRoot : `${realRoot}${import_node_path30.default.sep}`;
+  const realRoot = import_node_fs27.default.realpathSync(import_node_path33.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path33.default.sep) ? realRoot : `${realRoot}${import_node_path33.default.sep}`;
   let searchRoot = realRoot;
   let scope = ".";
   if (options.scope && options.scope.trim()) {
     const scopeInput = options.scope.trim();
     const resolved = resolveInsideWorkspaceReal(realRoot, scopeInput);
-    if (!import_node_path30.default.isAbsolute(scopeInput) && isSensitiveTurboPath(scopeInput) || isSensitiveTurboPath(resolved.relPath)) {
+    if (!import_node_path33.default.isAbsolute(scopeInput) && isSensitiveTurboPath(scopeInput) || isSensitiveTurboPath(resolved.relPath)) {
       throw new Error(`Refused to scan sensitive scope: ${scopeInput}`);
     }
     searchRoot = resolved.realTarget;
@@ -64479,21 +65823,21 @@ function findSymbolReferences(workspaceRoot, symbol2, options = {}) {
     if (isSensitiveTurboPath(relPath) || isBinaryFilename3(relPath)) return;
     let st;
     try {
-      const lst = import_node_fs25.default.lstatSync(filePath);
+      const lst = import_node_fs27.default.lstatSync(filePath);
       if (lst.isSymbolicLink() || !lst.isFile()) return;
-      const realFile = import_node_fs25.default.realpathSync(filePath);
+      const realFile = import_node_fs27.default.realpathSync(filePath);
       if (!isInsideRealRoot(realFile)) return;
-      const realRel = import_node_path30.default.relative(realRoot, realFile).replace(/\\/g, "/");
+      const realRel = import_node_path33.default.relative(realRoot, realFile).replace(/\\/g, "/");
       if (isSensitiveTurboPath(realRel)) return;
-      st = import_node_fs25.default.statSync(realFile);
+      st = import_node_fs27.default.statSync(realFile);
       if (!st.isFile() || st.size > TURBO_MAX_FILE_BYTES) return;
-      const buf = import_node_fs25.default.readFileSync(realFile);
+      const buf = import_node_fs27.default.readFileSync(realFile);
       if (isBufferBinary3(buf)) return;
       scannedFiles += 1;
       const text = buf.toString("utf8");
       if (!text.includes(symbol2)) return;
       const hashComments = usesHashComments(realRel);
-      const isRust = import_node_path30.default.extname(realRel).toLowerCase() === ".rs";
+      const isRust = import_node_path33.default.extname(realRel).toLowerCase() === ".rs";
       const lines = text.split(/\r?\n/);
       let inBlockComment = false;
       for (let idx = 0; idx < lines.length; idx += 1) {
@@ -64527,7 +65871,7 @@ function findSymbolReferences(workspaceRoot, symbol2, options = {}) {
   };
   let rootStat;
   try {
-    rootStat = import_node_fs25.default.statSync(searchRoot);
+    rootStat = import_node_fs27.default.statSync(searchRoot);
   } catch {
     return {
       symbol: symbol2,
@@ -64542,7 +65886,7 @@ function findSymbolReferences(workspaceRoot, symbol2, options = {}) {
     };
   }
   if (rootStat.isFile()) {
-    const rel = import_node_path30.default.relative(realRoot, searchRoot).replace(/\\/g, "/");
+    const rel = import_node_path33.default.relative(realRoot, searchRoot).replace(/\\/g, "/");
     scanFile(searchRoot, rel);
   } else if (rootStat.isDirectory()) {
     const visitedDirs = /* @__PURE__ */ new Set();
@@ -64557,7 +65901,7 @@ function findSymbolReferences(workspaceRoot, symbol2, options = {}) {
       visitedDirs.add(currentDir);
       let entries;
       try {
-        entries = import_node_fs25.default.readdirSync(currentDir, { withFileTypes: true });
+        entries = import_node_fs27.default.readdirSync(currentDir, { withFileTypes: true });
       } catch {
         continue;
       }
@@ -64569,14 +65913,14 @@ function findSymbolReferences(workspaceRoot, symbol2, options = {}) {
           break;
         }
         if (entry.isSymbolicLink()) continue;
-        const fullPath = import_node_path30.default.join(currentDir, entry.name);
-        const rawRel = import_node_path30.default.relative(realRoot, fullPath).replace(/\\/g, "/");
+        const fullPath = import_node_path33.default.join(currentDir, entry.name);
+        const rawRel = import_node_path33.default.relative(realRoot, fullPath).replace(/\\/g, "/");
         if (entry.isDirectory()) {
           if (SKIP_DIRS4.has(entry.name) || isSensitiveTurboPath(rawRel)) continue;
           try {
-            const realSub = import_node_fs25.default.realpathSync(fullPath);
+            const realSub = import_node_fs27.default.realpathSync(fullPath);
             if (!isInsideRealRoot(realSub)) continue;
-            const realSubRel = import_node_path30.default.relative(realRoot, realSub).replace(/\\/g, "/");
+            const realSubRel = import_node_path33.default.relative(realRoot, realSub).replace(/\\/g, "/");
             if (isSensitiveTurboPath(realSubRel)) continue;
             subDirs.push(realSub);
           } catch {
@@ -65742,11 +67086,14 @@ ${result.summaryText}`;
   };
 }
 
+// src/modules/verify/register.ts
+var import_node_path35 = __toESM(require("node:path"), 1);
+
 // src/modules/verify/core.ts
 var import_node_child_process5 = require("node:child_process");
 var import_node_crypto16 = __toESM(require("node:crypto"), 1);
-var import_node_fs26 = __toESM(require("node:fs"), 1);
-var import_node_path31 = __toESM(require("node:path"), 1);
+var import_node_fs28 = __toESM(require("node:fs"), 1);
+var import_node_path34 = __toESM(require("node:path"), 1);
 var ALLOWED_VERIFY_EXECUTABLES = /* @__PURE__ */ new Set([
   "npm",
   "pnpm",
@@ -65918,17 +67265,110 @@ var DEFAULT_VERIFY_POLICY = {
     }
   ]
 };
+function stripPrivateBlocksLinear3(input2) {
+  if (!input2 || !input2.includes("<") && !input2.includes(">")) return input2;
+  const lower = input2.toLowerCase();
+  if (!lower.includes("<private")) return input2;
+  let out = "";
+  let cursor = 0;
+  let depth = 0;
+  let i = 0;
+  const n = input2.length;
+  while (i < n) {
+    const lt = input2.indexOf("<", i);
+    if (lt < 0) {
+      if (depth === 0) out += input2.slice(cursor);
+      break;
+    }
+    if (lower.startsWith("<private", lt)) {
+      const after = lt + 8;
+      if (after < n && (input2[after] === ">" || /\s/.test(input2[after]))) {
+        const gt = input2.indexOf(">", after);
+        if (gt >= 0) {
+          if (depth === 0) {
+            out += input2.slice(cursor, lt);
+            out += "[REDACTED_PRIVATE]";
+          }
+          depth += 1;
+          i = gt + 1;
+          cursor = i;
+          continue;
+        }
+      }
+    } else if (lower.startsWith("</private", lt)) {
+      const after = lt + 9;
+      if (after < n && (input2[after] === ">" || /\s/.test(input2[after]))) {
+        const gt = input2.indexOf(">", after);
+        if (gt >= 0) {
+          if (depth > 0) {
+            depth -= 1;
+          }
+          i = gt + 1;
+          if (depth === 0) {
+            cursor = i;
+          }
+          continue;
+        }
+      }
+    }
+    i = lt + 1;
+  }
+  return out;
+}
+function redactPemBlocksLinear(input2) {
+  if (!input2 || !input2.includes("-----")) return input2;
+  const upper = input2.toUpperCase();
+  const marker = "-----BEGIN ";
+  if (!upper.includes(marker)) return input2;
+  let out = "";
+  let pos = 0;
+  while (pos < input2.length) {
+    const start = upper.indexOf(marker, pos);
+    if (start < 0) {
+      out += input2.slice(pos);
+      break;
+    }
+    const headerEnd = upper.indexOf("-----", start + marker.length);
+    if (headerEnd < 0 || headerEnd - start > 96) {
+      out += input2.slice(pos, start + marker.length);
+      pos = start + marker.length;
+      continue;
+    }
+    const headerText = upper.slice(start + marker.length, headerEnd);
+    if (!headerText.includes("PRIVATE KEY")) {
+      out += input2.slice(pos, headerEnd + 5);
+      pos = headerEnd + 5;
+      continue;
+    }
+    out += input2.slice(pos, start);
+    out += "[REDACTED_PRIVATE_KEY]";
+    const endMarker = "-----END ";
+    let searchPos = headerEnd + 5;
+    let foundEnd = -1;
+    while (searchPos < input2.length) {
+      const eStart = upper.indexOf(endMarker, searchPos);
+      if (eStart < 0) break;
+      const eEnd = upper.indexOf("-----", eStart + endMarker.length);
+      if (eEnd < 0 || eEnd - eStart > 96) {
+        searchPos = eStart + endMarker.length;
+        continue;
+      }
+      const endLabel = upper.slice(eStart + endMarker.length, eEnd);
+      if (endLabel.includes("PRIVATE KEY")) {
+        foundEnd = eEnd + 5;
+        break;
+      }
+      searchPos = eEnd + 5;
+    }
+    if (foundEnd >= 0) {
+      pos = foundEnd;
+    } else {
+      pos = input2.length;
+    }
+  }
+  return out;
+}
 var SECRET_REDACTION_PATTERNS = [
-  // Full PEM / OpenSSH private key blocks
-  {
-    pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/g,
-    replacement: "[REDACTED_PRIVATE_KEY]"
-  },
-  // Truncated private key block starting with BEGIN PRIVATE KEY
-  {
-    pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*/g,
-    replacement: "[REDACTED_PRIVATE_KEY]"
-  },
   // Bearer & JWT tokens
   {
     pattern: /\bBearer\s+[A-Za-z0-9\-._~+/]+=*/gi,
@@ -65951,14 +67391,15 @@ var SECRET_REDACTION_PATTERNS = [
 ];
 function redactVerifyOutput(input2) {
   if (!input2) return "";
-  let out = input2;
+  let out = stripPrivateBlocksLinear3(input2);
+  out = redactPemBlocksLinear(out);
   for (const { pattern, replacement } of SECRET_REDACTION_PATTERNS) {
     out = out.replace(pattern, replacement);
   }
   return out;
 }
 function getVerifyStatePath(moduleDataDir) {
-  return import_node_path31.default.join(moduleDataDir, "state.json");
+  return import_node_path34.default.join(moduleDataDir, "state.json");
 }
 function clampCommandTimeout(raw) {
   if (typeof raw !== "number" || !Number.isFinite(raw)) {
@@ -66481,6 +67922,8 @@ function normalizeEvidenceFromDisk(raw) {
       if (norm) results.push(norm);
     }
   }
+  const targetBranch = typeof obj.targetBranch === "string" && obj.targetBranch.trim() ? redactVerifyOutput(obj.targetBranch.trim()).slice(0, 160) : void 0;
+  const targetWorktree = typeof obj.targetWorktree === "string" && obj.targetWorktree.trim() ? redactVerifyOutput(obj.targetWorktree.trim()).slice(0, 512) : void 0;
   return {
     id: obj.id,
     conversationId: typeof obj.conversationId === "string" ? obj.conversationId : "default-session",
@@ -66493,16 +67936,18 @@ function normalizeEvidenceFromDisk(raw) {
     emptyFiles: normalizeStringArray(obj.emptyFiles, 200),
     results,
     summary: typeof obj.summary === "string" ? redactVerifyOutput(obj.summary) : "",
-    reason: typeof obj.reason === "string" ? redactVerifyOutput(obj.reason) : void 0
+    reason: typeof obj.reason === "string" ? redactVerifyOutput(obj.reason) : void 0,
+    ...targetBranch ? { targetBranch } : {},
+    ...targetWorktree ? { targetWorktree } : {}
   };
 }
 function loadVerifyStateReadOnly(moduleDataDir) {
   const statePath = getVerifyStatePath(moduleDataDir);
-  if (!import_node_fs26.default.existsSync(statePath)) {
+  if (!import_node_fs28.default.existsSync(statePath)) {
     return createDefaultVerifyState();
   }
   try {
-    const raw = JSON.parse(import_node_fs26.default.readFileSync(statePath, "utf8"));
+    const raw = JSON.parse(import_node_fs28.default.readFileSync(statePath, "utf8"));
     const policy = normalizePolicyFromDisk(raw.policy);
     const sessions = {};
     if (raw.sessions && typeof raw.sessions === "object" && !Array.isArray(raw.sessions)) {
@@ -66591,33 +68036,33 @@ function resolveRealPathWithMissingTail2(inputPath, depth = 0) {
   if (depth > MAX_SYMLINK_DEPTH2) {
     throw new Error(`Too many levels of symbolic links: ${inputPath}`);
   }
-  const resolved = import_node_path31.default.resolve(inputPath);
+  const resolved = import_node_path34.default.resolve(inputPath);
   const missingSegments = [];
   let current = resolved;
   while (true) {
     try {
-      const realBase = import_node_fs26.default.realpathSync(current);
-      return missingSegments.length > 0 ? import_node_path31.default.join(realBase, ...missingSegments.reverse()) : realBase;
+      const realBase = import_node_fs28.default.realpathSync(current);
+      return missingSegments.length > 0 ? import_node_path34.default.join(realBase, ...missingSegments.reverse()) : realBase;
     } catch (err) {
       const code = err?.code;
       if (code !== "ENOENT" && code !== "ENOTDIR") {
         throw err;
       }
       try {
-        const lstat = import_node_fs26.default.lstatSync(current);
+        const lstat = import_node_fs28.default.lstatSync(current);
         if (lstat.isSymbolicLink()) {
-          const linkTarget = import_node_fs26.default.readlinkSync(current);
-          const resolvedLink = import_node_path31.default.resolve(import_node_path31.default.dirname(current), linkTarget);
-          const nextTarget = missingSegments.length > 0 ? import_node_path31.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
+          const linkTarget = import_node_fs28.default.readlinkSync(current);
+          const resolvedLink = import_node_path34.default.resolve(import_node_path34.default.dirname(current), linkTarget);
+          const nextTarget = missingSegments.length > 0 ? import_node_path34.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
           return resolveRealPathWithMissingTail2(nextTarget, depth + 1);
         }
       } catch {
       }
-      const parent = import_node_path31.default.dirname(current);
+      const parent = import_node_path34.default.dirname(current);
       if (parent === current) {
         return resolved;
       }
-      missingSegments.push(import_node_path31.default.basename(current));
+      missingSegments.push(import_node_path34.default.basename(current));
       current = parent;
     }
   }
@@ -66628,16 +68073,16 @@ function inspectWorkspaceFile(workspaceRoot, targetPath) {
   }
   try {
     const realRoot = resolveRealPathWithMissingTail2(workspaceRoot);
-    const candidate = import_node_path31.default.isAbsolute(targetPath) ? targetPath : import_node_path31.default.resolve(workspaceRoot, targetPath);
+    const candidate = import_node_path34.default.isAbsolute(targetPath) ? targetPath : import_node_path34.default.resolve(workspaceRoot, targetPath);
     const realTarget = resolveRealPathWithMissingTail2(candidate);
-    const rootPrefix = realRoot.endsWith(import_node_path31.default.sep) ? realRoot : `${realRoot}${import_node_path31.default.sep}`;
+    const rootPrefix = realRoot.endsWith(import_node_path34.default.sep) ? realRoot : `${realRoot}${import_node_path34.default.sep}`;
     if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
       return { inside: false };
     }
     if (realTarget === realRoot) {
       return { inside: false };
     }
-    const relPath = import_node_path31.default.relative(realRoot, realTarget).split(import_node_path31.default.sep).join("/");
+    const relPath = import_node_path34.default.relative(realRoot, realTarget).split(import_node_path34.default.sep).join("/");
     if (!relPath || relPath === "." || relPath.startsWith("../")) {
       return { inside: false };
     }
@@ -66645,7 +68090,7 @@ function inspectWorkspaceFile(workspaceRoot, targetPath) {
     let isFile = false;
     let isEmpty = false;
     try {
-      const stat = import_node_fs26.default.statSync(realTarget);
+      const stat = import_node_fs28.default.statSync(realTarget);
       exists = true;
       isFile = stat.isFile();
       isEmpty = isFile && stat.size === 0;
@@ -66727,8 +68172,8 @@ function executeVerifyCommand(command, workspaceRoot, options = {}) {
   );
   let resolvedCwd;
   try {
-    resolvedCwd = import_node_fs26.default.realpathSync(import_node_path31.default.resolve(workspaceRoot));
-    if (!import_node_fs26.default.statSync(resolvedCwd).isDirectory()) {
+    resolvedCwd = import_node_fs28.default.realpathSync(import_node_path34.default.resolve(workspaceRoot));
+    if (!import_node_fs28.default.statSync(resolvedCwd).isDirectory()) {
       throw new Error("Workspace root is not a directory.");
     }
   } catch (err) {
@@ -66974,6 +68419,12 @@ async function runVerifyCommands(commands, workspaceRoot, options = {}) {
 function createEvidenceId(prefix = "ver") {
   return `${prefix}-${Date.now().toString(36)}-${import_node_crypto16.default.randomBytes(3).toString("hex")}`;
 }
+function formatFailureTailSnippet(outputTail, maxLines = 4, maxChars = 280) {
+  const lines = redactVerifyOutput(outputTail).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) return "";
+  const tail = lines.slice(-maxLines).join(" | ");
+  return tail.length > maxChars ? `\u2026${tail.slice(tail.length - (maxChars - 1))}` : tail;
+}
 function appendEvidenceToState(state, record2) {
   state.evidence.unshift(record2);
   if (state.evidence.length > MAX_STORED_EVIDENCE) {
@@ -67003,13 +68454,192 @@ function clearVerifyHistory(moduleDataDir) {
   const statePath = getVerifyStatePath(moduleDataDir);
   const state = loadVerifyStateReadOnly(moduleDataDir);
   const cleared = clearVerifyHistoryInState(state);
-  if (cleared === 0 && !import_node_fs26.default.existsSync(statePath)) {
+  if (cleared === 0 && !import_node_fs28.default.existsSync(statePath)) {
     return { cleared: 0, state };
   }
   const saved = saveVerifyState(moduleDataDir, state);
   return { cleared, state: saved };
 }
+function runReadOnlyGitForVerify(cwd, args) {
+  try {
+    const stdout = (0, import_node_child_process5.execFileSync)("git", ["-c", "core.quotepath=false", ...args], {
+      cwd,
+      encoding: "utf8",
+      timeout: 5e3,
+      maxBuffer: 2 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: "0"
+      }
+    });
+    return { ok: true, stdout };
+  } catch {
+    return { ok: false, stdout: "" };
+  }
+}
+function parseVerifyWorktreePorcelain(output2) {
+  const entries = [];
+  let current = null;
+  const flush = () => {
+    if (!current || !current.rawPath) return;
+    entries.push({
+      rawPath: current.rawPath,
+      branch: current.branch,
+      isMain: entries.length === 0,
+      bare: current.bare
+    });
+    current = null;
+  };
+  for (const line of output2.split(/\r?\n/)) {
+    if (line.trim() === "") {
+      flush();
+      continue;
+    }
+    if (line.startsWith("worktree ")) {
+      flush();
+      current = { rawPath: line.slice("worktree ".length), branch: null, bare: false };
+      continue;
+    }
+    if (!current) continue;
+    if (line.startsWith("branch ")) {
+      current.branch = line.slice("branch ".length).trim().replace(/^refs\/heads\//, "");
+    } else if (line === "detached") {
+      current.branch = null;
+    } else if (line === "bare") {
+      current.bare = true;
+    }
+  }
+  flush();
+  return entries;
+}
+function listVerifyWorktreesReadOnly(mainWorkspaceRoot) {
+  if (!mainWorkspaceRoot || typeof mainWorkspaceRoot !== "string" || mainWorkspaceRoot.includes("\0")) {
+    return [];
+  }
+  let mainReal;
+  try {
+    mainReal = import_node_fs28.default.realpathSync(import_node_path34.default.resolve(mainWorkspaceRoot));
+    if (!import_node_fs28.default.statSync(mainReal).isDirectory()) return [];
+  } catch {
+    return [];
+  }
+  const topRes = runReadOnlyGitForVerify(mainReal, ["rev-parse", "--show-toplevel"]);
+  if (!topRes.ok || !topRes.stdout.trim()) return [];
+  let topReal;
+  try {
+    topReal = import_node_fs28.default.realpathSync(import_node_path34.default.resolve(topRes.stdout.trim()));
+  } catch {
+    return [];
+  }
+  const listRes = runReadOnlyGitForVerify(topReal, ["worktree", "list", "--porcelain"]);
+  if (!listRes.ok) return [];
+  const parsed = parseVerifyWorktreePorcelain(listRes.stdout);
+  const out = [];
+  for (const item of parsed) {
+    if (item.bare) continue;
+    try {
+      const resolved = import_node_path34.default.resolve(item.rawPath);
+      if (!import_node_fs28.default.statSync(resolved).isDirectory()) continue;
+      const realPath = import_node_fs28.default.realpathSync(resolved);
+      out.push({
+        path: realPath,
+        branch: item.branch,
+        isMain: item.isMain
+      });
+    } catch {
+    }
+  }
+  return out;
+}
+function detectGitBranchReadOnly(cwd) {
+  const sym = runReadOnlyGitForVerify(cwd, ["symbolic-ref", "--short", "HEAD"]);
+  if (sym.ok && sym.stdout.trim()) {
+    return sym.stdout.trim();
+  }
+  const sha = runReadOnlyGitForVerify(cwd, ["rev-parse", "--short", "HEAD"]);
+  if (sha.ok && sha.stdout.trim()) {
+    return `detached@${sha.stdout.trim()}`;
+  }
+  return void 0;
+}
+function resolveAllowedVerifyTargetRoot(mainWorkspaceRoot, worktreePath) {
+  if (!mainWorkspaceRoot || typeof mainWorkspaceRoot !== "string" || mainWorkspaceRoot.includes("\0")) {
+    throw new Error("Invalid mainWorkspaceRoot: must be a non-empty path without NUL bytes.");
+  }
+  let mainRealRoot;
+  try {
+    mainRealRoot = import_node_fs28.default.realpathSync(import_node_path34.default.resolve(mainWorkspaceRoot));
+    if (!import_node_fs28.default.statSync(mainRealRoot).isDirectory()) {
+      throw new Error("Workspace root is not a directory.");
+    }
+  } catch (err) {
+    throw new Error(
+      `Invalid workspaceRoot "${mainWorkspaceRoot}": ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+  if (worktreePath === void 0 || worktreePath.trim() === "") {
+    const branch2 = detectGitBranchReadOnly(mainRealRoot);
+    return {
+      targetRoot: mainRealRoot,
+      isWorktree: false,
+      ...branch2 ? { branch: branch2 } : {}
+    };
+  }
+  const trimmed = worktreePath.trim();
+  if (trimmed.includes("\0")) {
+    throw new Error("Invalid worktreePath: NUL byte is disallowed.");
+  }
+  const resolvedCandidate = import_node_path34.default.resolve(trimmed);
+  let candidateLstat;
+  try {
+    candidateLstat = import_node_fs28.default.lstatSync(resolvedCandidate);
+  } catch {
+    throw new Error(`Verify target worktree does not exist or is inaccessible: ${trimmed}`);
+  }
+  if (candidateLstat.isSymbolicLink()) {
+    throw new Error(`Refused: verify target worktree "${trimmed}" must not be a symbolic link.`);
+  }
+  if (!candidateLstat.isDirectory()) {
+    throw new Error(`Refused: verify target worktree "${trimmed}" is not a directory.`);
+  }
+  const realCandidate = import_node_fs28.default.realpathSync(resolvedCandidate);
+  const worktrees = listVerifyWorktreesReadOnly(mainRealRoot);
+  if (realCandidate === mainRealRoot) {
+    const matchedMain = worktrees.find((w) => w.path === mainRealRoot);
+    const branch2 = matchedMain?.branch ?? detectGitBranchReadOnly(mainRealRoot);
+    return {
+      targetRoot: mainRealRoot,
+      isWorktree: false,
+      ...branch2 ? { branch: branch2 } : {},
+      worktreePath: mainRealRoot
+    };
+  }
+  const matched = worktrees.find((w) => w.path === realCandidate);
+  if (!matched) {
+    throw new Error(
+      `Refused: "${trimmed}" is not the workspace root or a registered Git worktree for this repository.`
+    );
+  }
+  const branch = matched.branch ?? detectGitBranchReadOnly(matched.path);
+  return {
+    targetRoot: matched.path,
+    isWorktree: !matched.isMain,
+    ...branch ? { branch } : {},
+    worktreePath: matched.path
+  };
+}
 async function runVerifyChecksLive(moduleDataDir, workspaceRoot, options = {}) {
+  let targetResolution;
+  try {
+    targetResolution = resolveAllowedVerifyTargetRoot(workspaceRoot, options.worktreePath);
+  } catch (err) {
+    return {
+      ok: false,
+      error: redactVerifyOutput(err instanceof Error ? err.message : String(err))
+    };
+  }
+  const executionRoot = targetResolution.targetRoot;
   const initialState = loadVerifyStateReadOnly(moduleDataDir);
   let targetCommands;
   if (options.commandId) {
@@ -67025,13 +68655,13 @@ async function runVerifyChecksLive(moduleDataDir, workspaceRoot, options = {}) {
   for (const [id, sess] of Object.entries(initialState.sessions)) {
     initialLastEditAt.set(id, sess.lastEditAt);
   }
-  const runOut = await runVerifyCommands(targetCommands, workspaceRoot);
+  const runOut = await runVerifyCommands(targetCommands, executionRoot);
   const nowIso = (/* @__PURE__ */ new Date()).toISOString();
   const convId = options.conversationId?.trim() || "manual";
   const state = loadVerifyStateReadOnly(moduleDataDir);
   let realWorkspace;
   try {
-    realWorkspace = resolveRealPathWithMissingTail2(workspaceRoot);
+    realWorkspace = resolveRealPathWithMissingTail2(executionRoot);
   } catch {
     realWorkspace = void 0;
   }
@@ -67056,7 +68686,7 @@ async function runVerifyChecksLive(moduleDataDir, workspaceRoot, options = {}) {
   const dirtyFilesSet = /* @__PURE__ */ new Set();
   const emptyFilesSet = /* @__PURE__ */ new Set();
   for (const s of targetSessions) {
-    const curEmpty = scanEmptyWorkspaceFiles(s.workspaceRoot ?? workspaceRoot, [
+    const curEmpty = scanEmptyWorkspaceFiles(s.workspaceRoot ?? executionRoot, [
       ...s.dirtyFiles,
       ...s.emptyFiles
     ]);
@@ -67088,7 +68718,9 @@ async function runVerifyChecksLive(moduleDataDir, workspaceRoot, options = {}) {
     dirtyFiles: [...dirtyFilesSet],
     emptyFiles: [...emptyFilesSet],
     results: runOut.results,
-    summary
+    summary,
+    ...targetResolution.branch ? { targetBranch: targetResolution.branch } : {},
+    ...options.worktreePath || targetResolution.isWorktree ? { targetWorktree: executionRoot } : {}
   };
   appendEvidenceToState(state, record2);
   const saved = saveVerifyState(moduleDataDir, state);
@@ -67254,14 +68886,14 @@ function resolveTopLevelWorkspaceFile(realRoot, rootPrefix, fileName) {
   if (!fileName || fileName.includes("/") || fileName.includes("\\") || fileName.includes("..") || fileName.includes("\0")) {
     return null;
   }
-  const candidate = import_node_path31.default.join(realRoot, fileName);
+  const candidate = import_node_path34.default.join(realRoot, fileName);
   try {
-    import_node_fs26.default.lstatSync(candidate);
-    const realTarget = import_node_fs26.default.realpathSync(candidate);
+    import_node_fs28.default.lstatSync(candidate);
+    const realTarget = import_node_fs28.default.realpathSync(candidate);
     if (!realTarget.startsWith(rootPrefix)) {
       return null;
     }
-    const stat = import_node_fs26.default.statSync(realTarget);
+    const stat = import_node_fs28.default.statSync(realTarget);
     if (!stat.isFile()) {
       return null;
     }
@@ -67276,13 +68908,13 @@ function readTopLevelWorkspaceFile(realRoot, rootPrefix, fileName, maxBytes = MA
   const readLen = Math.min(resolved.size, maxBytes);
   const buf = Buffer.alloc(readLen);
   try {
-    const fd = import_node_fs26.default.openSync(resolved.realTarget, "r");
+    const fd = import_node_fs28.default.openSync(resolved.realTarget, "r");
     try {
       if (readLen > 0) {
-        import_node_fs26.default.readSync(fd, buf, 0, readLen, 0);
+        import_node_fs28.default.readSync(fd, buf, 0, readLen, 0);
       }
     } finally {
-      import_node_fs26.default.closeSync(fd);
+      import_node_fs28.default.closeSync(fd);
     }
     return buf.toString("utf8");
   } catch {
@@ -67295,14 +68927,14 @@ function detectWorkspaceVerifyCommands(workspaceRoot) {
   }
   let realRoot;
   try {
-    realRoot = import_node_fs26.default.realpathSync(import_node_path31.default.resolve(workspaceRoot));
-    if (!import_node_fs26.default.statSync(realRoot).isDirectory()) {
+    realRoot = import_node_fs28.default.realpathSync(import_node_path34.default.resolve(workspaceRoot));
+    if (!import_node_fs28.default.statSync(realRoot).isDirectory()) {
       return { detectedStacks: [], recommendations: [] };
     }
   } catch {
     return { detectedStacks: [], recommendations: [] };
   }
-  const rootPrefix = realRoot.endsWith(import_node_path31.default.sep) ? realRoot : `${realRoot}${import_node_path31.default.sep}`;
+  const rootPrefix = realRoot.endsWith(import_node_path34.default.sep) ? realRoot : `${realRoot}${import_node_path34.default.sep}`;
   const stacks = [];
   const stackSet = /* @__PURE__ */ new Set();
   const recommendations = [];
@@ -67488,6 +69120,225 @@ function createDemoVerifyDetection() {
     recommendations
   };
 }
+var MAX_PR_SPEC_STATE_BYTES = 2 * 1024 * 1024;
+function loadSpecSummaryForPrReadOnly(rootDataDir) {
+  if (!rootDataDir || typeof rootDataDir !== "string" || rootDataDir.includes("\0")) {
+    return null;
+  }
+  const specStatePath = import_node_path34.default.join(getModuleDataDir(rootDataDir, "spec"), "state.json");
+  let st;
+  try {
+    st = import_node_fs28.default.lstatSync(specStatePath);
+  } catch {
+    return null;
+  }
+  if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_PR_SPEC_STATE_BYTES) {
+    return null;
+  }
+  let parsed;
+  try {
+    const noFollow = import_node_fs28.default.constants.O_NOFOLLOW ?? 0;
+    const fd = import_node_fs28.default.openSync(specStatePath, import_node_fs28.default.constants.O_RDONLY | noFollow);
+    let raw = "";
+    try {
+      const fdStat = import_node_fs28.default.fstatSync(fd);
+      if (!fdStat.isFile() || fdStat.size > MAX_PR_SPEC_STATE_BYTES) return null;
+      const buf = Buffer.alloc(fdStat.size);
+      let offset = 0;
+      while (offset < fdStat.size) {
+        const n = import_node_fs28.default.readSync(fd, buf, offset, fdStat.size - offset, offset);
+        if (n <= 0) break;
+        offset += n;
+      }
+      raw = buf.subarray(0, offset).toString("utf8");
+    } finally {
+      import_node_fs28.default.closeSync(fd);
+    }
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  const obj = parsed;
+  const activeSpecId = typeof obj.activeSpecId === "string" ? obj.activeSpecId.trim() : "";
+  if (!activeSpecId || !Array.isArray(obj.specs)) return null;
+  const matched = obj.specs.find(
+    (s) => Boolean(s && typeof s === "object" && !Array.isArray(s) && s.id === activeSpecId)
+  );
+  if (!matched) return null;
+  const specId = typeof matched.id === "string" ? matched.id : activeSpecId;
+  const title = redactVerifyOutput(
+    typeof matched.title === "string" && matched.title.trim() ? matched.title.trim() : specId
+  ).slice(0, 180);
+  const status = typeof matched.status === "string" && matched.status.trim() ? matched.status.trim() : "draft";
+  const mode = typeof matched.mode === "string" && matched.mode.trim() ? matched.mode.trim() : void 0;
+  const rawTasks = Array.isArray(matched.tasks) ? matched.tasks : [];
+  const tasks = [];
+  for (const rawTask of rawTasks.slice(0, 100)) {
+    if (!rawTask || typeof rawTask !== "object" || Array.isArray(rawTask)) continue;
+    const t = rawTask;
+    const taskId = typeof t.id === "string" && t.id.trim() ? t.id.trim() : `t-${tasks.length + 1}`;
+    const taskTitle = redactVerifyOutput(
+      typeof t.title === "string" && t.title.trim() ? t.title.trim() : taskId
+    ).slice(0, 200);
+    const taskStatus = typeof t.status === "string" && t.status.trim() ? t.status.trim() : "pending";
+    tasks.push({ id: taskId, title: taskTitle, status: taskStatus });
+  }
+  const doneTasks = tasks.filter((t) => t.status === "done").length;
+  return {
+    specId,
+    title,
+    status,
+    ...mode ? { mode } : {},
+    totalTasks: tasks.length,
+    doneTasks,
+    tasks
+  };
+}
+function createDemoSpecSummaryForPr() {
+  const tasks = [
+    { id: "t1", title: "Configure allowlisted typecheck and unit test commands", status: "done" },
+    { id: "t2", title: "Enforce Stop-hook verification gate with anti-loop guardrail", status: "done" },
+    { id: "t3", title: "Generate redacted PR delivery evidence summary", status: "done" }
+  ];
+  return {
+    specId: "spec-verify-pipeline",
+    title: "Verify Gate & PR Evidence Pipeline",
+    status: "approved",
+    mode: "full",
+    totalTasks: tasks.length,
+    doneTasks: tasks.length,
+    tasks
+  };
+}
+function formatSafeWorktreeLabel(worktreePath, workspaceRoot) {
+  if (!worktreePath || !worktreePath.trim()) return void 0;
+  if (workspaceRoot && workspaceRoot.trim()) {
+    try {
+      const realRoot = resolveRealPathWithMissingTail2(workspaceRoot);
+      const realWt = resolveRealPathWithMissingTail2(worktreePath);
+      if (realWt === realRoot) return "workspace root";
+      const rel = import_node_path34.default.relative(realRoot, realWt).split(import_node_path34.default.sep).join("/");
+      if (rel && !rel.startsWith("..") && !import_node_path34.default.isAbsolute(rel)) {
+        return rel;
+      }
+    } catch {
+    }
+  }
+  return import_node_path34.default.basename(worktreePath) || "worktree";
+}
+function escapeMdTableCell(text) {
+  return text.replace(/\|/g, "\\|").replace(/\r?\n+/g, " ").trim();
+}
+function buildPrDeliverySummary(state, opts = {}) {
+  const mode = opts.mode ?? "live";
+  const evidenceList = Array.isArray(state.evidence) ? state.evidence : [];
+  let chosen;
+  if (opts.evidenceId) {
+    chosen = evidenceList.find((e) => e.id === opts.evidenceId);
+  }
+  if (!chosen && opts.worktreePath) {
+    let normalizedWanted = opts.worktreePath;
+    try {
+      normalizedWanted = resolveRealPathWithMissingTail2(opts.worktreePath);
+    } catch {
+    }
+    chosen = evidenceList.find((e) => {
+      if (!e.targetWorktree) return false;
+      try {
+        return resolveRealPathWithMissingTail2(e.targetWorktree) === normalizedWanted;
+      } catch {
+        return e.targetWorktree === normalizedWanted;
+      }
+    });
+  }
+  if (!chosen) {
+    chosen = evidenceList[0];
+  }
+  const branch = opts.branch || chosen?.targetBranch;
+  const effectiveWorktree = opts.worktreePath || chosen?.targetWorktree;
+  const safeWorktreeLabel = formatSafeWorktreeLabel(effectiveWorktree, opts.workspaceRoot);
+  const spec = opts.specSummary ?? null;
+  const results = chosen?.results ?? [];
+  const checksTotal = results.length;
+  const checksPassed = results.filter((r) => r.passed).length;
+  const passed = Boolean(chosen?.passed);
+  const statusBadge = !chosen ? "NOT RUN" : chosen.outcome === "pass" ? "PASS" : chosen.outcome === "blocked" ? "BLOCKED" : chosen.outcome === "guardrail-allow" ? "GUARDRAIL-ALLOW" : "FAIL";
+  const lines = [
+    "## PR Delivery Verification Evidence",
+    "",
+    `- **Verify Gate Status**: \`${statusBadge}\`${chosen ? ` (\`${chosen.id}\`, ${chosen.durationMs}ms, ${chosen.timestamp})` : ""}`
+  ];
+  if (branch || safeWorktreeLabel) {
+    const targetParts = [];
+    if (branch) targetParts.push(`Branch: \`${branch}\``);
+    if (safeWorktreeLabel) targetParts.push(`Worktree: \`${safeWorktreeLabel}\``);
+    lines.push(`- **Target**: ${targetParts.join(" \xB7 ")}`);
+  }
+  if (spec) {
+    const modeTag = spec.mode ? ` \xB7 \`${spec.mode}\`` : "";
+    lines.push(
+      `- **Active Spec**: \`${spec.specId}\` \u2014 ${spec.title} (\`${spec.status}\`${modeTag}, ${spec.doneTasks}/${spec.totalTasks} tasks done)`
+    );
+  }
+  if (chosen?.summary) {
+    lines.push(`- **Summary**: ${redactVerifyOutput(chosen.summary)}`);
+  }
+  lines.push("");
+  lines.push("### Verification Checks");
+  lines.push("");
+  if (!chosen) {
+    lines.push("_No verification runs recorded yet._");
+  } else if (results.length === 0) {
+    lines.push("_No enabled verification commands were executed in this run._");
+  } else {
+    lines.push("| Status | Check | Command | Exit | Duration | Notes |");
+    lines.push("| --- | --- | --- | --- | --- | --- |");
+    for (const r of results) {
+      const cmdStr = escapeMdTableCell(`${r.executable} ${r.args.join(" ")}`.trim());
+      const exitStr = r.timedOut ? "TIMEOUT" : r.exitCode === null ? "ERR" : String(r.exitCode);
+      const snippet = formatFailureTailSnippet(r.outputTail || r.error || "", 2, 140);
+      const notes = snippet ? escapeMdTableCell(snippet) : "\u2014";
+      lines.push(
+        `| ${r.passed ? "PASS" : "FAIL"} | ${escapeMdTableCell(r.label || r.commandId)} | \`${cmdStr}\` | ${exitStr} | ${r.durationMs}ms | ${notes} |`
+      );
+    }
+  }
+  if (spec && spec.tasks.length > 0) {
+    lines.push("");
+    lines.push("### Spec Compliance Progress");
+    lines.push("");
+    for (const t of spec.tasks) {
+      const mark = t.status === "done" ? "x" : " ";
+      lines.push(`- [${mark}] \`${t.id}\`: ${t.title} _(${t.status})_`);
+    }
+  }
+  if (chosen && chosen.dirtyFiles.length > 0) {
+    lines.push("");
+    lines.push(
+      `### Verified Files (${chosen.dirtyFiles.length})`
+    );
+    lines.push("");
+    for (const file2 of chosen.dirtyFiles.slice(0, 20)) {
+      lines.push(`- \`${file2}\``);
+    }
+    if (chosen.dirtyFiles.length > 20) {
+      lines.push(`- _... and ${chosen.dirtyFiles.length - 20} more file(s)_`);
+    }
+  }
+  const finalMarkdown = redactVerifyOutput(lines.join("\n"));
+  return {
+    mode,
+    markdown: finalMarkdown,
+    passed,
+    ...branch ? { branch } : {},
+    ...effectiveWorktree ? { worktreePath: effectiveWorktree } : {},
+    ...chosen?.id ? { evidenceId: chosen.id } : {},
+    ...spec?.specId ? { specId: spec.specId } : {},
+    checksTotal,
+    checksPassed
+  };
+}
 
 // src/modules/verify/register.ts
 function toHandle9(name, tool) {
@@ -67514,7 +69365,38 @@ var POLICY_PATCH_INPUT_SCHEMA = {
     `Ordered list of allowlisted verification commands (allowed executables: ${[...ALLOWED_VERIFY_EXECUTABLES].join(", ")})`
   )
 };
-function runDemoChecksInMemory(demoState, opts) {
+function buildDemoVerifyWorktrees(workspaceRoot) {
+  const mainRoot = import_node_path35.default.resolve(workspaceRoot);
+  return [
+    { path: mainRoot, branch: "main", isMain: true },
+    {
+      path: import_node_path35.default.join(mainRoot, ".agy-worktrees", "feat-verify-gate"),
+      branch: "feat/verify-gate",
+      isMain: false
+    }
+  ];
+}
+function resolveDemoWorktreeTarget(demoWorktrees, worktreePath) {
+  if (!worktreePath || !worktreePath.trim()) {
+    return { ok: true, branch: demoWorktrees[0]?.branch ?? "main" };
+  }
+  const normalized = import_node_path35.default.resolve(worktreePath.trim());
+  const matched = demoWorktrees.find((w) => import_node_path35.default.resolve(w.path) === normalized);
+  if (!matched) {
+    return {
+      ok: false,
+      error: `Refused: "${worktreePath}" is not the workspace root or a registered demo Git worktree.`
+    };
+  }
+  return {
+    ok: true,
+    branch: matched.branch ?? "main",
+    worktreePath: matched.path
+  };
+}
+function runDemoChecksInMemory(demoState, demoWorktrees, opts) {
+  const resolvedWt = resolveDemoWorktreeTarget(demoWorktrees, opts.worktreePath);
+  if (!resolvedWt.ok) return resolvedWt;
   const targetCommands = opts.commandId ? demoState.policy.commands.filter((c) => c.id === opts.commandId) : demoState.policy.commands.filter((c) => c.enabled);
   if (opts.commandId && targetCommands.length === 0) {
     return { ok: false, error: `Verify command not found: "${opts.commandId}".` };
@@ -67544,7 +69426,9 @@ function runDemoChecksInMemory(demoState, opts) {
     dirtyFiles: [],
     emptyFiles: [],
     results,
-    summary: results.length > 0 ? `[demo] All ${results.length} verification command(s) passed in ${durationMs}ms.` : "[demo] No enabled verification commands configured; check passed."
+    summary: results.length > 0 ? `[demo] All ${results.length} verification command(s) passed in ${durationMs}ms.` : "[demo] No enabled verification commands configured; check passed.",
+    ...resolvedWt.branch ? { targetBranch: resolvedWt.branch } : {},
+    ...resolvedWt.worktreePath ? { targetWorktree: resolvedWt.worktreePath } : {}
   };
   appendEvidenceToState(demoState, run);
   return { ok: true, run };
@@ -67555,6 +69439,7 @@ function registerVerifyModule(server, options, uiResourceUri) {
   const workspaceRoot = options.workspaceRoot;
   const isDemo = options.demoMode === true;
   const demoState = isDemo ? createDemoVerifyState() : null;
+  const demoWorktrees = isDemo ? buildDemoVerifyWorktrees(workspaceRoot) : [];
   const APP_ONLY_META2 = {
     ui: {
       resourceUri: uiResourceUri,
@@ -67563,6 +69448,7 @@ function registerVerifyModule(server, options, uiResourceUri) {
   };
   const getCurrentStateFile = () => isDemo && demoState ? demoState : loadVerifyStateReadOnly(moduleDataDir);
   const getStateView = () => buildVerifyStateView(getCurrentStateFile(), isDemo ? "demo" : "live");
+  const getAvailableWorktrees = () => isDemo ? demoWorktrees.map((w) => ({ ...w })) : listVerifyWorktreesReadOnly(workspaceRoot);
   const getDetectedStack = () => isDemo ? createDemoVerifyDetection() : detectWorkspaceVerifyCommands(workspaceRoot);
   const applyPolicyPatch = (patch) => {
     if (isDemo && demoState) {
@@ -67580,7 +69466,7 @@ function registerVerifyModule(server, options, uiResourceUri) {
   };
   const executeChecks = async (opts) => {
     if (isDemo && demoState) {
-      const demoRes = runDemoChecksInMemory(demoState, opts);
+      const demoRes = runDemoChecksInMemory(demoState, demoWorktrees, opts);
       if (!demoRes.ok) return demoRes;
       return { ok: true, run: demoRes.run, state: getStateView() };
     }
@@ -67661,14 +69547,20 @@ function registerVerifyModule(server, options, uiResourceUri) {
     "verify_run_checks",
     {
       title: "Run Verify Gate Checks",
-      description: "Execute configured allowlisted verification commands via execFile (shell: false), redact secrets from outputs, record evidence, and update session verification state.",
+      description: "Execute configured allowlisted verification commands via execFile (shell: false), optionally targeting a registered Git worktree, redact secrets from outputs, record evidence, and update session verification state.",
       inputSchema: {
         commandId: external_exports.string().min(1).optional().describe("Optional single command ID to execute; runs all enabled commands when omitted"),
-        conversationId: external_exports.string().min(1).optional().describe("Optional conversation ID whose dirty-file verification state should be updated")
+        conversationId: external_exports.string().min(1).optional().describe("Optional conversation ID whose dirty-file verification state should be updated"),
+        worktreePath: external_exports.string().min(1).optional().describe("Optional registered Git worktree path belonging to this repository to run checks inside")
       }
     },
-    async ({ commandId, conversationId }) => {
-      const res = await executeChecks({ commandId, conversationId, trigger: "manual" });
+    async ({ commandId, conversationId, worktreePath }) => {
+      const res = await executeChecks({
+        commandId,
+        conversationId,
+        worktreePath,
+        trigger: "manual"
+      });
       if (!res.ok) {
         return {
           isError: true,
@@ -67676,8 +69568,9 @@ function registerVerifyModule(server, options, uiResourceUri) {
         };
       }
       const { run } = res;
+      const targetTag = run.targetBranch ? ` [${run.targetBranch}]` : "";
       const lines = [
-        `Verify Run ${run.id} [${run.outcome.toUpperCase()}]: ${run.summary}`,
+        `Verify Run ${run.id} [${run.outcome.toUpperCase()}]${targetTag}: ${run.summary}`,
         ...run.results.map(
           (r) => `- [${r.passed ? "PASS" : "FAIL"}] ${r.commandId} (${r.executable} ${r.args.join(" ")}) exit=${r.exitCode ?? (r.timedOut ? "TIMEOUT" : "ERR")} (${r.durationMs}ms)${r.outputTail ? `
   ${r.outputTail.slice(0, 240)}` : ""}`
@@ -67730,12 +69623,13 @@ function registerVerifyModule(server, options, uiResourceUri) {
     "app_verify_get_state",
     {
       title: "Get Verify Gate State (App Only)",
-      description: "Fetch Verify Gate policy, tracked sessions, redacted evidence, and summary stats for the UI.",
+      description: "Fetch Verify Gate policy, tracked sessions, redacted evidence, available worktrees, and summary stats for the UI.",
       inputSchema: {},
       _meta: APP_ONLY_META2
     },
     async () => {
       const view = getStateView();
+      const availableWorktrees = getAvailableWorktrees();
       return {
         content: [{ type: "text", text: "ok" }],
         structuredContent: {
@@ -67744,7 +69638,8 @@ function registerVerifyModule(server, options, uiResourceUri) {
           sessions: view.sessions,
           evidence: view.evidence,
           stats: view.stats,
-          updatedAt: view.updatedAt
+          updatedAt: view.updatedAt,
+          availableWorktrees
         }
       };
     }
@@ -67778,15 +69673,21 @@ function registerVerifyModule(server, options, uiResourceUri) {
     "app_verify_run_checks",
     {
       title: "Run Verify Gate Checks (App Only)",
-      description: "Trigger verification checks from the Verify Gate UI.",
+      description: "Trigger verification checks from the Verify Gate UI, optionally targeting a registered Git worktree.",
       inputSchema: {
         commandId: external_exports.string().min(1).optional(),
-        conversationId: external_exports.string().min(1).optional()
+        conversationId: external_exports.string().min(1).optional(),
+        worktreePath: external_exports.string().min(1).optional()
       },
       _meta: APP_ONLY_META2
     },
-    async ({ commandId, conversationId }) => {
-      const res = await executeChecks({ commandId, conversationId, trigger: "app-ui" });
+    async ({ commandId, conversationId, worktreePath }) => {
+      const res = await executeChecks({
+        commandId,
+        conversationId,
+        worktreePath,
+        trigger: "app-ui"
+      });
       if (!res.ok) {
         return {
           isError: true,
@@ -67855,21 +69756,102 @@ function registerVerifyModule(server, options, uiResourceUri) {
       };
     }
   );
+  server.registerTool(
+    "app_verify_pr_summary",
+    {
+      title: "Generate PR Delivery Verification Evidence (App Only)",
+      description: "Read-only generator for a sanitized Markdown PR delivery evidence summary combining latest Verify Gate checks, target branch/worktree, and active Spec progress.",
+      inputSchema: {
+        worktreePath: external_exports.string().min(1).optional(),
+        evidenceId: external_exports.string().min(1).optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ worktreePath, evidenceId }) => {
+      let resolvedBranch;
+      let resolvedWorktree;
+      if (worktreePath) {
+        if (isDemo) {
+          const demoTarget = resolveDemoWorktreeTarget(demoWorktrees, worktreePath);
+          if (!demoTarget.ok) {
+            return {
+              isError: true,
+              content: [{ type: "text", text: demoTarget.error }]
+            };
+          }
+          resolvedBranch = demoTarget.branch;
+          resolvedWorktree = demoTarget.worktreePath;
+        } else {
+          try {
+            const liveTarget = resolveAllowedVerifyTargetRoot(workspaceRoot, worktreePath);
+            resolvedBranch = liveTarget.branch;
+            resolvedWorktree = liveTarget.targetRoot;
+          } catch (err) {
+            return {
+              isError: true,
+              content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }]
+            };
+          }
+        }
+      }
+      const currentState = getCurrentStateFile();
+      const specSummary = isDemo ? createDemoSpecSummaryForPr() : loadSpecSummaryForPrReadOnly(rootDataDir);
+      const summary = buildPrDeliverySummary(currentState, {
+        workspaceRoot,
+        worktreePath: resolvedWorktree,
+        branch: resolvedBranch,
+        specSummary,
+        mode: isDemo ? "demo" : "live",
+        evidenceId
+      });
+      return {
+        content: [{ type: "text", text: summary.markdown }],
+        structuredContent: { ...summary }
+      };
+    }
+  );
   return {
     moduleId: "verify",
     modelTools,
-    exemptReadOnlyAppTools: ["app_verify_get_state", "app_verify_detect_commands"]
+    exemptReadOnlyAppTools: [
+      "app_verify_get_state",
+      "app_verify_detect_commands",
+      "app_verify_pr_summary"
+    ]
   };
 }
 
 // src/modules/worktree/register.ts
-var import_node_path33 = __toESM(require("node:path"), 1);
+var import_node_path37 = __toESM(require("node:path"), 1);
 
 // src/modules/worktree/core.ts
 var import_node_child_process6 = require("node:child_process");
-var import_node_fs27 = __toESM(require("node:fs"), 1);
-var import_node_path32 = __toESM(require("node:path"), 1);
+var import_node_fs29 = __toESM(require("node:fs"), 1);
+var import_node_path36 = __toESM(require("node:path"), 1);
 var WORKTREE_MANAGED_DIR = ".agy-worktrees";
+var WORKTREE_INCLUDE_FILE = ".worktreeinclude";
+var WORKTREE_INCLUDE_MAX_CONFIG_BYTES = 16 * 1024;
+var WORKTREE_INCLUDE_MAX_FILES = 32;
+var WORKTREE_INCLUDE_MAX_FILE_BYTES = 512 * 1024;
+var WORKTREE_INCLUDE_MAX_TOTAL_BYTES = 4 * 1024 * 1024;
+var ALLOWED_DOTENV_TEMPLATES = /* @__PURE__ */ new Set([
+  ".env.example",
+  ".env.sample",
+  ".env.template"
+]);
+var SENSITIVE_DOTFILES = /* @__PURE__ */ new Set([
+  ".npmrc",
+  ".pypirc",
+  ".netrc",
+  ".git-credentials",
+  ".htpasswd",
+  ".pgpass",
+  ".envrc",
+  "kubeconfig"
+]);
+var SENSITIVE_EXTENSIONS_RE = /\.(pem|key|p12|pfx|jks|keystore)$/i;
+var SENSITIVE_SSH_KEY_RE = /^(?:id_rsa|id_ed25519|id_ecdsa|id_dsa)(?:$|[._-])/i;
+var SENSITIVE_DIRS = /* @__PURE__ */ new Set([".ssh", ".gnupg", ".aws", ".kube"]);
 var GIT_TIMEOUT_MS = 1e4;
 var GIT_MAX_BUFFER_BYTES = 2 * 1024 * 1024;
 var GIT_REF_REGEX = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,119}$/;
@@ -67941,29 +69923,29 @@ function deriveSafeWorktreeSlug(branch) {
   return validateWorktreeDirName(slug);
 }
 function isPathInside(parentReal, childReal) {
-  const rel = import_node_path32.default.relative(parentReal, childReal);
-  return rel !== "" && !rel.startsWith("..") && !import_node_path32.default.isAbsolute(rel);
+  const rel = import_node_path36.default.relative(parentReal, childReal);
+  return rel !== "" && !rel.startsWith("..") && !import_node_path36.default.isAbsolute(rel);
 }
 function canonicalizePath(inputPath) {
   if (typeof inputPath !== "string" || inputPath.length === 0 || inputPath.includes("\0")) {
     throw new Error("Invalid path: must be a non-empty string without NUL bytes.");
   }
-  const resolved = import_node_path32.default.resolve(inputPath);
+  const resolved = import_node_path36.default.resolve(inputPath);
   try {
-    return import_node_fs27.default.realpathSync(resolved);
+    return import_node_fs29.default.realpathSync(resolved);
   } catch {
     const missingSegments = [];
     let cursor = resolved;
     while (true) {
-      const parent = import_node_path32.default.dirname(cursor);
+      const parent = import_node_path36.default.dirname(cursor);
       if (parent === cursor) {
         return resolved;
       }
-      missingSegments.unshift(import_node_path32.default.basename(cursor));
+      missingSegments.unshift(import_node_path36.default.basename(cursor));
       cursor = parent;
       try {
-        const realAncestor = import_node_fs27.default.realpathSync(cursor);
-        return import_node_path32.default.join(realAncestor, ...missingSegments);
+        const realAncestor = import_node_fs29.default.realpathSync(cursor);
+        return import_node_path36.default.join(realAncestor, ...missingSegments);
       } catch {
       }
     }
@@ -68135,7 +70117,7 @@ function computeCounts(worktrees) {
   };
 }
 async function resolveGitContext(workspaceRoot) {
-  if (!workspaceRoot || !import_node_fs27.default.existsSync(workspaceRoot)) {
+  if (!workspaceRoot || !import_node_fs29.default.existsSync(workspaceRoot)) {
     return {
       isGitRepo: false,
       toplevelReal: workspaceRoot,
@@ -68145,7 +70127,7 @@ async function resolveGitContext(workspaceRoot) {
   }
   let stat;
   try {
-    stat = import_node_fs27.default.statSync(workspaceRoot);
+    stat = import_node_fs29.default.statSync(workspaceRoot);
   } catch {
     return {
       isGitRepo: false,
@@ -68218,38 +70200,38 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot) {
     const commonRes = await runGit2(repoRoot, ["rev-parse", "--git-common-dir"]);
     if (!commonRes.ok || !commonRes.stdout.trim()) return;
     const rawCommonDir = commonRes.stdout.trim();
-    const commonDir = import_node_path32.default.isAbsolute(rawCommonDir) ? rawCommonDir : import_node_path32.default.resolve(repoRoot, rawCommonDir);
-    const commonStat = import_node_fs27.default.lstatSync(commonDir);
+    const commonDir = import_node_path36.default.isAbsolute(rawCommonDir) ? rawCommonDir : import_node_path36.default.resolve(repoRoot, rawCommonDir);
+    const commonStat = import_node_fs29.default.lstatSync(commonDir);
     if (commonStat.isSymbolicLink() || !commonStat.isDirectory()) return;
-    const realCommonDir = import_node_fs27.default.realpathSync(commonDir);
-    if (!import_node_fs27.default.statSync(realCommonDir).isDirectory()) return;
-    const infoDir = import_node_path32.default.join(realCommonDir, "info");
+    const realCommonDir = import_node_fs29.default.realpathSync(commonDir);
+    if (!import_node_fs29.default.statSync(realCommonDir).isDirectory()) return;
+    const infoDir = import_node_path36.default.join(realCommonDir, "info");
     if (!isPathInside(realCommonDir, infoDir)) return;
     let infoExists = false;
     try {
-      const infoStat = import_node_fs27.default.lstatSync(infoDir);
+      const infoStat = import_node_fs29.default.lstatSync(infoDir);
       if (infoStat.isSymbolicLink() || !infoStat.isDirectory()) return;
       infoExists = true;
     } catch (err) {
       if (err?.code !== "ENOENT") return;
     }
     if (!infoExists) {
-      import_node_fs27.default.mkdirSync(infoDir);
-      const createdInfoStat = import_node_fs27.default.lstatSync(infoDir);
+      import_node_fs29.default.mkdirSync(infoDir);
+      const createdInfoStat = import_node_fs29.default.lstatSync(infoDir);
       if (createdInfoStat.isSymbolicLink() || !createdInfoStat.isDirectory()) return;
     }
-    const realInfoDir = import_node_fs27.default.realpathSync(infoDir);
+    const realInfoDir = import_node_fs29.default.realpathSync(infoDir);
     if (!isPathInside(realCommonDir, realInfoDir)) return;
-    const excludeFile = import_node_path32.default.join(realInfoDir, "exclude");
+    const excludeFile = import_node_path36.default.join(realInfoDir, "exclude");
     if (!isPathInside(realCommonDir, excludeFile) || !isPathInside(realInfoDir, excludeFile)) {
       return;
     }
     let excludeExists = false;
     let realExcludeFile = excludeFile;
     try {
-      const excludeStat = import_node_fs27.default.lstatSync(excludeFile);
+      const excludeStat = import_node_fs29.default.lstatSync(excludeFile);
       if (excludeStat.isSymbolicLink() || !excludeStat.isFile()) return;
-      realExcludeFile = import_node_fs27.default.realpathSync(excludeFile);
+      realExcludeFile = import_node_fs29.default.realpathSync(excludeFile);
       if (!isPathInside(realCommonDir, realExcludeFile) || !isPathInside(realInfoDir, realExcludeFile)) {
         return;
       }
@@ -68259,7 +70241,7 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot) {
     }
     let existing = "";
     if (excludeExists) {
-      existing = import_node_fs27.default.readFileSync(realExcludeFile, "utf8");
+      existing = import_node_fs29.default.readFileSync(realExcludeFile, "utf8");
     }
     const pattern = `/${WORKTREE_MANAGED_DIR}/`;
     const hasEntry = existing.split(/\r?\n/).some((line) => {
@@ -68270,29 +70252,29 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot) {
     const prefix = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
     const lineToWrite = `${prefix}${pattern}
 `;
-    const noFollow = import_node_fs27.default.constants.O_NOFOLLOW ?? 0;
+    const noFollow = import_node_fs29.default.constants.O_NOFOLLOW ?? 0;
     if (excludeExists) {
-      const reStat = import_node_fs27.default.lstatSync(realExcludeFile);
+      const reStat = import_node_fs29.default.lstatSync(realExcludeFile);
       if (reStat.isSymbolicLink() || !reStat.isFile()) return;
-      const fd = import_node_fs27.default.openSync(
+      const fd = import_node_fs29.default.openSync(
         realExcludeFile,
-        import_node_fs27.default.constants.O_WRONLY | import_node_fs27.default.constants.O_APPEND | noFollow
+        import_node_fs29.default.constants.O_WRONLY | import_node_fs29.default.constants.O_APPEND | noFollow
       );
       try {
-        import_node_fs27.default.writeSync(fd, lineToWrite, void 0, "utf8");
+        import_node_fs29.default.writeSync(fd, lineToWrite, void 0, "utf8");
       } finally {
-        import_node_fs27.default.closeSync(fd);
+        import_node_fs29.default.closeSync(fd);
       }
     } else {
-      const fd = import_node_fs27.default.openSync(
+      const fd = import_node_fs29.default.openSync(
         excludeFile,
-        import_node_fs27.default.constants.O_WRONLY | import_node_fs27.default.constants.O_CREAT | import_node_fs27.default.constants.O_EXCL | noFollow,
+        import_node_fs29.default.constants.O_WRONLY | import_node_fs29.default.constants.O_CREAT | import_node_fs29.default.constants.O_EXCL | noFollow,
         420
       );
       try {
-        import_node_fs27.default.writeSync(fd, lineToWrite, void 0, "utf8");
+        import_node_fs29.default.writeSync(fd, lineToWrite, void 0, "utf8");
       } finally {
-        import_node_fs27.default.closeSync(fd);
+        import_node_fs29.default.closeSync(fd);
       }
     }
   } catch {
@@ -68332,7 +70314,7 @@ async function inspectWorktrees(workspaceRoot) {
   }
   const worktrees = await Promise.all(
     ctx.rawEntries.map(async (raw) => {
-      const exists = import_node_fs27.default.existsSync(raw.path);
+      const exists = import_node_fs29.default.existsSync(raw.path);
       let isDirty2 = false;
       let changedFilesCount = 0;
       if (exists && !raw.bare) {
@@ -68418,6 +70400,499 @@ async function inspectWorktrees(workspaceRoot) {
     counts: computeCounts(worktrees)
   };
 }
+function detectSensitiveIncludePath(relPath) {
+  const normalized = relPath.replace(/\\/g, "/").replace(/^\/+/, "");
+  const segments = normalized.split("/").filter(Boolean);
+  if (segments.length === 0) return "Empty path.";
+  const parentSegments = segments.slice(0, -1);
+  for (const seg of parentSegments) {
+    const lower = seg.toLowerCase();
+    if (SENSITIVE_DIRS.has(lower)) {
+      return `Sensitive directory "${seg}" is blocked by secret policy.`;
+    }
+    if (lower === ".env" || lower.startsWith(".env.") || lower.endsWith(".env") || lower.includes(".env.")) {
+      return `Sensitive dotenv directory "${seg}" is blocked by secret policy.`;
+    }
+    if (lower.includes("secret") || lower.includes("credential") || lower.includes("token") || lower.includes("private_key") || lower.includes("private-key")) {
+      return `Sensitive directory name "${seg}" is blocked by secret policy.`;
+    }
+  }
+  const base = segments[segments.length - 1];
+  const baseLower = base.toLowerCase();
+  if (SENSITIVE_DIRS.has(baseLower)) {
+    return `Sensitive directory "${base}" is blocked by secret policy.`;
+  }
+  if (baseLower === ".env" || baseLower.startsWith(".env.") || baseLower.endsWith(".env") || baseLower.includes(".env.")) {
+    if (ALLOWED_DOTENV_TEMPLATES.has(baseLower)) {
+      return null;
+    }
+    return `Sensitive dotenv file "${base}" is blocked (only .env.example/.env.sample/.env.template are permitted).`;
+  }
+  if (SENSITIVE_DOTFILES.has(baseLower)) {
+    return `Sensitive credential config "${base}" is blocked by secret policy.`;
+  }
+  if (SENSITIVE_EXTENSIONS_RE.test(baseLower)) {
+    return `Private key or certificate file "${base}" is blocked by secret policy.`;
+  }
+  if (SENSITIVE_SSH_KEY_RE.test(baseLower)) {
+    return `SSH key file "${base}" is blocked by secret policy.`;
+  }
+  if (/service[-_]?account.*\.json$/i.test(baseLower)) {
+    return `Cloud service-account credential "${base}" is blocked by secret policy.`;
+  }
+  if (baseLower.includes("secret") || baseLower.includes("credential") || baseLower.includes("token") || /private[_-]?key|passwd|password/i.test(baseLower)) {
+    return `Sensitive filename "${base}" (secret/credential/token/key/password) is blocked by secret policy.`;
+  }
+  return null;
+}
+function normalizeIncludeRelPath(rawLine) {
+  if (/[\x00-\x1f\x7f]/.test(rawLine)) {
+    return { ok: false, reason: "Control characters are disallowed." };
+  }
+  if (rawLine.startsWith("/") || rawLine.startsWith("\\") || /^[A-Za-z]:/.test(rawLine) || rawLine.startsWith("~")) {
+    return { ok: false, reason: "Absolute or home paths are disallowed." };
+  }
+  if (rawLine.includes("*") || rawLine.includes("?")) {
+    return { ok: false, reason: "Wildcards (* or ?) are disallowed." };
+  }
+  if (rawLine.includes("\\")) {
+    return { ok: false, reason: "Backslashes are disallowed; use POSIX relative paths." };
+  }
+  if (rawLine.endsWith("/")) {
+    return { ok: false, reason: "Directory trailing slash is disallowed; specify explicit files." };
+  }
+  let candidate = rawLine;
+  while (candidate.startsWith("./")) {
+    candidate = candidate.slice(2);
+  }
+  if (!candidate || candidate === ".") {
+    return { ok: false, reason: "Empty or current-directory entry is disallowed." };
+  }
+  const rawSegments = candidate.split("/");
+  const cleanSegments = [];
+  for (const seg of rawSegments) {
+    if (!seg || seg === ".") {
+      return { ok: false, reason: `Malformed path segment in "${rawLine}".` };
+    }
+    if (seg === "..") {
+      return { ok: false, reason: 'Parent path traversal ("..") is disallowed.' };
+    }
+    cleanSegments.push(seg);
+  }
+  const relPath = cleanSegments.join("/");
+  const firstLower = cleanSegments[0].toLowerCase();
+  if (firstLower === ".git" || firstLower === WORKTREE_MANAGED_DIR.toLowerCase() || relPath.toLowerCase() === WORKTREE_INCLUDE_FILE) {
+    return { ok: false, reason: `Reserved repository path "${relPath}" cannot be included.` };
+  }
+  return { ok: true, relPath };
+}
+function previewWorktreeInclude(repoRoot) {
+  const fallbackRoot = repoRoot ? import_node_path36.default.resolve(repoRoot) : process.cwd();
+  const fallbackConfigPath = import_node_path36.default.join(fallbackRoot, WORKTREE_INCLUDE_FILE);
+  if (!repoRoot || typeof repoRoot !== "string" || repoRoot.includes("\0")) {
+    return {
+      mode: "live",
+      repoRoot: fallbackRoot,
+      hasConfig: false,
+      configPath: fallbackConfigPath,
+      eligibleFiles: [],
+      skippedSensitive: [],
+      skippedInvalid: [],
+      totalBytes: 0
+    };
+  }
+  let repoRealRoot;
+  try {
+    repoRealRoot = import_node_fs29.default.realpathSync(import_node_path36.default.resolve(repoRoot));
+    if (!import_node_fs29.default.statSync(repoRealRoot).isDirectory()) {
+      return {
+        mode: "live",
+        repoRoot: fallbackRoot,
+        hasConfig: false,
+        configPath: fallbackConfigPath,
+        eligibleFiles: [],
+        skippedSensitive: [],
+        skippedInvalid: [],
+        totalBytes: 0
+      };
+    }
+  } catch {
+    return {
+      mode: "live",
+      repoRoot: fallbackRoot,
+      hasConfig: false,
+      configPath: fallbackConfigPath,
+      eligibleFiles: [],
+      skippedSensitive: [],
+      skippedInvalid: [],
+      totalBytes: 0
+    };
+  }
+  const configPath = import_node_path36.default.join(repoRealRoot, WORKTREE_INCLUDE_FILE);
+  let configLstat;
+  try {
+    configLstat = import_node_fs29.default.lstatSync(configPath);
+  } catch (err) {
+    if (err?.code === "ENOENT") {
+      return {
+        mode: "live",
+        repoRoot: repoRealRoot,
+        hasConfig: false,
+        configPath,
+        eligibleFiles: [],
+        skippedSensitive: [],
+        skippedInvalid: [],
+        totalBytes: 0
+      };
+    }
+    const warning = `Unable to inspect ${WORKTREE_INCLUDE_FILE}: ${err.message}`;
+    return {
+      mode: "live",
+      repoRoot: repoRealRoot,
+      hasConfig: true,
+      configPath,
+      eligibleFiles: [],
+      skippedSensitive: [],
+      skippedInvalid: [{ entry: WORKTREE_INCLUDE_FILE, reason: warning }],
+      totalBytes: 0,
+      warning
+    };
+  }
+  if (configLstat.isSymbolicLink()) {
+    const warning = `Refused: ${WORKTREE_INCLUDE_FILE} must not be a symbolic link.`;
+    return {
+      mode: "live",
+      repoRoot: repoRealRoot,
+      hasConfig: true,
+      configPath,
+      eligibleFiles: [],
+      skippedSensitive: [],
+      skippedInvalid: [{ entry: WORKTREE_INCLUDE_FILE, reason: warning }],
+      totalBytes: 0,
+      warning
+    };
+  }
+  if (!configLstat.isFile()) {
+    const warning = `Refused: ${WORKTREE_INCLUDE_FILE} must be a regular file.`;
+    return {
+      mode: "live",
+      repoRoot: repoRealRoot,
+      hasConfig: true,
+      configPath,
+      eligibleFiles: [],
+      skippedSensitive: [],
+      skippedInvalid: [{ entry: WORKTREE_INCLUDE_FILE, reason: warning }],
+      totalBytes: 0,
+      warning
+    };
+  }
+  if (configLstat.size > WORKTREE_INCLUDE_MAX_CONFIG_BYTES) {
+    const warning = `Refused: ${WORKTREE_INCLUDE_FILE} exceeds maximum size of ${WORKTREE_INCLUDE_MAX_CONFIG_BYTES} bytes (16 KiB).`;
+    return {
+      mode: "live",
+      repoRoot: repoRealRoot,
+      hasConfig: true,
+      configPath,
+      eligibleFiles: [],
+      skippedSensitive: [],
+      skippedInvalid: [{ entry: WORKTREE_INCLUDE_FILE, reason: warning }],
+      totalBytes: 0,
+      warning
+    };
+  }
+  let rawContent;
+  const noFollow = import_node_fs29.default.constants.O_NOFOLLOW ?? 0;
+  try {
+    const fd = import_node_fs29.default.openSync(configPath, import_node_fs29.default.constants.O_RDONLY | noFollow);
+    try {
+      const fdStat = import_node_fs29.default.fstatSync(fd);
+      if (!fdStat.isFile() || fdStat.size > WORKTREE_INCLUDE_MAX_CONFIG_BYTES) {
+        const warning = `Refused: ${WORKTREE_INCLUDE_FILE} failed file type or 16 KiB size check.`;
+        return {
+          mode: "live",
+          repoRoot: repoRealRoot,
+          hasConfig: true,
+          configPath,
+          eligibleFiles: [],
+          skippedSensitive: [],
+          skippedInvalid: [{ entry: WORKTREE_INCLUDE_FILE, reason: warning }],
+          totalBytes: 0,
+          warning
+        };
+      }
+      const buf = Buffer.alloc(fdStat.size);
+      let offset = 0;
+      while (offset < fdStat.size) {
+        const n = import_node_fs29.default.readSync(fd, buf, offset, fdStat.size - offset, offset);
+        if (n <= 0) break;
+        offset += n;
+      }
+      rawContent = buf.subarray(0, offset).toString("utf8");
+    } finally {
+      import_node_fs29.default.closeSync(fd);
+    }
+  } catch (err) {
+    const warning = `Failed to read ${WORKTREE_INCLUDE_FILE}: ${err.message}`;
+    return {
+      mode: "live",
+      repoRoot: repoRealRoot,
+      hasConfig: true,
+      configPath,
+      eligibleFiles: [],
+      skippedSensitive: [],
+      skippedInvalid: [{ entry: WORKTREE_INCLUDE_FILE, reason: warning }],
+      totalBytes: 0,
+      warning
+    };
+  }
+  const eligibleFiles = [];
+  const skippedSensitive = [];
+  const skippedInvalid = [];
+  const seen = /* @__PURE__ */ new Set();
+  let totalBytes = 0;
+  for (const raw of rawContent.split(/\r?\n/)) {
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const normalized = normalizeIncludeRelPath(trimmed);
+    if (!normalized.ok) {
+      skippedInvalid.push({ entry: trimmed, reason: normalized.reason });
+      continue;
+    }
+    const relPath = normalized.relPath;
+    if (seen.has(relPath)) continue;
+    seen.add(relPath);
+    const sensitiveReason = detectSensitiveIncludePath(relPath);
+    if (sensitiveReason) {
+      skippedSensitive.push({ entry: relPath, reason: sensitiveReason });
+      continue;
+    }
+    const segments = relPath.split("/");
+    let cursor = repoRealRoot;
+    let segmentError = null;
+    let leafStat = null;
+    for (let i = 0; i < segments.length; i += 1) {
+      cursor = import_node_path36.default.join(cursor, segments[i]);
+      let st;
+      try {
+        st = import_node_fs29.default.lstatSync(cursor);
+      } catch (err) {
+        const code = err?.code;
+        segmentError = code === "ENOENT" ? "File does not exist in main repository." : `Unable to inspect path: ${err.message}`;
+        break;
+      }
+      if (st.isSymbolicLink()) {
+        segmentError = "Symbolic link is refused by .worktreeinclude security boundary.";
+        break;
+      }
+      if (i < segments.length - 1) {
+        if (!st.isDirectory()) {
+          segmentError = "Intermediate path segment is not a directory.";
+          break;
+        }
+      } else {
+        if (!st.isFile()) {
+          segmentError = "Entry must be a regular file (directories and special files are refused).";
+          break;
+        }
+        leafStat = st;
+      }
+    }
+    if (segmentError || !leafStat) {
+      skippedInvalid.push({ entry: relPath, reason: segmentError ?? "Invalid path." });
+      continue;
+    }
+    let realCandidate;
+    try {
+      realCandidate = import_node_fs29.default.realpathSync(cursor);
+    } catch {
+      skippedInvalid.push({ entry: relPath, reason: "Unable to resolve realpath inside repository." });
+      continue;
+    }
+    if (!isPathInside(repoRealRoot, realCandidate)) {
+      skippedInvalid.push({ entry: relPath, reason: "Resolved realpath escapes repository root." });
+      continue;
+    }
+    const realRel = import_node_path36.default.relative(repoRealRoot, realCandidate).split(import_node_path36.default.sep).join("/");
+    const realSensitiveReason = detectSensitiveIncludePath(realRel);
+    if (realSensitiveReason) {
+      skippedSensitive.push({ entry: relPath, reason: realSensitiveReason });
+      continue;
+    }
+    if (leafStat.size > WORKTREE_INCLUDE_MAX_FILE_BYTES) {
+      skippedInvalid.push({
+        entry: relPath,
+        reason: `File size (${leafStat.size} bytes) exceeds 512 KiB per-file limit.`
+      });
+      continue;
+    }
+    if (eligibleFiles.length >= WORKTREE_INCLUDE_MAX_FILES) {
+      skippedInvalid.push({
+        entry: relPath,
+        reason: `Exceeds maximum ${WORKTREE_INCLUDE_MAX_FILES} included files limit.`
+      });
+      continue;
+    }
+    if (totalBytes + leafStat.size > WORKTREE_INCLUDE_MAX_TOTAL_BYTES) {
+      skippedInvalid.push({
+        entry: relPath,
+        reason: `Exceeds maximum 4 MiB cumulative size limit.`
+      });
+      continue;
+    }
+    eligibleFiles.push({ path: relPath, sizeBytes: leafStat.size });
+    totalBytes += leafStat.size;
+  }
+  return {
+    mode: "live",
+    repoRoot: repoRealRoot,
+    hasConfig: true,
+    configPath,
+    eligibleFiles,
+    skippedSensitive,
+    skippedInvalid,
+    totalBytes
+  };
+}
+async function previewWorktreeIncludeForWorkspace(workspaceRoot) {
+  const ctx = await resolveGitContext(workspaceRoot);
+  const root = ctx.isGitRepo ? ctx.mainRootReal : workspaceRoot;
+  return previewWorktreeInclude(root);
+}
+function ensureSafeDestSubdir(targetRealRoot, dirSegments) {
+  let cursor = targetRealRoot;
+  for (const seg of dirSegments) {
+    cursor = import_node_path36.default.join(cursor, seg);
+    if (!isPathInside(targetRealRoot, cursor)) return null;
+    try {
+      const st = import_node_fs29.default.lstatSync(cursor);
+      if (st.isSymbolicLink() || !st.isDirectory()) {
+        return null;
+      }
+      const realDir = import_node_fs29.default.realpathSync(cursor);
+      if (!isPathInside(targetRealRoot, realDir)) {
+        return null;
+      }
+      cursor = realDir;
+    } catch (err) {
+      if (err?.code !== "ENOENT") {
+        return null;
+      }
+      import_node_fs29.default.mkdirSync(cursor, { mode: 493 });
+      const createdSt = import_node_fs29.default.lstatSync(cursor);
+      if (createdSt.isSymbolicLink() || !createdSt.isDirectory()) {
+        return null;
+      }
+      const realCreated = import_node_fs29.default.realpathSync(cursor);
+      if (!isPathInside(targetRealRoot, realCreated)) {
+        return null;
+      }
+      cursor = realCreated;
+    }
+  }
+  return cursor;
+}
+function applyWorktreeIncludeFiles(repoRealRoot, targetWorktreePath) {
+  const preview = previewWorktreeInclude(repoRealRoot);
+  if (!preview.hasConfig) {
+    return { includedFiles: [], skippedSensitive: [], skippedInvalid: [] };
+  }
+  const includedFiles = [];
+  const skippedSensitive = preview.skippedSensitive.map((s) => s.entry);
+  const skippedInvalid = preview.skippedInvalid.map((s) => s.entry);
+  if (preview.eligibleFiles.length === 0) {
+    return {
+      includedFiles,
+      skippedSensitive,
+      skippedInvalid,
+      ...preview.warning ? { warning: preview.warning } : {}
+    };
+  }
+  const targetRealRoot = import_node_fs29.default.realpathSync(targetWorktreePath);
+  if (targetRealRoot === repoRealRoot) {
+    return {
+      includedFiles,
+      skippedSensitive,
+      skippedInvalid: [...skippedInvalid, ...preview.eligibleFiles.map((e) => e.path)],
+      warning: "Refused to copy .worktreeinclude files onto the main repository."
+    };
+  }
+  const noFollow = import_node_fs29.default.constants.O_NOFOLLOW ?? 0;
+  let copiedBytes = 0;
+  for (const item of preview.eligibleFiles) {
+    const segments = item.path.split("/");
+    const srcPath = import_node_path36.default.join(repoRealRoot, ...segments);
+    const parentSegments = segments.slice(0, -1);
+    const fileName = segments[segments.length - 1];
+    try {
+      const realSrc = import_node_fs29.default.realpathSync(srcPath);
+      if (!isPathInside(repoRealRoot, realSrc)) {
+        skippedInvalid.push(item.path);
+        continue;
+      }
+      const safeDestDir = ensureSafeDestSubdir(targetRealRoot, parentSegments);
+      if (!safeDestDir) {
+        skippedInvalid.push(item.path);
+        continue;
+      }
+      const destPath = import_node_path36.default.join(safeDestDir, fileName);
+      if (!isPathInside(targetRealRoot, destPath)) {
+        skippedInvalid.push(item.path);
+        continue;
+      }
+      try {
+        import_node_fs29.default.lstatSync(destPath);
+        skippedInvalid.push(item.path);
+        continue;
+      } catch (err) {
+        if (err?.code !== "ENOENT") {
+          skippedInvalid.push(item.path);
+          continue;
+        }
+      }
+      const srcFd = import_node_fs29.default.openSync(srcPath, import_node_fs29.default.constants.O_RDONLY | noFollow);
+      let fileBuf;
+      try {
+        const srcStat = import_node_fs29.default.fstatSync(srcFd);
+        if (!srcStat.isFile() || srcStat.size > WORKTREE_INCLUDE_MAX_FILE_BYTES || copiedBytes + srcStat.size > WORKTREE_INCLUDE_MAX_TOTAL_BYTES) {
+          skippedInvalid.push(item.path);
+          continue;
+        }
+        fileBuf = Buffer.alloc(srcStat.size);
+        let offset = 0;
+        while (offset < srcStat.size) {
+          const n = import_node_fs29.default.readSync(srcFd, fileBuf, offset, srcStat.size - offset, offset);
+          if (n <= 0) break;
+          offset += n;
+        }
+        fileBuf = fileBuf.subarray(0, offset);
+      } finally {
+        import_node_fs29.default.closeSync(srcFd);
+      }
+      const destFd = import_node_fs29.default.openSync(
+        destPath,
+        import_node_fs29.default.constants.O_WRONLY | import_node_fs29.default.constants.O_CREAT | import_node_fs29.default.constants.O_EXCL | noFollow,
+        420
+      );
+      try {
+        if (fileBuf.length > 0) {
+          import_node_fs29.default.writeSync(destFd, fileBuf, 0, fileBuf.length, 0);
+        }
+      } finally {
+        import_node_fs29.default.closeSync(destFd);
+      }
+      copiedBytes += fileBuf.length;
+      includedFiles.push(item.path);
+    } catch {
+      skippedInvalid.push(item.path);
+    }
+  }
+  return {
+    includedFiles,
+    skippedSensitive,
+    skippedInvalid,
+    ...preview.warning ? { warning: preview.warning } : {}
+  };
+}
 async function createWorktree(workspaceRoot, opts) {
   const ctx = await resolveGitContext(workspaceRoot);
   if (!ctx.isGitRepo) {
@@ -68426,35 +70901,35 @@ async function createWorktree(workspaceRoot, opts) {
   const branch = validateGitRef(opts.branch);
   const baseRef = opts.baseRef !== void 0 && opts.baseRef !== "" ? validateGitRef(opts.baseRef) : void 0;
   const safeSlug = opts.dirName !== void 0 && opts.dirName !== "" ? validateWorktreeDirName(opts.dirName) : deriveSafeWorktreeSlug(branch);
-  const repoRealRoot = import_node_fs27.default.realpathSync(ctx.mainRootReal);
+  const repoRealRoot = import_node_fs29.default.realpathSync(ctx.mainRootReal);
   const alreadyCheckedOut = ctx.rawEntries.find((w) => w.branch === branch);
   if (alreadyCheckedOut) {
     throw new Error(
       `Branch "${branch}" is already checked out in worktree: ${alreadyCheckedOut.path}`
     );
   }
-  const managedRootCandidate = import_node_path32.default.join(repoRealRoot, WORKTREE_MANAGED_DIR);
+  const managedRootCandidate = import_node_path36.default.join(repoRealRoot, WORKTREE_MANAGED_DIR);
   if (!isPathInside(repoRealRoot, managedRootCandidate)) {
     throw new Error("Controlled worktree root escapes repository boundary.");
   }
-  if (import_node_fs27.default.existsSync(managedRootCandidate)) {
-    const lstat = import_node_fs27.default.lstatSync(managedRootCandidate);
+  if (import_node_fs29.default.existsSync(managedRootCandidate)) {
+    const lstat = import_node_fs29.default.lstatSync(managedRootCandidate);
     if (lstat.isSymbolicLink() || !lstat.isDirectory()) {
       throw new Error(
         `Controlled worktree root "${managedRootCandidate}" must be a real directory (not a symlink or file).`
       );
     }
-    const realManaged = import_node_fs27.default.realpathSync(managedRootCandidate);
+    const realManaged = import_node_fs29.default.realpathSync(managedRootCandidate);
     if (!isPathInside(repoRealRoot, realManaged)) {
       throw new Error("Controlled worktree root symlink escapes repository boundary.");
     }
   }
-  const preTargetPath = import_node_path32.default.join(managedRootCandidate, safeSlug);
+  const preTargetPath = import_node_path36.default.join(managedRootCandidate, safeSlug);
   if (!isPathInside(managedRootCandidate, preTargetPath)) {
     throw new Error(`Target worktree path escapes controlled directory "${WORKTREE_MANAGED_DIR}".`);
   }
   try {
-    import_node_fs27.default.lstatSync(preTargetPath);
+    import_node_fs29.default.lstatSync(preTargetPath);
     throw new Error(
       `Target worktree directory already exists (refusing to overwrite): ${preTargetPath}`
     );
@@ -68476,13 +70951,13 @@ async function createWorktree(workspaceRoot, opts) {
     `refs/heads/${branch}`
   ]);
   const branchExists = branchRefRes.ok;
-  import_node_fs27.default.mkdirSync(managedRootCandidate, { recursive: true });
-  const realManagedRoot = import_node_fs27.default.realpathSync(managedRootCandidate);
+  import_node_fs29.default.mkdirSync(managedRootCandidate, { recursive: true });
+  const realManagedRoot = import_node_fs29.default.realpathSync(managedRootCandidate);
   if (!isPathInside(repoRealRoot, realManagedRoot)) {
     throw new Error("Controlled worktree root escapes repository boundary after creation.");
   }
-  const targetPath = import_node_path32.default.join(realManagedRoot, safeSlug);
-  if (import_node_path32.default.dirname(targetPath) !== realManagedRoot || !isPathInside(realManagedRoot, targetPath)) {
+  const targetPath = import_node_path36.default.join(realManagedRoot, safeSlug);
+  if (import_node_path36.default.dirname(targetPath) !== realManagedRoot || !isPathInside(realManagedRoot, targetPath)) {
     throw new Error("Resolved target worktree path escapes controlled worktree root.");
   }
   await ensureWorktreeDirExcludedInGitInfo(repoRealRoot);
@@ -68531,6 +71006,18 @@ async function createWorktree(workspaceRoot, opts) {
       }
     }
   }
+  let includedFiles = [];
+  let skippedSensitive = [];
+  let skippedInvalid = [];
+  if (opts.applyInclude !== false) {
+    const includeRes = applyWorktreeIncludeFiles(repoRealRoot, targetPath);
+    includedFiles = includeRes.includedFiles;
+    skippedSensitive = includeRes.skippedSensitive;
+    skippedInvalid = includeRes.skippedInvalid;
+    if (includeRes.warning) {
+      warning = warning ? `${warning} ${includeRes.warning}` : includeRes.warning;
+    }
+  }
   const state = await inspectWorktrees(workspaceRoot);
   const canonicalTarget = canonicalizePath(targetPath);
   const created = state.worktrees.find((w) => w.path === canonicalTarget);
@@ -68540,6 +71027,9 @@ async function createWorktree(workspaceRoot, opts) {
   return {
     created,
     carriedUncommitted,
+    includedFiles,
+    skippedSensitive,
+    skippedInvalid,
     ...warning ? { warning } : {},
     state
   };
@@ -68554,7 +71044,7 @@ async function getWorktreeDiffSummary(workspaceRoot, worktreePath, baseRef) {
   }
   let normalizedInput;
   try {
-    normalizedInput = import_node_fs27.default.realpathSync(import_node_path32.default.resolve(worktreePath));
+    normalizedInput = import_node_fs29.default.realpathSync(import_node_path36.default.resolve(worktreePath));
   } catch {
     throw new Error(`Worktree path does not exist or is not accessible: ${worktreePath}`);
   }
@@ -68698,10 +71188,10 @@ async function cleanupWorktree(workspaceRoot, opts) {
   };
 }
 function createDemoWorktreeStore(workspaceRoot) {
-  const repoRoot = import_node_path32.default.resolve(workspaceRoot);
-  const managedRoot = import_node_path32.default.join(repoRoot, WORKTREE_MANAGED_DIR);
-  const featPath = import_node_path32.default.join(managedRoot, "feat-verify-gate");
-  const fixPath = import_node_path32.default.join(managedRoot, "fix-cache-leak");
+  const repoRoot = import_node_path36.default.resolve(workspaceRoot);
+  const managedRoot = import_node_path36.default.join(repoRoot, WORKTREE_MANAGED_DIR);
+  const featPath = import_node_path36.default.join(managedRoot, "feat-verify-gate");
+  const fixPath = import_node_path36.default.join(managedRoot, "fix-cache-leak");
   let seq = 1;
   const entries = [
     {
@@ -68797,15 +71287,38 @@ function createDemoWorktreeStore(workspaceRoot) {
     worktrees: entries.map((e) => ({ ...e })),
     counts: computeCounts(entries)
   });
+  const buildDemoIncludePreview = () => ({
+    mode: "demo",
+    repoRoot,
+    hasConfig: true,
+    configPath: import_node_path36.default.join(repoRoot, WORKTREE_INCLUDE_FILE),
+    eligibleFiles: [
+      { path: ".env.example", sizeBytes: 428 },
+      { path: "config/local.dev.json", sizeBytes: 1024 }
+    ],
+    skippedSensitive: [
+      {
+        entry: ".env.local",
+        reason: 'Sensitive dotenv file ".env.local" is blocked (only .env.example/.env.sample/.env.template are permitted).'
+      },
+      {
+        entry: "certs/dev-server.pem",
+        reason: 'Private key or certificate file "dev-server.pem" is blocked by secret policy.'
+      }
+    ],
+    skippedInvalid: [],
+    totalBytes: 1452
+  });
   return {
     list: () => buildState(),
+    previewInclude: () => buildDemoIncludePreview(),
     create: (opts) => {
       const branch = validateGitRef(opts.branch);
       if (opts.baseRef !== void 0 && opts.baseRef !== "") {
         validateGitRef(opts.baseRef);
       }
       const safeSlug = opts.dirName !== void 0 && opts.dirName !== "" ? validateWorktreeDirName(opts.dirName) : deriveSafeWorktreeSlug(branch);
-      const targetPath = import_node_path32.default.join(managedRoot, safeSlug);
+      const targetPath = import_node_path36.default.join(managedRoot, safeSlug);
       if (!isPathInside(managedRoot, targetPath)) {
         throw new Error("Target worktree path escapes controlled worktree root.");
       }
@@ -68837,9 +71350,13 @@ function createDemoWorktreeStore(workspaceRoot) {
         statText: carried ? "Uncommitted working tree changes:\n src/demo-carried.ts | 8 ++++++++\n 1 file changed, 8 insertions(+)" : `No committed or uncommitted changes relative to ${opts.baseRef || "main"}.`,
         files: carried ? [{ status: "M", path: "src/demo-carried.ts" }] : []
       });
+      const includePreview = opts.applyInclude !== false ? buildDemoIncludePreview() : null;
       return {
         created: { ...created },
         carriedUncommitted: carried,
+        includedFiles: includePreview ? includePreview.eligibleFiles.map((f) => f.path) : [],
+        skippedSensitive: includePreview ? includePreview.skippedSensitive.map((s) => s.entry) : [],
+        skippedInvalid: includePreview ? includePreview.skippedInvalid.map((s) => s.entry) : [],
         state: buildState()
       };
     },
@@ -68848,7 +71365,7 @@ function createDemoWorktreeStore(workspaceRoot) {
         throw new Error("Invalid worktreePath: must be a non-empty filesystem path.");
       }
       const resolvedBaseRef = baseRef !== void 0 && baseRef !== "" ? validateGitRef(baseRef) : "main";
-      const normalized = import_node_path32.default.resolve(worktreePath);
+      const normalized = import_node_path36.default.resolve(worktreePath);
       const entry = entries.find((e) => e.path === normalized);
       if (!entry) {
         throw new Error(
@@ -68886,7 +71403,7 @@ function createDemoWorktreeStore(workspaceRoot) {
       if (!opts.worktreePath || !opts.worktreePath.trim()) {
         throw new Error("Either worktreePath or pruneOnly: true must be provided.");
       }
-      const normalized = import_node_path32.default.resolve(opts.worktreePath);
+      const normalized = import_node_path36.default.resolve(opts.worktreePath);
       const idx = entries.findIndex((e) => e.path === normalized);
       if (idx < 0) {
         throw new Error(
@@ -68970,7 +71487,7 @@ function formatDiffSummary(diff) {
   return lines.join("\n");
 }
 function registerWorktreeModule(server, options, uiResourceUri) {
-  const workspaceRoot = import_node_path33.default.resolve(options.workspaceRoot);
+  const workspaceRoot = import_node_path37.default.resolve(options.workspaceRoot);
   const isDemo = options.demoMode === true;
   const demoStore = isDemo ? createDemoWorktreeStore(workspaceRoot) : null;
   const APP_ONLY_META2 = {
@@ -68980,6 +71497,7 @@ function registerWorktreeModule(server, options, uiResourceUri) {
     }
   };
   const runList = async () => isDemo && demoStore ? demoStore.list() : inspectWorktrees(workspaceRoot);
+  const runPreviewInclude = async () => isDemo && demoStore ? demoStore.previewInclude() : previewWorktreeIncludeForWorkspace(workspaceRoot);
   const runCreate = async (opts) => isDemo && demoStore ? demoStore.create(opts) : createWorktree(workspaceRoot, opts);
   const runDiffSummary = async (worktreePath, baseRef) => isDemo && demoStore ? demoStore.diffSummary(worktreePath, baseRef) : getWorktreeDiffSummary(workspaceRoot, worktreePath, baseRef);
   const runCleanup = async (opts) => isDemo && demoStore ? demoStore.cleanup(opts) : cleanupWorktree(workspaceRoot, opts);
@@ -69011,21 +71529,33 @@ function registerWorktreeModule(server, options, uiResourceUri) {
     "worktree_create",
     {
       title: "Create Git Worktree",
-      description: "Create an isolated Git worktree inside `<repo>/.agy-worktrees/<slug>` for a new or existing branch, optionally carrying uncommitted changes from the current worktree without mutating it.",
+      description: "Create an isolated Git worktree inside `<repo>/.agy-worktrees/<slug>` for a new or existing branch, optionally carrying uncommitted changes and safely copying whitelisted non-sensitive files declared in `.worktreeinclude`.",
       inputSchema: {
         branch: external_exports.string().min(1).describe('Target branch name (validated against Git ref rules; no leading "-", "..", or whitespace)'),
         baseRef: external_exports.string().min(1).optional().describe("Optional base commit/branch ref when creating a new branch"),
         dirName: external_exports.string().min(1).optional().describe("Optional single-level directory slug inside .agy-worktrees/"),
-        carryUncommitted: external_exports.boolean().optional().describe("When true, extract git diff HEAD from the current worktree and apply it cleanly to the new worktree")
+        carryUncommitted: external_exports.boolean().optional().describe("When true, extract git diff HEAD from the current worktree and apply it cleanly to the new worktree"),
+        applyInclude: external_exports.boolean().optional().describe("When true (default), safely copy validated non-sensitive files listed in .worktreeinclude into the new worktree")
       }
     },
-    async ({ branch, baseRef, dirName, carryUncommitted }) => {
+    async ({ branch, baseRef, dirName, carryUncommitted, applyInclude }) => {
       try {
-        const result = await runCreate({ branch, baseRef, dirName, carryUncommitted });
+        const result = await runCreate({ branch, baseRef, dirName, carryUncommitted, applyInclude });
         const lines = [
           `Created worktree for branch "${result.created.branch ?? branch}" at ${result.created.path}.`,
           `Carried uncommitted changes: ${result.carriedUncommitted ? "yes" : "no"}.`
         ];
+        if (result.includedFiles.length > 0) {
+          lines.push(`Included (.worktreeinclude): ${result.includedFiles.join(", ")}`);
+        }
+        if (result.skippedSensitive.length > 0) {
+          lines.push(
+            `Blocked sensitive (.worktreeinclude): ${result.skippedSensitive.join(", ")}`
+          );
+        }
+        if (result.skippedInvalid.length > 0) {
+          lines.push(`Skipped invalid (.worktreeinclude): ${result.skippedInvalid.join(", ")}`);
+        }
         if (result.warning) {
           lines.push(`Warning: ${result.warning}`);
         }
@@ -69127,16 +71657,45 @@ function registerWorktreeModule(server, options, uiResourceUri) {
         branch: external_exports.string().min(1),
         baseRef: external_exports.string().min(1).optional(),
         dirName: external_exports.string().min(1).optional(),
-        carryUncommitted: external_exports.boolean().optional()
+        carryUncommitted: external_exports.boolean().optional(),
+        applyInclude: external_exports.boolean().optional()
       },
       _meta: APP_ONLY_META2
     },
-    async ({ branch, baseRef, dirName, carryUncommitted }) => {
+    async ({ branch, baseRef, dirName, carryUncommitted, applyInclude }) => {
       try {
-        const result = await runCreate({ branch, baseRef, dirName, carryUncommitted });
+        const result = await runCreate({ branch, baseRef, dirName, carryUncommitted, applyInclude });
         return {
           content: [{ type: "text", text: "created" }],
           structuredContent: { ...result }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage2(err) }]
+        };
+      }
+    }
+  );
+  server.registerTool(
+    "app_worktree_preview_include",
+    {
+      title: "Preview .worktreeinclude Whitelist (App Only)",
+      description: "Read-only preview of `.worktreeinclude` eligible files, blocked sensitive paths, and invalid entries.",
+      inputSchema: {},
+      _meta: APP_ONLY_META2
+    },
+    async () => {
+      try {
+        const preview = await runPreviewInclude();
+        return {
+          content: [
+            {
+              type: "text",
+              text: preview.hasConfig ? `eligible=${preview.eligibleFiles.length}, blockedSensitive=${preview.skippedSensitive.length}, invalid=${preview.skippedInvalid.length}` : "no .worktreeinclude configured"
+            }
+          ],
+          structuredContent: { ...preview }
         };
       } catch (err) {
         return {
@@ -69202,24 +71761,24 @@ function registerWorktreeModule(server, options, uiResourceUri) {
   return {
     moduleId: "worktree",
     modelTools,
-    exemptReadOnlyAppTools: ["app_worktree_list"]
+    exemptReadOnlyAppTools: ["app_worktree_list", "app_worktree_preview_include"]
   };
 }
 
 // src/modules/xray/register.ts
-var import_node_path38 = __toESM(require("node:path"), 1);
+var import_node_path43 = __toESM(require("node:path"), 1);
 
 // src/modules/xray/analytics.ts
-var import_node_fs31 = __toESM(require("node:fs"), 1);
+var import_node_fs33 = __toESM(require("node:fs"), 1);
 
 // src/modules/xray/discovery.ts
-var import_node_fs30 = __toESM(require("node:fs"), 1);
+var import_node_fs32 = __toESM(require("node:fs"), 1);
 var import_node_os5 = __toESM(require("node:os"), 1);
-var import_node_path36 = __toESM(require("node:path"), 1);
+var import_node_path40 = __toESM(require("node:path"), 1);
 
 // src/modules/xray/pricing.ts
-var import_node_fs28 = __toESM(require("node:fs"), 1);
-var import_node_path34 = __toESM(require("node:path"), 1);
+var import_node_fs30 = __toESM(require("node:fs"), 1);
+var import_node_path38 = __toESM(require("node:path"), 1);
 var MAX_OVERRIDES_FILE_BYTES = 1024 * 1024;
 var BUILTIN_MODEL_PRICING = Object.freeze({
   "gemini-4-neon": { inputPerM: 2.5, cacheReadPerM: 0.25, outputPerM: 12 },
@@ -69291,19 +71850,19 @@ function sanitizeOverridesRecord(raw) {
 }
 function loadPricingOverrides(dataDir) {
   if (!dataDir || !dataDir.trim()) return {};
-  const resolved = import_node_path34.default.resolve(dataDir);
+  const resolved = import_node_path38.default.resolve(dataDir);
   const candidates = [
-    import_node_path34.default.join(resolved, "pricing-overrides.json"),
-    import_node_path34.default.join(resolved, "modules", "xray", "pricing-overrides.json")
+    import_node_path38.default.join(resolved, "pricing-overrides.json"),
+    import_node_path38.default.join(resolved, "modules", "xray", "pricing-overrides.json")
   ];
   for (const filePath of candidates) {
     try {
-      if (!import_node_fs28.default.existsSync(filePath)) continue;
-      const stat = import_node_fs28.default.statSync(filePath);
+      if (!import_node_fs30.default.existsSync(filePath)) continue;
+      const stat = import_node_fs30.default.statSync(filePath);
       if (!stat.isFile() || stat.size === 0 || stat.size > MAX_OVERRIDES_FILE_BYTES) {
         continue;
       }
-      const rawText = import_node_fs28.default.readFileSync(filePath, "utf8");
+      const rawText = import_node_fs30.default.readFileSync(filePath, "utf8");
       const parsed = JSON.parse(rawText);
       return sanitizeOverridesRecord(parsed);
     } catch {
@@ -69744,9 +72303,9 @@ function searchDemoSessions(query) {
 }
 
 // src/modules/xray/transcript.ts
-var import_node_fs29 = __toESM(require("node:fs"), 1);
-var import_node_path35 = __toESM(require("node:path"), 1);
-var import_node_url3 = require("node:url");
+var import_node_fs31 = __toESM(require("node:fs"), 1);
+var import_node_path39 = __toESM(require("node:path"), 1);
+var import_node_url4 = require("node:url");
 
 // src/modules/xray/sanitize.ts
 var SECRET_PATTERNS2 = [
@@ -69843,7 +72402,7 @@ function cleanUserRequest(raw) {
 function toSafeFileUri(filePath) {
   if (filePath.startsWith("file://")) return filePath;
   try {
-    return (0, import_node_url3.pathToFileURL)(import_node_path35.default.resolve(filePath)).href;
+    return (0, import_node_url4.pathToFileURL)(import_node_path39.default.resolve(filePath)).href;
   } catch {
     return `file://${filePath}`;
   }
@@ -69869,17 +72428,17 @@ function extractFilePathsFromArgs(args) {
   return results;
 }
 function listArtifactsInBrainDir(brainDir) {
-  if (!brainDir || !import_node_fs29.default.existsSync(brainDir)) return [];
+  if (!brainDir || !import_node_fs31.default.existsSync(brainDir)) return [];
   const artifacts = [];
   try {
-    for (const entry of import_node_fs29.default.readdirSync(brainDir, { withFileTypes: true })) {
+    for (const entry of import_node_fs31.default.readdirSync(brainDir, { withFileTypes: true })) {
       if (!entry.isFile()) continue;
       if (!/\.(md|txt|json|html|svg)$/i.test(entry.name)) continue;
       if (entry.name.startsWith(".")) continue;
-      const fullPath = import_node_path35.default.join(brainDir, entry.name);
+      const fullPath = import_node_path39.default.join(brainDir, entry.name);
       try {
-        const stat = import_node_fs29.default.statSync(fullPath);
-        const content = import_node_fs29.default.readFileSync(fullPath, "utf8").slice(0, 800);
+        const stat = import_node_fs31.default.statSync(fullPath);
+        const content = import_node_fs31.default.readFileSync(fullPath, "utf8").slice(0, 800);
         artifacts.push({
           name: entry.name,
           path: fullPath,
@@ -69944,9 +72503,9 @@ function isSubagentToolCall(toolName, args) {
   return false;
 }
 function listSiblingBrainDirs(siblingBrainRoot, parentSessionId) {
-  if (!siblingBrainRoot || !import_node_fs29.default.existsSync(siblingBrainRoot)) return [];
+  if (!siblingBrainRoot || !import_node_fs31.default.existsSync(siblingBrainRoot)) return [];
   try {
-    const entries = import_node_fs29.default.readdirSync(siblingBrainRoot, { withFileTypes: true });
+    const entries = import_node_fs31.default.readdirSync(siblingBrainRoot, { withFileTypes: true });
     return entries.filter((entry) => entry.isDirectory() && isSafeChildId(entry.name, parentSessionId)).map((entry) => entry.name).sort((a, b) => b.length - a.length);
   } catch {
     return [];
@@ -70032,25 +72591,25 @@ function extractChildIdFromStep(step, parentSessionId, siblingDirNames, usedIds)
   return extractChildIdFromText(content, parentSessionId, siblingDirNames, usedIds);
 }
 function resolveChildTranscriptPath(siblingBrainRoot, childId) {
-  if (!siblingBrainRoot || !import_node_fs29.default.existsSync(siblingBrainRoot)) return null;
+  if (!siblingBrainRoot || !import_node_fs31.default.existsSync(siblingBrainRoot)) return null;
   let realRoot;
   try {
-    realRoot = import_node_fs29.default.realpathSync(siblingBrainRoot);
+    realRoot = import_node_fs31.default.realpathSync(siblingBrainRoot);
   } catch {
     return null;
   }
   const candidates = [
-    import_node_path35.default.join(siblingBrainRoot, childId, ".system_generated", "logs", "transcript.jsonl"),
-    import_node_path35.default.join(siblingBrainRoot, childId, "transcript.jsonl")
+    import_node_path39.default.join(siblingBrainRoot, childId, ".system_generated", "logs", "transcript.jsonl"),
+    import_node_path39.default.join(siblingBrainRoot, childId, "transcript.jsonl")
   ];
   for (const candidate of candidates) {
-    if (!import_node_fs29.default.existsSync(candidate)) continue;
+    if (!import_node_fs31.default.existsSync(candidate)) continue;
     try {
-      const realCandidate = import_node_fs29.default.realpathSync(candidate);
-      if (realCandidate !== realRoot && !realCandidate.startsWith(`${realRoot}${import_node_path35.default.sep}`)) {
+      const realCandidate = import_node_fs31.default.realpathSync(candidate);
+      if (realCandidate !== realRoot && !realCandidate.startsWith(`${realRoot}${import_node_path39.default.sep}`)) {
         continue;
       }
-      const stat = import_node_fs29.default.statSync(realCandidate);
+      const stat = import_node_fs31.default.statSync(realCandidate);
       if (!stat.isFile()) continue;
       return realCandidate;
     } catch {
@@ -70089,11 +72648,11 @@ var MAX_CHILD_TRANSCRIPT_BYTES = 20 * 1024 * 1024;
 function readChildTranscriptStats(transcriptPath) {
   let rawText;
   try {
-    const st = import_node_fs29.default.statSync(transcriptPath);
+    const st = import_node_fs31.default.statSync(transcriptPath);
     if (!st.isFile() || st.size > MAX_CHILD_TRANSCRIPT_BYTES) {
       return null;
     }
-    rawText = import_node_fs29.default.readFileSync(transcriptPath, "utf8");
+    rawText = import_node_fs31.default.readFileSync(transcriptPath, "utf8");
   } catch {
     return null;
   }
@@ -70157,11 +72716,11 @@ function hasRetrySignalInStep(step) {
   return parts.some((part) => Boolean(part) && RETRY_SIGNAL_RE.test(part));
 }
 function parseTranscriptFile(transcriptPath, opts = {}) {
-  const rawText = import_node_fs29.default.readFileSync(transcriptPath, "utf8");
+  const rawText = import_node_fs31.default.readFileSync(transcriptPath, "utf8");
   return parseTranscriptLines(rawText.split(/\r?\n/), {
     transcriptPath,
-    brainDir: opts.brainDir ?? import_node_path35.default.resolve(import_node_path35.default.dirname(transcriptPath), "..", ".."),
-    sessionId: opts.sessionId ?? import_node_path35.default.basename(import_node_path35.default.resolve(import_node_path35.default.dirname(transcriptPath), "..", "..")),
+    brainDir: opts.brainDir ?? import_node_path39.default.resolve(import_node_path39.default.dirname(transcriptPath), "..", ".."),
+    sessionId: opts.sessionId ?? import_node_path39.default.basename(import_node_path39.default.resolve(import_node_path39.default.dirname(transcriptPath), "..", "..")),
     source: opts.source ?? "desktop",
     siblingBrainRoot: opts.siblingBrainRoot,
     pricingOverrides: opts.pricingOverrides
@@ -70338,11 +72897,11 @@ function parseTranscriptLines(lines, meta3) {
         const op = classifyToolFileOp(name);
         if (op) {
           for (const fp of extractFilePathsFromArgs(tc.args)) {
-            const normalized = import_node_path35.default.resolve(fp);
+            const normalized = import_node_path39.default.resolve(fp);
             const cur = fileMap.get(normalized) ?? {
               path: normalized,
-              basename: import_node_path35.default.basename(normalized),
-              dir: import_node_path35.default.dirname(normalized),
+              basename: import_node_path39.default.basename(normalized),
+              dir: import_node_path39.default.dirname(normalized),
               uri: toSafeFileUri(normalized),
               ops: [],
               readCount: 0,
@@ -70780,18 +73339,18 @@ function renderRedactedBrief(detail) {
 function getDefaultBrainDirs2() {
   const home = import_node_os5.default.homedir();
   const candidates = [
-    { dir: import_node_path36.default.join(home, ".gemini", "antigravity", "brain"), source: "desktop" },
-    { dir: import_node_path36.default.join(home, ".gemini", "antigravity-cli", "brain"), source: "cli" },
-    { dir: import_node_path36.default.join(home, ".gemini", "antigravity-ide", "brain"), source: "ide" }
+    { dir: import_node_path40.default.join(home, ".gemini", "antigravity", "brain"), source: "desktop" },
+    { dir: import_node_path40.default.join(home, ".gemini", "antigravity-cli", "brain"), source: "cli" },
+    { dir: import_node_path40.default.join(home, ".gemini", "antigravity-ide", "brain"), source: "ide" }
   ];
-  return candidates.filter((c) => import_node_fs30.default.existsSync(c.dir));
+  return candidates.filter((c) => import_node_fs32.default.existsSync(c.dir));
 }
 function readLiveHookState(dataDir) {
   if (!dataDir) return { recentEvents: [] };
-  const statePath = import_node_path36.default.join(dataDir, "live-state.json");
-  if (!import_node_fs30.default.existsSync(statePath)) return { recentEvents: [] };
+  const statePath = import_node_path40.default.join(dataDir, "live-state.json");
+  if (!import_node_fs32.default.existsSync(statePath)) return { recentEvents: [] };
   try {
-    const parsed = JSON.parse(import_node_fs30.default.readFileSync(statePath, "utf8"));
+    const parsed = JSON.parse(import_node_fs32.default.readFileSync(statePath, "utf8"));
     return {
       ...parsed,
       recentEvents: Array.isArray(parsed.recentEvents) ? parsed.recentEvents : []
@@ -70805,26 +73364,26 @@ function discoverTranscriptEntries(opts = {}) {
   const entries = [];
   const seen = /* @__PURE__ */ new Set();
   for (const root of roots) {
-    if (!import_node_fs30.default.existsSync(root.dir)) continue;
+    if (!import_node_fs32.default.existsSync(root.dir)) continue;
     let children;
     try {
-      children = import_node_fs30.default.readdirSync(root.dir, { withFileTypes: true });
+      children = import_node_fs32.default.readdirSync(root.dir, { withFileTypes: true });
     } catch {
       continue;
     }
     for (const child of children) {
       if (!child.isDirectory()) continue;
-      const brainDir = import_node_path36.default.join(root.dir, child.name);
+      const brainDir = import_node_path40.default.join(root.dir, child.name);
       const candidates = [
-        import_node_path36.default.join(brainDir, ".system_generated", "logs", "transcript.jsonl"),
-        import_node_path36.default.join(brainDir, "transcript.jsonl")
+        import_node_path40.default.join(brainDir, ".system_generated", "logs", "transcript.jsonl"),
+        import_node_path40.default.join(brainDir, "transcript.jsonl")
       ];
       for (const transcriptPath of candidates) {
-        if (!import_node_fs30.default.existsSync(transcriptPath)) continue;
+        if (!import_node_fs32.default.existsSync(transcriptPath)) continue;
         if (seen.has(transcriptPath)) continue;
         seen.add(transcriptPath);
         try {
-          const stat = import_node_fs30.default.statSync(transcriptPath);
+          const stat = import_node_fs32.default.statSync(transcriptPath);
           if (stat.size === 0) continue;
           entries.push({
             id: child.name,
@@ -70880,19 +73439,19 @@ function loadSessionDetail(sessionId, opts = {}) {
         sessionId: match.id,
         source: match.source,
         brainDir: match.brainDir,
-        siblingBrainRoot: import_node_path36.default.dirname(match.brainDir),
+        siblingBrainRoot: import_node_path40.default.dirname(match.brainDir),
         pricingOverrides
       });
     }
   }
-  if (!sessionId && hookState.activeTranscriptPath && import_node_fs30.default.existsSync(hookState.activeTranscriptPath)) {
-    const parentDir = import_node_path36.default.dirname(hookState.activeTranscriptPath);
-    const activeBrainDir = import_node_path36.default.basename(parentDir) === "logs" && import_node_path36.default.basename(import_node_path36.default.dirname(parentDir)) === ".system_generated" ? import_node_path36.default.resolve(parentDir, "..", "..") : parentDir;
+  if (!sessionId && hookState.activeTranscriptPath && import_node_fs32.default.existsSync(hookState.activeTranscriptPath)) {
+    const parentDir = import_node_path40.default.dirname(hookState.activeTranscriptPath);
+    const activeBrainDir = import_node_path40.default.basename(parentDir) === "logs" && import_node_path40.default.basename(import_node_path40.default.dirname(parentDir)) === ".system_generated" ? import_node_path40.default.resolve(parentDir, "..", "..") : parentDir;
     return parseTranscriptFile(hookState.activeTranscriptPath, {
-      sessionId: hookState.activeConversationId ?? import_node_path36.default.basename(activeBrainDir) ?? "active",
+      sessionId: hookState.activeConversationId ?? import_node_path40.default.basename(activeBrainDir) ?? "active",
       source: "desktop",
       brainDir: activeBrainDir,
-      siblingBrainRoot: import_node_path36.default.dirname(activeBrainDir),
+      siblingBrainRoot: import_node_path40.default.dirname(activeBrainDir),
       pricingOverrides
     });
   }
@@ -70902,7 +73461,7 @@ function loadSessionDetail(sessionId, opts = {}) {
     sessionId: latest.id,
     source: latest.source,
     brainDir: latest.brainDir,
-    siblingBrainRoot: import_node_path36.default.dirname(latest.brainDir),
+    siblingBrainRoot: import_node_path40.default.dirname(latest.brainDir),
     pricingOverrides
   });
 }
@@ -71084,7 +73643,7 @@ function computeCostAnalytics(opts = {}) {
   let totalCacheSavingsUsdRaw = 0;
   for (const entry of entries) {
     try {
-      const st = import_node_fs31.default.statSync(entry.transcriptPath);
+      const st = import_node_fs33.default.statSync(entry.transcriptPath);
       if (!st.isFile() || st.size === 0 || st.size > MAX_ANALYTICS_TRANSCRIPT_BYTES) {
         continue;
       }
@@ -71615,10 +74174,575 @@ function renderUsageCsv(analytics) {
   return [header, ...rows].join("\n");
 }
 
+// src/modules/xray/clean-fork.ts
+var import_node_fs34 = __toESM(require("node:fs"), 1);
+var import_node_path41 = __toESM(require("node:path"), 1);
+var CLEAN_FORK_DEFAULT_MAX_BYTES = 12e3;
+var CLEAN_FORK_HARD_MAX_BYTES = 16e3;
+var CLEAN_FORK_MIN_MAX_BYTES = 256;
+var CLEAN_FORK_MAX_READY_TASKS = 5;
+var CLEAN_FORK_MAX_MEM_ANCHORS = 6;
+var MAX_READ_JSON_BYTES = 2 * 1024 * 1024;
+function isAsciiSpace2(code) {
+  return code === 32 || code === 9 || code === 13 || code === 10;
+}
+function asciiLower2(code) {
+  return code >= 65 && code <= 90 ? code + 32 : code;
+}
+function startsWithAsciiCI2(input2, idx, lowerPrefix) {
+  if (idx + lowerPrefix.length > input2.length) return false;
+  for (let i = 0; i < lowerPrefix.length; i += 1) {
+    if (asciiLower2(input2.charCodeAt(idx + i)) !== lowerPrefix.charCodeAt(i)) {
+      return false;
+    }
+  }
+  return true;
+}
+function matchPrivateOpenEnd3(input2, idx) {
+  if (!startsWithAsciiCI2(input2, idx, "<private")) return -1;
+  let cur = idx + 8;
+  if (cur >= input2.length) return -1;
+  const ch = input2.charCodeAt(cur);
+  if (ch === 62) return cur;
+  if (!isAsciiSpace2(ch)) return -1;
+  cur += 1;
+  while (cur < input2.length) {
+    const code = input2.charCodeAt(cur);
+    if (code === 62) return cur;
+    if (code === 60) return -1;
+    cur += 1;
+  }
+  return -1;
+}
+function matchPrivateCloseEnd3(input2, idx) {
+  if (!startsWithAsciiCI2(input2, idx, "</private")) return -1;
+  let cur = idx + 9;
+  while (cur < input2.length && isAsciiSpace2(input2.charCodeAt(cur))) {
+    cur += 1;
+  }
+  return cur < input2.length && input2.charCodeAt(cur) === 62 ? cur : -1;
+}
+function stripPrivateTagsLinear(input2) {
+  if (!input2 || !input2.includes("<")) return input2;
+  const chunks = [];
+  let cur = 0;
+  while (cur < input2.length) {
+    const lt = input2.indexOf("<", cur);
+    if (lt === -1) {
+      chunks.push(input2.slice(cur));
+      break;
+    }
+    const openEnd = matchPrivateOpenEnd3(input2, lt);
+    if (openEnd === -1) {
+      chunks.push(input2.slice(cur, lt + 1));
+      cur = lt + 1;
+      continue;
+    }
+    if (lt > cur) {
+      chunks.push(input2.slice(cur, lt));
+    }
+    let depth = 1;
+    let scan = openEnd + 1;
+    while (scan < input2.length && depth > 0) {
+      const nextLt = input2.indexOf("<", scan);
+      if (nextLt === -1) {
+        scan = input2.length;
+        break;
+      }
+      const nestedOpen = matchPrivateOpenEnd3(input2, nextLt);
+      if (nestedOpen !== -1) {
+        depth += 1;
+        scan = nestedOpen + 1;
+        continue;
+      }
+      const closeEnd = matchPrivateCloseEnd3(input2, nextLt);
+      if (closeEnd !== -1) {
+        depth -= 1;
+        scan = closeEnd + 1;
+        continue;
+      }
+      scan = nextLt + 1;
+    }
+    chunks.push("[REDACTED_PRIVATE]");
+    cur = depth > 0 ? input2.length : scan;
+  }
+  return chunks.join("");
+}
+var PEM_DASHES = "-".repeat(5);
+var PEM_BEGIN_LOWER = `${PEM_DASHES}begin `;
+var PEM_END_LOWER = `${PEM_DASHES}end `;
+var PEM_LABEL_RE = /^[A-Z0-9 _-]{0,48}PRIVATE KEY(?: BLOCK)?$/i;
+function stripPemPrivateBlocksLinear(input2) {
+  if (!input2 || !input2.includes(PEM_DASHES)) return input2;
+  const chunks = [];
+  let cur = 0;
+  while (cur < input2.length) {
+    const dashIdx = input2.indexOf(PEM_DASHES, cur);
+    if (dashIdx === -1) {
+      chunks.push(input2.slice(cur));
+      break;
+    }
+    if (!startsWithAsciiCI2(input2, dashIdx, PEM_BEGIN_LOWER)) {
+      chunks.push(input2.slice(cur, dashIdx + 5));
+      cur = dashIdx + 5;
+      continue;
+    }
+    const headerEnd = input2.indexOf(PEM_DASHES, dashIdx + PEM_BEGIN_LOWER.length);
+    if (headerEnd === -1) {
+      chunks.push(input2.slice(cur));
+      break;
+    }
+    const label = input2.slice(dashIdx + PEM_BEGIN_LOWER.length, headerEnd);
+    if (!PEM_LABEL_RE.test(label)) {
+      chunks.push(input2.slice(cur, headerEnd + 5));
+      cur = headerEnd + 5;
+      continue;
+    }
+    if (dashIdx > cur) {
+      chunks.push(input2.slice(cur, dashIdx));
+    }
+    chunks.push("[REDACTED_PRIVATE_KEY]");
+    let scan = headerEnd + 5;
+    let closedAt = -1;
+    while (scan < input2.length) {
+      const nextDash = input2.indexOf(PEM_DASHES, scan);
+      if (nextDash === -1) break;
+      if (startsWithAsciiCI2(input2, nextDash, PEM_END_LOWER)) {
+        const footerEnd = input2.indexOf(PEM_DASHES, nextDash + PEM_END_LOWER.length);
+        if (footerEnd === -1) break;
+        const endLabel = input2.slice(nextDash + PEM_END_LOWER.length, footerEnd);
+        if (PEM_LABEL_RE.test(endLabel)) {
+          closedAt = footerEnd + 5;
+          break;
+        }
+        scan = footerEnd + 5;
+        continue;
+      }
+      scan = nextDash + 5;
+    }
+    cur = closedAt === -1 ? input2.length : closedAt;
+  }
+  return chunks.join("");
+}
+var EXTRA_LINEAR_REDACT_PATTERNS = [
+  [/https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/_-]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/(?:discord\.com|discordapp\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9_-]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/open\.(?:feishu\.cn|larksuite\.com)\/open-apis\/bot\/v2\/hook\/[A-Za-z0-9_-]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/oapi\.dingtalk\.com\/robot\/send\?[^\s"'<>]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/qyapi\.weixin\.qq\.com\/cgi-bin\/webhook\/send\?[^\s"'<>]+/gi, "[REDACTED_WEBHOOK]"],
+  [/(https?:\/\/[^:\s/@]+:)([^@\s/]+)(@)/gi, "$1[REDACTED]$3"],
+  [/([?&](?:token|access_token|api[_-]?key|key|secret|sign|sig|pin|code)=)([^&#\s"'<>]+)/gi, "$1[REDACTED]"],
+  [/\bBearer[ \t]+[A-Za-z0-9\-._~+/]+=*/gi, "Bearer [REDACTED]"],
+  [/\bBasic[ \t]+[A-Za-z0-9+/]+=*/gi, "Basic [REDACTED]"],
+  [/(?<![A-Za-z0-9])eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g, "[REDACTED_JWT]"],
+  [
+    /(?<![A-Za-z0-9])(?:sk-(?:proj-|ant-)?[A-Za-z0-9_-]{12,}|sk_(?:live|test)_[A-Za-z0-9_-]{12,}|gh[pousr]_[A-Za-z0-9_-]{12,}|github_pat_[A-Za-z0-9_-]{16,}|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z\-_]{20,}|glpat-[A-Za-z0-9_-]{16,}|xox[baprs]-[A-Za-z0-9-]{10,}|npm_[A-Za-z0-9]{16,}|hf_[A-Za-z0-9]{16,}|pypi-[A-Za-z0-9_-]{16,})/g,
+    "[REDACTED_KEY]"
+  ]
+];
+var LINEAR_KV_RE = /(?<![A-Za-z0-9_.-])(["']?)([A-Za-z0-9_.-]{1,80})(["']?[ \t]*[:=][ \t]*["']?)(?!\[REDACTED)([^\s"',;}{]{4,})(["']?)/g;
+var SENSITIVE_KV_KEY_RE2 = /(?:api[_-]?key|access[_-]?key|private[_-]?key|secret|token|password|passwd|pwd|authorization|credential)/i;
+function redactKeyValueLinear(input2) {
+  if (!input2.includes("=") && !input2.includes(":")) return input2;
+  return input2.replace(
+    LINEAR_KV_RE,
+    (fullMatch, q1, key, sep, _val, q2) => {
+      if (!SENSITIVE_KV_KEY_RE2.test(key)) return fullMatch;
+      return `${q1}${key}${sep}[REDACTED]${q2}`;
+    }
+  );
+}
+function redactCleanForkText(input2) {
+  if (!input2) return "";
+  let out = stripPrivateTagsLinear(input2);
+  out = stripPemPrivateBlocksLinear(out);
+  out = redactSecrets2(out);
+  for (const [pattern, replacement] of EXTRA_LINEAR_REDACT_PATTERNS) {
+    out = out.replace(pattern, replacement);
+  }
+  out = redactKeyValueLinear(out);
+  return out;
+}
+function estimateCleanForkTokens(text) {
+  if (!text) return 0;
+  let cjk = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    if (code >= 19968 && code <= 40959 || code >= 12352 && code <= 12543 || code >= 44032 && code <= 55215) {
+      cjk += 1;
+    }
+  }
+  const nonCjk = text.length - cjk;
+  return Math.max(1, Math.ceil(nonCjk / 4 + cjk * 0.7));
+}
+function truncateUtf8Safe(text, maxBytes) {
+  const initialBytes = Buffer.byteLength(text, "utf8");
+  if (initialBytes <= maxBytes) {
+    return { text, totalBytes: initialBytes, truncated: false };
+  }
+  const notice = `
+
+[Truncated cleanly at ${maxBytes} UTF-8 bytes]`;
+  const suffix = Buffer.byteLength(notice, "utf8") < maxBytes ? notice : "...";
+  const suffixBytes = Buffer.byteLength(suffix, "utf8");
+  const budget = Math.max(0, maxBytes - suffixBytes);
+  let usedBytes = 0;
+  let cutIndex = 0;
+  for (const ch of text) {
+    const chBytes = Buffer.byteLength(ch, "utf8");
+    if (usedBytes + chBytes > budget) break;
+    usedBytes += chBytes;
+    cutIndex += ch.length;
+  }
+  const finalText = `${text.slice(0, cutIndex).trimEnd()}${suffix}`;
+  const finalBytes = Buffer.byteLength(finalText, "utf8");
+  if (finalBytes <= maxBytes) {
+    return { text: finalText, totalBytes: finalBytes, truncated: true };
+  }
+  let hardUsed = 0;
+  let hardCut = 0;
+  for (const ch of finalText) {
+    const chBytes = Buffer.byteLength(ch, "utf8");
+    if (hardUsed + chBytes > maxBytes) break;
+    hardUsed += chBytes;
+    hardCut += ch.length;
+  }
+  const clipped = finalText.slice(0, hardCut);
+  return {
+    text: clipped,
+    totalBytes: Buffer.byteLength(clipped, "utf8"),
+    truncated: true
+  };
+}
+function asRecord2(value) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value;
+  }
+  return null;
+}
+function collapseLine(input2, maxChars) {
+  const cleaned = redactCleanForkText(input2).replace(/\s+/g, " ").trim();
+  if (cleaned.length <= maxChars) return cleaned;
+  let cut = Math.max(1, maxChars - 1);
+  const lastCode = cleaned.charCodeAt(cut - 1);
+  if (lastCode >= 55296 && lastCode <= 56319) {
+    cut = Math.max(0, cut - 1);
+  }
+  return `${cleaned.slice(0, cut).trimEnd()}\u2026`;
+}
+function readJsonReadOnlySafe(filePath) {
+  try {
+    const st = import_node_fs34.default.lstatSync(filePath);
+    if (st.isSymbolicLink() || !st.isFile()) return null;
+    if (st.size <= 0 || st.size > MAX_READ_JSON_BYTES) return null;
+    const raw = import_node_fs34.default.readFileSync(filePath, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+function readActiveSpecReadOnly(rootDataDir) {
+  const empty = {
+    activeSpecTitle: null,
+    status: null,
+    goal: null,
+    readyTasks: []
+  };
+  if (!rootDataDir) return empty;
+  const statePath = import_node_path41.default.join(getModuleDataDir(rootDataDir, "spec"), "state.json");
+  const parsed = asRecord2(readJsonReadOnlySafe(statePath));
+  if (!parsed) return empty;
+  const activeSpecId = typeof parsed.activeSpecId === "string" && parsed.activeSpecId.trim() ? parsed.activeSpecId.trim() : null;
+  let activeDoc = null;
+  if (activeSpecId && Array.isArray(parsed.specs)) {
+    for (const item of parsed.specs) {
+      const rec = asRecord2(item);
+      if (rec && rec.id === activeSpecId) {
+        activeDoc = rec;
+        break;
+      }
+    }
+  } else if (activeSpecId) {
+    const specsMap = asRecord2(parsed.specs);
+    if (specsMap) {
+      activeDoc = asRecord2(specsMap[activeSpecId]);
+    }
+  }
+  if (!activeDoc && Array.isArray(parsed.specs)) {
+    for (const item of parsed.specs) {
+      const rec = asRecord2(item);
+      if (rec && (rec.status === "approved" || rec.status === "draft")) {
+        activeDoc = rec;
+        break;
+      }
+    }
+  }
+  if (!activeDoc) return empty;
+  const title = typeof activeDoc.title === "string" && activeDoc.title.trim() ? collapseLine(activeDoc.title, 120) : null;
+  const status = typeof activeDoc.status === "string" && activeDoc.status.trim() ? collapseLine(activeDoc.status, 32) : null;
+  const goal = typeof activeDoc.goal === "string" && activeDoc.goal.trim() ? collapseLine(activeDoc.goal, 220) : null;
+  const rawTasks = Array.isArray(activeDoc.tasks) ? activeDoc.tasks : [];
+  const tasks = [];
+  const statusById = /* @__PURE__ */ new Map();
+  for (const rawTask of rawTasks) {
+    const rec = asRecord2(rawTask);
+    if (!rec || typeof rec.id !== "string" || !rec.id.trim()) continue;
+    const id = rec.id.trim();
+    const taskTitle = typeof rec.title === "string" && rec.title.trim() ? collapseLine(rec.title, 120) : id;
+    const taskDesc = typeof rec.description === "string" && rec.description.trim() ? collapseLine(rec.description, 160) : void 0;
+    const taskStatus = typeof rec.status === "string" ? rec.status.trim() : "pending";
+    const dependsOn = Array.isArray(rec.dependsOn) ? rec.dependsOn.filter((d) => typeof d === "string" && d.trim().length > 0) : [];
+    const computedState = typeof rec.computedState === "string" ? rec.computedState.trim() : void 0;
+    tasks.push({
+      id,
+      title: taskTitle,
+      description: taskDesc,
+      status: taskStatus,
+      dependsOn,
+      computedState
+    });
+    statusById.set(id, taskStatus);
+  }
+  const readyTasks = tasks.filter((t) => {
+    if (t.status === "done" || t.status === "blocked" || t.status === "in_progress") {
+      return false;
+    }
+    if (t.computedState === "ready") return true;
+    if (t.status !== "pending") return false;
+    return t.dependsOn.every((depId) => statusById.get(depId) === "done");
+  }).slice(0, CLEAN_FORK_MAX_READY_TASKS).map((t) => ({
+    id: t.id,
+    title: t.title,
+    ...t.description ? { description: t.description } : {}
+  }));
+  return {
+    activeSpecTitle: title,
+    status,
+    goal,
+    readyTasks
+  };
+}
+var HIGH_PRIORITY_KINDS = /* @__PURE__ */ new Set(["architecture", "pitfall", "decision"]);
+function isMemoryStaleOrExpired(rec, nowMs) {
+  if (rec.stale === true || rec.drifted === true) return true;
+  if (typeof rec.expiresAt === "string" && rec.expiresAt.trim()) {
+    const expMs = Date.parse(rec.expiresAt);
+    if (Number.isFinite(expMs) && expMs <= nowMs) return true;
+  }
+  if (Array.isArray(rec.anchors)) {
+    for (const anchor2 of rec.anchors) {
+      const a = asRecord2(anchor2);
+      if (a && (a.driftStatus === "drifted" || a.driftStatus === "missing")) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+function readCoreMemoriesReadOnly(rootDataDir, nowMs) {
+  if (!rootDataDir) return [];
+  const memPath = import_node_path41.default.join(getModuleDataDir(rootDataDir, "mem"), "memories.json");
+  const raw = readJsonReadOnlySafe(memPath);
+  if (!raw) return [];
+  const rawObj = asRecord2(raw);
+  const list = Array.isArray(raw) ? raw : Array.isArray(rawObj?.memories) ? rawObj.memories : Array.isArray(rawObj?.items) ? rawObj.items : [];
+  const candidates = [];
+  for (const item of list) {
+    const rec = asRecord2(item);
+    if (!rec) continue;
+    if (isMemoryStaleOrExpired(rec, nowMs)) continue;
+    const rawTitle = typeof rec.title === "string" ? rec.title : "";
+    const rawContent = typeof rec.content === "string" ? rec.content : "";
+    const cleanedTitle = collapseLine(rawTitle, 96);
+    const cleanedSummary = collapseLine(rawContent, 200);
+    if (!cleanedTitle && !cleanedSummary) continue;
+    const anchors = [];
+    if (Array.isArray(rec.anchors)) {
+      for (const anchor2 of rec.anchors) {
+        const a = asRecord2(anchor2);
+        if (!a) continue;
+        const base = typeof a.basename === "string" && a.basename.trim() ? a.basename.trim() : typeof a.filePath === "string" && a.filePath.trim() ? import_node_path41.default.basename(a.filePath.trim()) : "";
+        if (!base) continue;
+        const sym = typeof a.symbol === "string" && a.symbol.trim() ? `#${a.symbol.trim()}` : "";
+        anchors.push(collapseLine(`${base}${sym}`, 64));
+        if (anchors.length >= 3) break;
+      }
+    }
+    candidates.push({
+      id: typeof rec.id === "string" && rec.id.trim() ? rec.id.trim() : `mem_${candidates.length + 1}`,
+      kind: typeof rec.kind === "string" && rec.kind.trim() ? rec.kind.trim() : "decision",
+      title: cleanedTitle || "(Untitled memory)",
+      summary: cleanedSummary,
+      pinned: Boolean(rec.pinned),
+      anchors,
+      recallCount: typeof rec.recallCount === "number" && Number.isFinite(rec.recallCount) ? Math.max(0, Math.floor(rec.recallCount)) : 0,
+      updatedAt: typeof rec.updatedAt === "string" ? rec.updatedAt : ""
+    });
+  }
+  candidates.sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    const aHasAnchors = a.anchors.length > 0 ? 1 : 0;
+    const bHasAnchors = b.anchors.length > 0 ? 1 : 0;
+    if (aHasAnchors !== bHasAnchors) return bHasAnchors - aHasAnchors;
+    const aHighKind = HIGH_PRIORITY_KINDS.has(a.kind) ? 1 : 0;
+    const bHighKind = HIGH_PRIORITY_KINDS.has(b.kind) ? 1 : 0;
+    if (aHighKind !== bHighKind) return bHighKind - aHighKind;
+    if (a.recallCount !== b.recallCount) return b.recallCount - a.recallCount;
+    return b.updatedAt.localeCompare(a.updatedAt);
+  });
+  return candidates.slice(0, CLEAN_FORK_MAX_MEM_ANCHORS);
+}
+function buildDemoSpecData() {
+  return {
+    activeSpecTitle: "v0.9.0 Clean Fork & Native File Viewer",
+    status: "approved",
+    goal: "Eliminate long-session context rot with one-click clean session forks and zero-ASAR file viewers.",
+    readyTasks: [
+      {
+        id: "T9.2",
+        title: "Wire Clean Fork aggregator into X-Ray and Hub panels",
+        description: "Aggregate handoff, Spec ready tasks, and Mem anchors within a 12 KB UTF-8 budget."
+      },
+      {
+        id: "T9.4",
+        title: "Register native MCP Apps file viewer entrypoint",
+        description: "Support SQLite, CSV, TSV, SVG, and OpenAPI YAML with strict workspace realpath guards."
+      },
+      {
+        id: "T9.5",
+        title: "Render structured approval risk cards in Remote PWA",
+        description: "Display risk level, affected file count, and Verify status using DOM APIs without innerHTML."
+      }
+    ]
+  };
+}
+function buildDemoMemAnchors() {
+  return [
+    {
+      id: "mem_demo_zero_asar",
+      kind: "architecture",
+      title: "Zero ASAR / Zero CDP Architectural Boundary",
+      summary: "All features use official MCP Apps tools, hooks, and config.json sync with zero host patching.",
+      pinned: true,
+      anchors: ["register.ts#registerXrayModule", "bridge.ts#startCleanFork"],
+      recallCount: 9,
+      updatedAt: "2026-11-27T09:00:00.000Z"
+    },
+    {
+      id: "mem_demo_tool_budget",
+      kind: "convention",
+      title: "Strict Model Tool Budget Invariant (+0 tools)",
+      summary: 'UI-triggered helpers register with visibility: ["app"] and read-only queries belong in exemptReadOnlyAppTools.',
+      pinned: true,
+      anchors: ["register.ts#registerStudioModule"],
+      recallCount: 7,
+      updatedAt: "2026-11-27T08:30:00.000Z"
+    },
+    {
+      id: "mem_demo_remote_isolation",
+      kind: "pitfall",
+      title: "Remote Default-Off Four-Zero Isolation",
+      summary: "Keep Remote strictly off by default with zero listening sockets, zero early disk writes, zero polling, and zero outbound calls.",
+      pinned: false,
+      anchors: ["gateway.ts#RemoteGateway", "hook.ts#handleRemotePreToolHook"],
+      recallCount: 5,
+      updatedAt: "2026-11-27T08:00:00.000Z"
+    }
+  ];
+}
+function clampMaxBytes(raw) {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) {
+    return CLEAN_FORK_DEFAULT_MAX_BYTES;
+  }
+  return Math.min(
+    CLEAN_FORK_HARD_MAX_BYTES,
+    Math.max(CLEAN_FORK_MIN_MAX_BYTES, Math.floor(raw))
+  );
+}
+function buildCleanForkPack(opts) {
+  const maxBytes = clampMaxBytes(opts.maxBytes);
+  const isDemo = opts.demoMode === true;
+  const nowMs = Date.now();
+  const discoveryOpts = isDemo ? { demoMode: true } : {
+    dataDir: opts.rootDataDir ? getModuleDataDir(opts.rootDataDir, "xray") : void 0,
+    brainDirs: opts.brainDir ? [{ dir: import_node_path41.default.resolve(opts.brainDir), source: "custom" }] : void 0,
+    demoMode: false
+  };
+  const detail = loadSessionDetail(opts.conversationId, discoveryOpts);
+  const hasHandoff = Boolean(detail);
+  const handoffRaw = detail ? renderHandoffSnapshot(detail) : "";
+  const handoffClean = handoffRaw ? redactCleanForkText(handoffRaw) : "";
+  const specData = isDemo ? buildDemoSpecData() : readActiveSpecReadOnly(opts.rootDataDir);
+  const memAnchors = isDemo ? buildDemoMemAnchors() : readCoreMemoriesReadOnly(opts.rootDataDir, nowMs);
+  const workspaceLabel = opts.workspaceRoot ? import_node_path41.default.basename(import_node_path41.default.resolve(opts.workspaceRoot)) : "workspace";
+  const lines = [
+    `# Clean Fork Context Pack \u2014 ${collapseLine(workspaceLabel, 80)}`,
+    "",
+    "> Continue cleanly in a fresh Antigravity session using the verified checkpoints below.",
+    ""
+  ];
+  lines.push("## Active Spec & Ready Tasks");
+  if (specData.activeSpecTitle) {
+    lines.push(
+      `- **Spec**: ${specData.activeSpecTitle}${specData.status ? ` (\`${specData.status}\`)` : ""}`
+    );
+    if (specData.goal) {
+      lines.push(`- **Goal**: ${specData.goal}`);
+    }
+    if (specData.readyTasks.length > 0) {
+      lines.push("- **Ready Unblocked Tasks**:");
+      for (const task of specData.readyTasks) {
+        lines.push(
+          `  - \`${task.id}\` ${task.title}${task.description ? ` \u2014 ${task.description}` : ""}`
+        );
+      }
+    } else {
+      lines.push("- **Ready Unblocked Tasks**: None currently queued.");
+    }
+  } else {
+    lines.push("- No active Spec recorded.");
+  }
+  lines.push("");
+  lines.push("## Core Memory & Code Anchors");
+  if (memAnchors.length > 0) {
+    for (const mem of memAnchors) {
+      const pinBadge = mem.pinned ? " [PINNED]" : "";
+      const anchorTag = mem.anchors.length > 0 ? ` (${mem.anchors.join(", ")})` : "";
+      lines.push(
+        `- **[${mem.kind.toUpperCase()}]${pinBadge} ${mem.title}**${anchorTag}: ${mem.summary}`
+      );
+    }
+  } else {
+    lines.push("- No active code-anchor memories recorded.");
+  }
+  lines.push("");
+  lines.push("## Session Handoff Summary");
+  if (hasHandoff && handoffClean) {
+    lines.push(handoffClean);
+  } else {
+    lines.push("- No local session transcript available; starting from workspace Spec and Memory context.");
+  }
+  const redactedFull = redactCleanForkText(lines.join("\n"));
+  const { text: promptMarkdown, totalBytes, truncated } = truncateUtf8Safe(redactedFull, maxBytes);
+  const estimatedTokens = estimateCleanForkTokens(promptMarkdown);
+  return {
+    promptMarkdown,
+    estimatedTokens,
+    totalBytes,
+    truncated,
+    sections: {
+      hasHandoff,
+      activeSpecTitle: specData.activeSpecTitle,
+      readyTasksCount: specData.readyTasks.length,
+      memAnchorsCount: memAnchors.length
+    }
+  };
+}
+
 // src/modules/xray/search.ts
-var import_node_fs32 = __toESM(require("node:fs"), 1);
-var import_node_path37 = __toESM(require("node:path"), 1);
-var import_node_url4 = require("node:url");
+var import_node_fs35 = __toESM(require("node:fs"), 1);
+var import_node_path42 = __toESM(require("node:path"), 1);
+var import_node_url5 = require("node:url");
 function tokenize2(text) {
   const lower = text.toLowerCase();
   const latin = lower.match(/[a-z0-9_./-]{2,}/g) ?? [];
@@ -71662,7 +74786,7 @@ function collectDocuments(opts) {
     const updatedAt = new Date(entry.mtimeMs).toISOString();
     const transcriptChunks = [];
     try {
-      const lines = import_node_fs32.default.readFileSync(entry.transcriptPath, "utf8").split(/\r?\n/);
+      const lines = import_node_fs35.default.readFileSync(entry.transcriptPath, "utf8").split(/\r?\n/);
       for (const line of lines) {
         if (!line.trim()) continue;
         try {
@@ -71697,24 +74821,24 @@ function collectDocuments(opts) {
         sourceKind: "transcript",
         sourceLabel: "Transcript",
         filePath: entry.transcriptPath,
-        uri: (0, import_node_url4.pathToFileURL)(entry.transcriptPath).href,
+        uri: (0, import_node_url5.pathToFileURL)(entry.transcriptPath).href,
         text,
         tokens: tokenize2(text)
       });
     }
     try {
-      for (const dirent of import_node_fs32.default.readdirSync(entry.brainDir, { withFileTypes: true })) {
+      for (const dirent of import_node_fs35.default.readdirSync(entry.brainDir, { withFileTypes: true })) {
         if (!dirent.isFile() || !/\.md$/i.test(dirent.name) || dirent.name.startsWith(".")) continue;
-        const artPath = import_node_path37.default.join(entry.brainDir, dirent.name);
-        const content = import_node_fs32.default.readFileSync(artPath, "utf8").slice(0, 4e4);
+        const artPath = import_node_path42.default.join(entry.brainDir, dirent.name);
+        const content = import_node_fs35.default.readFileSync(artPath, "utf8").slice(0, 4e4);
         docs.push({
           sessionId: entry.id,
           sessionTitle,
-          updatedAt: import_node_fs32.default.statSync(artPath).mtime.toISOString(),
+          updatedAt: import_node_fs35.default.statSync(artPath).mtime.toISOString(),
           sourceKind: "artifact",
           sourceLabel: dirent.name,
           filePath: artPath,
-          uri: (0, import_node_url4.pathToFileURL)(artPath).href,
+          uri: (0, import_node_url5.pathToFileURL)(artPath).href,
           text: `${dirent.name}
 ${content}`,
           tokens: tokenize2(`${dirent.name} ${content}`)
@@ -71805,7 +74929,7 @@ function registerXrayModule(server, opts, uiResourceUri) {
   const moduleDataDir = getModuleDataDir(opts.dataDir, "xray");
   const discoveryOpts = {
     dataDir: moduleDataDir,
-    brainDirs: opts.brainDir ? [{ dir: import_node_path38.default.resolve(opts.brainDir), source: "custom" }] : void 0,
+    brainDirs: opts.brainDir ? [{ dir: import_node_path43.default.resolve(opts.brainDir), source: "custom" }] : void 0,
     demoMode: opts.demoMode
   };
   const INLINE_META = {
@@ -72143,6 +75267,32 @@ function registerXrayModule(server, opts, uiResourceUri) {
       };
     }
   );
+  server.registerTool(
+    "app_xray_build_clean_fork_pack",
+    {
+      title: "Build Clean Fork Context Pack (App Only)",
+      description: "Aggregate a read-only, secret-redacted Clean Fork continuation pack combining X-Ray handoff, active Spec ready tasks, and core Mem code anchors within a bounded UTF-8 byte budget.",
+      inputSchema: {
+        conversationId: external_exports.string().optional(),
+        maxBytes: external_exports.number().int().min(CLEAN_FORK_MIN_MAX_BYTES).max(CLEAN_FORK_HARD_MAX_BYTES).optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ conversationId, maxBytes }) => {
+      const pack = buildCleanForkPack({
+        rootDataDir: opts.dataDir,
+        workspaceRoot: opts.workspaceRoot,
+        brainDir: opts.brainDir,
+        demoMode: opts.demoMode,
+        conversationId,
+        maxBytes
+      });
+      return {
+        content: [{ type: "text", text: pack.promptMarkdown }],
+        structuredContent: { ...pack }
+      };
+    }
+  );
   return {
     moduleId: "xray",
     modelTools: [
@@ -72154,14 +75304,15 @@ function registerXrayModule(server, opts, uiResourceUri) {
     exemptReadOnlyAppTools: [
       "app_xray_list_sessions",
       "app_xray_get_session_detail",
-      "app_xray_get_cost_analytics"
+      "app_xray_get_cost_analytics",
+      "app_xray_build_clean_fork_pack"
     ]
   };
 }
 
 // src/server/index.ts
 var UI_RESOURCE_URI = "ui://agy-nov/app.html";
-var NOV_VERSION = "0.8.0";
+var NOV_VERSION = "0.9.0";
 var UI_ENTRYPOINT_META = {
   ui: { resourceUri: UI_RESOURCE_URI },
   "com.google.antigravity/ui": {
@@ -72180,14 +75331,14 @@ function resolveUiHtmlPath(override) {
   const candidates = [
     override,
     envOverride,
-    import_node_path39.default.resolve(process.cwd(), "dist/ui/app.html"),
-    import_node_path39.default.resolve(import_node_path39.default.dirname(process.argv[1] || process.cwd()), "ui/app.html"),
-    import_node_path39.default.resolve(import_node_path39.default.dirname(process.argv[1] || process.cwd()), "../dist/ui/app.html")
+    import_node_path44.default.resolve(process.cwd(), "dist/ui/app.html"),
+    import_node_path44.default.resolve(import_node_path44.default.dirname(process.argv[1] || process.cwd()), "ui/app.html"),
+    import_node_path44.default.resolve(import_node_path44.default.dirname(process.argv[1] || process.cwd()), "../dist/ui/app.html")
   ].filter((p) => Boolean(p));
   for (const candidate of candidates) {
-    if (import_node_fs33.default.existsSync(candidate)) return candidate;
+    if (import_node_fs36.default.existsSync(candidate)) return candidate;
   }
-  return candidates[0] ?? import_node_path39.default.resolve(process.cwd(), "dist/ui/app.html");
+  return candidates[0] ?? import_node_path44.default.resolve(process.cwd(), "dist/ui/app.html");
 }
 var DEFAULT_CONFIG_POLL_MS = 1500;
 function hasConfigChanged(prev, next) {
@@ -72200,7 +75351,7 @@ function readDiskConfigForSync(rootDataDir) {
   const cfgPath = getConfigPath(rootDataDir);
   let rawText;
   try {
-    rawText = import_node_fs33.default.readFileSync(cfgPath, "utf8");
+    rawText = import_node_fs36.default.readFileSync(cfgPath, "utf8");
   } catch (err) {
     if (err?.code === "ENOENT") {
       return { status: "missing", config: createDefaultConfig() };
@@ -72220,7 +75371,7 @@ function readDiskConfigForSync(rootDataDir) {
 function createNovServer(rawOpts = {}) {
   const options = {
     dataDir: resolveNovDataDir(rawOpts.dataDir),
-    workspaceRoot: import_node_path39.default.resolve(rawOpts.workspaceRoot ?? process.cwd()),
+    workspaceRoot: import_node_path44.default.resolve(rawOpts.workspaceRoot ?? process.cwd()),
     demoMode: Boolean(rawOpts.demoMode),
     brainDir: rawOpts.brainDir,
     uiHtmlPath: rawOpts.uiHtmlPath,
@@ -72246,7 +75397,7 @@ function createNovServer(rawOpts = {}) {
     },
     async () => {
       const htmlPath = resolveUiHtmlPath(options.uiHtmlPath);
-      const html = import_node_fs33.default.existsSync(htmlPath) ? import_node_fs33.default.readFileSync(htmlPath, "utf8") : "<!doctype html><html><body><p>agy-NOV UI bundle missing. Run npm run build.</p></body></html>";
+      const html = import_node_fs36.default.existsSync(htmlPath) ? import_node_fs36.default.readFileSync(htmlPath, "utf8") : "<!doctype html><html><body><p>agy-NOV UI bundle missing. Run npm run build.</p></body></html>";
       return {
         contents: [
           {

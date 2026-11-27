@@ -2,6 +2,37 @@
 
 All notable changes to **agy-NOV** will be documented in this file.
 
+## [0.9.0] - 2026-11-27
+
+### Added
+- **End-to-End Engineering Pipeline Loop (`Spec → Worktree → Two-Stage Review → Verify → Mem`):**
+  - **Safe Read-Only `.worktreeinclude` & One-Click Handoff (`worktree`):** Added read-only `.worktreeinclude` allowlist preview (`app_worktree_preview_include`) and default-on `applyInclude` copying inside `worktree_create`, strictly rejecting `.env*`, SSH keys, symlinks, and out-of-workspace paths while surfacing rejected entries in `skippedSensitive` with zero automatic RCE scripts (`src/modules/worktree/core.ts`). Added one-click jump actions on each worktree card to open `Review` or `Verify` against that branch.
+  - **Two-Stage Review & Worktree Branch Switcher (`review`):** Enabled one-click switching to review any registered worktree branch, automatically loading active Spec acceptance criteria read-only (`loadActiveSpecComplianceReadOnly`) to run a structured two-stage review (**Stage 1:** Spec compliance checklist + **Stage 2:** code quality `file:line` annotations).
+  - **Worktree-Targeted Verification & Redacted PR Evidence (`verify`):** Added targeted allowlisted verification inside any registered worktree (`worktreePath`) and App-only `app_verify_pr_summary` (`buildPrDeliverySummary`) to generate paste-ready, secret-redacted PR delivery evidence summaries.
+  - **Approval-First 4-Lane Kanban Board (`radar`):** Added an approval-first 4-lane Kanban view (`Awaiting Approval` pinned first → `Running` → `Stalled / Error` → `Completed`) with one-click card jump directly into `Review`.
+- **One-Click Clean Fork Anti-Context-Rot (`xray`, `hub`, `ui`):**
+  - Added read-only App-only `app_xray_build_clean_fork_pack` (`src/modules/xray/clean-fork.ts`, zero model-tool tax) aggregating a redacted X-Ray handoff brief, active Spec unblocked `ready` tasks, and Mem code-anchored decisions inside a linear-redacted `<= 12 KB` budget.
+  - Wired One-Click Clean Fork into both `XrayPanel` and `HubPanel`, launching a fresh clean background session in the same project via official MCP Apps `app.sendMessage({ _meta: { "com.google.antigravity/message": { target: "new" } } })` and gracefully falling back to context-pill attachment or clipboard copy on `global` surfaces lacking the `message` capability.
+- **4 On-Demand Official Slash Playbooks + 2 Read-Only Specialist Subagents (`skills/`, `agents/`):**
+  - Added 4 on-demand official slash playbooks occupying zero MCP tool slots and zero resident `rules/AGENTS.md` bloat: `/nov-spec` (`skills/nov-spec/SKILL.md`, Spec-first & Brownfield Delta workflow), `/nov-debug` (`skills/nov-debug/SKILL.md`, 4-step root-cause debugging), `/nov-review` (`skills/nov-review/SKILL.md`, two-stage Spec + diff review), and `/nov-handoff` (`skills/nov-handoff/SKILL.md`, anti-context-rot handoff & Clean Fork).
+  - Added 2 independent read-only specialist subagents (`agents/nov-blind-reviewer.md` for zero-history-bias two-stage code review and `agents/nov-security-auditor.md` for OWASP & local-agent red-team auditing), strictly declaring read-only tools (`read_file`, `grep_search`, `find_by_name`, `list_dir`) with `subagent: true` and `mainAgent: false`.
+- **MCP Apps `file` Native Custom File Viewer + Remote 2.5 Structured Risk Approval Cards (`studio`, `remote`, `ui`):**
+  - Registered official `com.google.antigravity/ui` `file` entrypoint `app_nov_file_viewer` (`src/modules/studio/file-viewer.ts`, completely hidden from models with zero tool-slot tax) supporting `.sqlite`, `.sqlite3`, `.db`, `.csv`, `.tsv`, `.svg`, `.openapi.yaml`, and `.openapi.yml` previews even when `studio` or `canvas` is toggled off.
+  - Upgraded `remote` to **Remote 2.5**, enriching Mobile PWA and IM approval cards with structured risk context (`HIGH` / `MED` / `LOW` risk badge, affected file count, redacted command summary, and latest read-only `Verify` status) rendered strictly via pure DOM APIs with zero `innerHTML`.
+- **Expanded 15-Asset `doctor` Verification & Automated v0.9.0 Regression Suite (`cli`, `test`):**
+  - Expanded `agy-nov doctor` read-only asset validation from 9 to all **15** core plugin files (covering all 5 official Skills and 2 read-only specialist subagents alongside manifests, logo, and bundles).
+  - Added 3 dedicated v0.9.0 automated test suites (`test/v09-pipeline-chain.test.ts`, `test/v09-fork-viewer-remote.test.ts`, `test/v09-skills-agents.test.ts`), raising total automated verification to **77 suites / 209 tests**.
+
+### Changed
+- **Preserved 13-Module Architecture, 5 Presets, 9 CLI Commands & 47 Model Tools Unchanged:** All 13 toggleable native modules (12 local offline + 1 opt-in `remote`), 5 presets (`minimal` 6 / `core` 12 / `power` 32 / `local-all` 43 / `full` 47), 9 CLI commands, and all **47 canonical model tool names** remain 100% backward-compatible with zero tool-slot inflation; all v0.9.0 pipeline preview, Clean Fork, PR summary, and native file viewer actions remain strictly App-only (`visibility: ['app']`).
+- **Bundle, UI Localization & Docs Alignment:** Updated `package.json`, `plugin.json`, `src/server/cli.ts`, all 8 bundled UI languages across all **24 UI components** (`dist/ui/app.html` `~1.2 MB`, measured `1,233.1 KB`, far below the 10 MiB cap), `skills/agy-nov/SKILL.md`, `README.md`, all 7 localized `docs/i18n/README.*.md` files, `llms.txt`, and `docs/llms-install.md` to `v0.9.0`.
+
+### Security
+- **`.worktreeinclude` Anti-RCE & Sensitive-File Rejection (`worktree`):** Enforced strictly read-only allowlist parsing (zero post-create shell scripts), canonical `realpath` containment, file count/size caps, and hard rejection of `.env*`, private keys, symlinks, and out-of-workspace paths reported explicitly in `skippedSensitive`.
+- **Native `file` Viewer Containment & SVG XSS Sanitization (`studio`, `ui`):** Enforced strict canonical `realpath` workspace containment, SVG XSS sanitization (stripping `<script>`, event handlers, and unsafe URIs), and safe read-only fallback handling for opaque `antigravity-file://` URIs while keeping `app_nov_file_viewer` completely hidden from model tool lists.
+- **Clean Fork Redaction Cap & Read-Only Subagent Isolation (`xray`, `agents/`):** Capped Clean Fork payloads at `<= 12 KB` with linear O(n) secret & `<private>` redaction; locked `agents/nov-blind-reviewer.md` and `agents/nov-security-auditor.md` strictly to read-only tools (`read_file`, `grep_search`, `find_by_name`, `list_dir`) with `subagent: true, mainAgent: false` and zero resident `rules/AGENTS.md` injection.
+- **Remote 2.5 DOM Safety & Four-Zero Isolation (`remote`):** Rendered structured risk badges, affected file counts, redacted command summaries, and read-only `Verify` status using pure DOM APIs with zero `innerHTML`, zero remote file writes, zero remote shell access, and unchanged four-zero isolation while `remote` stays OFF.
+
 ## [0.8.0] - 2026-11-27
 
 ### Added

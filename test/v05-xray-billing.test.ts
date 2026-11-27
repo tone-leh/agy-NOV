@@ -586,6 +586,7 @@ describe('v0.5.0 X-Ray 2.0 — MCP Tool Surface, Formats & Zero-Write Demo Mode'
         'app_xray_list_sessions',
         'app_xray_get_session_detail',
         'app_xray_get_cost_analytics',
+        'app_xray_build_clean_fork_pack',
       ]);
 
       const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

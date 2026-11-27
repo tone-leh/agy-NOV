@@ -35,14 +35,114 @@ const FILE_ARG_KEYS = [
 const EXTRA_SENSITIVE_BASENAME_RE =
   /(?:^\.env(?:\.|$)|\.(?:pem|key|p12|pfx|jks|keystore|kdbx|crt|der)$|^id_(?:rsa|ed25519|ecdsa|dsa)(?:\.pub)?$|^(?:authorized_keys|known_hosts|\.npmrc|\.netrc|\.pypirc|kubeconfig)$|(?:secret|credential|password|passwd|private[_-]?key|token))/i;
 
+function stripRemotePrivateBlocksLinear(input: string): string {
+  if (!input || !input.includes('<')) return input;
+  const lower = input.toLowerCase();
+  if (!lower.includes('<private')) return input;
+
+  let out = '';
+  let cursor = 0;
+  let depth = 0;
+  let i = 0;
+  const n = input.length;
+
+  while (i < n) {
+    const lt = input.indexOf('<', i);
+    if (lt < 0) {
+      if (depth === 0) out += input.slice(cursor);
+      break;
+    }
+    if (lower.startsWith('<private', lt)) {
+      const after = lt + 8;
+      if (after < n && (input[after] === '>' || /\s/.test(input[after]))) {
+        const gt = input.indexOf('>', after);
+        if (gt >= 0) {
+          if (depth === 0) {
+            out += input.slice(cursor, lt);
+            out += '[REDACTED_PRIVATE]';
+          }
+          depth += 1;
+          i = gt + 1;
+          cursor = i;
+          continue;
+        }
+      }
+    } else if (lower.startsWith('</private', lt)) {
+      const after = lt + 9;
+      if (after < n && (input[after] === '>' || /\s/.test(input[after]))) {
+        const gt = input.indexOf('>', after);
+        if (gt >= 0) {
+          if (depth > 0) depth -= 1;
+          i = gt + 1;
+          if (depth === 0) cursor = i;
+          continue;
+        }
+      }
+    }
+    i = lt + 1;
+  }
+  return out;
+}
+
+function redactRemotePemBlocksLinear(input: string): string {
+  if (!input || !input.includes('-----')) return input;
+  const upper = input.toUpperCase();
+  const marker = '-----BEGIN ';
+  if (!upper.includes(marker)) return input;
+
+  let out = '';
+  let pos = 0;
+  while (pos < input.length) {
+    const start = upper.indexOf(marker, pos);
+    if (start < 0) {
+      out += input.slice(pos);
+      break;
+    }
+    const headerEnd = upper.indexOf('-----', start + marker.length);
+    if (headerEnd < 0 || headerEnd - start > 96) {
+      out += input.slice(pos, start + marker.length);
+      pos = start + marker.length;
+      continue;
+    }
+    const headerText = upper.slice(start + marker.length, headerEnd);
+    if (!headerText.includes('PRIVATE KEY')) {
+      out += input.slice(pos, headerEnd + 5);
+      pos = headerEnd + 5;
+      continue;
+    }
+
+    out += input.slice(pos, start);
+    out += '[REDACTED_PRIVATE_KEY]';
+
+    const endMarker = '-----END ';
+    let searchPos = headerEnd + 5;
+    let foundEnd = -1;
+    while (searchPos < input.length) {
+      const eStart = upper.indexOf(endMarker, searchPos);
+      if (eStart < 0) break;
+      const eEnd = upper.indexOf('-----', eStart + endMarker.length);
+      if (eEnd < 0 || eEnd - eStart > 96) {
+        searchPos = eStart + endMarker.length;
+        continue;
+      }
+      const endLabel = upper.slice(eStart + endMarker.length, eEnd);
+      if (endLabel.includes('PRIVATE KEY')) {
+        foundEnd = eEnd + 5;
+        break;
+      }
+      searchPos = eEnd + 5;
+    }
+
+    if (foundEnd >= 0) {
+      pos = foundEnd;
+    } else {
+      pos = input.length;
+    }
+  }
+  return out;
+}
+
 const STRONG_SECRET_PATTERNS: Array<[RegExp, string]> = [
-  // Complete PEM private key blocks (case-insensitive, bounded body prevents multi-block lazy backtracking)
-  [
-    /-----BEGIN [A-Z0-9 -]*PRIVATE KEY-----[\s\S]{0,8192}?-----END [A-Z0-9 -]*PRIVATE KEY-----/gi,
-    '[REDACTED_PRIVATE_KEY]',
-  ],
-  // Truncated PEM private key blocks missing an END line (case-insensitive)
-  [/-----BEGIN [A-Z0-9 -]*PRIVATE KEY-----[\s\S]*/gi, '[REDACTED_PRIVATE_KEY]'],
   // Bearer / Basic credentials
   [/\bBearer\s+[A-Za-z0-9\-._~+/]+=*/gi, 'Bearer [REDACTED]'],
   [/\bBasic\s+[A-Za-z0-9+/]+=*/gi, 'Basic [REDACTED]'],
@@ -169,7 +269,10 @@ export function clampLiveStreamLimit(limit?: number): number {
  * 2. Hardened secret patterns (PKCS#8 & truncated PEM, JWT, Bearer, cloud/provider keys, key=value passwords)
  */
 export function redactLiveStreamText(raw: string): string {
-  let out = redactText(raw);
+  if (!raw) return '';
+  let out = stripRemotePrivateBlocksLinear(raw);
+  out = redactRemotePemBlocksLinear(out);
+  out = redactText(out);
   for (const [pattern, replacement] of STRONG_SECRET_PATTERNS) {
     out = out.replace(pattern, replacement);
   }

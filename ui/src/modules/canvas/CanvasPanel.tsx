@@ -70,6 +70,27 @@ interface CanvasPayload {
   board?: CanvasBoard | null;
 }
 
+interface CanvasFileViewerPayload {
+  kind: 'opaque-uri' | 'svg' | 'data' | 'openapi';
+  targetTab: 'studio' | 'canvas';
+  fileName: string;
+  extension: string;
+  relPath?: string;
+  resourceUri?: string;
+  bytes?: number;
+  mode?: 'live' | 'demo';
+  readOnly?: boolean;
+  note?: string;
+  svg?: {
+    content: string;
+    bytes: number;
+    lineCount: number;
+    width?: string;
+    height?: string;
+    viewBox?: string;
+  };
+}
+
 const SAFE_IMAGE_DATA_URI_PREFIX = /^data:image\/(png|jpeg|webp|gif);base64,/;
 const BASE64_PAYLOAD_RE = /^[A-Za-z0-9+/]+={0,2}$/;
 
@@ -247,6 +268,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [localToast, setLocalToast] = useState<string | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => bridge.getTheme());
+  const [fileViewer, setFileViewer] = useState<CanvasFileViewerPayload | null>(null);
 
   const dragStart = useRef<{ x: number; y: number } | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -331,14 +353,25 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
     }
   }, [active, loadFullBoard]);
 
-  // Respond to incoming tool result events (e.g., canvas_publish_artifact / canvas_open_file)
+  // Respond to incoming tool result events (e.g., canvas_publish_artifact / canvas_open_file / app_nov_file_viewer)
   useEffect(() => {
     if (!incomingEvent || incomingEvent === lastEventRef.current) return;
     const sc = incomingEvent.structuredContent;
     if (!sc || typeof sc !== 'object') return;
 
+    const rawFileViewer =
+      sc.fileViewer && typeof sc.fileViewer === 'object'
+        ? (sc.fileViewer as CanvasFileViewerPayload)
+        : null;
+    const isCanvasFileViewer = Boolean(
+      rawFileViewer &&
+        typeof rawFileViewer.fileName === 'string' &&
+        (rawFileViewer.targetTab === 'canvas' || rawFileViewer.kind === 'svg'),
+    );
+
     const rawBoard = sc.board as CanvasBoard | CanvasBoardMeta | null | undefined;
     const hasCanvasPayload =
+      isCanvasFileViewer ||
       sc.novModule === 'canvas' ||
       typeof sc.boardId === 'string' ||
       sc.boardId === null ||
@@ -348,6 +381,14 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
 
     if (!hasCanvasPayload) return;
     lastEventRef.current = incomingEvent;
+
+    if (isCanvasFileViewer && rawFileViewer) {
+      setFileViewer(rawFileViewer);
+      loadedOnceRef.current = true;
+      if (rawBoard === undefined && !Array.isArray(sc.boards) && sc.boardId === undefined) {
+        return;
+      }
+    }
 
     if (Array.isArray(sc.boards)) {
       setBoards(sc.boards as CanvasBoardSummary[]);
@@ -412,6 +453,11 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
     if (!currentRev || board?.kind !== 'svg') return '';
     return buildSafeSvgSrcDoc(currentRev.content, theme);
   }, [board?.kind, currentRev, theme]);
+
+  const fileViewerSvgSrcDoc = useMemo(() => {
+    if (!fileViewer || fileViewer.kind !== 'svg' || !fileViewer.svg?.content) return '';
+    return buildSafeSvgSrcDoc(fileViewer.svg.content, theme);
+  }, [fileViewer, theme]);
 
   const safeImageSrc = useMemo(() => {
     if (!currentRev || board?.kind !== 'image') return null;
@@ -647,7 +693,63 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
 
       {errorMsg && <div className="canvas-error" role="alert">{errorMsg}</div>}
 
-      {!board || !currentRev ? (
+      {fileViewer && (
+        <section
+          className="canvas-pin-card is-active"
+          aria-label="Native File Viewer"
+          style={{ flexShrink: 0 }}
+        >
+          <div className="canvas-row" style={{ justifyContent: 'space-between' }}>
+            <div className="canvas-row">
+              <span className="canvas-badge">Native File Viewer</span>
+              <span className="canvas-badge">READ-ONLY</span>
+              <strong>{fileViewer.fileName}</strong>
+              <span className="canvas-badge">{fileViewer.extension}</span>
+              {typeof fileViewer.bytes === 'number' && (
+                <span className="canvas-badge">{fileViewer.bytes} B</span>
+              )}
+              {fileViewer.svg?.viewBox && (
+                <span className="canvas-badge">viewBox: {fileViewer.svg.viewBox}</span>
+              )}
+            </div>
+            <button
+              type="button"
+              className="canvas-btn is-compact"
+              onClick={() => setFileViewer(null)}
+            >
+              Close Preview
+            </button>
+          </div>
+          {fileViewer.relPath && <div className="canvas-muted">{fileViewer.relPath}</div>}
+          {fileViewer.resourceUri && (
+            <div className="canvas-muted" style={{ wordBreak: 'break-all' }}>
+              URI: {fileViewer.resourceUri}
+            </div>
+          )}
+          {fileViewer.note && <div className="canvas-pin-note">{fileViewer.note}</div>}
+        </section>
+      )}
+
+      {fileViewer && fileViewer.kind === 'svg' && fileViewerSvgSrcDoc ? (
+        <div className="canvas-stage-card" style={{ flex: 1, minHeight: 240 }}>
+          <div className="canvas-stage-bar">
+            <span>
+              <strong>SVG FILE VIEWER</strong> · {fileViewer.fileName}
+              {fileViewer.svg ? ` · ${fileViewer.svg.lineCount} lines` : ''}
+            </span>
+            <span className="canvas-badge">SANDBOXED</span>
+          </div>
+          <div className="canvas-stage-body">
+            <iframe
+              className="canvas-stage-iframe canvas-stage-svg-iframe"
+              title={fileViewer.fileName}
+              sandbox=""
+              referrerPolicy="no-referrer"
+              srcDoc={fileViewerSvgSrcDoc}
+            />
+          </div>
+        </div>
+      ) : !board || !currentRev ? (
         <div className="canvas-stage-card canvas-empty-card">
           <strong>{loading ? dict.common.loading : c.emptyCanvas}</strong>
           <p>

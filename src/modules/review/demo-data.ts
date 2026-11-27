@@ -1,8 +1,72 @@
 import { extractCodeSnippet, parseUnifiedDiff } from './diff-parser.js';
-import type { DiffFile, ReviewAnnotation, ReviewScope, ReviewSession } from './types.js';
+import type {
+  DiffFile,
+  ReviewAnnotation,
+  ReviewScope,
+  ReviewSession,
+  ReviewSpecCompliance,
+  ReviewWorktreeOption,
+} from './types.js';
 
 export const DEMO_REPO_KEY = 'demo-agy-review-01';
 export const DEMO_REPO_PATH = '/workspace/acme-auth-service';
+export const DEMO_WORKTREE_PATH =
+  '/workspace/acme-auth-service/.agy-worktrees/feat-token-refresh-guard';
+
+export function buildDemoAvailableWorktrees(): ReviewWorktreeOption[] {
+  return [
+    {
+      path: DEMO_REPO_PATH,
+      branch: 'main',
+      isMain: true,
+      isDirty: false,
+    },
+    {
+      path: DEMO_WORKTREE_PATH,
+      branch: 'feat/token-refresh-guard',
+      isMain: false,
+      isDirty: true,
+    },
+  ];
+}
+
+export function buildDemoSpecCompliance(): ReviewSpecCompliance {
+  const items = [
+    {
+      id: 't1',
+      title: 'Enforce per-IP sliding rate limit before JWT verification',
+      status: 'done',
+      checked: true,
+    },
+    {
+      id: 't2',
+      title: 'Accept bearer tokens strictly from Authorization header (reject URL query tokens)',
+      status: 'in_progress',
+      checked: false,
+    },
+    {
+      id: 't3',
+      title: 'Return HTTP 401 and null context on invalid or expired JWT (no guest fallback)',
+      status: 'pending',
+      checked: false,
+    },
+    {
+      id: 't4',
+      title: 'Add unit tests covering 429 rate-limit threshold and sessionId propagation',
+      status: 'done',
+      checked: true,
+    },
+  ];
+  return {
+    specId: 'spec-token-refresh-guard',
+    title: 'Token Refresh & Rate-Limit Hardening',
+    status: 'approved',
+    mode: 'delta',
+    totalTasks: items.length,
+    doneTasks: items.filter((i) => i.status === 'done').length,
+    items,
+  };
+}
 
 const DEMO_UNIFIED_DIFF = `diff --git a/src/auth/token-middleware.ts b/src/auth/token-middleware.ts
 index 8e11c20..f72a903 100644
@@ -155,14 +219,29 @@ export function buildDemoSeedAnnotations(files: DiffFile[], scope: ReviewScope =
   ];
 }
 
-export function createDemoSession(scope: ReviewScope = 'working'): ReviewSession {
+export function createDemoSession(
+  scope: ReviewScope = 'working',
+  requestedWorktreePath?: string,
+): ReviewSession {
+  const availableWorktrees = buildDemoAvailableWorktrees();
+  let activeWt = availableWorktrees[1]; // default to feature worktree
+  if (requestedWorktreePath && requestedWorktreePath.trim()) {
+    const matched = availableWorktrees.find((w) => w.path === requestedWorktreePath.trim());
+    if (!matched) {
+      throw new Error(
+        `Refused: "${requestedWorktreePath}" is not a registered demo worktree.`,
+      );
+    }
+    activeWt = matched;
+  }
+
   const files = buildDemoFiles();
   const annotations = buildDemoSeedAnnotations(files, scope);
   return {
-    repoPath: DEMO_REPO_PATH,
+    repoPath: activeWt.path,
     repoName: 'acme-auth-service (Demo)',
     repoKey: DEMO_REPO_KEY,
-    branch: 'feat/token-refresh-guard',
+    branch: activeWt.branch ?? 'feat/token-refresh-guard',
     headCommit: 'f72a903',
     scope,
     isGitRepo: true,
@@ -182,7 +261,9 @@ export function createDemoSession(scope: ReviewScope = 'working'): ReviewSession
       lastWriteAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       changeCount: 3,
-      workspacePaths: [DEMO_REPO_PATH],
+      workspacePaths: [activeWt.path],
     },
+    availableWorktrees,
+    specCompliance: buildDemoSpecCompliance(),
   };
 }

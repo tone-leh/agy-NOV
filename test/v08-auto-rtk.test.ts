@@ -652,14 +652,13 @@ describe('v0.8.0 PostToolUse hotspots & version/catalog alignment', () => {
     });
   });
 
-  it('updates catalog turbo hooks and bumps core version constants/manifests to 0.8.0', () => {
+  it('updates catalog turbo hooks and aligns core version constants with manifests', () => {
     assert.deepEqual(MODULE_CATALOG.turbo.hooks, ['SessionStart', 'PreToolUse', 'PostToolUse']);
-    assert.equal(NOV_VERSION, '0.8.0');
 
     const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8')) as { version: string };
     const plugin = JSON.parse(fs.readFileSync(path.resolve('plugin.json'), 'utf8')) as { version: string };
-    assert.equal(pkg.version, '0.8.0');
-    assert.equal(plugin.version, '0.8.0');
+    assert.equal(NOV_VERSION, pkg.version);
+    assert.equal(plugin.version, pkg.version);
   });
 
   it('supports CLI compact-run with original exit code preservation and reports Auto-RTK OFF in doctor (zero writes)', async () => {
@@ -677,7 +676,7 @@ describe('v0.8.0 PostToolUse hotspots & version/catalog alignment', () => {
       );
       assert.equal(doctorProc.status, 0, doctorProc.stderr || doctorProc.stdout);
       assert.ok(doctorProc.stdout.includes('Auto-RTK: OFF'), doctorProc.stdout);
-      assert.ok(doctorProc.stdout.includes('v0.8.0'), doctorProc.stdout);
+      assert.ok(doctorProc.stdout.includes(`v${NOV_VERSION}`), doctorProc.stdout);
       assert.equal(fs.existsSync(absentDataDir), false, 'doctor must remain strictly read-only');
 
       // 2. CLI compact-run preserves non-zero exit code on failing whitelisted command

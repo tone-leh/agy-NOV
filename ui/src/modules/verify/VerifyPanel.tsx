@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ModuleId } from '../../../../src/core/catalog.js';
 import type { NovBridge } from '../../bridge.js';
 import { useNovI18n } from '../../i18n/index.js';
 
@@ -7,6 +8,7 @@ export interface NovModulePanelProps {
   active: boolean;
   onNotify?: (message: string) => void;
   incomingEvent?: { toolName?: string; structuredContent: Record<string, unknown> } | null;
+  onNavigateModule?: (moduleId: ModuleId, context?: { worktreePath?: string; branch?: string }) => void;
 }
 
 interface VerifyCommandSpec {
@@ -56,6 +58,24 @@ interface VerifyCommandRunResult {
   error?: string;
 }
 
+interface VerifyWorktreeOption {
+  path: string;
+  branch: string | null;
+  isMain: boolean;
+}
+
+interface PrDeliverySummaryResult {
+  mode: string;
+  markdown: string;
+  passed: boolean;
+  branch?: string;
+  worktreePath?: string;
+  evidenceId?: string;
+  specId?: string;
+  checksTotal: number;
+  checksPassed: number;
+}
+
 interface VerifyEvidenceRecord {
   id: string;
   conversationId?: string;
@@ -69,6 +89,8 @@ interface VerifyEvidenceRecord {
   results?: VerifyCommandRunResult[];
   summary?: string;
   reason?: string;
+  targetBranch?: string;
+  targetWorktree?: string;
 }
 
 interface VerifyStats {
@@ -85,6 +107,7 @@ interface VerifyStateView {
   evidence: VerifyEvidenceRecord[];
   stats: VerifyStats;
   updatedAt?: string;
+  availableWorktrees?: VerifyWorktreeOption[];
 }
 
 interface EditableCommand {
@@ -253,6 +276,7 @@ export const VerifyPanel: React.FC<NovModulePanelProps> = ({
   active,
   onNotify,
   incomingEvent,
+  onNavigateModule,
 }) => {
   const { dict } = useNovI18n();
   const vDict = dict.panels.verify;
@@ -268,11 +292,16 @@ export const VerifyPanel: React.FC<NovModulePanelProps> = ({
   const [newExec, setNewExec] = useState('');
   const [newArgs, setNewArgs] = useState('');
 
+  const [selectedWorktreePath, setSelectedWorktreePath] = useState<string>('');
+  const [prSummary, setPrSummary] = useState<PrDeliverySummaryResult | null>(null);
   const [detectedResult, setDetectedResult] = useState<DetectedStackResult | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
   const applyServerState = useCallback((next: VerifyStateView, syncDraft: boolean) => {
-    setState(next);
+    setState((prev) => ({
+      ...next,
+      availableWorktrees: next.availableWorktrees ?? prev?.availableWorktrees,
+    }));
     if (syncDraft && next.policy) {
       setDraft(toDraft(next.policy));
       setPolicyDirty(false);
@@ -298,9 +327,26 @@ export const VerifyPanel: React.FC<NovModulePanelProps> = ({
   }, [active, loadState]);
 
   useEffect(() => {
-    if (!active || !incomingEvent) return;
+    if (!incomingEvent) return;
+    const sc = incomingEvent.structuredContent;
+    if (sc && typeof sc === 'object') {
+      const ctx =
+        sc.context && typeof sc.context === 'object'
+          ? (sc.context as { worktreePath?: string })
+          : null;
+      const incomingWt =
+        typeof sc.worktreePath === 'string' && sc.worktreePath.trim()
+          ? sc.worktreePath.trim()
+          : typeof ctx?.worktreePath === 'string' && ctx.worktreePath.trim()
+            ? ctx.worktreePath.trim()
+            : '';
+      if (incomingWt) {
+        setSelectedWorktreePath(incomingWt);
+      }
+    }
+    if (!active) return;
     const tool = incomingEvent.toolName ?? '';
-    const mod = incomingEvent.structuredContent?.novModule;
+    const mod = sc?.novModule;
     if (tool.startsWith('verify_') || tool.startsWith('app_verify_') || mod === 'verify') {
       void loadState(!policyDirtyRef.current);
     }
@@ -347,9 +393,12 @@ export const VerifyPanel: React.FC<NovModulePanelProps> = ({
       if (policyDirty && draft) {
         await persistPolicy(draft);
       }
+      const args: Record<string, unknown> = {};
+      if (commandId) args.commandId = commandId;
+      if (selectedWorktreePath) args.worktreePath = selectedWorktreePath;
       const res = await bridge.callTool<{ run?: VerifyEvidenceRecord; state?: VerifyStateView }>(
         'app_verify_run_checks',
-        commandId ? { commandId } : {},
+        args,
       );
       if (res.state) {
         applyServerState(res.state, !policyDirty);
@@ -364,6 +413,41 @@ export const VerifyPanel: React.FC<NovModulePanelProps> = ({
       onNotify?.(err instanceof Error ? err.message : String(err));
     } finally {
       setBusyAction(null);
+    }
+  };
+
+  const handleGeneratePrSummary = async () => {
+    if (busyAction) return;
+    setBusyAction('pr-summary');
+    try {
+      const args: Record<string, unknown> = {};
+      if (selectedWorktreePath) args.worktreePath = selectedWorktreePath;
+      const res = await bridge.callTool<PrDeliverySummaryResult>('app_verify_pr_summary', args);
+      setPrSummary(res);
+    } catch (err) {
+      onNotify?.(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const handleCopyPrSummary = async () => {
+    if (!prSummary?.markdown) return;
+    try {
+      await navigator.clipboard?.writeText(prSummary.markdown);
+      onNotify?.(dict.common.copied);
+    } catch {
+      onNotify?.(dict.common.copy);
+    }
+  };
+
+  const handleSendPrSummary = async () => {
+    if (!prSummary?.markdown) return;
+    try {
+      await bridge.sendMessage(prSummary.markdown);
+      onNotify?.(dict.ops.sendToAgent);
+    } catch (err) {
+      onNotify?.(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -508,6 +592,9 @@ export const VerifyPanel: React.FC<NovModulePanelProps> = ({
   }, [state?.sessions]);
 
   const evidenceList = Array.isArray(state?.evidence) ? state.evidence : [];
+  const availableWorktrees = Array.isArray(state?.availableWorktrees)
+    ? state.availableWorktrees
+    : [];
   const stats = state?.stats ?? { totalRuns: 0, passedRuns: 0, failedRuns: 0, blockedStops: 0 };
   const isBusy = busyAction !== null;
 
@@ -536,6 +623,20 @@ export const VerifyPanel: React.FC<NovModulePanelProps> = ({
             >
               {busyAction === 'run:all' ? dict.common.loading : vDict.runChecks}
             </button>
+            {onNavigateModule && (
+              <button
+                type="button"
+                className="nov-p-btn"
+                disabled={isBusy}
+                onClick={() =>
+                  onNavigateModule('review', {
+                    worktreePath: selectedWorktreePath || undefined,
+                  })
+                }
+              >
+                {dict.modules.review.shortLabel}
+              </button>
+            )}
             <button
               type="button"
               className="nov-p-btn is-danger"
@@ -546,6 +647,34 @@ export const VerifyPanel: React.FC<NovModulePanelProps> = ({
             </button>
           </div>
         </div>
+
+        {availableWorktrees.length > 0 && (
+          <div className="nov-p-row" style={{ gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '12px', color: 'var(--nov-text-1)', fontWeight: 500 }}>
+              Target Worktree:
+            </span>
+            <select
+              className="nov-p-select"
+              style={{
+                flex: '1 1 240px',
+                maxWidth: '420px',
+                fontFamily: 'var(--nov-font-mono)',
+                fontSize: '12px',
+              }}
+              aria-label="Target Worktree"
+              disabled={isBusy}
+              value={selectedWorktreePath}
+              onChange={(e) => setSelectedWorktreePath(e.target.value)}
+            >
+              <option value="">Workspace Default (Main)</option>
+              {availableWorktrees.map((wt) => (
+                <option key={wt.path} value={wt.path}>
+                  [{wt.isMain ? 'Main' : 'WT'}] {wt.branch ?? '(detached)'} — {wt.path}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="nov-p-stat-grid">
           <div className="nov-p-stat">
@@ -619,6 +748,66 @@ export const VerifyPanel: React.FC<NovModulePanelProps> = ({
             {vDict.tabEvidence} ({evidenceList.length})
           </button>
         </div>
+      </section>
+
+      <section className="nov-p-card">
+        <div className="nov-p-row" style={{ flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
+            <h3 className="nov-card-title">Generate PR Delivery Evidence</h3>
+            {prSummary && (
+              <span className={prSummary.passed ? 'nov-badge is-offline' : 'nov-badge is-network'}>
+                {prSummary.checksPassed}/{prSummary.checksTotal} checks passed
+              </span>
+            )}
+            {prSummary?.branch && (
+              <span className="nov-badge is-accent">{prSummary.branch}</span>
+            )}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            <button
+              type="button"
+              className="nov-p-btn is-primary"
+              disabled={isBusy}
+              onClick={() => void handleGeneratePrSummary()}
+            >
+              {busyAction === 'pr-summary' ? dict.common.loading : 'Generate PR Delivery Evidence'}
+            </button>
+            {prSummary && (
+              <>
+                <button
+                  type="button"
+                  className="nov-p-btn"
+                  disabled={isBusy}
+                  onClick={() => void handleCopyPrSummary()}
+                >
+                  {dict.common.copy}
+                </button>
+                <button
+                  type="button"
+                  className="nov-p-btn"
+                  disabled={isBusy}
+                  onClick={() => void handleSendPrSummary()}
+                >
+                  {dict.ops.sendToAgent}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {prSummary ? (
+          <pre
+            className="nov-p-pre"
+            style={{ maxHeight: '240px', overflowY: 'auto', margin: 0 }}
+          >
+            {prSummary.markdown}
+          </pre>
+        ) : (
+          <p style={{ margin: 0, fontSize: '12px', color: 'var(--nov-text-2)' }}>
+            Compile redacted Verify Gate checks, target worktree/branch metadata, and active Spec
+            progress into a PR-ready Markdown block.
+          </p>
+        )}
       </section>
 
       {tab === 'gate' && draft && (
@@ -1007,6 +1196,19 @@ export const VerifyPanel: React.FC<NovModulePanelProps> = ({
                           {badgeLabel}
                         </span>
                         {rec.trigger && <span className="nov-badge">{rec.trigger}</span>}
+                        {rec.targetBranch && (
+                          <span className="nov-badge is-accent">{rec.targetBranch}</span>
+                        )}
+                        {rec.targetWorktree && (
+                          <code
+                            className="nov-badge"
+                            title={rec.targetWorktree}
+                            style={{ fontFamily: 'var(--nov-font-mono)' }}
+                          >
+                            {rec.targetWorktree.split(/[\\/]/).filter(Boolean).pop() ??
+                              rec.targetWorktree}
+                          </code>
+                        )}
                         {typeof rec.durationMs === 'number' && (
                           <span className="nov-badge">{formatDuration(rec.durationMs)}</span>
                         )}

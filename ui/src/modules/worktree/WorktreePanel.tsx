@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import type { ModuleId } from '../../../../src/core/catalog.js';
 import type { NovBridge } from '../../bridge.js';
 import { useNovI18n } from '../../i18n/index.js';
 
@@ -7,6 +8,7 @@ export interface NovModulePanelProps {
   active: boolean;
   onNotify?: (message: string) => void;
   incomingEvent?: { toolName?: string; structuredContent: Record<string, unknown> } | null;
+  onNavigateModule?: (moduleId: ModuleId, context?: { worktreePath?: string; branch?: string }) => void;
 }
 
 interface WorktreeEntry {
@@ -46,9 +48,34 @@ interface WorktreeInspectResult {
   counts: WorktreeCounts;
 }
 
+interface WorktreeIncludeEntry {
+  path: string;
+  sizeBytes: number;
+}
+
+interface WorktreeIncludeSkippedItem {
+  entry: string;
+  reason: string;
+}
+
+interface WorktreeIncludePreviewResult {
+  mode: string;
+  repoRoot: string;
+  hasConfig: boolean;
+  configPath: string;
+  eligibleFiles: WorktreeIncludeEntry[];
+  skippedSensitive: WorktreeIncludeSkippedItem[];
+  skippedInvalid: WorktreeIncludeSkippedItem[];
+  totalBytes: number;
+  warning?: string;
+}
+
 interface CreateWorktreeResult {
   created: WorktreeEntry;
   carriedUncommitted: boolean;
+  includedFiles?: string[];
+  skippedSensitive?: string[];
+  skippedInvalid?: string[];
   warning?: string;
   state: WorktreeInspectResult;
 }
@@ -106,19 +133,35 @@ export const WorktreePanel: React.FC<NovModulePanelProps> = ({
   active,
   onNotify,
   incomingEvent,
+  onNavigateModule,
 }) => {
   const { dict, t } = useNovI18n();
   const wDict = dict.panels.worktree;
 
   const [state, setState] = useState<WorktreeInspectResult | null>(null);
+  const [includePreview, setIncludePreview] = useState<WorktreeIncludePreviewResult | null>(null);
   const [branch, setBranch] = useState('');
   const [baseRef, setBaseRef] = useState('');
   const [carryUncommitted, setCarryUncommitted] = useState(false);
+  const [applyInclude, setApplyInclude] = useState(true);
   const [createWarning, setCreateWarning] = useState<string | null>(null);
+  const [lastIncludeNote, setLastIncludeNote] = useState<string | null>(null);
 
   const [diffSummary, setDiffSummary] = useState<WorktreeDiffSummaryResult | null>(null);
   const [confirmForcePath, setConfirmForcePath] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
+
+  const loadIncludePreview = useCallback(async () => {
+    try {
+      const res = await bridge.callTool<WorktreeIncludePreviewResult>(
+        'app_worktree_preview_include',
+        {},
+      );
+      setIncludePreview(res);
+    } catch {
+      // Optional read-only preview; never block main worktree listing
+    }
+  }, [bridge]);
 
   const loadList = useCallback(async () => {
     try {
@@ -130,8 +173,11 @@ export const WorktreePanel: React.FC<NovModulePanelProps> = ({
   }, [bridge, onNotify]);
 
   useEffect(() => {
-    if (active) void loadList();
-  }, [active, loadList]);
+    if (active) {
+      void loadList();
+      void loadIncludePreview();
+    }
+  }, [active, loadList, loadIncludePreview]);
 
   useEffect(() => {
     if (!active || !incomingEvent) return;
@@ -139,20 +185,23 @@ export const WorktreePanel: React.FC<NovModulePanelProps> = ({
     const mod = incomingEvent.structuredContent?.novModule;
     if (tool.startsWith('worktree_') || tool.startsWith('app_worktree_') || mod === 'worktree') {
       void loadList();
+      void loadIncludePreview();
     }
-  }, [active, incomingEvent, loadList]);
+  }, [active, incomingEvent, loadList, loadIncludePreview]);
 
   const handleCreate = async () => {
     const cleanBranch = branch.trim();
     if (!cleanBranch || busyAction) return;
     setBusyAction('create');
     setCreateWarning(null);
+    setLastIncludeNote(null);
     try {
       const cleanBase = baseRef.trim();
       const res = await bridge.callTool<CreateWorktreeResult>('app_worktree_create', {
         branch: cleanBranch,
         ...(cleanBase ? { baseRef: cleanBase } : {}),
         carryUncommitted,
+        applyInclude,
       });
       if (res.state) {
         setState(res.state);
@@ -160,6 +209,13 @@ export const WorktreePanel: React.FC<NovModulePanelProps> = ({
         await loadList();
       }
       setBranch('');
+      const copiedCount = Array.isArray(res.includedFiles) ? res.includedFiles.length : 0;
+      const blockedCount = Array.isArray(res.skippedSensitive) ? res.skippedSensitive.length : 0;
+      if (copiedCount > 0 || blockedCount > 0) {
+        setLastIncludeNote(
+          `.worktreeinclude: copied ${copiedCount} file(s)${blockedCount > 0 ? `, blocked ${blockedCount} sensitive path(s)` : ''}.`,
+        );
+      }
       if (res.warning) {
         setCreateWarning(res.warning);
         onNotify?.(res.warning);
@@ -252,7 +308,10 @@ export const WorktreePanel: React.FC<NovModulePanelProps> = ({
               type="button"
               className="nov-p-btn"
               disabled={isBusy}
-              onClick={() => void loadList()}
+              onClick={() => {
+                void loadList();
+                void loadIncludePreview();
+              }}
             >
               {dict.common.refresh}
             </button>
@@ -372,21 +431,39 @@ export const WorktreePanel: React.FC<NovModulePanelProps> = ({
               />
             </div>
 
-            <div className="nov-p-row">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={carryUncommitted}
-                  className="nov-switch"
-                  disabled={isBusy}
-                  onClick={() => setCarryUncommitted((prev) => !prev)}
-                >
-                  <span className="nov-switch-thumb" />
-                </button>
-                <span style={{ fontSize: '12px', color: 'var(--nov-text-1)' }}>
-                  {wDict.carryUncommitted}
-                </span>
+            <div className="nov-p-row" style={{ flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={carryUncommitted}
+                    className="nov-switch"
+                    disabled={isBusy}
+                    onClick={() => setCarryUncommitted((prev) => !prev)}
+                  >
+                    <span className="nov-switch-thumb" />
+                  </button>
+                  <span style={{ fontSize: '12px', color: 'var(--nov-text-1)' }}>
+                    {wDict.carryUncommitted}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={applyInclude}
+                    className="nov-switch"
+                    disabled={isBusy}
+                    onClick={() => setApplyInclude((prev) => !prev)}
+                  >
+                    <span className="nov-switch-thumb" />
+                  </button>
+                  <span style={{ fontSize: '12px', color: 'var(--nov-text-1)' }}>
+                    Apply <code>.worktreeinclude</code> whitelist
+                  </span>
+                </div>
               </div>
               <button
                 type="button"
@@ -397,6 +474,121 @@ export const WorktreePanel: React.FC<NovModulePanelProps> = ({
                 {busyAction === 'create' ? dict.common.loading : wDict.createBtn}
               </button>
             </div>
+
+            {includePreview && includePreview.hasConfig && (
+              <div
+                className="nov-p-item"
+                style={{
+                  background: 'var(--nov-bg-0)',
+                  gap: '8px',
+                }}
+              >
+                <div className="nov-p-row">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
+                    <strong style={{ fontSize: '12px' }}>
+                      <code>.worktreeinclude</code> Preview
+                    </strong>
+                    <span className="nov-badge is-offline">
+                      {includePreview.eligibleFiles.length} eligible
+                    </span>
+                    {includePreview.skippedSensitive.length > 0 && (
+                      <span
+                        className="nov-badge"
+                        style={{
+                          background: 'var(--nov-danger-soft)',
+                          color: 'var(--nov-danger)',
+                          borderColor: 'var(--nov-danger)',
+                        }}
+                      >
+                        {includePreview.skippedSensitive.length} sensitive blocked
+                      </span>
+                    )}
+                    {includePreview.skippedInvalid.length > 0 && (
+                      <span className="nov-badge is-network">
+                        {includePreview.skippedInvalid.length} invalid skipped
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--nov-text-2)' }}>
+                    {(includePreview.totalBytes / 1024).toFixed(1)} KiB
+                  </span>
+                </div>
+
+                {includePreview.warning && (
+                  <div style={{ fontSize: '11.5px', color: 'var(--nov-danger)' }}>
+                    {includePreview.warning}
+                  </div>
+                )}
+
+                {includePreview.eligibleFiles.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {includePreview.eligibleFiles.map((item) => (
+                      <code
+                        key={item.path}
+                        className="nov-badge is-offline"
+                        style={{ fontFamily: 'var(--nov-font-mono)' }}
+                      >
+                        {item.path}
+                      </code>
+                    ))}
+                  </div>
+                )}
+
+                {includePreview.skippedSensitive.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11.5px', color: 'var(--nov-danger)', fontWeight: 600 }}>
+                      Blocked (secret policy):
+                    </span>
+                    {includePreview.skippedSensitive.map((item, idx) => (
+                      <code
+                        key={`${item.entry}:${idx}`}
+                        className="nov-badge"
+                        title={item.reason}
+                        style={{
+                          fontFamily: 'var(--nov-font-mono)',
+                          background: 'var(--nov-danger-soft)',
+                          color: 'var(--nov-danger)',
+                          borderColor: 'var(--nov-danger)',
+                        }}
+                      >
+                        ⚠ {item.entry}
+                      </code>
+                    ))}
+                  </div>
+                )}
+
+                {includePreview.skippedInvalid.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11.5px', color: 'var(--nov-warn)' }}>
+                      Skipped (invalid):
+                    </span>
+                    {includePreview.skippedInvalid.map((item, idx) => (
+                      <code
+                        key={`${item.entry}:${idx}`}
+                        className="nov-badge is-network"
+                        title={item.reason}
+                        style={{ fontFamily: 'var(--nov-font-mono)' }}
+                      >
+                        {item.entry}
+                      </code>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {lastIncludeNote && (
+              <div
+                className="nov-p-banner"
+                style={{
+                  background: 'var(--nov-success-soft)',
+                  borderColor: 'var(--nov-success)',
+                  color: 'var(--nov-text-0)',
+                }}
+              >
+                {lastIncludeNote}
+              </div>
+            )}
 
             {createWarning && (
               <div
@@ -498,6 +690,39 @@ export const WorktreePanel: React.FC<NovModulePanelProps> = ({
                           >
                             {diffLoading ? dict.common.loading : wDict.diffBtn}
                           </button>
+
+                          {!wt.isMain && (
+                            <>
+                              <button
+                                type="button"
+                                className="nov-p-btn"
+                                disabled={isBusy}
+                                title={`${dict.modules.review.shortLabel}: ${wt.branch ?? wt.path}`}
+                                onClick={() =>
+                                  onNavigateModule?.('review', {
+                                    worktreePath: wt.path,
+                                    branch: wt.branch ?? undefined,
+                                  })
+                                }
+                              >
+                                {dict.modules.review.shortLabel}
+                              </button>
+                              <button
+                                type="button"
+                                className="nov-p-btn"
+                                disabled={isBusy}
+                                title={`${dict.modules.verify.shortLabel}: ${wt.branch ?? wt.path}`}
+                                onClick={() =>
+                                  onNavigateModule?.('verify', {
+                                    worktreePath: wt.path,
+                                    branch: wt.branch ?? undefined,
+                                  })
+                                }
+                              >
+                                {dict.modules.verify.shortLabel}
+                              </button>
+                            </>
+                          )}
 
                           {!wt.isMain && !isConfirmingForce && (
                             <button

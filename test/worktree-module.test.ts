@@ -554,7 +554,7 @@ describe('v0.3.0 Worktree Orchestrator module', () => {
         reg.modelTools.map((t) => t.name).sort(),
         [...MODULE_CATALOG.worktree.modelToolNames].sort(),
       );
-      assert.deepEqual(reg.exemptReadOnlyAppTools, ['app_worktree_list']);
+      assert.deepEqual(reg.exemptReadOnlyAppTools, ['app_worktree_list', 'app_worktree_preview_include']);
 
       // Registration must touch neither dataDir nor workspaceRoot
       assert.equal(fs.existsSync(dataDir), false);

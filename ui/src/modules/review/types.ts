@@ -92,6 +92,38 @@ export interface ReviewSignal {
   conversationId?: string;
 }
 
+export interface ReviewWorktreeOption {
+  path: string;
+  branch: string | null;
+  isMain: boolean;
+  isDirty?: boolean;
+}
+
+export interface ReviewSpecComplianceItem {
+  id: string;
+  title: string;
+  status: string;
+  checked: boolean;
+}
+
+export interface ReviewSpecCompliance {
+  specId: string;
+  title: string;
+  status: string;
+  mode?: string;
+  totalTasks: number;
+  doneTasks: number;
+  items: ReviewSpecComplianceItem[];
+}
+
+export interface Stage1ChecklistItem {
+  id: string;
+  title: string;
+  status?: string;
+  checked: boolean;
+  note?: string;
+}
+
 export interface ReviewSession {
   repoPath: string;
   repoName: string;
@@ -113,6 +145,8 @@ export interface ReviewSession {
   viewedFiles: string[];
   annotations: ReviewAnnotation[];
   signal?: ReviewSignal | null;
+  availableWorktrees?: ReviewWorktreeOption[];
+  specCompliance?: ReviewSpecCompliance | null;
 }
 
 export interface BuiltReviewPrompt {
@@ -124,6 +158,7 @@ export interface BuiltReviewPrompt {
 
 export interface DiffQuery {
   repoPath?: string;
+  worktreePath?: string;
   scope?: ReviewScope;
   commitRange?: string;
   ignoreWhitespace?: boolean;
@@ -228,9 +263,24 @@ const CATEGORY_BADGE: Record<AnnotationCategory, string> = {
  * Client-side fallback prompt formatter used for instant preview before
  * authoritative server formatting via app_review_build_prompt.
  */
-export function buildLocalReviewPrompt(session: ReviewSession): string {
+export function buildLocalReviewPrompt(
+  session: ReviewSession,
+  stage1Checklist?: Stage1ChecklistItem[],
+): string {
   const openItems = session.annotations.filter((a) => !a.resolved);
-  if (openItems.length === 0) {
+  const spec = session.specCompliance ?? null;
+  const stage1Items: Stage1ChecklistItem[] =
+    Array.isArray(stage1Checklist) && stage1Checklist.length > 0
+      ? stage1Checklist
+      : spec?.items.map((item) => ({
+          id: item.id,
+          title: item.title,
+          status: item.status,
+          checked: item.checked,
+        })) ?? [];
+  const hasTwoStage = Boolean(spec || stage1Items.length > 0);
+
+  if (openItems.length === 0 && !hasTwoStage) {
     return `No pending review annotations for \`${session.repoName}\` (${session.scope}).`;
   }
 
@@ -279,19 +329,57 @@ export function buildLocalReviewPrompt(session: ReviewSession): string {
       ? `${session.scope} (${session.commitRange})`
       : session.scope;
 
-  const lines: string[] = [
-    `# Code Review Feedback — ${session.repoName}`,
-    '',
-    `- **Branch**: \`${session.branch || 'current'}\` | **Scope**: \`${scopeLabel}\``,
-    `- **Items**: ${openItems.length} annotation${openItems.length === 1 ? '' : 's'} across ${sortedFileEntries.length} file${sortedFileEntries.length === 1 ? '' : 's'} (${severitySummary})`,
-    '',
-    'Please address each inline review item below in priority order:',
-    '',
-  ];
+  const lines: string[] = [];
+
+  if (hasTwoStage) {
+    const checkedCount = stage1Items.filter((item) => item.checked).length;
+    lines.push(`# Two-Stage Code Review Feedback — ${session.repoName}`);
+    lines.push('');
+    lines.push(`- **Branch**: \`${session.branch || 'current'}\` | **Scope**: \`${scopeLabel}\``);
+    if (spec) {
+      const modeTag = spec.mode ? ` · mode: \`${spec.mode}\`` : '';
+      lines.push(
+        `- **Active Spec**: \`${spec.specId}\` — ${spec.title} (status: \`${spec.status}\`${modeTag}, progress: ${spec.doneTasks}/${spec.totalTasks})`,
+      );
+    }
+    lines.push(
+      `- **Stage 1 Spec Checklist**: ${checkedCount}/${stage1Items.length} verified | **Stage 2 Annotations**: ${openItems.length} across ${sortedFileEntries.length} file${sortedFileEntries.length === 1 ? '' : 's'}${severitySummary ? ` (${severitySummary})` : ''}`,
+    );
+    lines.push('');
+    lines.push('## Stage 1: Spec Compliance Checklist');
+    lines.push('');
+    if (stage1Items.length === 0) {
+      lines.push('_No checklist tasks defined in the active spec._');
+    } else {
+      for (const item of stage1Items) {
+        const mark = item.checked ? 'x' : ' ';
+        const statusSuffix = item.status ? ` _(${item.status})_` : '';
+        lines.push(`- [${mark}] \`${item.id}\`: ${item.title}${statusSuffix}`);
+      }
+    }
+    lines.push('');
+    lines.push('## Stage 2: Code Quality Annotations (`file:line`)');
+    lines.push('');
+    if (openItems.length === 0) {
+      lines.push('_No pending inline code quality annotations._');
+      lines.push('');
+    }
+  } else {
+    lines.push(`# Code Review Feedback — ${session.repoName}`);
+    lines.push('');
+    lines.push(`- **Branch**: \`${session.branch || 'current'}\` | **Scope**: \`${scopeLabel}\``);
+    lines.push(
+      `- **Items**: ${openItems.length} annotation${openItems.length === 1 ? '' : 's'} across ${sortedFileEntries.length} file${sortedFileEntries.length === 1 ? '' : 's'} (${severitySummary})`,
+    );
+    lines.push('');
+    lines.push('Please address each inline review item below in priority order:');
+    lines.push('');
+  }
 
   let counter = 1;
+  const headingPrefix = hasTwoStage ? '###' : '##';
   for (const [filePath, fileAnnotations] of sortedFileEntries) {
-    lines.push(`## \`${filePath}\``);
+    lines.push(`${headingPrefix} \`${filePath}\``);
     lines.push('');
     const diffFile = fileMap.get(filePath);
     for (const ann of fileAnnotations) {
@@ -318,6 +406,9 @@ export function buildLocalReviewPrompt(session: ReviewSession): string {
 
   lines.push('---');
   lines.push('### Expectations');
+  if (hasTwoStage) {
+    lines.push('- Complete all unchecked Stage 1 Spec Compliance items before closing the review.');
+  }
   lines.push('- Prioritize `[SECURITY]` and `[BUG]` items first, keeping changes focused on the annotated lines.');
   lines.push('- Answer `[QUESTION]` items directly with code references before changing behavior unless a fix is asked for.');
   lines.push('- Run the relevant typecheck/tests after applying edits, then summarize each item resolved by file and line.');
