@@ -18,26 +18,18 @@
   <p><sub>本文為英文主文件 <a href="../../README.md">README.md</a> 的繁體中文譯本；指令、模組 ID 與設定規格以英文原版為準。</sub></p>
 
   <p>
+    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v0.6.0"><img src="https://img.shields.io/badge/Version-v0.6.0-0284c7?style=flat-square" alt="版本: v0.6.0" /></a>
     <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tone-leh/agy-NOV/ci.yml?branch=main&style=flat-square&label=CI" alt="CI 狀態" /></a>
     <a href="../../LICENSE"><img src="https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square" alt="License: MIT" /></a>
     <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node-%3E%3D20-16a34a?style=flat-square" alt="Node >= 20" /></a>
     <a href="#架構設計"><img src="https://img.shields.io/badge/MCP%20Apps-SEP--1865-6366f1?style=flat-square" alt="MCP Apps (SEP-1865)" /></a>
-    <a href="#架構設計"><img src="https://img.shields.io/badge/Protocol-Zero%20ASAR%20%C2%B7%20Zero%20CDP-0ea5e9?style=flat-square" alt="Zero ASAR · Zero CDP" /></a>
-    <a href="#內建-8-語種外掛-ui-與零-cdp-雙倉生態"><img src="https://img.shields.io/badge/UI-Built--in%208--Language%20UI-10b981?style=flat-square" alt="Built-in 8-Language UI" /></a>
+    <a href="#架構設計"><img src="https://img.shields.io/badge/Protocol-Zero%20ASAR%20%C2%B7%20Zero%20CDP-0ea5e9?style=flat-square" alt="零 ASAR · 零 CDP" /></a>
   </p>
 
   <br />
 
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="../../assets/hero-dark.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="../../assets/hero-light.svg" />
-    <img src="../../assets/hero-dark.svg" alt="agy-NOV v0.6 面向 Google Antigravity 2.0 的 100% 原生 13 模組超級工作台" width="100%" />
-  </picture>
-
-  <br />
-
-  <p><strong>Live Workbench Preview · 實機工作台預覽</strong></p>
-  <img src="../../assets/demo-preview.gif" alt="agy-NOV v0.6 實機工作台預覽 —— 13 大原生模組、全元件 8 語種介面、Mem 2.0、Turbo 2.5、Remote 2.0 與 Ops 2.5" width="100%" />
+  <p><strong>實機工作台預覽</strong></p>
+  <img src="../../assets/demo-preview.gif" alt="agy-NOV v0.6.0 實機工作台預覽 —— 13 大原生模組、全元件 8 語種介面、Mem 2.0、Turbo 2.5、Remote 2.0 與 Ops 2.5" width="100%" />
 
   <br />
 
@@ -212,38 +204,42 @@ agy plugin install https://github.com/tone-leh/agy-session-guard
 
 ## 架構設計
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../../assets/architecture-dark.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="../../assets/architecture-light.svg" />
-  <img src="../../assets/architecture-dark.svg" alt="agy-NOV v0.6 100% 原生零 CDP 架構圖" width="100%" />
-</picture>
-
-<details>
-<summary><strong>檢視 Mermaid 架構圖與縱深安全核查清單</strong></summary>
-
 ```mermaid
 flowchart TB
-  Host["Google Antigravity 2.0 宿主 (Desktop / CLI / IDE)\n100% 官方原生協定 (零 ASAR · 零 CDP)"]
-  MCP["單一 MCP 伺服器 (dist/server.cjs)\n常駐工具: nov_open, nov_status\n動態 RegisteredTool 啟用/停用"]
-  UI["單檔統一 UI (dist/ui/app.html)\n100% 8 語種 UI (426 鍵 · 22 元件) · ~985 KB (< 10 MiB)"]
-  Hook["統一 Hook 分發器 (dist/hook.cjs)\n唯讀檢查設定 -> O(1) 快速短路"]
-  CLI["零相依 CLI (dist/cli.cjs)\n8 條指令 · 含唯讀 statusline 與 recommend (.agy-nov.json)"]
-  Store["模組級隔離儲存\n<dataDir>/modules/<id>/ (0700 / 0600)"]
-  T1["第一層: 12 個本機離線原生模組\nreview · guard · xray 2.0 · turbo 2.5 · radar · verify\nworktree · spec · studio · canvas · mem 2.0 · ops 2.5"]
-  T2R["第二層 (預設關閉): remote 2.0\n按需啟用行動端 PWA 唯讀實況流與 IM Webhooks"]
+  subgraph L1["第一層 · Google Antigravity 2.0 宿主 (Desktop / CLI / IDE)"]
+    Host["100% 官方原生協定 (零 ASAR · 零 CDP)\nMCP Apps SEP-1865 · Lifecycle Hooks · 沙盒 ui:// · CLI statusLine"]
+    Sag["可選配套伴侶 · agy-Sag\nconfig.json 原子熱同步 · status-capsule.json 即時狀態源"]
+  end
+
+  subgraph L2["第二層 · agy-NOV v0.6.0 純原生執行期核心"]
+    MCP["單一 MCP 伺服器 (dist/server.cjs)\n動態 tools/list: 6 / 12 / 32 / 43 / 47 · 關閉模組即零 Token 稅"]
+    Hook["統一 Hook 分發器 (dist/hook.cjs)\n唯讀檢查設定 -> O(1) 短路 · PreToolUse: Guard > Spec > Remote"]
+    UI["單檔 8 語種統一 UI (dist/ui/app.html)\n426 鍵 × 8 語種 (22 個元件) · 深淺雙主題 · ~985 KB (< 10 MiB)"]
+    CLI["零 Token 原生 CLI (dist/cli.cjs)\n8 條指令 · 含唯讀 statusline、recommend (.agy-nov.json) 與 doctor"]
+  end
+
+  subgraph L3["第三層 · 13 大可開關模組與隔離儲存"]
+    T1["Tier 1 · 12 個本機離線原生模組 (0 埠 · 0 外發 · 至多 43 工具)\nreview · guard · xray 2.0 · turbo 2.5 · radar · verify\nworktree · spec · studio · canvas · mem 2.0 · ops 2.5"]
+    T2R["Tier 2 · 1 個按需模組 (預設關閉 · 四零隔離)\nremote 2.0：行動端 PWA 唯讀實況流、安全穿透引導與 6 路 IM 通知"]
+    Store["模組級隔離儲存 (0700 / 0600)\n<dataDir>/modules/<id>/ · realpath 邊界 · 脫敏日誌"]
+  end
 
   Host --> MCP
   Host --> Hook
   Host -. "CLI statusLine / recommend" .-> CLI
+  Sag -. "config.json 熱同步" .-> MCP
   MCP --> UI
   MCP --> T1
-  MCP -. "按需啟用" .-> T2R
+  MCP -. "僅按需啟用" .-> T2R
   Hook --> T1
   Hook -. "PreToolUse: Guard > Spec > Remote" .-> T2R
   T1 --> Store
   T2R -. "開啟後按需寫盤" .-> Store
   CLI -. "唯讀彙整 status-capsule.json / spec / .agy-nov.json" .-> Store
 ```
+
+<details>
+<summary><strong>檢視縱深安全核查清單</strong></summary>
 
 ### 縱深安全核查清單
 

@@ -18,26 +18,18 @@
   <p><sub>이 문서는 영문 공식 문서 <a href="../../README.md">README.md</a>의 한국어 번역본입니다. 명령어, 모듈 ID 및 설정 기준은 영문 원본을 따릅니다.</sub></p>
 
   <p>
+    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v0.6.0"><img src="https://img.shields.io/badge/Version-v0.6.0-0284c7?style=flat-square" alt="버전: v0.6.0" /></a>
     <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tone-leh/agy-NOV/ci.yml?branch=main&style=flat-square&label=CI" alt="CI 상태" /></a>
     <a href="../../LICENSE"><img src="https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square" alt="License: MIT" /></a>
     <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node-%3E%3D20-16a34a?style=flat-square" alt="Node >= 20" /></a>
     <a href="#아키텍처"><img src="https://img.shields.io/badge/MCP%20Apps-SEP--1865-6366f1?style=flat-square" alt="MCP Apps (SEP-1865)" /></a>
-    <a href="#아키텍처"><img src="https://img.shields.io/badge/Protocol-Zero%20ASAR%20%C2%B7%20Zero%20CDP-0ea5e9?style=flat-square" alt="Zero ASAR · Zero CDP" /></a>
-    <a href="#내장-8개-언어-플러그인-ui와-제로-cdp-컴패니언-생태계"><img src="https://img.shields.io/badge/UI-Built--in%208--Language%20UI-10b981?style=flat-square" alt="Built-in 8-Language UI" /></a>
+    <a href="#아키텍처"><img src="https://img.shields.io/badge/Protocol-Zero%20ASAR%20%C2%B7%20Zero%20CDP-0ea5e9?style=flat-square" alt="제로 ASAR · 제로 CDP" /></a>
   </p>
 
   <br />
 
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="../../assets/hero-dark.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="../../assets/hero-light.svg" />
-    <img src="../../assets/hero-dark.svg" alt="agy-NOV v0.6 — Google Antigravity 2.0을 위한 100% 네이티브 13모듈 슈퍼 워크벤치" width="100%" />
-  </picture>
-
-  <br />
-
-  <p><strong>Live Workbench Preview · 실시간 워크벤치 미리보기</strong></p>
-  <img src="../../assets/demo-preview.gif" alt="agy-NOV v0.6 실시간 워크벤치 미리보기 — 13개 네이티브 모듈, 전 컴포넌트 8개 언어 UI, Mem 2.0, Turbo 2.5, Remote 2.0 및 Ops 2.5" width="100%" />
+  <p><strong>실시간 워크벤치 미리보기</strong></p>
+  <img src="../../assets/demo-preview.gif" alt="agy-NOV v0.6.0 실시간 워크벤치 미리보기 — 13개 네이티브 모듈, 전 컴포넌트 8개 언어 UI, Mem 2.0, Turbo 2.5, Remote 2.0 및 Ops 2.5" width="100%" />
 
   <br />
 
@@ -212,38 +204,42 @@ agy plugin install https://github.com/tone-leh/agy-session-guard
 
 ## 아키텍처
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../../assets/architecture-dark.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="../../assets/architecture-light.svg" />
-  <img src="../../assets/architecture-dark.svg" alt="agy-NOV v0.6 100% 네이티브 제로 CDP 아키텍처" width="100%" />
-</picture>
-
-<details>
-<summary><strong>Mermaid 아키텍처 다이어그램 및 심층 방어 보안 체크리스트 보기</strong></summary>
-
 ```mermaid
 flowchart TB
-  Host["Google Antigravity 2.0 호스트 (Desktop / CLI / IDE)\n100% 공식 네이티브 프로토콜 (Zero ASAR · Zero CDP)"]
-  MCP["단일 MCP 서버 (dist/server.cjs)\n상시 활성: nov_open, nov_status\n동적 RegisteredTool 활성/비활성"]
-  UI["단일 파일 통합 UI (dist/ui/app.html)\n100% 8개 언어 UI (426 키 · 22 컴포넌트) · ~985 KB (< 10 MiB)"]
-  Hook["단일 훅 디스패처 (dist/hook.cjs)\n읽기 전용 설정 확인 -> O(1) 단락"]
-  CLI["CLI (dist/cli.cjs)\n8개 명령 · 읽기 전용 statusline 및 recommend (.agy-nov.json)"]
-  Store["모듈별 격리 저장소\n<dataDir>/modules/<id>/ (0700 / 0600)"]
-  T1["Tier 1: 12개 로컬 오프라인 네이티브 모듈\nreview · guard · xray 2.0 · turbo 2.5 · radar · verify\nworktree · spec · studio · canvas · mem 2.0 · ops 2.5"]
-  T2R["Tier 2 (기본 OFF): remote 2.0\n옵트인 Mobile PWA 라이브 스트림 및 IM Webhooks"]
+  subgraph L1["레이어 1 · Google Antigravity 2.0 호스트 (Desktop / CLI / IDE)"]
+    Host["100% 공식 네이티브 프로토콜 (제로 ASAR · 제로 CDP)\nMCP Apps SEP-1865 · Lifecycle Hooks · 샌드박스 ui:// · CLI statusLine"]
+    Sag["선택적 컴패니언 · agy-Sag\nconfig.json 원자적 핫 동기화 · status-capsule.json 실시간 상태 피드"]
+  end
+
+  subgraph L2["레이어 2 · agy-NOV v0.6.0 순수 네이티브 런타임 코어"]
+    MCP["단일 MCP 서버 (dist/server.cjs)\n동적 tools/list: 6 / 12 / 32 / 43 / 47 · OFF 시 토큰 세금 제로"]
+    Hook["단일 훅 디스패처 (dist/hook.cjs)\n읽기 전용 설정 확인 -> O(1) 단락 · Guard > Spec > Remote"]
+    UI["단일 파일 8개 언어 UI (dist/ui/app.html)\n426 키 × 8개 언어 (22개 컴포넌트) · 다크/라이트 · ~985 KB (< 10 MiB)"]
+    CLI["제로 토큰 네이티브 CLI (dist/cli.cjs)\n8개 명령 · 읽기 전용 statusline, recommend (.agy-nov.json), doctor"]
+  end
+
+  subgraph L3["레이어 3 · 13개 토글 모듈 및 격리 저장소"]
+    T1["Tier 1 · 12개 로컬 오프라인 네이티브 모듈 (0 포트 · 0 외부 전송 · 최대 43 도구)\nreview · guard · xray 2.0 · turbo 2.5 · radar · verify\nworktree · spec · studio · canvas · mem 2.0 · ops 2.5"]
+    T2R["Tier 2 · 1개 옵트인 모듈 (기본 OFF · 4중 제로 격리)\nremote 2.0: 읽기 전용 PWA 라이브 스트림, 안전 터널 안내 및 6종 IM 알림"]
+    Store["모듈별 격리 저장소 (0700 / 0600)\n<dataDir>/modules/<id>/ · realpath 경계 · 마스킹 로그"]
+  end
 
   Host --> MCP
   Host --> Hook
   Host -. "CLI statusLine / recommend" .-> CLI
+  Sag -. "config.json 핫 동기화" .-> MCP
   MCP --> UI
   MCP --> T1
-  MCP -. "옵트인" .-> T2R
+  MCP -. "옵트인 시에만" .-> T2R
   Hook --> T1
   Hook -. "PreToolUse: Guard > Spec > Remote" .-> T2R
   T1 --> Store
   T2R -. "ON 시 지연 쓰기" .-> Store
   CLI -. "status-capsule.json / spec / .agy-nov.json 읽기 전용 집계" .-> Store
 ```
+
+<details>
+<summary><strong>심층 방어 보안 체크리스트 보기</strong></summary>
 
 ### 심층 방어 보안 체크리스트
 

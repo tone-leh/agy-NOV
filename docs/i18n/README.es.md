@@ -20,26 +20,18 @@
   </p>
 
   <p>
+    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v0.6.0"><img src="https://img.shields.io/badge/Version-v0.6.0-0284c7?style=flat-square" alt="Versión: v0.6.0" /></a>
     <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tone-leh/agy-NOV/ci.yml?branch=main&style=flat-square&label=CI" alt="Estado de CI" /></a>
     <a href="../../LICENSE"><img src="https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square" alt="Licencia: MIT" /></a>
     <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node-%3E%3D20-16a34a?style=flat-square" alt="Node >= 20" /></a>
     <a href="#arquitectura"><img src="https://img.shields.io/badge/MCP%20Apps-SEP--1865-6366f1?style=flat-square" alt="MCP Apps (SEP-1865)" /></a>
     <a href="#arquitectura"><img src="https://img.shields.io/badge/Protocol-Zero%20ASAR%20%C2%B7%20Zero%20CDP-0ea5e9?style=flat-square" alt="Cero ASAR · Cero CDP" /></a>
-    <a href="#interfaz-integrada-en-8-idiomas-y-ecosistema-complementario-sin-cdp"><img src="https://img.shields.io/badge/UI-Built--in%208--Language%20UI-10b981?style=flat-square" alt="Interfaz integrada en 8 idiomas" /></a>
   </p>
 
   <br />
 
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="../../assets/hero-dark.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="../../assets/hero-light.svg" />
-    <img src="../../assets/hero-dark.svg" alt="agy-NOV v0.6 — Superentorno modular 100 % nativo de 13 módulos para Google Antigravity 2.0" width="100%" />
-  </picture>
-
-  <br />
-
-  <p><strong>Live Workbench Preview · Vista previa en vivo del banco de trabajo</strong></p>
-  <img src="../../assets/demo-preview.gif" alt="agy-NOV v0.6 Vista previa en vivo — 13 módulos nativos, interfaz completa en 8 idiomas, Mem 2.0, Turbo 2.5, Remote 2.0 y Ops 2.5" width="100%" />
+  <p><strong>Vista previa en vivo del banco de trabajo</strong></p>
+  <img src="../../assets/demo-preview.gif" alt="agy-NOV v0.6.0 Vista previa en vivo — 13 módulos nativos, interfaz completa en 8 idiomas, Mem 2.0, Turbo 2.5, Remote 2.0 y Ops 2.5" width="100%" />
 
   <br />
 
@@ -214,38 +206,42 @@ agy plugin install https://github.com/tone-leh/agy-session-guard
 
 ## Arquitectura
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../../assets/architecture-dark.svg" />
-  <source media="(prefers-color-scheme: light)" srcset="../../assets/architecture-light.svg" />
-  <img src="../../assets/architecture-dark.svg" alt="Arquitectura 100 % nativa y cero CDP de agy-NOV v0.6" width="100%" />
-</picture>
-
-<details>
-<summary><strong>Inspeccionar diagrama Mermaid y lista de verificación de seguridad en profundidad</strong></summary>
-
 ```mermaid
 flowchart TB
-  Host["Host Google Antigravity 2.0 (Desktop / CLI / IDE)\n100 % protocolos oficiales nativos (Cero ASAR · Cero CDP)"]
-  MCP["Servidor MCP único (dist/server.cjs)\nSiempre activos: nov_open, nov_status\nActivación/desactivación dinámica con RegisteredTool"]
-  UI["UI unificada en un archivo (dist/ui/app.html)\n100 % en 8 idiomas (426 claves · 22 componentes) · ~985 KB (< 10 MiB)"]
-  Hook["Despachador unificado de hooks (dist/hook.cjs)\nLectura de config en solo lectura -> cortocircuito O(1)"]
-  CLI["CLI (dist/cli.cjs)\n8 comandos · statusline y recommend (.agy-nov.json) en solo lectura"]
-  Store["Almacenamiento aislado por módulo\n<dataDir>/modules/<id>/ (0700 / 0600)"]
-  T1["Nivel 1: 12 módulos nativos locales offline\nreview · guard · xray 2.0 · turbo 2.5 · radar · verify\nworktree · spec · studio · canvas · mem 2.0 · ops 2.5"]
-  T2R["Nivel 2 (OFF por defecto): remote 2.0\nPWA móvil en vivo y webhooks de mensajería opt-in"]
+  subgraph L1["Capa 1 · Host Google Antigravity 2.0 (Desktop / CLI / IDE)"]
+    Host["100 % protocolos oficiales nativos (Cero ASAR · Cero CDP)\nMCP Apps SEP-1865 · Lifecycle Hooks · ui:// aislado · CLI statusLine"]
+    Sag["Compañero opcional · agy-Sag\nSincronización atómica de config.json · feed status-capsule.json"]
+  end
+
+  subgraph L2["Capa 2 · Núcleo nativo puro de agy-NOV v0.6.0"]
+    MCP["Servidor MCP único (dist/server.cjs)\ntools/list dinámico: 6 / 12 / 32 / 43 / 47 · 0 impuesto de tokens en OFF"]
+    Hook["Despachador unificado de hooks (dist/hook.cjs)\nConfig en solo lectura -> cortocircuito O(1) · Guard > Spec > Remote"]
+    UI["UI monoarchivo en 8 idiomas (dist/ui/app.html)\n426 claves × 8 idiomas (22 componentes) · Oscuro/Claro · ~985 KB (< 10 MiB)"]
+    CLI["CLI nativo sin tokens (dist/cli.cjs)\n8 comandos · statusline, recommend (.agy-nov.json) y doctor"]
+  end
+
+  subgraph L3["Capa 3 · 13 módulos activables y almacenamiento aislado"]
+    T1["Nivel 1 · 12 módulos nativos offline (0 puertos · 0 tráfico externo · máx. 43 herramientas)\nreview · guard · xray 2.0 · turbo 2.5 · radar · verify\nworktree · spec · studio · canvas · mem 2.0 · ops 2.5"]
+    T2R["Nivel 2 · 1 módulo opt-in (OFF por defecto · aislamiento cuádruple cero)\nremote 2.0: PWA móvil en vivo solo lectura, guía de túnel y 6 webhooks IM"]
+    Store["Almacenamiento aislado por módulo (0700 / 0600)\n<dataDir>/modules/<id>/ · frontera realpath · registros redactados"]
+  end
 
   Host --> MCP
   Host --> Hook
   Host -. "CLI statusLine / recommend" .-> CLI
+  Sag -. "hot-sync config.json" .-> MCP
   MCP --> UI
   MCP --> T1
-  MCP -. "opt-in" .-> T2R
+  MCP -. "solo opt-in" .-> T2R
   Hook --> T1
   Hook -. "PreToolUse: Guard > Spec > Remote" .-> T2R
   T1 --> Store
   T2R -. "escritura diferida al activar" .-> Store
   CLI -. "lectura de status-capsule.json / spec / .agy-nov.json" .-> Store
 ```
+
+<details>
+<summary><strong>Inspeccionar lista de verificación de seguridad en profundidad</strong></summary>
 
 ### Lista de verificación de seguridad en profundidad
 
