@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNovI18n } from '../../i18n/index.js';
 import type { FileActivityItem } from './types';
 
 interface FileTreePanelProps {
@@ -16,6 +17,8 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = ({
   onOpenFile,
   onAttachFile,
 }) => {
+  const { dict } = useNovI18n();
+  const x = dict.panels.xray;
   const [filter, setFilter] = useState<'all' | 'modified' | 'read'>('all');
   const [query, setQuery] = useState('');
 
@@ -38,42 +41,46 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = ({
   return (
     <div className="xr-stack">
       <div className="xr-filter-bar">
-        <div className="xr-tabs" role="tablist" aria-label="File activity filter">
+        <div className="xr-tabs" role="tablist" aria-label={x.tabFiles}>
           <button
             type="button"
+            role="tab"
+            aria-selected={filter === 'all'}
             className={`xr-tab ${filter === 'all' ? 'is-active' : ''}`}
             onClick={() => setFilter('all')}
           >
-            All ({files.length})
+            {dict.categoryAll} ({files.length})
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={filter === 'modified'}
             className={`xr-tab ${filter === 'modified' ? 'is-active' : ''}`}
             onClick={() => setFilter('modified')}
           >
-            Modified ({modifiedCount})
+            {dict.panels.review.filesChanged} ({modifiedCount})
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={filter === 'read'}
             className={`xr-tab ${filter === 'read' ? 'is-active' : ''}`}
             onClick={() => setFilter('read')}
           >
-            Read Only ({readOnlyCount})
+            R ({readOnlyCount})
           </button>
         </div>
         <input
           className="xr-input xr-filter-input"
-          placeholder="Filter by file path..."
-          aria-label="Filter files by path"
+          placeholder={dict.panels.review.filterFilesPlaceholder}
+          aria-label={dict.panels.review.filterFilesPlaceholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>
 
       {filtered.length === 0 ? (
-        <div className="xr-card xr-empty-state">
-          No matching workspace files recorded for this filter.
-        </div>
+        <div className="xr-card xr-empty-state">{x.filesEmpty}</div>
       ) : (
         <div className="xr-list">
           {filtered.map((file) => (
@@ -88,7 +95,7 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = ({
                   {file.basename}
                 </div>
                 <div className="xr-file-dir" title={file.path}>
-                  {file.dir} · {file.totalTouches}x (step #{file.lastStepIndex})
+                  {file.dir} · ×{file.totalTouches} · #{file.lastStepIndex}
                 </div>
               </div>
               <div className="xr-row-actions">
@@ -96,20 +103,20 @@ export const FileTreePanel: React.FC<FileTreePanelProps> = ({
                   <button
                     type="button"
                     className="xr-btn xr-btn-primary"
-                    title="Open file directly in Antigravity side pane"
+                    title={x.openFile}
                     onClick={() => onOpenFile(file)}
                   >
-                    Open
+                    {x.openFile}
                   </button>
                 )}
                 {canAttachContext && (
                   <button
                     type="button"
                     className="xr-btn"
-                    title="Attach file reference to your next message"
+                    title={x.attachContext}
                     onClick={() => onAttachFile(file)}
                   >
-                    + Context
+                    {x.attachContext}
                   </button>
                 )}
               </div>

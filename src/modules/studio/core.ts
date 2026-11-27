@@ -2,6 +2,30 @@ import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
+import {
+  createDemoOpenApiSpec,
+  isLikelyOpenApiDocument,
+  OPENAPI_MAX_FILE_BYTES,
+  parseOpenApiSpecFromContent,
+  type ParsedOpenApiSpec,
+} from './openapi.js';
+
+export {
+  createDemoOpenApiSpec,
+  OPENAPI_DEFAULT_LOOPBACK_BASE,
+  OPENAPI_MAX_DEPTH,
+  OPENAPI_MAX_ENDPOINTS,
+  OPENAPI_MAX_FILE_BYTES,
+  OPENAPI_MAX_YAML_LINES,
+  parseOpenApiSpecFromContent,
+  parseSafeYamlSubset,
+  parseStudioOpenApiFile,
+  type OpenApiEndpointItem,
+  type OpenApiEndpointParameter,
+  type OpenApiHttpMethod,
+  type OpenApiServerEntry,
+  type ParsedOpenApiSpec,
+} from './openapi.js';
 
 // ============================================================================
 // Constants & Security Limits
@@ -275,6 +299,7 @@ export interface StudioDocumentResult {
   lines: string[];
   metadata: Record<string, unknown>;
   sheets?: StudioDocumentSheetPreview[];
+  openApiSpec?: ParsedOpenApiSpec;
 }
 
 export interface StudioHttpProbeOptions {
@@ -2798,6 +2823,23 @@ export function inspectStudioDocument(
     if (vbMatch) metadata.viewBox = vbMatch[1];
   }
 
+  let openApiSpec: ParsedOpenApiSpec | undefined;
+  if (
+    (textFormat === 'yaml' || textFormat === 'json') &&
+    resolved.stat.size <= OPENAPI_MAX_FILE_BYTES &&
+    isLikelyOpenApiDocument(resolved.relPath, rawText, textFormat)
+  ) {
+    try {
+      const openApiExt: '.json' | '.yaml' | '.yml' =
+        ext === '.json' ? '.json' : ext === '.yml' ? '.yml' : '.yaml';
+      openApiSpec = parseOpenApiSpecFromContent(resolved.relPath, rawText, openApiExt);
+      metadata.openapi = openApiSpec.specVersion;
+      metadata.openApiEndpoints = openApiSpec.totalEndpoints;
+    } catch {
+      // Preserve offline document slicing even if OpenAPI parsing rejects malformed/unsafe input
+    }
+  }
+
   return {
     mode: 'live',
     filePath: resolved.relPath,
@@ -2811,6 +2853,7 @@ export function inspectStudioDocument(
     content: sliced.content,
     lines: sliced.lines,
     metadata,
+    ...(openApiSpec ? { openApiSpec } : {}),
   };
 }
 
@@ -3145,6 +3188,7 @@ export interface DemoStudioService {
   inspectData: (opts: StudioInspectDataOptions) => StudioDataResult;
   inspectDocument: (opts: StudioInspectDocumentOptions) => StudioDocumentResult;
   httpProbe: (opts: StudioHttpProbeOptions) => StudioHttpProbeResult;
+  parseOpenApi: (filePath: string) => ParsedOpenApiSpec;
 }
 
 export function createDemoStudioService(workspaceRoot: string): DemoStudioService {
@@ -3368,18 +3412,28 @@ export function createDemoStudioService(workspaceRoot: string): DemoStudioServic
         'openapi: 3.1.0',
         'info:',
         '  title: Local Sandbox Dev API',
-        '  version: 0.4.0',
+        '  version: 0.5.0',
         'servers:',
         '  - url: http://127.0.0.1:4399',
+        '    description: Local Loopback Dev Server',
+        '  - url: https://api.example.com/v1',
+        '    description: Production (Blocked by Loopback-Only Guard)',
         'paths:',
         '  /api/health:',
         '    get:',
-        '      summary: Loopback service health check',
-        '  /api/items:',
+        '      summary: Loopback service health and readiness check',
+        '  /api/projects/{id}:',
         '    get:',
-        '      summary: List local workspace preview items',
+        '      summary: Fetch workspace project metadata by identifier',
+        '  /api/reviews:',
+        '    post:',
+        '      summary: Create a local code review annotation batch',
+        '  /api/cache:',
+        '    delete:',
+        '      summary: Evict local loopback preview cache entries',
       ];
       const sliced = sliceLines(allLines, opts.startLine, opts.maxLines);
+      const demoSpec = createDemoOpenApiSpec('api/openapi.yaml');
       return {
         mode: 'demo',
         filePath: 'api/openapi.yaml',
@@ -3392,7 +3446,13 @@ export function createDemoStudioService(workspaceRoot: string): DemoStudioServic
         outline: extractTextOutline('yaml', allLines),
         content: sliced.content,
         lines: sliced.lines,
-        metadata: { extension: '.yaml', lineCount: allLines.length, openapi: '3.1.0' },
+        metadata: {
+          extension: '.yaml',
+          lineCount: allLines.length,
+          openapi: '3.1.0',
+          openApiEndpoints: demoSpec.totalEndpoints,
+        },
+        openApiSpec: demoSpec,
       };
     }
 
@@ -3448,10 +3508,31 @@ export function createDemoStudioService(workspaceRoot: string): DemoStudioServic
     };
   };
 
+  const parseOpenApi = (rawFilePath: string): ParsedOpenApiSpec => {
+    const filePath = (rawFilePath ?? '').trim();
+    if (!filePath || isSensitiveStudioPath(filePath)) {
+      throw new Error(`Refused to access sensitive or invalid path: ${filePath}`);
+    }
+    const normalized = filePath.replace(/\\/g, '/').replace(/^\.\//, '');
+    const base = path.posix.basename(normalized).toLowerCase();
+    if (
+      normalized === 'api/openapi.yaml' ||
+      base === 'openapi.yaml' ||
+      base === 'openapi.yml' ||
+      base === 'openapi.json'
+    ) {
+      return createDemoOpenApiSpec('api/openapi.yaml');
+    }
+    throw new Error(
+      `Demo OpenAPI spec not found: ${filePath} (available: api/openapi.yaml)`,
+    );
+  };
+
   return {
     listSources,
     inspectData,
     inspectDocument,
     httpProbe,
+    parseOpenApi,
   };
 }

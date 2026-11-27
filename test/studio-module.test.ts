@@ -823,7 +823,7 @@ describe('v0.4.0 Workspace Studio module', () => {
       assert.equal(fs.existsSync(absentDataDir), false);
 
       const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-      const client = new Client({ name: 'studio-demo-client', version: '0.4.0' });
+      const client = new Client({ name: 'studio-demo-client', version: '0.5.0' });
       await server.connect(serverTransport);
       await client.connect(clientTransport);
 
@@ -835,6 +835,7 @@ describe('v0.4.0 Workspace Studio module', () => {
           'app_studio_inspect_data',
           'app_studio_inspect_document',
           'app_studio_list_sources',
+          'app_studio_parse_openapi',
           'studio_http_probe',
           'studio_inspect_data',
           'studio_inspect_document',
@@ -847,6 +848,7 @@ describe('v0.4.0 Workspace Studio module', () => {
           'app_studio_inspect_data',
           'app_studio_inspect_document',
           'app_studio_http_probe',
+          'app_studio_parse_openapi',
         ]) {
           const toolDef = listedTools.tools.find((t) => t.name === appName);
           assert.deepEqual(

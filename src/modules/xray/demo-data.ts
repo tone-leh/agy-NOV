@@ -1,4 +1,27 @@
+import { estimateTokenCostUsd, roundUsd } from './pricing.js';
 import type { SearchHit, SessionDetail, SessionSummary } from './types.js';
+
+function applyEstimatedCosts(detail: SessionDetail): SessionDetail {
+  let totalUsd = 0;
+  let totalSavings = 0;
+  const enrichedBreakdown = detail.modelBreakdown.map((item) => {
+    const cost = estimateTokenCostUsd(item.model, {
+      freshInputTokens: item.freshInputTokens,
+      cacheReadTokens: item.cacheReadTokens,
+      outputTokens: item.outputTokens,
+    });
+    totalUsd += cost.totalUsd;
+    totalSavings += cost.cacheSavingsUsd;
+    return {
+      ...item,
+      estimatedUsd: cost.totalUsd,
+    };
+  });
+  detail.summary.estimatedUsd = roundUsd(totalUsd);
+  detail.summary.cacheSavingsUsd = roundUsd(totalSavings);
+  detail.modelBreakdown = enrichedBreakdown;
+  return detail;
+}
 
 /**
  * Synthetic, privacy-safe fixture dataset used exclusively by the offline
@@ -267,6 +290,10 @@ export function buildDemoSessions(): { summaries: SessionSummary[]; details: Rec
       },
     ],
   };
+
+  applyEstimatedCosts(s1Detail);
+  applyEstimatedCosts(s2Detail);
+  applyEstimatedCosts(s3Detail);
 
   return {
     summaries: [s1Summary, s2Summary, s3Summary],

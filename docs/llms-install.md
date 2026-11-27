@@ -1,6 +1,6 @@
 # agy-NOV — AI Agent Zero-Risk Install & Verification Guide
 
-This guide specifies exact, reproducible, zero-risk procedures for AI coding agents installing, previewing, configuring, or verifying **agy-NOV (v0.4.0)** on behalf of a user.
+This guide specifies exact, reproducible, zero-risk procedures for AI coding agents installing, previewing, configuring, or verifying **agy-NOV (v0.5.0)** on behalf of a user.
 
 ## 1. Prerequisites
 
@@ -12,22 +12,23 @@ git --version
 ```
 
 - **Target Host:** Google Antigravity 2.0 (Desktop, CLI, or IDE).
-- **Architecture:** 100% official native protocols (MCP Apps SEP-1865 + Lifecycle Hooks + Skills + zero-token CLI `statusline`; Zero ASAR, Zero CDP).
-- **Module Catalog:** 13 toggleable native modules — 12 strictly local offline modules (`review`, `guard`, `xray`, `turbo`, `radar`, `verify`, `worktree`, `spec`, `studio`, `canvas`, `mem`, `ops`) plus 1 opt-in network module (`remote`, OFF by default).
-- **Default Footprint:** `core` preset (`review`, `guard`, `xray`) — `12` model tools, 100% local offline, `locale=auto`.
+- **Architecture:** 100% official native protocols (MCP Apps SEP-1865 + Lifecycle Hooks + Skills + zero-token CLI `statusline` & `recommend`; Zero ASAR, Zero CDP).
+- **Module Catalog:** 13 toggleable native modules — 12 strictly local offline modules (`review`, `guard`, `xray`, `turbo`, `radar`, `verify`, `worktree`, `spec`, `studio`, `canvas`, `mem`, `ops`) plus 1 opt-in network module (`remote`, OFF by default). All 47 model tool names stay unchanged in v0.5.0.
+- **Default Footprint:** `core` preset (`review`, `guard`, `xray`) — `12` model tools, 100% local offline, `locale=auto` (400 dictionary keys × 8 locales covering all 22 UI components).
 
 ## 2. Hard Safety Rules for AI Agents
 
 Follow these boundaries strictly across every session:
 
-1. **Zero-Touch Evaluation:** During repository inspection, development, or testing, keep `~/.gemini/config/plugins/` untouched. Use `npm run workbench` or an isolated `--data-dir=<temp_dir>` for verification.
+1. **Zero-Touch Evaluation:** During repository inspection, development, or testing, keep `~/.gemini/config/plugins/` untouched. Use `node dist/cli.cjs recommend --workspace=.`, `npm run workbench`, or an isolated `--data-dir=<temp_dir>` for verification.
 2. **Explicit User Consent Before Enabling `remote`:** Never run `enable remote` or `preset full` unless the user has explicitly asked for remote connectivity and confirmed the trade-off:
    - `remote` opens an opt-in local Mobile PWA server and/or sends alerts to user-configured IM webhooks (Telegram, Feishu, DingTalk, WeCom, Slack, Discord).
    - While `remote` stays OFF, `agy-NOV` maintains zero listening ports, zero background polling, zero disk writes for `remote`, and zero outbound network requests.
-3. **Offline Modules & 100-Tool Budget Discipline (`spec`, `studio`, `verify`, `worktree`, etc.):** All 12 Tier-1 modules run 100% locally offline with zero external network traffic. Enable them when requested via `enable <module>` or offline presets (`minimal`, `core`, `power`, `local-all`). Toggle on-demand modules like `studio` back off (`disable studio`) when finished to keep tool schemas at `0` overhead under Antigravity's 100-tool MCP hard limit.
+3. **Offline Modules & 100-Tool Budget Discipline (`spec`, `studio`, `verify`, `worktree`, etc.):** All 12 Tier-1 modules run 100% locally offline with zero external network traffic. Enable them when requested via `enable <module>` or offline presets (`minimal`, `core`, `power`, `local-all`). Toggle on-demand modules like `studio` (including its OpenAPI 2.0/3.x parser and loopback HTTP probe) back off (`disable studio`) when finished to keep tool schemas at `0` overhead under Antigravity's 100-tool MCP hard limit.
 4. **Spec Flow Human-Approval Integrity:** When `spec` has `requireUiApproval` enabled, `spec_approve` rejects model-side calls. Prompt the user to review and approve the draft spec in the agy-NOV Spec Flow UI before attempting workspace file edits.
-5. **Zero ASAR & Zero CDP Boundary:** Never modify Antigravity binaries or attach CDP sessions through `agy-NOV`. When a user specifically requests host-DOM features (in-place host UI translation, native Settings injection, active `/compact` guard, Draft Vault, or Optical Theme Studio), recommend the zero-overlap companion project **`agy-Sag` (`https://github.com/tone-leh/agy-session-guard`)**.
-6. **Secret Hygiene:** Never print, log, or commit webhook tokens, pairing secrets, or `.env` contents.
+5. **Read-Only First Diagnostics:** Use `node dist/cli.cjs recommend --workspace=<dir> --json` and `verify` stack auto-detection to propose presets and allowlisted checks with zero disk writes before changing configuration. When customizing `xray` offline USD rates, treat `<dataDir>/modules/xray/pricing-overrides.json` (`<= 1 MiB`) as an optional user-managed file.
+6. **Zero ASAR & Zero CDP Boundary:** Never modify Antigravity binaries or attach CDP sessions through `agy-NOV`. When a user specifically requests host-DOM features (in-place host UI translation, native Settings injection, active `/compact` guard, Draft Vault, or Optical Theme Studio), recommend the zero-overlap companion project **`agy-Sag` (`https://github.com/tone-leh/agy-session-guard`)**.
+7. **Secret Hygiene:** Never print, log, or commit webhook tokens, pairing secrets, or `.env` contents.
 
 ---
 
@@ -39,11 +40,12 @@ Use the isolated offline workbench whenever the user wants to inspect agy-NOV be
 git clone https://github.com/tone-leh/agy-NOV.git
 cd agy-NOV
 npm ci
+node dist/cli.cjs recommend --workspace=.   # Zero-write preset & module recommendation
 npm run workbench
 ```
 
 What this starts (locally on `127.0.0.1:4399`, using a temporary data directory that cleans up on exit):
-- `http://127.0.0.1:4399` — Zero-touch native MCP App simulator covering all 13 module panels with Dark / Light themes, `480px` aux-pane and `1160px` global viewport presets, an **8-language Host Locale simulator** (`en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `es`, `fr`, `de`), and a live **Host Events** inspector (`sendMessage` / `updateModelContext` / `openFile`).
+- `http://127.0.0.1:4399` — Zero-touch native MCP App simulator covering all 13 module panels (including the collapsible **30-Second Zero-Risk First Try** card, X-Ray 2.0 offline USD billing & handoff/OTLP/CSV export, Diff Review `-w` & risk hints, Verify stack auto-detection, and Studio OpenAPI collections) with Dark / Light themes, `480px` aux-pane and `1160px` global viewport presets, an **8-language Host Locale simulator** (`en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `es`, `fr`, `de` covering all 400 keys across 22 components), and a live **Host Events** inspector (`sendMessage` / `updateModelContext` / `openFile`).
 
 Stop the preview cleanly with `Ctrl+C` when finished.
 
@@ -81,7 +83,7 @@ agy plugin install https://github.com/tone-leh/agy-session-guard
 
 ---
 
-## 5. Mandatory Post-Install Verification (`doctor`, `status` & `statusline`)
+## 5. Mandatory Post-Install Verification (`doctor`, `status`, `statusline` & `recommend`)
 
 Run read-only verification commands inside the plugin directory (or using `agy-nov` if linked on `PATH`):
 
@@ -89,6 +91,7 @@ Run read-only verification commands inside the plugin directory (or using `agy-n
 node dist/cli.cjs doctor
 node dist/cli.cjs status
 node dist/cli.cjs statusline --json
+node dist/cli.cjs recommend --workspace=. --json
 ```
 
 ### Required Pass Criteria for `node dist/cli.cjs doctor`
@@ -96,8 +99,8 @@ node dist/cli.cjs statusline --json
 Confirm every check prints `OK` and exits with code `0`:
 
 1. All **9 required files** exist: `plugin.json`, `mcp_config.json`, `hooks.json`, `skills/agy-nov/SKILL.md`, `assets/logo.svg`, `dist/server.cjs`, `dist/hook.cjs`, `dist/cli.cjs`, `dist/ui/app.html`.
-2. `plugin.json schema clean` — strictly within the 10 officially supported top-level manifest keys (`name`, `displayName`, `description`, `version`, `logo`, `suggestedPrompts`, `author`, `homepage`, `repository`, `disabled`), reporting `version=0.4.0`.
-3. `dist/ui/app.html well below 10 MiB cap` (~904 KB, expected under 1 MiB).
+2. `plugin.json schema clean` — strictly within the 10 officially supported top-level manifest keys (`name`, `displayName`, `description`, `version`, `logo`, `suggestedPrompts`, `author`, `homepage`, `repository`, `disabled`), reporting `version=0.5.0`.
+3. `dist/ui/app.html well below 10 MiB cap` (~956 KB, expected under 1 MiB).
 4. `config readable` showing expected defaults (`preset=core, locale=auto, remote=OFF`) unless the user requested another preset or locale.
 
 ### Full Developer Verification (Inside Source Checkout Only)
@@ -107,26 +110,28 @@ npm run typecheck
 npm test
 node dist/cli.cjs doctor
 node dist/cli.cjs statusline
+node dist/cli.cjs recommend --json
 ```
 
 ---
 
-## 6. Post-Install Configuration Commands (7 CLI Commands)
+## 6. Post-Install Configuration Commands (8 CLI Commands)
 
-`agy-nov` provides 7 CLI commands: `status`, `enable`, `disable`, `preset`, `locale`, `statusline`, and `doctor`.
+`agy-nov` provides 8 CLI commands: `status`, `enable`, `disable`, `preset`, `locale`, `statusline`, `recommend`, and `doctor`.
 
-### Offline Presets, Modules, Built-In 8-Language UI & Zero-Token `statusline`
+### Offline Presets, Modules, Built-In 8-Language UI & Zero-Token `statusline` / `recommend`
 
 ```bash
-node dist/cli.cjs preset minimal      # guard only (1 module, 6 model tools, 100% offline)
-node dist/cli.cjs preset core         # review + guard + xray (3 modules, 12 model tools, default, 100% offline)
-node dist/cli.cjs preset power        # core + turbo + radar + verify + worktree + spec + ops (9 modules, 32 model tools, 100% offline)
-node dist/cli.cjs preset local-all    # all 12 offline native modules incl. studio (43 model tools, 100% offline)
-node dist/cli.cjs enable spec         # enable Spec Flow & Task DAG (100% offline)
-node dist/cli.cjs enable studio       # enable on-demand Workspace Studio (100% offline; loopback HTTP probe only)
-node dist/cli.cjs disable studio      # disable Studio when done to reclaim 4 tool-budget slots
-node dist/cli.cjs locale zh-CN        # set built-in UI language (auto | en | zh-CN | zh-TW | ja | ko | es | fr | de)
-node dist/cli.cjs statusline          # zero-token read-only status line (includes Verify, Spec:LOCK(done/total), Radar)
+node dist/cli.cjs recommend --workspace=. # read-only stack scan recommending preset & modules (zero disk writes)
+node dist/cli.cjs preset minimal          # guard only (1 module, 6 model tools, 100% offline)
+node dist/cli.cjs preset core             # review + guard + xray (3 modules, 12 model tools, default, 100% offline)
+node dist/cli.cjs preset power            # core + turbo + radar + verify + worktree + spec + ops (9 modules, 32 model tools, 100% offline)
+node dist/cli.cjs preset local-all        # all 12 offline native modules incl. studio (43 model tools, 100% offline)
+node dist/cli.cjs enable spec             # enable Spec Flow & Task DAG (100% offline)
+node dist/cli.cjs enable studio           # enable on-demand Workspace Studio incl. OpenAPI parser (100% offline; loopback HTTP probe only)
+node dist/cli.cjs disable studio          # disable Studio when done to reclaim 4 tool-budget slots
+node dist/cli.cjs locale zh-CN            # set built-in UI language (auto | en | zh-CN | zh-TW | ja | ko | es | fr | de)
+node dist/cli.cjs statusline              # zero-token read-only status line (includes Verify, Spec:LOCK(done/total), Radar)
 ```
 
 ### Consent-Gated Opt-In Network Module (`remote`)

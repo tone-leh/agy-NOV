@@ -88,9 +88,9 @@ export const DE_DICT: UiDictionary = {
     review: {
       name: 'Diff-Review',
       shortLabel: 'Review',
-      tagline: 'PR-reifes Zeilen-Diff-Review mit Kommentaren',
+      tagline: 'PR-reifes Diff-Review mit Syntax-Highlighting, Risikomarkern & Review-Warenkorb',
       description:
-        'Prüfen Sie Arbeitsverzeichnis-, Staging- oder Commit-Diffs Zeile für Zeile, hinterlassen Sie kategorisierte Hinweise und senden Sie präzise file:line-Korrekturen an den Agenten.',
+        'Prüfen Sie Arbeitsverzeichnis-, Staging- oder Commit-Diffs mit Syntax-Highlighting und Whitespace-Schalter, markieren Sie riskante Zeilen per Klick, sammeln Sie Hinweise nach Schweregrad im Warenkorb und senden Sie präzise file:line-Korrekturen.',
     },
     guard: {
       name: 'Schutz & Snapshots',
@@ -102,9 +102,9 @@ export const DE_DICT: UiDictionary = {
     xray: {
       name: 'Kontext X-Ray',
       shortLabel: 'X-Ray',
-      tagline: 'Token- & Cache-Aufschlüsselung, Dateibaum & Sitzungssuche',
+      tagline: 'Token-/USD-Kosten & Cache-Analyse, 5-Std.-Rate, Dateibaum & Sitzungssuche',
       description:
-        'Analysieren Sie Cache-Treffer und neue Tokens pro Schritt, erkennen Sie Cache-Einbrüche und teure Tools, öffnen Sie geänderte Dateien und durchsuchen Sie frühere Sitzungen mit EN+CJK BM25.',
+        'Analysieren Sie gecachte und neue Tokens, geschätzte USD-Kosten, Cache-Ersparnisse und die 5-Stunden-Verbrauchsrate; erkennen Sie Hotspots, exportieren Sie Handoff/OTLP/CSV und durchsuchen Sie Sitzungen mit EN+CJK BM25.',
     },
     turbo: {
       name: 'Turbo & Ausgabeschutz',
@@ -123,9 +123,9 @@ export const DE_DICT: UiDictionary = {
     verify: {
       name: 'Verify-Gate',
       shortLabel: 'Verify',
-      tagline: 'Stop-Hook-Prüfschranke gegen ungeprüfte Fertigmeldungen',
+      tagline: 'Automatische Stack-Erkennung & Stop-Hook-Gate gegen ungeprüfte Fertigmeldungen',
       description:
-        'Erzwingt echte Exit-Codes von Tests, Typecheck und Lint sowie Prüfungen auf leere Dateien bei Stop-Hooks (unter Beachtung von continuation_active und Schleifenlimits) mit zensierter Nachweiskette.',
+        'Erkennt Projekt-Stacks automatisch und richtet freigegebene Test-/Typecheck-/Lint-Befehle per Klick ein, erzwingt echte Exit-Codes und nicht-leere Dateien bei Stop-Hooks (mit continuation_active und Schleifenlimit) samt zensierter Nachweiskette.',
     },
     worktree: {
       name: 'Worktree-Orchestrator',
@@ -144,9 +144,10 @@ export const DE_DICT: UiDictionary = {
     studio: {
       name: 'Workspace Studio',
       shortLabel: 'Studio',
-      tagline: 'On-Demand SQLite/CSV/JSON-Viewer, DOCX/XLSX/PDF-Slicer & Loopback-HTTP-Sonde',
+      tagline:
+        'On-Demand SQLite/CSV/JSON-Viewer, DOCX/XLSX/PDF-Slicer & OpenAPI-Loopback-HTTP-Sonde',
       description:
-        'Prüft lokale SQLite/CSV/JSON-Daten, zerlegt DOCX/XLSX/PDF/Markdown-Dokumente offline ohne externe Programme und testet localhost/127.0.0.1-APIs — ausgeschaltet bei null Tool-Budgetkosten.',
+        'Prüft lokale SQLite/CSV/JSON-Daten, zerlegt DOCX/XLSX/PDF/Markdown offline ohne externe Tools, erkennt OpenAPI-Endpunkte und testet localhost/127.0.0.1-APIs — ausgeschaltet bei null Tool-Budgetkosten.',
     },
     canvas: {
       name: 'Visueller Canvas',
@@ -283,6 +284,24 @@ export const DE_DICT: UiDictionary = {
       annotations: 'Anmerkungen',
       filesChanged: 'Geänderte Dateien',
       noChanges: 'Arbeitsverzeichnis ist sauber. Keine Diff-Änderungen erkannt.',
+      ignoreWhitespace: 'Leerraum ignorieren',
+      syntaxHighlight: 'Syntax-Highlighting',
+      riskLineBadge: 'Risiko',
+      quickAnnotateRisk: 'Risiko kommentieren',
+      cartTitle: 'Review-Warenkorb',
+      cartEmpty:
+        'Der Review-Warenkorb ist leer. Klicken Sie auf eine Diff-Zeile oder Risikomarkierung, um Hinweise zu sammeln.',
+      cartCopyAll: 'Alle kopieren',
+      cartSendAll: 'Alle an Agent senden',
+      cartClear: 'Warenkorb leeren',
+      addComment: 'Kommentar hinzufügen',
+      commentPlaceholder: 'Problem oder gewünschte Änderung für diese Zeile beschreiben…',
+      severityHigh: 'Hoch',
+      severityMed: 'Mittel',
+      severityLow: 'Niedrig',
+      filesTitle: 'Dateien',
+      resolved: 'Gelöst',
+      unresolved: 'Offen',
     },
     guard: {
       title: 'Schutz & Snapshots',
@@ -306,6 +325,7 @@ export const DE_DICT: UiDictionary = {
       tabFiles: 'Dateiaktivität',
       tabTimeMachine: 'Zeitreise',
       tabSteps: 'Schritte',
+      tabCost: 'Kosten & Budget',
       refresh: 'Telemetrie aktualisieren',
       exportBrief: 'Kurzbericht exportieren',
       searchPlaceholder: 'Frühere Sitzungen durchsuchen (EN + CJK BM25)…',
@@ -317,6 +337,26 @@ export const DE_DICT: UiDictionary = {
       subagents: 'Subagenten',
       orphanSuspects: 'Verdacht auf Waisen',
       modelBreakdown: 'Modellaufschlüsselung',
+      estCostUsd: 'Gesch. Kosten (USD)',
+      todayCost: 'Heutige Kosten',
+      weekCost: '7-Tage-Kosten',
+      cacheSavings: 'Cache-Ersparnis',
+      fiveHourWindow: '5-Std.-Fenster',
+      burnRate: 'Verbrauchsrate',
+      exportHandoff: 'Handoff exportieren',
+      exportOtlp: 'OTLP exportieren',
+      exportCsv: 'CSV exportieren',
+      dailyTrendTitle: 'Täglicher Verbrauchstrend',
+      compositionTitle: 'Token-Zusammensetzung',
+      hotspotsTitle: 'Kosten- & Token-Hotspots',
+      diagnosticsTitle: 'Kontext- & Cache-Diagnose',
+      filesEmpty: 'In dieser Sitzung wurde noch keine Dateiaktivität erfasst.',
+      openFile: 'Datei öffnen',
+      attachContext: 'An Kontext anhängen',
+      timeMachineTitle: 'Sitzungsübergreifende Zeitreise',
+      artifactsTitle: 'Sitzungsartefakte',
+      injectExcerpt: 'Auszug einfügen',
+      noSearchHits: 'Keine passenden Sitzungsauszüge gefunden.',
     },
     verify: {
       title: 'Verify-Gate',
@@ -342,6 +382,11 @@ export const DE_DICT: UiDictionary = {
       executablePlaceholder: 'Programm (z. B. npm, pnpm, node)',
       argsPlaceholder: 'Argumente getrennt durch Leerzeichen (z. B. run typecheck)',
       labelPlaceholder: 'Befehlsname (z. B. Typecheck)',
+      detectStackBtn: 'Stack erkennen',
+      detectedCommandsTitle: 'Erkannte Prüfbefehle',
+      applyDetectedBtn: 'Erkannte übernehmen',
+      noDetectedCommands:
+        'In diesem Arbeitsbereich wurden keine üblichen Build-, Lint- oder Testbefehle erkannt.',
     },
     worktree: {
       title: 'Worktree-Orchestrator',
@@ -420,6 +465,10 @@ export const DE_DICT: UiDictionary = {
       rowsCount: 'Zeilen',
       statusCode: 'Status',
       truncatedNotice: 'Ausgabe wurde auf das sichere Vorschau-Limit gekürzt.',
+      openApiEndpointsTitle: 'OpenAPI-Endpunkte',
+      loadEndpointBtn: 'In HTTP laden',
+      openApiEmpty: 'Keine OpenAPI- oder Swagger-Spezifikationen in diesem Arbeitsbereich gefunden.',
+      serversTitle: 'Server',
     },
     canvas: {
       title: 'Visueller Canvas',
@@ -462,5 +511,17 @@ export const DE_DICT: UiDictionary = {
       dispatchTask: 'Aufgabe senden',
       promptPlaceholder: 'Aufgaben-Prompt für den Remote-Versand eingeben…',
     },
+  },
+  quickStart: {
+    title: '30-Sekunden-Schnellstart (Nur Lesen)',
+    subtitle:
+      'Erkunden Sie echte Sitzungs-Telemetrie und Diff-Analysen ganz ohne Dateiänderungen.',
+    step1: 'X-Ray öffnen, um Live-Token-/USD-Kosten, Cache-Quote und 5-Std.-Rate zu prüfen.',
+    step2:
+      'Diff-Review öffnen, um markierte Risikozeilen zu sichten und per Klick zu kommentieren.',
+    step3:
+      'Bei Bedarf Verify für automatische Stack-Prüfungen aktivieren oder ein Preset wählen.',
+    tryNowBtn: 'X-Ray jetzt testen',
+    dismissBtn: 'Ausblenden',
   },
 };

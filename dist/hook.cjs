@@ -5705,6 +5705,7 @@ function appendEvidenceToState(state, record) {
   }
   state.updatedAt = record.timestamp;
 }
+var MAX_DETECT_FILE_BYTES = 256 * 1024;
 
 // src/modules/verify/hook.ts
 var TRACKED_VERIFY_WRITE_TOOLS = /* @__PURE__ */ new Set([

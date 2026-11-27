@@ -17,6 +17,11 @@
   --rv-cat-refactor: #818cf8;
   --rv-cat-question: #38bdf8;
   --rv-cat-nit: #94a3b8;
+  --rv-tok-comment: #64748b;
+  --rv-tok-string: #86efac;
+  --rv-tok-keyword: #c084fc;
+  --rv-tok-number: #fbbf24;
+  --rv-tok-type: #38bdf8;
 
   display: flex;
   flex-direction: column;
@@ -48,6 +53,11 @@
   --rv-cat-refactor: #4f46e5;
   --rv-cat-question: #0284c7;
   --rv-cat-nit: #64748b;
+  --rv-tok-comment: #6e7781;
+  --rv-tok-string: #0a3069;
+  --rv-tok-keyword: #8250df;
+  --rv-tok-number: #953800;
+  --rv-tok-type: #0550ae;
 }
 
 /* Header */
@@ -873,10 +883,101 @@
   color: var(--rv-del-text);
 }
 
+.mod-review .rv-code-line-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding-right: 8px;
+}
+
 .mod-review .rv-code-text {
   white-space: pre;
   padding: 0 10px 0 4px;
   overflow-x: visible;
+}
+
+/* Lightweight Syntax Highlight Tokens */
+.mod-review .rv-tok-comment {
+  color: var(--rv-tok-comment);
+  font-style: italic;
+}
+
+.mod-review .rv-tok-string {
+  color: var(--rv-tok-string);
+}
+
+.mod-review .rv-tok-keyword {
+  color: var(--rv-tok-keyword);
+  font-weight: 500;
+}
+
+.mod-review .rv-tok-number {
+  color: var(--rv-tok-number);
+}
+
+.mod-review .rv-tok-type {
+  color: var(--rv-tok-type);
+}
+
+/* Line-level Deterministic Risk Hints */
+.mod-review .rv-diff-row.rv-risk-sev-high,
+.mod-review .rv-split-cell.rv-risk-sev-high {
+  box-shadow: inset 3px 0 0 var(--rv-cat-security);
+}
+
+.mod-review .rv-diff-row.rv-risk-sev-medium,
+.mod-review .rv-split-cell.rv-risk-sev-medium {
+  box-shadow: inset 3px 0 0 var(--rv-cat-bug);
+}
+
+.mod-review .rv-line-risk-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  font-family: var(--nov-font-sans);
+  margin-left: auto;
+}
+
+.mod-review .rv-line-risk-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.mod-review .rv-line-risk-badge.is-high {
+  background: var(--nov-danger-soft);
+  color: var(--rv-cat-security);
+  border: 1px solid var(--rv-cat-security);
+}
+
+.mod-review .rv-line-risk-badge.is-medium {
+  background: var(--nov-warn-soft);
+  color: var(--rv-cat-bug);
+  border: 1px solid var(--rv-cat-bug);
+}
+
+.mod-review .rv-line-risk-btn {
+  border: 1px solid var(--nov-border);
+  background: var(--nov-bg-1);
+  color: var(--nov-text-0);
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mod-review .rv-line-risk-btn:hover {
+  border-color: var(--nov-accent);
+  color: var(--nov-accent);
+  background: var(--nov-accent-soft);
 }
 
 /* Split View Rows */

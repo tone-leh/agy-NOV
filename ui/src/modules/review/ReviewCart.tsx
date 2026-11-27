@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNovI18n } from '../../i18n/index.js';
 import type { AnnotationCategory, ReviewAnnotation } from './types';
 
 interface ReviewCartProps {
@@ -14,6 +15,14 @@ interface ReviewCartProps {
 }
 
 const CAT_ORDER: AnnotationCategory[] = ['security', 'bug', 'refactor', 'question', 'nit'];
+
+const CAT_CODE: Record<AnnotationCategory, string> = {
+  security: 'SEC',
+  bug: 'BUG',
+  refactor: 'REF',
+  question: '?',
+  nit: 'NIT',
+};
 
 async function copyTextReliable(text: string): Promise<boolean> {
   try {
@@ -51,6 +60,9 @@ export const ReviewCart: React.FC<ReviewCartProps> = ({
   onClearResolved,
   onNotify,
 }) => {
+  const { dict } = useNovI18n();
+  const r = dict.panels.review;
+
   const [previewOpen, setPreviewOpen] = useState(false);
   const [inlineToast, setInlineToast] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<'send' | 'attach' | 'copy' | null>(null);
@@ -91,11 +103,11 @@ export const ReviewCart: React.FC<ReviewCartProps> = ({
       const md = await onRefreshPreview();
       const outcome = await onSendToAgent(md);
       if (outcome === 'sent') {
-        notify('Sent review feedback to Agent');
+        notify(r.cartSendAll);
       } else if (outcome === 'context') {
-        notify('Attached review prompt to next Agent turn');
+        notify(dict.panels.xray.attachContext);
       } else {
-        notify('Copied review prompt to clipboard (host message unavailable)');
+        notify(dict.common.copied);
       }
     } finally {
       setBusyAction(null);
@@ -108,11 +120,7 @@ export const ReviewCart: React.FC<ReviewCartProps> = ({
     try {
       const md = await onRefreshPreview();
       const outcome = await onAttachToNextTurn(md);
-      notify(
-        outcome === 'context'
-          ? 'Attached review prompt to next turn'
-          : 'Copied review prompt to clipboard (context attach unavailable)',
-      );
+      notify(outcome === 'context' ? dict.panels.xray.attachContext : dict.common.copied);
     } finally {
       setBusyAction(null);
     }
@@ -124,7 +132,7 @@ export const ReviewCart: React.FC<ReviewCartProps> = ({
     try {
       const md = await onRefreshPreview();
       const ok = await copyTextReliable(md);
-      notify(ok ? 'Copied structured review prompt' : 'Copy failed — open Preview to select text');
+      notify(ok ? dict.common.copied : r.cartCopyAll);
     } finally {
       setBusyAction(null);
     }
@@ -135,18 +143,18 @@ export const ReviewCart: React.FC<ReviewCartProps> = ({
       {previewOpen && (
         <div className="rv-cart-preview-drawer">
           <div className="rv-cart-preview-bar">
-            <span className="rv-cart-preview-title">Structured Review Prompt Preview</span>
+            <span className="rv-cart-preview-title">{r.cartTitle}</span>
             <button
               type="button"
               className="rv-icon-btn"
               onClick={() => setPreviewOpen(false)}
-              aria-label="Close prompt preview"
+              aria-label={dict.common.clear}
             >
               ✕
             </button>
           </div>
           <pre className="rv-cart-preview-code">
-            <code>{previewMarkdown || 'No open annotations yet.'}</code>
+            <code>{previewMarkdown || r.cartEmpty}</code>
           </pre>
         </div>
       )}
@@ -155,14 +163,14 @@ export const ReviewCart: React.FC<ReviewCartProps> = ({
         <div className="rv-cart-summary">
           <button type="button" className="rv-cart-count-btn" onClick={handleTogglePreview}>
             <span className="rv-cart-count-num">{openItems.length}</span>
-            <span>pending note{openItems.length === 1 ? '' : 's'}</span>
+            <span>{r.annotations}</span>
             <span className="rv-cart-chevron">{previewOpen ? '▾' : '▴'}</span>
           </button>
 
           <div className="rv-cart-chips">
             {CAT_ORDER.filter((c) => counts[c] > 0).map((cat) => (
               <span key={cat} className={`rv-ann-badge rv-cat-${cat}`}>
-                {cat.toUpperCase()} {counts[cat]}
+                {CAT_CODE[cat]} {counts[cat]}
               </span>
             ))}
           </div>
@@ -172,9 +180,9 @@ export const ReviewCart: React.FC<ReviewCartProps> = ({
               type="button"
               className="rv-link-btn"
               onClick={() => void onClearResolved()}
-              title="Delete all resolved annotations in this scope"
+              title={r.cartClear}
             >
-              Clear {resolvedCount} resolved
+              {r.cartClear} ({resolvedCount})
             </button>
           )}
 
@@ -188,7 +196,7 @@ export const ReviewCart: React.FC<ReviewCartProps> = ({
             onClick={() => void handleCopy()}
             disabled={openItems.length === 0 || busyAction !== null}
           >
-            {busyAction === 'copy' ? 'Copying…' : 'Copy Prompt'}
+            {busyAction === 'copy' ? dict.common.loading : r.cartCopyAll}
           </button>
 
           {canUpdateContext && (
@@ -197,9 +205,9 @@ export const ReviewCart: React.FC<ReviewCartProps> = ({
               className="rv-btn rv-btn-secondary"
               onClick={() => void handleAttach()}
               disabled={openItems.length === 0 || busyAction !== null}
-              title="Attach annotations as a context pill on your next chat turn"
+              title={dict.panels.xray.attachContext}
             >
-              {busyAction === 'attach' ? 'Attaching…' : 'Attach to Next Turn'}
+              {busyAction === 'attach' ? dict.common.loading : dict.panels.xray.attachContext}
             </button>
           )}
 
@@ -209,9 +217,9 @@ export const ReviewCart: React.FC<ReviewCartProps> = ({
               className="rv-btn rv-btn-primary"
               onClick={() => void handleSend()}
               disabled={openItems.length === 0 || busyAction !== null}
-              title="Send structured file:line review prompt straight to the active agent"
+              title={r.cartSendAll}
             >
-              {busyAction === 'send' ? 'Sending…' : 'Send to Agent'}
+              {busyAction === 'send' ? dict.common.loading : r.cartSendAll}
             </button>
           )}
         </div>

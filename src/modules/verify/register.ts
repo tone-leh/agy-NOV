@@ -12,12 +12,15 @@ import {
   buildVerifyStateView,
   clearVerifyHistory,
   clearVerifyHistoryInState,
+  createDemoVerifyDetection,
   createDemoVerifyState,
   createEvidenceId,
+  detectWorkspaceVerifyCommands,
   loadVerifyStateReadOnly,
   runVerifyChecksLive,
   updateVerifyPolicy,
   validateAndBuildPolicy,
+  type DetectedWorkspaceVerifyResult,
   type VerifyCommandRunResult,
   type VerifyEvidenceRecord,
   type VerifyPolicyPatch,
@@ -142,6 +145,9 @@ export function registerVerifyModule(
   const getStateView = (): VerifyStateView =>
     buildVerifyStateView(getCurrentStateFile(), isDemo ? 'demo' : 'live');
 
+  const getDetectedStack = (): DetectedWorkspaceVerifyResult =>
+    isDemo ? createDemoVerifyDetection() : detectWorkspaceVerifyCommands(workspaceRoot);
+
   const applyPolicyPatch = (
     patch: VerifyPolicyPatch,
   ): { valid: true; policy: VerifyStateView['policy']; state: VerifyStateView } | { valid: false; error: string } => {
@@ -193,6 +199,7 @@ export function registerVerifyModule(
     },
     async () => {
       const view = getStateView();
+      const detected = getDetectedStack();
       const enabledCount = view.policy.commands.filter((c) => c.enabled).length;
       const lines = [
         `Verify Gate Policy (${view.mode}): enforceOnStop=${view.policy.enforceOnStop}, autoRunOnStop=${view.policy.autoRunOnStop}, blockEmptyWrites=${view.policy.blockEmptyWrites}, maxConsecutiveBlocks=${view.policy.maxConsecutiveBlocks}`,
@@ -210,6 +217,8 @@ export function registerVerifyModule(
           policy: view.policy,
           stats: view.stats,
           allowedExecutables: [...ALLOWED_VERIFY_EXECUTABLES],
+          detectedStacks: detected.detectedStacks,
+          detectedStackRecommendations: detected.recommendations,
         },
       };
     },
@@ -455,9 +464,36 @@ export function registerVerifyModule(
     },
   );
 
+  server.registerTool(
+    'app_verify_detect_commands',
+    {
+      title: 'Detect Workspace Verification Commands (App Only)',
+      description:
+        'Read-only inspection of top-level workspace manifests (package.json, pyproject.toml, Cargo.toml, go.mod) to recommend allowlisted verification commands.',
+      inputSchema: {},
+      _meta: APP_ONLY_META,
+    },
+    async () => {
+      const detected = getDetectedStack();
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Detected ${detected.recommendations.length} recommendation(s) across [${detected.detectedStacks.join(', ')}]`,
+          },
+        ],
+        structuredContent: {
+          mode: isDemo ? 'demo' : 'live',
+          detectedStacks: detected.detectedStacks,
+          recommendations: detected.recommendations,
+        },
+      };
+    },
+  );
+
   return {
     moduleId: 'verify',
     modelTools,
-    exemptReadOnlyAppTools: ['app_verify_get_state'],
+    exemptReadOnlyAppTools: ['app_verify_get_state', 'app_verify_detect_commands'],
   };
 }

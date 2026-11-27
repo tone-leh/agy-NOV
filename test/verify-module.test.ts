@@ -1108,7 +1108,10 @@ describe('Verify Gate — McpServer registration, tool contract & dynamic enable
         reg.modelTools.map((t) => t.name),
         MODULE_CATALOG.verify.modelToolNames,
       );
-      assert.deepEqual(reg.exemptReadOnlyAppTools, ['app_verify_get_state']);
+      assert.deepEqual(reg.exemptReadOnlyAppTools, [
+        'app_verify_get_state',
+        'app_verify_detect_commands',
+      ]);
 
       const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
       const client = new Client({ name: 'verify-mcp-client', version: '0.3.0' });
@@ -1126,6 +1129,7 @@ describe('Verify Gate — McpServer registration, tool contract & dynamic enable
           'app_verify_save_policy',
           'app_verify_run_checks',
           'app_verify_clear_history',
+          'app_verify_detect_commands',
         ];
         assert.deepEqual(
           listed.tools.map((t) => t.name),

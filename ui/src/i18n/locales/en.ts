@@ -88,9 +88,9 @@ export const EN_DICT: UiDictionary = {
     review: {
       name: 'Diff Review',
       shortLabel: 'Review',
-      tagline: 'PR-grade inline diff review & line annotations',
+      tagline: 'PR-grade syntax-highlighted diff review, risk flags & review cart',
       description:
-        'Review working-tree, staged, or commit diffs line by line, drop categorized comments, and send pinpoint file:line fix prompts back to the agent.',
+        'Review working-tree, staged, or commit diffs with syntax highlighting and whitespace toggle, flag risky lines in one click, collect severity-tagged comments in a review cart, and send pinpoint file:line fixes back to the agent.',
     },
     guard: {
       name: 'Guard & Snapshots',
@@ -102,9 +102,9 @@ export const EN_DICT: UiDictionary = {
     xray: {
       name: 'Context X-Ray',
       shortLabel: 'X-Ray',
-      tagline: 'Token & cache breakdown, live file tree & cross-session search',
+      tagline: 'Token/USD cost & cache breakdown, 5h burn rate, live files & session search',
       description:
-        'Inspect real cached vs. fresh tokens per turn, diagnose cache misses and token-heavy tools, open touched files in one click, and search past sessions with EN+CJK BM25.',
+        'Inspect cached vs. fresh tokens, estimated USD cost, cache savings, and 5-hour burn rate per turn; diagnose hotspots, export Handoff/OTLP/CSV reports, and search past sessions with EN+CJK BM25.',
     },
     turbo: {
       name: 'Turbo & Output Guard',
@@ -123,9 +123,9 @@ export const EN_DICT: UiDictionary = {
     verify: {
       name: 'Verify Gate',
       shortLabel: 'Verify',
-      tagline: 'Stop-hook verification gate blocking unverified "done" claims',
+      tagline: 'Auto-detected stack checks & Stop-hook gate blocking unverified "done" claims',
       description:
-        'Enforce real test/typecheck/lint exit codes and non-empty file checks on Stop hooks (respecting continuation_active and loop guardrails), storing a redacted evidence chain per turn.',
+        'Auto-detect project stacks to configure whitelisted test/typecheck/lint commands in one click, enforce real exit codes and non-empty file checks on Stop hooks (respecting continuation_active and loop guardrails), and store a redacted evidence chain.',
     },
     worktree: {
       name: 'Worktree Orchestrator',
@@ -144,9 +144,10 @@ export const EN_DICT: UiDictionary = {
     studio: {
       name: 'Workspace Studio',
       shortLabel: 'Studio',
-      tagline: 'On-demand SQLite/CSV/JSON data viewer, DOCX/XLSX/PDF slicer & loopback HTTP probe',
+      tagline:
+        'On-demand SQLite/CSV/JSON viewer, DOCX/XLSX/PDF slicer & OpenAPI loopback HTTP probe',
       description:
-        'Inspect local SQLite/CSV/JSON datasets, slice DOCX/XLSX/PDF/Markdown documents offline without external binaries, and probe localhost/127.0.0.1 APIs — toggle off for zero tool budget tax.',
+        'Inspect local SQLite/CSV/JSON datasets, slice DOCX/XLSX/PDF/Markdown documents offline without external binaries, discover OpenAPI endpoints, and probe localhost/127.0.0.1 APIs — toggle off for zero tool budget tax.',
     },
     canvas: {
       name: 'Visual Canvas',
@@ -282,6 +283,23 @@ export const EN_DICT: UiDictionary = {
       annotations: 'Annotations',
       filesChanged: 'Changed Files',
       noChanges: 'Working tree is clean. No diff changes detected.',
+      ignoreWhitespace: 'Ignore Whitespace',
+      syntaxHighlight: 'Syntax Highlight',
+      riskLineBadge: 'Risk',
+      quickAnnotateRisk: 'Annotate Risk',
+      cartTitle: 'Review Cart',
+      cartEmpty: 'Review cart is empty. Click any diff line or risk flag to queue annotations.',
+      cartCopyAll: 'Copy All',
+      cartSendAll: 'Send All to Agent',
+      cartClear: 'Clear Cart',
+      addComment: 'Add Comment',
+      commentPlaceholder: 'Describe the issue or requested fix for this line...',
+      severityHigh: 'High',
+      severityMed: 'Medium',
+      severityLow: 'Low',
+      filesTitle: 'Files',
+      resolved: 'Resolved',
+      unresolved: 'Unresolved',
     },
     guard: {
       title: 'Guard & Snapshots',
@@ -304,6 +322,7 @@ export const EN_DICT: UiDictionary = {
       tabFiles: 'File Activity',
       tabTimeMachine: 'Time Machine',
       tabSteps: 'Steps',
+      tabCost: 'Cost & Budget',
       refresh: 'Refresh Telemetry',
       exportBrief: 'Export Brief',
       searchPlaceholder: 'Search past sessions (EN + CJK BM25)...',
@@ -315,6 +334,26 @@ export const EN_DICT: UiDictionary = {
       subagents: 'Subagents',
       orphanSuspects: 'Orphan Suspects',
       modelBreakdown: 'Model Breakdown',
+      estCostUsd: 'Est. Cost (USD)',
+      todayCost: 'Today Cost',
+      weekCost: '7-Day Cost',
+      cacheSavings: 'Cache Savings',
+      fiveHourWindow: '5h Window',
+      burnRate: 'Burn Rate',
+      exportHandoff: 'Export Handoff',
+      exportOtlp: 'Export OTLP',
+      exportCsv: 'Export CSV',
+      dailyTrendTitle: 'Daily Usage Trend',
+      compositionTitle: 'Token Composition',
+      hotspotsTitle: 'Cost & Token Hotspots',
+      diagnosticsTitle: 'Context & Cache Diagnostics',
+      filesEmpty: 'No file activity recorded in this session yet.',
+      openFile: 'Open File',
+      attachContext: 'Attach to Context',
+      timeMachineTitle: 'Cross-Session Time Machine',
+      artifactsTitle: 'Session Artifacts',
+      injectExcerpt: 'Inject Excerpt',
+      noSearchHits: 'No matching session excerpts found.',
     },
     verify: {
       title: 'Verify Gate',
@@ -340,6 +379,11 @@ export const EN_DICT: UiDictionary = {
       executablePlaceholder: 'Executable (e.g. npm, pnpm, node)',
       argsPlaceholder: 'Args separated by spaces (e.g. run typecheck)',
       labelPlaceholder: 'Command label (e.g. Typecheck)',
+      detectStackBtn: 'Detect Stack',
+      detectedCommandsTitle: 'Detected Verification Commands',
+      applyDetectedBtn: 'Apply Detected',
+      noDetectedCommands:
+        'No common build, lint, or test commands were detected in this workspace.',
     },
     worktree: {
       title: 'Worktree Orchestrator',
@@ -417,6 +461,10 @@ export const EN_DICT: UiDictionary = {
       rowsCount: 'Rows',
       statusCode: 'Status',
       truncatedNotice: 'Output truncated to stay within safe preview limits.',
+      openApiEndpointsTitle: 'OpenAPI Endpoints',
+      loadEndpointBtn: 'Load in HTTP',
+      openApiEmpty: 'No OpenAPI or Swagger specifications discovered in this workspace.',
+      serversTitle: 'Servers',
     },
     canvas: {
       title: 'Visual Canvas',
@@ -458,5 +506,14 @@ export const EN_DICT: UiDictionary = {
       dispatchTask: 'Dispatch Task',
       promptPlaceholder: 'Enter a task prompt to dispatch remotely...',
     },
+  },
+  quickStart: {
+    title: '30-Second Read-Only Quick Start',
+    subtitle: 'Explore real session telemetry and diff insights safely with zero workspace edits.',
+    step1: 'Open X-Ray to inspect live Token/USD cost, cache hit rate, and 5-hour burn rate.',
+    step2: 'Open Diff Review to spot highlighted risk lines and queue one-click annotations.',
+    step3: 'Enable Verify for auto-detected stack checks, or switch module presets anytime.',
+    tryNowBtn: 'Try X-Ray Now',
+    dismissBtn: 'Dismiss',
   },
 };

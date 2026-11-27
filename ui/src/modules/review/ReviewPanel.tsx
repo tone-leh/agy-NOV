@@ -69,6 +69,8 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
   const [viewMode, setViewMode] = useState<DiffViewMode>('unified');
   const [filterMode, setFilterMode] = useState<FileFilterMode>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [ignoreWhitespace, setIgnoreWhitespace] = useState(false);
+  const [syntaxHighlight, setSyntaxHighlight] = useState(true);
 
   const [compact, setCompact] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerWidth < 720 : false,
@@ -136,6 +138,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
         if (query.repoPath) args.repoPath = query.repoPath;
         if (query.scope) args.scope = query.scope;
         if (query.commitRange) args.commitRange = query.commitRange;
+        if (query.ignoreWhitespace !== undefined) args.ignoreWhitespace = query.ignoreWhitespace;
         if (query.demo !== undefined) args.demo = query.demo;
 
         const raw = await bridge.callTool<{ session?: ReviewSession } | ReviewSession>(
@@ -158,6 +161,9 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
         setSession(nextSession);
         setScope(nextSession.scope);
         if (nextSession.commitRange) setCommitRange(nextSession.commitRange);
+        if (typeof nextSession.ignoreWhitespace === 'boolean') {
+          setIgnoreWhitespace(nextSession.ignoreWhitespace);
+        }
         setRepoPath(nextSession.isDemo ? undefined : nextSession.repoPath);
         setDemoMode(nextSession.isDemo);
 
@@ -203,6 +209,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
             repoPath?: string;
             scope?: string;
             commitRange?: string;
+            ignoreWhitespace?: boolean;
             selectedFile?: string;
             demo?: boolean;
           })
@@ -214,11 +221,17 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
         launch.scope && VALID_SCOPES.has(launch.scope as ReviewScope)
           ? (launch.scope as ReviewScope)
           : 'working';
+      const nextIgnoreWs =
+        typeof launch.ignoreWhitespace === 'boolean' ? launch.ignoreWhitespace : ignoreWhitespace;
+      if (typeof launch.ignoreWhitespace === 'boolean') {
+        setIgnoreWhitespace(launch.ignoreWhitespace);
+      }
       void loadDiff(
         {
           repoPath: launch.demo ? undefined : launch.repoPath,
           scope: nextScope,
           commitRange: launch.commitRange,
+          ignoreWhitespace: nextIgnoreWs,
           demo: launch.demo,
         },
         launch.selectedFile,
@@ -233,6 +246,9 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       setSession(nextSession);
       setScope(nextSession.scope);
       if (nextSession.commitRange) setCommitRange(nextSession.commitRange);
+      if (typeof nextSession.ignoreWhitespace === 'boolean') {
+        setIgnoreWhitespace(nextSession.ignoreWhitespace);
+      }
       setRepoPath(nextSession.isDemo ? undefined : nextSession.repoPath);
       setDemoMode(nextSession.isDemo);
       setSelectedFile((prev) =>
@@ -249,10 +265,11 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
         repoPath,
         scope,
         commitRange: scope === 'commit-range' ? commitRange : undefined,
+        ignoreWhitespace,
         demo: demoMode,
       });
     }
-  }, [incomingEvent, loadDiff, repoPath, scope, commitRange, demoMode]);
+  }, [incomingEvent, loadDiff, repoPath, scope, commitRange, ignoreWhitespace, demoMode]);
 
   const viewedSet = useMemo(() => new Set(session?.viewedFiles ?? []), [session?.viewedFiles]);
 
@@ -284,7 +301,8 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
         return !viewedSet.has(f.path);
       }
       if (filterMode === 'risky') {
-        return f.riskTags.includes('security-sensitive') || f.riskTags.includes('large');
+        const hasRiskLine = f.hunks.some((h) => h.lines.some((l) => Boolean(l.riskHint)));
+        return hasRiskLine || f.riskTags.includes('security-sensitive') || f.riskTags.includes('large');
       }
       return true;
     });
@@ -322,6 +340,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       void loadDiff({
         repoPath,
         scope: nextScope,
+        ignoreWhitespace,
         demo: demoMode,
       });
     }
@@ -332,6 +351,19 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       repoPath,
       scope: 'commit-range',
       commitRange,
+      ignoreWhitespace,
+      demo: demoMode,
+    });
+  };
+
+  const handleToggleIgnoreWhitespace = () => {
+    const next = !ignoreWhitespace;
+    setIgnoreWhitespace(next);
+    void loadDiff({
+      repoPath,
+      scope,
+      commitRange: scope === 'commit-range' ? commitRange : undefined,
+      ignoreWhitespace: next,
       demo: demoMode,
     });
   };
@@ -341,6 +373,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       repoPath,
       scope,
       commitRange: scope === 'commit-range' ? commitRange : undefined,
+      ignoreWhitespace,
       demo: demoMode,
     });
   };
@@ -452,7 +485,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       );
       if (Array.isArray(res.annotations)) {
         setSession((prev) => (prev ? { ...prev, annotations: res.annotations! } : prev));
-        onNotify?.('Cleared resolved annotations');
+        onNotify?.(r.cartClear);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -486,6 +519,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       };
       if (!session.isDemo && session.repoPath) args.repoPath = session.repoPath;
       if (session.commitRange) args.commitRange = session.commitRange;
+      if (ignoreWhitespace) args.ignoreWhitespace = true;
       if (session.isDemo !== undefined) args.demo = session.isDemo;
 
       const built = await bridge.callTool<BuiltReviewPrompt>('app_review_build_prompt', args);
@@ -554,6 +588,8 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
         searchQuery={searchQuery}
         viewMode={viewMode}
         filterMode={filterMode}
+        ignoreWhitespace={ignoreWhitespace}
+        syntaxHighlight={syntaxHighlight}
         viewedCount={viewedCount}
         totalFiles={session?.totalFiles ?? 0}
         totalAdditions={session?.totalAdditions ?? 0}
@@ -567,6 +603,8 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
         onSearchChange={setSearchQuery}
         onViewModeChange={setViewMode}
         onFilterModeChange={setFilterMode}
+        onToggleIgnoreWhitespace={handleToggleIgnoreWhitespace}
+        onToggleSyntaxHighlight={() => setSyntaxHighlight((v) => !v)}
         onRefresh={handleRefresh}
       />
 
@@ -605,10 +643,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
 
       {session?.truncated && (
         <div className="rv-banner rv-banner-warn">
-          <span>
-            Large changeset truncated to keep review responsive. Filter individual files or switch scope to inspect
-            specific commits.
-          </span>
+          <span>{dict.panels.studio.truncatedNotice}</span>
         </div>
       )}
 
@@ -675,6 +710,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
           <DiffViewer
             file={activeFile}
             viewMode={viewMode}
+            syntaxHighlight={syntaxHighlight}
             viewed={activeFile ? viewedSet.has(activeFile.path) : false}
             canToggleAuxPane={canToggleAuxPane}
             annotations={activeFileAnnotations}

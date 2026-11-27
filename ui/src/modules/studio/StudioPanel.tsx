@@ -101,6 +101,37 @@ interface StudioDocumentSheetPreview {
   totalRows?: number;
 }
 
+interface OpenApiServerEntry {
+  url: string;
+  description?: string;
+  isLoopback: boolean;
+}
+
+interface OpenApiEndpointItem {
+  id: string;
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD';
+  path: string;
+  summary?: string;
+  operationId?: string;
+  tags: string[];
+  parameters: Array<{ name: string; in: string; required: boolean; example?: string }>;
+  sampleHeaders: Record<string, string>;
+  sampleBody?: string;
+  resolvedLoopbackUrl: string;
+}
+
+interface ParsedOpenApiSpec {
+  filePath: string;
+  specVersion: string;
+  title: string;
+  apiVersion?: string;
+  servers: OpenApiServerEntry[];
+  endpoints: OpenApiEndpointItem[];
+  totalEndpoints: number;
+  truncated: boolean;
+  warnings: string[];
+}
+
 interface StudioDocumentResult {
   mode?: string;
   filePath: string;
@@ -116,6 +147,7 @@ interface StudioDocumentResult {
   content?: string;
   metadata?: Record<string, unknown>;
   sheets?: StudioDocumentSheetPreview[];
+  openApiSpec?: ParsedOpenApiSpec;
   warning?: string;
 }
 
@@ -297,6 +329,46 @@ function isDataSource(src: StudioSourceItem): boolean {
   return DATA_FORMATS.has(getSourceFormat(src));
 }
 
+function isOpenApiSource(src: StudioSourceItem): boolean {
+  return src.category === 'openapi' || getSourceFormat(src) === 'openapi';
+}
+
+function getHttpMethodStyle(method: string): React.CSSProperties {
+  switch (method.toUpperCase()) {
+    case 'GET':
+      return {
+        background: 'var(--nov-success-soft)',
+        color: 'var(--nov-success)',
+        borderColor: 'var(--nov-success)',
+      };
+    case 'POST':
+      return {
+        background: 'var(--nov-accent-soft)',
+        color: 'var(--nov-accent)',
+        borderColor: 'var(--nov-accent)',
+      };
+    case 'PUT':
+    case 'PATCH':
+      return {
+        background: 'var(--nov-warn-soft)',
+        color: 'var(--nov-warn)',
+        borderColor: 'var(--nov-warn)',
+      };
+    case 'DELETE':
+      return {
+        background: 'var(--nov-danger-soft)',
+        color: 'var(--nov-danger)',
+        borderColor: 'var(--nov-danger)',
+      };
+    default:
+      return {
+        background: 'var(--nov-bg-2)',
+        color: 'var(--nov-text-1)',
+        borderColor: 'var(--nov-border-strong)',
+      };
+  }
+}
+
 function formatBytes(bytes: number | undefined): string {
   if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes < 0) return '';
   if (bytes < 1024) return `${bytes} B`;
@@ -375,13 +447,17 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
   const [docMaxLines, setDocMaxLines] = useState<number>(80);
   const [docResult, setDocResult] = useState<StudioDocumentResult | null>(null);
 
-  // Loopback HTTP Probe tab state
+  // Loopback HTTP Probe + OpenAPI collection state
   const [httpMethod, setHttpMethod] = useState<HttpMethod>('GET');
   const [httpUrl, setHttpUrl] = useState('http://127.0.0.1:3000/health');
   const [httpHeadersText, setHttpHeadersText] = useState('');
   const [httpBodyText, setHttpBodyText] = useState('');
   const [httpTimeoutMs, setHttpTimeoutMs] = useState<number>(5000);
   const [httpResult, setHttpResult] = useState<StudioHttpProbeResult | null>(null);
+  const [openApiPath, setOpenApiPath] = useState('');
+  const [openApiSpec, setOpenApiSpec] = useState<ParsedOpenApiSpec | null>(null);
+  const [openApiFilter, setOpenApiFilter] = useState('');
+  const [selectedEndpointId, setSelectedEndpointId] = useState<string | null>(null);
 
   const [copiedTarget, setCopiedTarget] = useState<string | null>(null);
 
@@ -453,6 +529,10 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
           maxLines: max,
         });
         setDocResult(res);
+        if (res.openApiSpec) {
+          setOpenApiPath(res.openApiSpec.filePath || targetPath);
+          setOpenApiSpec(res.openApiSpec);
+        }
       } catch (err) {
         onNotify?.(err instanceof Error ? err.message : String(err));
       } finally {
@@ -462,11 +542,48 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
     [bridge, docMaxLines, docPath, docStartLine, onNotify],
   );
 
+  const parseOpenApi = useCallback(
+    async (filePathInput?: string) => {
+      const targetPath = (filePathInput ?? openApiPath).trim();
+      if (!targetPath) return;
+
+      setBusyAction('parse:openapi');
+      try {
+        const res = await bridge.callTool<ParsedOpenApiSpec>('app_studio_parse_openapi', {
+          filePath: targetPath,
+        });
+        setOpenApiPath(targetPath);
+        setOpenApiSpec(res);
+        setSelectedEndpointId(null);
+      } catch (err) {
+        onNotify?.(err instanceof Error ? err.message : String(err));
+      } finally {
+        setBusyAction(null);
+      }
+    },
+    [bridge, onNotify, openApiPath],
+  );
+
+  const handleLoadEndpoint = useCallback((ep: OpenApiEndpointItem) => {
+    setHttpMethod(ep.method);
+    setHttpUrl(ep.resolvedLoopbackUrl);
+    const hasHeaders = ep.sampleHeaders && Object.keys(ep.sampleHeaders).length > 0;
+    setHttpHeadersText(hasHeaders ? JSON.stringify(ep.sampleHeaders, null, 2) : '');
+    setHttpBodyText(ep.sampleBody ?? '');
+    setSelectedEndpointId(ep.id);
+    setTab('http');
+  }, []);
+
   const handleSelectSource = (src: StudioSourceItem) => {
     if (busyAction) return;
     const relPath = getSourcePath(src);
     if (!relPath) return;
-    if (isDataSource(src)) {
+    if (isOpenApiSource(src)) {
+      setTab('http');
+      setOpenApiPath(relPath);
+      setOpenApiFilter('');
+      void parseOpenApi(relPath);
+    } else if (isDataSource(src)) {
       setTab('data');
       setDataPath(relPath);
       setSqlQuery('');
@@ -536,6 +653,22 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
   };
 
   const sources = Array.isArray(sourcesState?.sources) ? sourcesState.sources : [];
+  const openApiSources = useMemo(
+    () => sources.filter((src) => isOpenApiSource(src) && !src.oversized),
+    [sources],
+  );
+  const filteredOpenApiEndpoints = useMemo(() => {
+    if (!openApiSpec || !Array.isArray(openApiSpec.endpoints)) return [];
+    const needle = openApiFilter.trim().toLowerCase();
+    if (!needle) return openApiSpec.endpoints;
+    return openApiSpec.endpoints.filter((ep) => {
+      if (ep.method.toLowerCase().includes(needle)) return true;
+      if (ep.path.toLowerCase().includes(needle)) return true;
+      if (ep.summary?.toLowerCase().includes(needle)) return true;
+      if (ep.operationId?.toLowerCase().includes(needle)) return true;
+      return ep.tags.some((t) => t.toLowerCase().includes(needle));
+    });
+  }, [openApiFilter, openApiSpec]);
   const isBusy = busyAction !== null;
 
   // Normalize SQLite tables from either sqlite.tables or top-level tables
@@ -634,8 +767,13 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
                   {sDict.tabData}: {sourcesState.counts.data ?? 0}
                 </span>
                 <span className="nov-badge is-offline">
-                  {sDict.tabDocs}: {(sourcesState.counts.document ?? 0) + (sourcesState.counts.openapi ?? 0)}
+                  {sDict.tabDocs}: {sourcesState.counts.document ?? 0}
                 </span>
+                {(sourcesState.counts.openapi ?? 0) > 0 && (
+                  <span className="nov-badge is-network">
+                    OpenAPI: {sourcesState.counts.openapi}
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -658,9 +796,11 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
                 const relPath = getSourcePath(src);
                 const fmt = getSourceFormat(src).toUpperCase();
                 const dataKind = isDataSource(src);
+                const openApiKind = isOpenApiSource(src);
                 const isSelected =
                   (tab === 'data' && dataPath === relPath) ||
-                  (tab === 'docs' && docPath === relPath);
+                  (tab === 'docs' && docPath === relPath) ||
+                  (tab === 'http' && openApiPath === relPath);
                 return (
                   <button
                     key={`${relPath}:${idx}`}
@@ -678,7 +818,9 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
                     onClick={() => handleSelectSource(src)}
                   >
                     <span
-                      className={`nov-badge ${dataKind ? 'is-accent' : 'is-offline'}`}
+                      className={`nov-badge ${
+                        openApiKind ? 'is-network' : dataKind ? 'is-accent' : 'is-offline'
+                      }`}
                       style={{ fontSize: '10px', padding: '1px 5px' }}
                     >
                       {fmt}
@@ -1207,12 +1349,90 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
                   ))}
                 </div>
               )}
+
+              {docResult.openApiSpec && docResult.openApiSpec.endpoints.length > 0 && (
+                <div
+                  className="nov-p-item"
+                  style={{ background: 'var(--nov-bg-0)', gap: '8px' }}
+                >
+                  <div className="nov-p-row">
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
+                      <strong style={{ fontSize: '12px', color: 'var(--nov-text-0)' }}>
+                        {sDict.openApiEndpointsTitle}: {docResult.openApiSpec.title}
+                      </strong>
+                      <span className="nov-badge is-network">
+                        OpenAPI {docResult.openApiSpec.specVersion}
+                      </span>
+                      {docResult.openApiSpec.apiVersion && (
+                        <span className="nov-badge">v{docResult.openApiSpec.apiVersion}</span>
+                      )}
+                    </div>
+                    <span className="nov-badge">
+                      {docResult.openApiSpec.endpoints.length} / {docResult.openApiSpec.totalEndpoints}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      maxHeight: '220px',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {docResult.openApiSpec.endpoints.slice(0, 20).map((ep) => (
+                      <div
+                        key={ep.id}
+                        className="nov-p-row"
+                        style={{
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid var(--nov-border)',
+                          background: 'var(--nov-bg-1)',
+                          gap: '8px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flexWrap: 'wrap' }}>
+                          <span
+                            className="nov-badge"
+                            style={{
+                              ...getHttpMethodStyle(ep.method),
+                              fontFamily: 'var(--nov-font-mono)',
+                              fontWeight: 700,
+                              minWidth: '52px',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            {ep.method}
+                          </span>
+                          <code style={{ fontFamily: 'var(--nov-font-mono)', fontSize: '11.5px' }}>
+                            {ep.path}
+                          </code>
+                          {ep.summary && (
+                            <span style={{ fontSize: '11.5px', color: 'var(--nov-text-2)' }}>
+                              {ep.summary}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className="nov-p-btn is-primary"
+                          style={{ flexShrink: 0, padding: '3px 8px', fontSize: '11px' }}
+                          onClick={() => handleLoadEndpoint(ep)}
+                        >
+                          {sDict.loadEndpointBtn}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </section>
       )}
 
-      {/* TAB 3: Loopback HTTP Probe */}
+      {/* TAB 3: Loopback HTTP Probe + OpenAPI Endpoints Collection */}
       {tab === 'http' && (
         <section className="nov-p-card">
           <div
@@ -1224,6 +1444,275 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
             }}
           >
             <strong style={{ color: 'var(--nov-warn)' }}>🔒 {sDict.loopbackOnlyNote}</strong>
+          </div>
+
+          {/* OpenAPI 2.0 / 3.x One-Click Endpoint Collection */}
+          <div
+            className="nov-p-item"
+            style={{ background: 'var(--nov-bg-0)', gap: '10px' }}
+          >
+            <div className="nov-p-row">
+              <strong style={{ fontSize: '12px', color: 'var(--nov-text-0)' }}>
+                {sDict.openApiEndpointsTitle}
+              </strong>
+              {openApiSpec && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
+                  <span className="nov-badge is-network">
+                    OpenAPI {openApiSpec.specVersion}
+                  </span>
+                  {openApiSpec.apiVersion && (
+                    <span className="nov-badge">v{openApiSpec.apiVersion}</span>
+                  )}
+                  <span className="nov-badge">
+                    {filteredOpenApiEndpoints.length} / {openApiSpec.totalEndpoints}
+                  </span>
+                  {openApiSpec.truncated && (
+                    <span className="nov-badge is-network">{sDict.truncatedNotice}</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(200px, 1fr) minmax(160px, 1fr) auto',
+                gap: '8px',
+                alignItems: 'center',
+              }}
+            >
+              <select
+                className="nov-p-select"
+                style={{ fontFamily: 'var(--nov-font-mono)', fontSize: '11.5px' }}
+                value={openApiPath}
+                disabled={isBusy || openApiSources.length === 0}
+                onChange={(e) => {
+                  const nextPath = e.target.value;
+                  setOpenApiPath(nextPath);
+                  setOpenApiFilter('');
+                  if (nextPath) {
+                    void parseOpenApi(nextPath);
+                  } else {
+                    setOpenApiSpec(null);
+                    setSelectedEndpointId(null);
+                  }
+                }}
+              >
+                <option value="">
+                  {openApiSources.length === 0
+                    ? sDict.openApiEmpty
+                    : `— ${sDict.openApiEndpointsTitle} (${openApiSources.length}) —`}
+                </option>
+                {openApiSources.map((src, idx) => {
+                  const p = getSourcePath(src);
+                  return (
+                    <option key={`${p}:${idx}`} value={p}>
+                      {p}
+                    </option>
+                  );
+                })}
+              </select>
+
+              <input
+                className="nov-p-input"
+                value={openApiFilter}
+                placeholder={sDict.filterPlaceholder}
+                disabled={isBusy || !openApiSpec}
+                onChange={(e) => setOpenApiFilter(e.target.value)}
+              />
+
+              <button
+                type="button"
+                className="nov-p-btn"
+                disabled={isBusy || !openApiPath}
+                onClick={() => void parseOpenApi(openApiPath)}
+              >
+                {busyAction === 'parse:openapi' ? dict.common.loading : dict.common.refresh}
+              </button>
+            </div>
+
+            {openApiSpec ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div className="nov-p-row">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
+                    <strong style={{ fontSize: '12.5px', color: 'var(--nov-text-0)' }}>
+                      {openApiSpec.title}
+                    </strong>
+                    <code style={{ fontFamily: 'var(--nov-font-mono)', fontSize: '11px', color: 'var(--nov-text-2)' }}>
+                      {openApiSpec.filePath}
+                    </code>
+                  </div>
+                </div>
+
+                {openApiSpec.warnings.length > 0 && (
+                  <div
+                    className="nov-p-banner"
+                    style={{
+                      background: 'var(--nov-warn-soft)',
+                      borderColor: 'var(--nov-warn)',
+                      fontSize: '11.5px',
+                    }}
+                  >
+                    {openApiSpec.warnings.map((w, wIdx) => (
+                      <div key={wIdx}>{w}</div>
+                    ))}
+                  </div>
+                )}
+
+                {openApiSpec.servers.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <strong style={{ fontSize: '11.5px', color: 'var(--nov-text-2)' }}>
+                      {sDict.serversTitle} ({openApiSpec.servers.length})
+                    </strong>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {openApiSpec.servers.map((srv, sIdx) => (
+                        <div
+                          key={`${srv.url}:${sIdx}`}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--nov-border)',
+                            background: 'var(--nov-bg-1)',
+                            fontSize: '11px',
+                          }}
+                          title={srv.description || srv.url}
+                        >
+                          <code style={{ fontFamily: 'var(--nov-font-mono)' }}>{srv.url}</code>
+                          {srv.description && (
+                            <span style={{ color: 'var(--nov-text-2)' }}>· {srv.description}</span>
+                          )}
+                          <span
+                            className="nov-badge"
+                            style={
+                              srv.isLoopback
+                                ? {
+                                    background: 'var(--nov-success-soft)',
+                                    color: 'var(--nov-success)',
+                                    borderColor: 'var(--nov-success)',
+                                    fontSize: '10px',
+                                  }
+                                : {
+                                    background: 'var(--nov-danger-soft)',
+                                    color: 'var(--nov-danger)',
+                                    borderColor: 'var(--nov-danger)',
+                                    fontSize: '10px',
+                                  }
+                            }
+                          >
+                            {srv.isLoopback ? 'Loopback OK' : 'Blocked (Non-Loopback)'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {filteredOpenApiEndpoints.length === 0 ? (
+                  <p style={{ margin: 0, fontSize: '12px', color: 'var(--nov-text-2)' }}>
+                    {sDict.openApiEmpty}
+                  </p>
+                ) : (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      maxHeight: '260px',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {filteredOpenApiEndpoints.map((ep) => {
+                      const isLoaded = selectedEndpointId === ep.id;
+                      return (
+                        <div
+                          key={ep.id}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            border: `1px solid ${
+                              isLoaded ? 'var(--nov-accent)' : 'var(--nov-border)'
+                            }`,
+                            background: isLoaded ? 'var(--nov-accent-soft)' : 'var(--nov-bg-1)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
+                              <span
+                                className="nov-badge"
+                                style={{
+                                  ...getHttpMethodStyle(ep.method),
+                                  fontFamily: 'var(--nov-font-mono)',
+                                  fontWeight: 700,
+                                  minWidth: '54px',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                {ep.method}
+                              </span>
+                              <code
+                                style={{
+                                  fontFamily: 'var(--nov-font-mono)',
+                                  fontSize: '12px',
+                                  color: 'var(--nov-text-0)',
+                                  wordBreak: 'break-all',
+                                }}
+                              >
+                                {ep.path}
+                              </code>
+                              {ep.tags.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="nov-badge"
+                                  style={{ fontSize: '10px', padding: '1px 5px' }}
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                            {ep.summary && (
+                              <span style={{ fontSize: '11.5px', color: 'var(--nov-text-1)' }}>
+                                {ep.summary}
+                              </span>
+                            )}
+                            <code
+                              style={{
+                                fontFamily: 'var(--nov-font-mono)',
+                                fontSize: '10.5px',
+                                color: 'var(--nov-text-2)',
+                                wordBreak: 'break-all',
+                              }}
+                            >
+                              → {ep.resolvedLoopbackUrl}
+                            </code>
+                          </div>
+
+                          <button
+                            type="button"
+                            className={`nov-p-btn ${isLoaded ? '' : 'is-primary'}`}
+                            style={{ flexShrink: 0, fontSize: '11.5px', padding: '5px 10px' }}
+                            disabled={isBusy}
+                            onClick={() => handleLoadEndpoint(ep)}
+                          >
+                            {sDict.loadEndpointBtn}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p style={{ margin: 0, fontSize: '12px', color: 'var(--nov-text-2)' }}>
+                {sDict.openApiEmpty}
+              </p>
+            )}
           </div>
 
           <div

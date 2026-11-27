@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { buildDemoSessions } from './demo-data.js';
+import { loadPricingOverrides } from './pricing.js';
 import { parseTranscriptFile } from './transcript.js';
 import type { LiveHookState, SessionDetail, SessionSummary } from './types.js';
 
@@ -97,6 +98,7 @@ export function listSessions(
   }
   const limit = opts.limit ?? 30;
   const entries = discoverTranscriptEntries(opts).slice(0, limit);
+  const pricingOverrides = loadPricingOverrides(opts.dataDir);
   const summaries: SessionSummary[] = [];
   for (const entry of entries) {
     try {
@@ -104,6 +106,7 @@ export function listSessions(
         sessionId: entry.id,
         source: entry.source,
         brainDir: entry.brainDir,
+        pricingOverrides,
       });
       summaries.push(detail.summary);
     } catch {
@@ -124,6 +127,7 @@ export function loadSessionDetail(
   }
 
   const hookState = readLiveHookState(opts.dataDir);
+  const pricingOverrides = loadPricingOverrides(opts.dataDir);
   const targetId = sessionId || hookState.activeConversationId;
   const entries = discoverTranscriptEntries(opts);
 
@@ -135,6 +139,7 @@ export function loadSessionDetail(
         source: match.source,
         brainDir: match.brainDir,
         siblingBrainRoot: path.dirname(match.brainDir),
+        pricingOverrides,
       });
     }
   }
@@ -150,6 +155,7 @@ export function loadSessionDetail(
       source: 'desktop',
       brainDir: activeBrainDir,
       siblingBrainRoot: path.dirname(activeBrainDir),
+      pricingOverrides,
     });
   }
 
@@ -160,5 +166,6 @@ export function loadSessionDetail(
     source: latest.source,
     brainDir: latest.brainDir,
     siblingBrainRoot: path.dirname(latest.brainDir),
+    pricingOverrides,
   });
 }

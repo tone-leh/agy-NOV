@@ -88,9 +88,9 @@ export const JA_DICT: UiDictionary = {
     review: {
       name: 'Diff レビュー',
       shortLabel: 'Review',
-      tagline: 'PR 品質のインライン Diff レビューと行コメント注釈',
+      tagline: 'PR 品質の構文ハイライト Diff・リスク行警告・レビューカート',
       description:
-        '作業ツリー・ステージ済み・コミット間の差分を行単位で確認し、分類コメントを付けて正確な file:line 修正指示を Agent へ返送します。',
+        '構文ハイライトと空白無視を備え、作業ツリー・ステージ済み・コミット差分を行単位で確認。リスク行をワンクリック注釈し、重要度別コメントをレビューカートから Agent へ一括送信できます。',
     },
     guard: {
       name: 'ガード＆スナップショット',
@@ -102,9 +102,9 @@ export const JA_DICT: UiDictionary = {
     xray: {
       name: 'コンテキスト X-Ray',
       shortLabel: 'X-Ray',
-      tagline: 'トークン＆キャッシュ内訳、リアルタイムファイル一覧、セッション横断検索',
+      tagline: 'Token/USD コスト＆キャッシュ内訳・5 時間消費速度・ファイル＆セッション検索',
       description:
-        'ターンごとのキャッシュヒットと新規トークンを可視化し、重いツールやキャッシュ低下を診断。変更ファイルを開き、EN+CJK BM25 で過去セッションを検索できます。',
+        'ターンごとのキャッシュ命中、推定 USD コスト、キャッシュ節約額、5 時間バーンレートを可視化。高負荷箇所を診断し、Handoff/OTLP/CSV 出力や EN+CJK BM25 横断検索に対応します。',
     },
     turbo: {
       name: 'Turbo＆出力ガード',
@@ -123,9 +123,9 @@ export const JA_DICT: UiDictionary = {
     verify: {
       name: '検証ゲート',
       shortLabel: 'Verify',
-      tagline: '未検証の「完了」申告を遮断する Stop Hook 検証ゲート',
+      tagline: '技術スタック自動検出＆未検証の「完了」申告を遮断する Stop Hook ゲート',
       description:
-        'Stop Hook でテスト・型検査・Lint の実終了コードと空ファイル書き込みを検査（continuation_active とループ上限を遵守）し、マスク済み証跡チェーンを保存します。',
+        'プロジェクト構成を自動検出して許可リスト検証コマンドをワンクリック設定。Stop Hook で実終了コードと空ファイル書き込みを検査し（continuation_active・ループ上限遵守）、マスク済み証跡チェーンを保存します。',
     },
     worktree: {
       name: 'Worktree オーケストレーター',
@@ -144,9 +144,10 @@ export const JA_DICT: UiDictionary = {
     studio: {
       name: 'ワークスペース Studio',
       shortLabel: 'Studio',
-      tagline: 'オンデマンド SQLite/CSV/JSON 閲覧、DOCX/XLSX/PDF スライス、ループバック HTTP 検証',
+      tagline:
+        'オンデマンド SQLite/CSV/JSON 閲覧・DOCX/XLSX/PDF スライス・OpenAPI ローカル HTTP 検証',
       description:
-        '外部バイナリ不要でローカルの SQLite/CSV/JSON を閲覧し、DOCX/XLSX/PDF/Markdown をオフラインでスライス抽出。localhost/127.0.0.1 API も検証でき、オフにすればツール負荷はゼロです。',
+        '外部バイナリ不要でローカル SQLite/CSV/JSON を閲覧し、DOCX/XLSX/PDF/Markdown をオフライン抽出。OpenAPI エンドポイントを自動検出して localhost/127.0.0.1 API を検証でき、オフ時はツール負荷ゼロです。',
     },
     canvas: {
       name: 'ビジュアルキャンバス',
@@ -283,6 +284,23 @@ export const JA_DICT: UiDictionary = {
       annotations: '行コメント',
       filesChanged: '変更ファイル',
       noChanges: '作業ツリーはクリーンです。差分は検出されませんでした。',
+      ignoreWhitespace: '空白を無視',
+      syntaxHighlight: '構文ハイライト',
+      riskLineBadge: 'リスク行',
+      quickAnnotateRisk: 'リスク行を注釈',
+      cartTitle: 'レビューカート',
+      cartEmpty: 'レビューカートは空です。差分行やリスク警告をクリックして注釈を追加できます。',
+      cartCopyAll: 'すべてコピー',
+      cartSendAll: 'Agent に一括送信',
+      cartClear: 'カートを空にする',
+      addComment: 'コメントを追加',
+      commentPlaceholder: 'この行の問題点や修正依頼を入力…',
+      severityHigh: '高',
+      severityMed: '中',
+      severityLow: '低',
+      filesTitle: '変更ファイル一覧',
+      resolved: '解決済み',
+      unresolved: '未解決',
     },
     guard: {
       title: 'ガード＆スナップショット',
@@ -306,6 +324,7 @@ export const JA_DICT: UiDictionary = {
       tabFiles: 'ファイル活動',
       tabTimeMachine: 'タイムマシン',
       tabSteps: 'ステップ履歴',
+      tabCost: 'コスト＆予算',
       refresh: '計測データを更新',
       exportBrief: 'ブリーフ出力',
       searchPlaceholder: '過去セッションを検索（EN + CJK BM25）…',
@@ -317,6 +336,26 @@ export const JA_DICT: UiDictionary = {
       subagents: 'サブエージェント',
       orphanSuspects: '孤立候補',
       modelBreakdown: 'モデル別内訳',
+      estCostUsd: '推定コスト (USD)',
+      todayCost: '今日のコスト',
+      weekCost: '7 日間コスト',
+      cacheSavings: 'キャッシュ節約額',
+      fiveHourWindow: '5 時間ウィンドウ',
+      burnRate: '消費レート',
+      exportHandoff: 'Handoff 出力',
+      exportOtlp: 'OTLP 出力',
+      exportCsv: 'CSV 出力',
+      dailyTrendTitle: '日別使用量トレンド',
+      compositionTitle: 'トークン構成比',
+      hotspotsTitle: 'コスト・トークン集中箇所',
+      diagnosticsTitle: 'コンテキスト＆キャッシュ診断',
+      filesEmpty: 'このセッションではまだファイル活動が記録されていません。',
+      openFile: 'ファイルを開く',
+      attachContext: 'コンテキストに添付',
+      timeMachineTitle: 'セッション横断タイムマシン',
+      artifactsTitle: 'セッション成果物',
+      injectExcerpt: '抜粋を注入',
+      noSearchHits: '一致するセッション抜粋が見つかりませんでした。',
     },
     verify: {
       title: '検証ゲート',
@@ -342,6 +381,11 @@ export const JA_DICT: UiDictionary = {
       executablePlaceholder: '実行ファイル（例: npm, pnpm, node）',
       argsPlaceholder: 'スペース区切りの引数（例: run typecheck）',
       labelPlaceholder: 'コマンド名（例: 型チェック）',
+      detectStackBtn: '技術スタック自動検出',
+      detectedCommandsTitle: '検出された検証コマンド',
+      applyDetectedBtn: '検出結果を適用',
+      noDetectedCommands:
+        'このワークスペースで一般的なビルド・Lint・テストコマンドは検出されませんでした。',
     },
     worktree: {
       title: 'Worktree オーケストレーター',
@@ -420,6 +464,10 @@ export const JA_DICT: UiDictionary = {
       rowsCount: '行数',
       statusCode: 'ステータス',
       truncatedNotice: '安全なプレビュー上限に収めるため出力を省略しました。',
+      openApiEndpointsTitle: 'OpenAPI エンドポイント',
+      loadEndpointBtn: 'HTTP 検証へ読込',
+      openApiEmpty: 'このワークスペースに OpenAPI / Swagger 仕様書は見つかりませんでした。',
+      serversTitle: 'サーバー一覧',
     },
     canvas: {
       title: 'ビジュアルキャンバス',
@@ -462,5 +510,14 @@ export const JA_DICT: UiDictionary = {
       dispatchTask: 'タスクを配信',
       promptPlaceholder: 'リモートで Agent に指示するプロンプトを入力…',
     },
+  },
+  quickStart: {
+    title: '30 秒・ゼロリスク初回体験',
+    subtitle: 'ファイルを一切変更せず、読み取り専用で即座に主要機能を確認できます。',
+    step1: 'X-Ray を開いて現在の Token/USD コスト・キャッシュ命中率・5 時間レートを確認',
+    step2: 'Diff Review でリスク行の強調表示を確認し、ワンクリックで注釈カートに追加',
+    step3: '必要に応じて Verify の自動検出チェックを有効化、またはプリセットを切り替え',
+    tryNowBtn: '今すぐ X-Ray を開く',
+    dismissBtn: 'ガイドを閉じる',
   },
 };

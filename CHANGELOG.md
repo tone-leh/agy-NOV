@@ -2,6 +2,34 @@
 
 All notable changes to **agy-NOV** will be documented in this file.
 
+## [0.5.0] - 2026-11-27
+
+### Added
+- **100% Full-Component 8-Language Localization (400 Keys × 8 Locales across All 22 UI Components):** Completed localization for all remaining subcomponents across `review` (5 subcomponents) and `xray` (3 subcomponents), eliminating hardcoded English fallbacks across the entire workbench UI. Added a collapsible **"30-Second Zero-Risk First Try"** onboarding card inside the **Modules** tab.
+- **Context X-Ray 2.0 (`xray` — Offline USD Billing, 5h Burn-Rate Alerts, Anti-Compaction Handoff & OTLP/CSV Export):**
+  - Built-in offline reference model pricing table with strictly read-only custom override support via `<dataDir>/modules/xray/pricing-overrides.json` (`<= 1 MiB`), surfacing estimated session USD spend and prefix-cache USD savings locally with zero network requests.
+  - Added 14-day daily spend trend tracking and a rolling **5-hour burn-rate warning window** (`normal` / `elevated` / `critical`).
+  - Extended `xray_export_brief` with `format: 'brief' | 'handoff' | 'otlp' | 'csv'` for one-click anti-compaction handoff snapshots, OpenTelemetry JSON payloads, and spreadsheet-safe CSV exports with formula-injection neutralization.
+- **Verify Gate Read-Only Stack Auto-Detection (`verify`):** Added zero-write workspace stack detection (`detectWorkspaceVerifyCommands`) scanning `package.json` (`pnpm` / `yarn` / `bun` / `npm`), `pyproject.toml` / `pytest.ini`, `Cargo.toml`, and `go.mod`, re-validating every candidate against the shell-free 17-binary allowlist before surfacing one-click safe check recommendations.
+- **Diff Review Power Trio (`review`):**
+  - Added zero-dependency pure-React lightweight syntax highlighting inside `DiffViewer` (zero `dangerouslySetInnerHTML`).
+  - Added an **Ignore Whitespace (`-w`)** diff toggle across working-tree, staged, and commit scopes.
+  - Added deterministic, zero-ReDoS line-level risk pre-annotations (`detectLineRiskHint`) with one-click conversion into structured review annotations.
+- **Workspace Studio Zero-Dependency OpenAPI 2.0 / 3.x Parser (`studio`):** Added an offline pure-Node OpenAPI / Swagger YAML & JSON parser (`src/modules/studio/openapi.ts`) scanning workspace `.openapi.yaml` / `.openapi.json` / `openapi.*` / `swagger.*` specs into a clickable endpoint collection that auto-populates the loopback-only HTTP probe.
+- **8th CLI Command — Read-Only `agy-nov recommend`:** Added `agy-nov recommend [--workspace=<dir>] [--json]` to scan workspace stack signals, Git/test setup, rule/MCP configs, and local data/OpenAPI assets with zero disk writes and recommend the best-fit preset and optional modules.
+- **Expanded Automated Regression Tests:** Added `test/v05-xray-billing.test.ts`, `test/v05-verify-review.test.ts`, and `test/v05-studio-openapi.test.ts` covering offline billing, 5h burn-rate warnings, OTLP/CSV formula-safe export, stack auto-detection, whitespace-ignored diffs, deterministic risk hints, OpenAPI security caps, and `agy-nov recommend`.
+
+### Changed
+- **Preserved 13-Module Architecture, 5 Presets & 47 Model Tools Unchanged:** All 13 toggleable native modules (12 local offline + 1 opt-in `remote`), 5 presets (`minimal` 6 / `core` 12 / `power` 32 / `local-all` 43 / `full` 47), and all 47 model tool names remain 100% backward-compatible.
+- **First-Screen Conversion & 8-Language Docs Refresh:** Added a **Live Workbench Preview** (`assets/demo-preview.gif`) block and a **30-Second Read-Only First Try** quick-trial block across `README.md` and all 7 `docs/i18n/README.*.md` translations.
+- **CLI, Bundle & Metadata Alignment:** Updated `package.json`, `plugin.json`, `src/server/cli.ts` (8 CLI commands), `skills/agy-nov/SKILL.md`, `README.md`, all 7 localized READMEs, `llms.txt`, and `docs/llms-install.md` to v0.5.0 (`dist/ui/app.html` ~956 KB, far below the 10 MiB limit).
+
+### Security
+- **Zero-HTML-Injection Highlighting & Zero-ReDoS Risk Hints (`review`):** Implemented syntax highlighting purely via React element tokens without `dangerouslySetInnerHTML`, and restricted line-level risk pre-annotations to linear deterministic scanning immune to catastrophic backtracking.
+- **OpenAPI YAML Bomb & Prototype-Pollution Defense (`studio`):** Enforced strict caps (`2 MiB` file limit, `20,000` YAML lines, nesting depth `24`, `200` endpoints, `8 KiB` sample payload), blocked YAML anchor/alias bomb expansion and `__proto__` / `constructor` / `prototype` key pollution, and kept all auto-populated HTTP probes strictly confined to loopback targets.
+- **CSV Formula Injection & Override Cap Hardening (`xray`):** Neutralized leading `=`, `+`, `-`, `@`, tab, and carriage-return cells in CSV exports and capped read-only `pricing-overrides.json` loading at `1 MiB` with zero writes.
+- **Zero-Write Verification & Recommendation Invariants:** Kept `detectWorkspaceVerifyCommands`, `agy-nov recommend`, `agy-nov statusline`, and `agy-nov doctor` strictly read-only with zero disk writes, while preserving 100% Zero ASAR / Zero CDP boundaries and zero-port OFF-state isolation for `remote`.
+
 ## [0.4.0] - 2026-11-27
 
 ### Added

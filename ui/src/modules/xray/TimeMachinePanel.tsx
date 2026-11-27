@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
-import { fmtTokens, type ArtifactSummary, type SearchHit, type SessionSummary } from './types';
+import { useNovI18n } from '../../i18n/index.js';
+import {
+  fmtTokens,
+  fmtUsd,
+  type ArtifactSummary,
+  type SearchHit,
+  type SessionSummary,
+} from './types';
 
 interface TimeMachinePanelProps {
   sessions: SessionSummary[];
   artifacts: ArtifactSummary[];
   hits: SearchHit[];
   searching: boolean;
+  hasSearched?: boolean;
   canInject: boolean;
   onSearch: (q: string) => void;
   onSelectSession: (id: string) => void;
@@ -18,40 +26,50 @@ export const TimeMachinePanel: React.FC<TimeMachinePanelProps> = ({
   artifacts,
   hits,
   searching,
+  hasSearched = false,
   canInject,
   onSearch,
   onSelectSession,
   onInjectHit,
   onInjectArtifact,
 }) => {
+  const { dict } = useNovI18n();
+  const x = dict.panels.xray;
   const [query, setQuery] = useState('');
+  const [submittedOnce, setSubmittedOnce] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!query.trim()) return;
+    setSubmittedOnce(true);
     onSearch(query);
   };
+
+  const showNoHits = (hasSearched || submittedOnce) && !searching && hits.length === 0;
 
   return (
     <div className="xr-stack">
       <form onSubmit={handleSubmit} className="xr-search-form">
         <input
           className="xr-input xr-search-input"
-          placeholder="Search all local Antigravity transcripts & artifacts (EN / 中文)..."
-          aria-label="Search local transcripts and artifacts"
+          placeholder={x.searchPlaceholder}
+          aria-label={x.searchPlaceholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <button type="submit" className="xr-btn xr-btn-primary" disabled={searching}>
-          {searching ? 'Searching…' : 'Search'}
+          {searching ? dict.common.loading : dict.common.run}
         </button>
       </form>
 
-      {/* Search Hits */}
-      {hits.length > 0 && (
+      {/* Search Hits or Empty Search State */}
+      {hits.length > 0 ? (
         <div className="xr-card">
           <div className="xr-section-title">
-            <span>Time Machine Matches ({hits.length})</span>
-            <span className="xr-kpi-sub">Local BM25 index · zero cloud upload</span>
+            <span>
+              {x.timeMachineTitle} ({hits.length})
+            </span>
+            <span className="xr-badge xr-sev-good">{dict.badgeOffline}</span>
           </div>
           <div className="xr-list">
             {hits.map((hit, i) => (
@@ -61,10 +79,10 @@ export const TimeMachinePanel: React.FC<TimeMachinePanelProps> = ({
                     <span
                       className={`xr-badge ${hit.sourceKind === 'artifact' ? 'xr-sev-info' : 'xr-sev-good'}`}
                     >
-                      {hit.sourceKind === 'artifact' ? hit.sourceLabel : 'Transcript'}
+                      {hit.sourceKind === 'artifact' ? hit.sourceLabel : 'JSONL'}
                     </span>
                     <strong className="xr-hit-title">{hit.sessionTitle}</strong>
-                    <span className="xr-badge xr-mono">score {hit.score}</span>
+                    <span className="xr-badge xr-mono">{hit.score}</span>
                   </div>
                   <div className="xr-snippet">{hit.snippet}</div>
                 </div>
@@ -74,7 +92,7 @@ export const TimeMachinePanel: React.FC<TimeMachinePanelProps> = ({
                     className="xr-btn"
                     onClick={() => onSelectSession(hit.sessionId)}
                   >
-                    Inspect
+                    {x.tabOverview}
                   </button>
                   {canInject && (
                     <button
@@ -82,7 +100,7 @@ export const TimeMachinePanel: React.FC<TimeMachinePanelProps> = ({
                       className="xr-btn xr-btn-primary"
                       onClick={() => onInjectHit(hit)}
                     >
-                      Inject
+                      {x.injectExcerpt}
                     </button>
                   )}
                 </div>
@@ -90,13 +108,17 @@ export const TimeMachinePanel: React.FC<TimeMachinePanelProps> = ({
             ))}
           </div>
         </div>
+      ) : (
+        showNoHits && <div className="xr-card xr-empty-state">{x.noSearchHits}</div>
       )}
 
       {/* Current Session Artifacts */}
       {artifacts.length > 0 && (
         <div className="xr-card">
           <div className="xr-section-title">
-            <span>Active Session Artifacts ({artifacts.length})</span>
+            <span>
+              {x.artifactsTitle} ({artifacts.length})
+            </span>
           </div>
           <div className="xr-list">
             {artifacts.map((art) => (
@@ -112,7 +134,7 @@ export const TimeMachinePanel: React.FC<TimeMachinePanelProps> = ({
                       className="xr-btn xr-btn-primary"
                       onClick={() => onInjectArtifact(art)}
                     >
-                      + Context
+                      {x.attachContext}
                     </button>
                   </div>
                 )}
@@ -125,10 +147,12 @@ export const TimeMachinePanel: React.FC<TimeMachinePanelProps> = ({
       {/* Recent Local Sessions */}
       <div className="xr-card">
         <div className="xr-section-title">
-          <span>Recent Local Sessions ({sessions.length})</span>
+          <span>
+            {x.title} ({sessions.length})
+          </span>
         </div>
         {sessions.length === 0 ? (
-          <div className="xr-empty-state">No local sessions available yet.</div>
+          <div className="xr-empty-state">{dict.common.empty}</div>
         ) : (
           <div className="xr-list">
             {sessions.slice(0, 12).map((s) => (
@@ -136,13 +160,14 @@ export const TimeMachinePanel: React.FC<TimeMachinePanelProps> = ({
                 <div className="xr-file-meta">
                   <div className="xr-session-title">{s.title}</div>
                   <div className="xr-file-dir xr-mono">
-                    {s.source} · {s.model} · {s.turns} turns · {fmtTokens(s.totalInputTokens)} in ·{' '}
-                    {(s.cacheHitRate * 100).toFixed(0)}% cache
+                    {s.source} · {s.model} · {s.turns}T · {fmtTokens(s.totalInputTokens)} ·{' '}
+                    {(s.cacheHitRate * 100).toFixed(0)}%
+                    {s.estimatedUsd != null ? ` · ${fmtUsd(s.estimatedUsd)}` : ''}
                   </div>
                 </div>
                 <div className="xr-row-actions">
                   <button type="button" className="xr-btn" onClick={() => onSelectSession(s.id)}>
-                    X-Ray
+                    {x.tabOverview}
                   </button>
                 </div>
               </div>

@@ -498,7 +498,7 @@ test('plugin.json contains only official Antigravity manifest keys', () => {
   }
   assert.equal(manifest.name, 'agy-nov');
   assert.equal(manifest.displayName, 'agy-NOV');
-  assert.equal(manifest.version, '0.4.0');
+  assert.equal(manifest.version, '0.5.0');
 });
 
 test('security regressions: Guard symlink blocking (H-1), snake_case target_file (M-1), and unexpanded ${PLUGIN_DATA} fallback (H-2)', async () => {
@@ -1121,6 +1121,35 @@ test('v0.3.0 verify Stop hook blocks empty writes via unified dispatcher and CLI
     const dirtyRadarJson = JSON.parse(dirtyRadarStatus.stdout);
     assert.equal(dirtyRadarJson.radar?.running, 1);
     assert.equal(dirtyRadarJson.radar?.unread, 1);
+
+    // 6. CLI recommend --json stays strictly read-only and detects Node + OpenAPI workspace signals
+    fs.writeFileSync(
+      path.join(ws, 'package.json'),
+      JSON.stringify({ name: 'demo-app', scripts: { typecheck: 'tsc --noEmit', test: 'node --test' } }),
+      'utf8',
+    );
+    fs.writeFileSync(path.join(ws, 'openapi.yaml'), 'openapi: 3.0.3\ninfo:\n  title: Demo\n', 'utf8');
+    fs.mkdirSync(path.join(ws, '.git'), { recursive: true });
+    const recRes = await new Promise<{ code: number | null; stdout: string; stderr: string }>(
+      (resolve, reject) => {
+        const child = spawn(
+          process.execPath,
+          [cliPath, 'recommend', '--json', `--workspace=${ws}`],
+          { stdio: ['ignore', 'pipe', 'pipe'] },
+        );
+        let stdout = '';
+        let stderr = '';
+        child.stdout.on('data', (c) => (stdout += c.toString('utf8')));
+        child.stderr.on('data', (c) => (stderr += c.toString('utf8')));
+        child.on('error', reject);
+        child.on('close', (code) => resolve({ code, stdout, stderr }));
+      },
+    );
+    assert.equal(recRes.code, 0, recRes.stderr);
+    const recJson = JSON.parse(recRes.stdout);
+    assert.equal(recJson.recommendedPreset, 'power');
+    assert.ok(Array.isArray(recJson.suggestedExtraModules) && recJson.suggestedExtraModules.includes('studio'));
+    assert.equal(fs.existsSync(path.join(ws, '.agy-nov.json')), false);
   } finally {
     fs.rmSync(parentTmp, { recursive: true, force: true });
     fs.rmSync(ws, { recursive: true, force: true });

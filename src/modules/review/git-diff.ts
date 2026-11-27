@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
   classifyRiskTags,
   computeFileFingerprint,
+  detectLineRiskHint,
   parseUnifiedDiff,
 } from './diff-parser.js';
 import type { DiffFile, DiffHunk, DiffLine, ReviewScope } from './types.js';
@@ -13,6 +14,7 @@ export interface ScanGitDiffOptions {
   repoPath: string;
   scope?: ReviewScope;
   commitRange?: string;
+  ignoreWhitespace?: boolean;
   maxLinesPerFile?: number;
   maxTotalLines?: number;
   maxUntrackedBytes?: number;
@@ -27,6 +29,7 @@ export interface ScanGitDiffResult {
   headCommit?: string;
   scope: ReviewScope;
   commitRange?: string;
+  ignoreWhitespace?: boolean;
   isGitRepo: boolean;
   notice?: string;
   totalFiles: number;
@@ -258,11 +261,14 @@ function buildUntrackedDiffFile(
 
   const lines: DiffLine[] = [];
   for (let i = 0; i < sliceLen; i++) {
+    const content = rawLines[i];
+    const riskHint = detectLineRiskHint(content);
     lines.push({
       type: 'add',
-      content: rawLines[i],
+      content,
       oldLine: null,
       newLine: i + 1,
+      ...(riskHint ? { riskHint } : {}),
     });
   }
 
@@ -310,6 +316,8 @@ function listUntrackedFiles(repoRoot: string): string[] {
 export function scanGitDiff(options: ScanGitDiffOptions): ScanGitDiffResult {
   const requestedPath = path.resolve(options.repoPath || process.cwd());
   const scope: ReviewScope = options.scope ?? 'working';
+  const ignoreWhitespace = Boolean(options.ignoreWhitespace);
+  const wsArgs = ignoreWhitespace ? ['-w'] : [];
   const maxLinesPerFile = options.maxLinesPerFile ?? DEFAULT_MAX_LINES_PER_FILE;
   const maxTotalLines = options.maxTotalLines ?? DEFAULT_MAX_TOTAL_LINES;
   const maxUntrackedBytes = options.maxUntrackedBytes ?? DEFAULT_MAX_UNTRACKED_BYTES;
@@ -384,11 +392,23 @@ export function scanGitDiff(options: ScanGitDiffOptions): ScanGitDiffResult {
   if (scope === 'working') {
     includeUntracked = true;
     if (hasHead) {
-      const diffRes = runGit(repoRoot, ['diff', 'HEAD', '--unified=3', '--find-renames', '--'], maxGitBuffer);
+      const diffRes = runGit(
+        repoRoot,
+        ['diff', 'HEAD', '--unified=3', '--find-renames', ...wsArgs, '--'],
+        maxGitBuffer,
+      );
       rawDiff = recordDiffResult(diffRes, 'working');
     } else {
-      const stagedRes = runGit(repoRoot, ['diff', '--cached', '--unified=3', '--find-renames', '--'], maxGitBuffer);
-      const unstagedRes = runGit(repoRoot, ['diff', '--unified=3', '--find-renames', '--'], maxGitBuffer);
+      const stagedRes = runGit(
+        repoRoot,
+        ['diff', '--cached', '--unified=3', '--find-renames', ...wsArgs, '--'],
+        maxGitBuffer,
+      );
+      const unstagedRes = runGit(
+        repoRoot,
+        ['diff', '--unified=3', '--find-renames', ...wsArgs, '--'],
+        maxGitBuffer,
+      );
       rawDiff = [
         recordDiffResult(stagedRes, 'staged'),
         recordDiffResult(unstagedRes, 'unstaged'),
@@ -397,11 +417,19 @@ export function scanGitDiff(options: ScanGitDiffOptions): ScanGitDiffResult {
         .join('\n');
     }
   } else if (scope === 'staged') {
-    const diffRes = runGit(repoRoot, ['diff', '--cached', '--unified=3', '--find-renames', '--'], maxGitBuffer);
+    const diffRes = runGit(
+      repoRoot,
+      ['diff', '--cached', '--unified=3', '--find-renames', ...wsArgs, '--'],
+      maxGitBuffer,
+    );
     rawDiff = recordDiffResult(diffRes, 'staged');
   } else if (scope === 'unstaged') {
     includeUntracked = true;
-    const diffRes = runGit(repoRoot, ['diff', '--unified=3', '--find-renames', '--'], maxGitBuffer);
+    const diffRes = runGit(
+      repoRoot,
+      ['diff', '--unified=3', '--find-renames', ...wsArgs, '--'],
+      maxGitBuffer,
+    );
     rawDiff = recordDiffResult(diffRes, 'unstaged');
   } else if (scope === 'head~1') {
     if (!hasHead) {
@@ -409,16 +437,28 @@ export function scanGitDiff(options: ScanGitDiffOptions): ScanGitDiffResult {
     } else {
       const parentCheck = runGit(repoRoot, ['rev-parse', '--verify', 'HEAD~1']);
       if (parentCheck.ok) {
-        const diffRes = runGit(repoRoot, ['diff', 'HEAD~1', 'HEAD', '--unified=3', '--find-renames', '--'], maxGitBuffer);
+        const diffRes = runGit(
+          repoRoot,
+          ['diff', 'HEAD~1', 'HEAD', '--unified=3', '--find-renames', ...wsArgs, '--'],
+          maxGitBuffer,
+        );
         rawDiff = recordDiffResult(diffRes, 'head~1');
       } else {
-        const diffRes = runGit(repoRoot, ['show', '--format=', '--unified=3', '--find-renames', 'HEAD', '--'], maxGitBuffer);
+        const diffRes = runGit(
+          repoRoot,
+          ['show', '--format=', '--unified=3', '--find-renames', ...wsArgs, 'HEAD', '--'],
+          maxGitBuffer,
+        );
         rawDiff = recordDiffResult(diffRes, 'HEAD');
       }
     }
   } else if (scope === 'commit-range') {
     effectiveRange = validateCommitRange(options.commitRange || 'HEAD~1..HEAD');
-    const diffRes = runGit(repoRoot, ['diff', effectiveRange, '--unified=3', '--find-renames', '--'], maxGitBuffer);
+    const diffRes = runGit(
+      repoRoot,
+      ['diff', effectiveRange, '--unified=3', '--find-renames', ...wsArgs, '--'],
+      maxGitBuffer,
+    );
     rawDiff = recordDiffResult(diffRes, effectiveRange);
   }
 
@@ -473,6 +513,7 @@ export function scanGitDiff(options: ScanGitDiffOptions): ScanGitDiffResult {
     headCommit,
     scope,
     commitRange: effectiveRange,
+    ignoreWhitespace,
     isGitRepo: true,
     notice,
     totalFiles: files.length,

@@ -5,7 +5,7 @@ const SECRET_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
   // Common provider API keys
   {
     pattern:
-      /\b(sk-[A-Za-z0-9_-]{16,}|AIza[0-9A-Za-z\-_]{24,}|ghp_[A-Za-z0-9]{20,}|gho_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16})\b/g,
+      /\b(sk-[A-Za-z0-9_-]{16,}|sk_(?:live|test)_[A-Za-z0-9]{12,}|AIza[0-9A-Za-z\-_]{24,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|(?:AKIA|ASIA)[0-9A-Z]{16})\b/g,
     replacement: '[REDACTED_KEY]',
   },
   // Generic key/secret/token assignments in env or JSON
@@ -14,9 +14,14 @@ const SECRET_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
       /(["']?(?:api[_-]?key|secret|token|password|passwd|authorization|csrf[_-]?token)["']?\s*[:=]\s*["']?)([^\s"',;}{]{8,})(["']?)/gi,
     replacement: '$1[REDACTED]$3',
   },
-  // Private key blocks
+  // Complete PEM private key blocks (PKCS#8, RSA, EC, OPENSSH, etc.)
   {
-    pattern: /-----BEGIN [A-Z ]+ PRIVATE KEY-----[\s\S]*?-----END [A-Z ]+ PRIVATE KEY-----/g,
+    pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/g,
+    replacement: '[REDACTED_PRIVATE_KEY]',
+  },
+  // Truncated PEM private key blocks (when upstream slicing removed the END marker)
+  {
+    pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*/g,
     replacement: '[REDACTED_PRIVATE_KEY]',
   },
 ];

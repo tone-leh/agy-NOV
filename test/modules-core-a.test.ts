@@ -538,7 +538,7 @@ describe('Builder A — Unified McpServer registration, tool naming & dynamic to
           'app_guard_update_policy',
           'app_guard_scan_workspace',
           'app_guard_simulate_threat',
-          // xray (4 + 4)
+          // xray (4 + 8)
           'xray_analyze_context',
           'xray_get_file_activity',
           'xray_search_sessions',
@@ -547,6 +547,10 @@ describe('Builder A — Unified McpServer registration, tool naming & dynamic to
           'app_xray_get_session_detail',
           'app_xray_search_sessions',
           'app_xray_export_brief',
+          'app_xray_get_cost_analytics',
+          'app_xray_export_handoff',
+          'app_xray_export_otlp',
+          'app_xray_export_csv',
         ];
 
         assert.equal(listed.tools.length, expectedAll.length);

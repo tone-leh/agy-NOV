@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNovI18n } from '../../i18n/index.js';
 import type { DiffFile, RiskTag } from './types';
 
 interface FileTreeProps {
@@ -50,6 +51,9 @@ export const FileTree: React.FC<FileTreeProps> = ({
   onOpenInHost,
   onCloseDrawer,
 }) => {
+  const { dict } = useNovI18n();
+  const r = dict.panels.review;
+
   if (compact && !open) {
     return (
       <div className="rv-compact-file-bar">
@@ -57,15 +61,15 @@ export const FileTree: React.FC<FileTreeProps> = ({
           className="rv-compact-file-select"
           value={selectedPath ?? ''}
           onChange={(e) => onSelectFile(e.target.value)}
-          aria-label="Select file to review"
+          aria-label={r.filesTitle}
         >
           {files.length === 0 ? (
-            <option value="">No matching files</option>
+            <option value="">{dict.common.empty}</option>
           ) : (
             files.map((f) => {
               const ann = openCountByFile.get(f.path) ?? 0;
               const viewedMark = viewedSet.has(f.path) ? '✓ ' : '';
-              const annSuffix = ann > 0 ? ` (${ann} note${ann > 1 ? 's' : ''})` : '';
+              const annSuffix = ann > 0 ? ` (${ann} ${r.annotations})` : '';
               return (
                 <option key={f.path} value={f.path}>
                   {viewedMark}[{STATUS_LETTER[f.status]}] {f.path} (+{f.additions}/-{f.deletions}){annSuffix}
@@ -83,16 +87,18 @@ export const FileTree: React.FC<FileTreeProps> = ({
   return (
     <aside className={compact ? 'rv-file-tree rv-file-tree-drawer' : 'rv-file-tree'}>
       <div className="rv-file-tree-header">
-        <span className="rv-file-tree-title">Changed Files ({files.length})</span>
+        <span className="rv-file-tree-title">
+          {r.filesTitle} ({files.length})
+        </span>
         {compact && (
-          <button type="button" className="rv-icon-btn" onClick={onCloseDrawer} aria-label="Close file list">
+          <button type="button" className="rv-icon-btn" onClick={onCloseDrawer} aria-label={dict.common.clear}>
             ✕
           </button>
         )}
       </div>
       <div className="rv-file-tree-list">
         {files.length === 0 ? (
-          <div className="rv-file-tree-empty">No files match current filter.</div>
+          <div className="rv-file-tree-empty">{dict.common.empty}</div>
         ) : (
           files.map((file) => {
             const selected = file.path === selectedPath;
@@ -121,7 +127,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
                   <label
                     className="rv-viewed-check"
                     onClick={(e) => e.stopPropagation()}
-                    title={viewed ? 'Mark unviewed' : 'Mark viewed'}
+                    title={viewed ? r.resolved : r.unresolved}
                   >
                     <input
                       type="checkbox"
@@ -134,7 +140,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
                     {name}
                   </span>
                   {openCount > 0 && (
-                    <span className="rv-file-ann-badge" title={`${openCount} open annotation(s)`}>
+                    <span className="rv-file-ann-badge" title={`${openCount} ${r.annotations}`}>
                       {openCount}
                     </span>
                   )}
@@ -142,7 +148,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
                     <button
                       type="button"
                       className="rv-file-open-btn"
-                      title="Open file in Antigravity side pane"
+                      title={dict.panels.canvas.openFile}
                       onClick={(e) => {
                         e.stopPropagation();
                         onOpenInHost(file.absolutePath!);
@@ -170,7 +176,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
                 {file.riskTags.length > 0 && (
                   <div className="rv-file-risk-row">
                     {file.riskTags.map((tag) => (
-                      <span key={tag} className={`rv-risk-tag rv-risk-${tag}`}>
+                      <span key={tag} className={`rv-risk-tag rv-risk-${tag}`} title={r.riskLineBadge}>
                         {RISK_LABEL[tag]}
                       </span>
                     ))}

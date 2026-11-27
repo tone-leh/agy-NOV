@@ -6,7 +6,9 @@ import { FileTreePanel } from './FileTreePanel';
 import { TimeMachinePanel } from './TimeMachinePanel';
 import {
   fmtTokens,
+  fmtUsd,
   type ArtifactSummary,
+  type CostAnalyticsReport,
   type FileActivityItem,
   type SearchHit,
   type SessionDetail,
@@ -22,7 +24,9 @@ export interface NovModulePanelProps {
   incomingEvent?: { toolName?: string; structuredContent: Record<string, unknown> } | null;
 }
 
-const VALID_TABS = new Set<XrayTabKey>(['overview', 'files', 'timemachine', 'steps']);
+type ExportKind = 'brief' | 'handoff' | 'handoff-attach' | 'otlp' | 'csv';
+
+const VALID_TABS = new Set<XrayTabKey>(['overview', 'files', 'timemachine', 'steps', 'cost']);
 
 async function copyTextReliable(text: string): Promise<boolean> {
   try {
@@ -68,10 +72,14 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
   const [tab, setTab] = useState<XrayTabKey>('overview');
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [detail, setDetail] = useState<SessionDetail | null>(null);
+  const [analytics, setAnalytics] = useState<CostAnalyticsReport | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [hits, setHits] = useState<SearchHit[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
   const [quickQuery, setQuickQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [exportingKind, setExportingKind] = useState<ExportKind | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [localToast, setLocalToast] = useState<string | null>(null);
 
@@ -117,36 +125,59 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
     };
   }, [bridge]);
 
+  const fetchCostAnalytics = useCallback(async () => {
+    setAnalyticsLoading(true);
+    try {
+      const res = await bridge.callTool<{ analytics?: CostAnalyticsReport }>(
+        'app_xray_get_cost_analytics',
+        {},
+      );
+      if (res?.analytics) {
+        setAnalytics(res.analytics);
+      }
+    } catch {
+      // Non-fatal: keep existing analytics or empty state
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, [bridge]);
+
   const fetchSessionsAndDetail = useCallback(
     async (sessionId?: string, silent = false) => {
       loadedOnceRef.current = true;
       setLoading(true);
       setLoadError(null);
       try {
-        const [listRes, detailRes] = await Promise.all([
+        const [listRes, detailRes, costRes] = await Promise.all([
           bridge.callTool<{ sessions?: SessionSummary[] }>('app_xray_list_sessions', { limit: 25 }),
           bridge.callTool<{ detail?: SessionDetail | null }>(
             'app_xray_get_session_detail',
             sessionId ? { sessionId } : {},
           ),
+          bridge
+            .callTool<{ analytics?: CostAnalyticsReport }>('app_xray_get_cost_analytics', {})
+            .catch(() => null),
         ]);
         const list = Array.isArray(listRes?.sessions) ? listRes.sessions : [];
         if (list.length > 0) setSessions(list);
         if (detailRes && 'detail' in detailRes) {
           setDetail(detailRes.detail ?? null);
         }
+        if (costRes?.analytics) {
+          setAnalytics(costRes.analytics);
+        }
         if (!silent) {
-          notify('Refreshed local transcript metrics');
+          notify(x.refresh);
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         setLoadError(msg);
-        notify(`Failed to load X-Ray telemetry: ${msg}`);
+        notify(msg);
       } finally {
         setLoading(false);
       }
     },
-    [bridge, notify],
+    [bridge, notify, x.refresh],
   );
 
   // Hydrate once on first activation
@@ -155,6 +186,13 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
       void fetchSessionsAndDetail(undefined, true);
     }
   }, [active, fetchSessionsAndDetail]);
+
+  // Refresh cost analytics when entering cost tab if not loaded yet
+  useEffect(() => {
+    if (active && tab === 'cost' && !analytics && !analyticsLoading) {
+      void fetchCostAnalytics();
+    }
+  }, [active, tab, analytics, analyticsLoading, fetchCostAnalytics]);
 
   // React to incoming tool results targeting X-Ray
   useEffect(() => {
@@ -167,6 +205,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
       toolName.includes('xray') ||
       Array.isArray(sc.sessions) ||
       (sc.detail !== undefined && sc.detail !== null && typeof sc.detail === 'object') ||
+      (sc.analytics !== undefined && sc.analytics !== null && typeof sc.analytics === 'object') ||
       (typeof sc.initialTab === 'string' && VALID_TABS.has(sc.initialTab as XrayTabKey));
 
     if (!hasXrayPayload) return;
@@ -182,6 +221,10 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
     }
     if (sc.detail !== undefined) {
       setDetail((sc.detail as SessionDetail | null) ?? null);
+      loadedOnceRef.current = true;
+    }
+    if (sc.analytics && typeof sc.analytics === 'object') {
+      setAnalytics(sc.analytics as CostAnalyticsReport);
       loadedOnceRef.current = true;
     }
     if (!Array.isArray(sc.sessions) && sc.detail === undefined && active) {
@@ -202,7 +245,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
         setTab('overview');
       }
     } catch (err) {
-      notify(`Failed to load session: ${err instanceof Error ? err.message : String(err)}`);
+      notify(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -216,9 +259,11 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
     const trimmed = query.trim();
     if (!trimmed) {
       setHits([]);
+      setHasSearched(false);
       return;
     }
     setSearching(true);
+    setHasSearched(true);
     try {
       const res = await bridge.callTool<{ hits?: SearchHit[] }>('app_xray_search_sessions', {
         query: trimmed,
@@ -226,7 +271,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
       });
       setHits(Array.isArray(res?.hits) ? res.hits : []);
     } catch (err) {
-      notify(`Search failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(err instanceof Error ? err.message : String(err));
     } finally {
       setSearching(false);
     }
@@ -234,11 +279,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
 
   const handleOpenFile = async (file: FileActivityItem) => {
     const ok = await bridge.openFile(file.uri || file.path);
-    notify(
-      ok
-        ? `Opened ${file.basename} in side pane`
-        : 'File opening is available in Conversation Side Pane mode',
-    );
+    notify(ok ? `${x.openFile}: ${file.basename}` : `${x.openFile} — ${file.basename}`);
   };
 
   const handleAttachFile = async (file: FileActivityItem) => {
@@ -247,8 +288,8 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
     );
     notify(
       outcome === 'context'
-        ? `Attached ${file.basename} to next message`
-        : `Copied ${file.basename} reference to clipboard`,
+        ? `${x.attachContext}: ${file.basename}`
+        : `${dict.common.copied}: ${file.basename}`,
     );
   };
 
@@ -256,11 +297,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
     const outcome = await bridge.updateModelContext(
       `[Agy X-Ray Time Machine Context]\nFrom session: ${hit.sessionTitle} (${hit.sessionId})\nSource: ${hit.sourceLabel} (${hit.filePath})\nExcerpt:\n${hit.snippet}`,
     );
-    notify(
-      outcome === 'context'
-        ? 'Injected historical excerpt into next message'
-        : 'Copied historical excerpt to clipboard',
-    );
+    notify(outcome === 'context' ? x.injectExcerpt : dict.common.copied);
   };
 
   const handleInjectArtifact = async (art: ArtifactSummary) => {
@@ -269,40 +306,300 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
     );
     notify(
       outcome === 'context'
-        ? `Attached ${art.name} to next message`
-        : `Copied ${art.name} preview to clipboard`,
+        ? `${x.attachContext}: ${art.name}`
+        : `${dict.common.copied}: ${art.name}`,
+    );
+  };
+
+  const deliverExportPayload = async (
+    payload: string,
+    label: string,
+    preferContext = false,
+  ) => {
+    if (!payload) {
+      notify(dict.common.empty);
+      return;
+    }
+    if (preferContext) {
+      const outcome = await bridge.updateModelContext(payload);
+      notify(
+        outcome === 'context'
+          ? `${x.attachContext} · ${label}`
+          : `${dict.common.copied} · ${label}`,
+      );
+      return;
+    }
+    const copied = await copyTextReliable(payload);
+    if (copied) {
+      notify(`${dict.common.copied} · ${label}`);
+      return;
+    }
+    const outcome = await bridge.updateModelContext(payload);
+    notify(
+      outcome === 'context'
+        ? `${x.attachContext} · ${label}`
+        : `${dict.common.copied} · ${label}`,
     );
   };
 
   const handleExportBrief = async () => {
+    if (exportingKind !== null) return;
+    setExportingKind('brief');
     try {
       const res = await bridge.callTool<{ markdown?: string }>(
         'app_xray_export_brief',
         detail?.summary.id ? { sessionId: detail.summary.id } : {},
       );
       const md = typeof res?.markdown === 'string' ? res.markdown : '';
-      if (!md) {
-        notify('No brief content returned for this session');
-        return;
-      }
-      const copied = await copyTextReliable(md);
-      if (copied) {
-        notify('Copied secret-redacted Markdown brief to clipboard');
-      } else {
-        const outcome = await bridge.updateModelContext(md);
-        notify(
-          outcome === 'context'
-            ? 'Attached secret-redacted brief to next message'
-            : 'Brief ready — clipboard restricted in this host',
-        );
-      }
+      await deliverExportPayload(md, x.exportBrief, false);
     } catch (err) {
-      notify(`Export failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExportingKind(null);
+    }
+  };
+
+  const handleExportHandoff = async (attachToContext = false) => {
+    if (exportingKind !== null) return;
+    setExportingKind(attachToContext ? 'handoff-attach' : 'handoff');
+    try {
+      const res = await bridge.callTool<{ markdown?: string }>(
+        'app_xray_export_handoff',
+        detail?.summary.id ? { sessionId: detail.summary.id } : {},
+      );
+      const md = typeof res?.markdown === 'string' ? res.markdown : '';
+      await deliverExportPayload(md, x.exportHandoff, attachToContext);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExportingKind(null);
+    }
+  };
+
+  const handleExportOtlp = async () => {
+    if (exportingKind !== null) return;
+    setExportingKind('otlp');
+    try {
+      const res = await bridge.callTool<{ json?: string; otlp?: unknown }>(
+        'app_xray_export_otlp',
+        detail?.summary.id ? { sessionId: detail.summary.id } : {},
+      );
+      const json =
+        typeof res?.json === 'string' && res.json
+          ? res.json
+          : res?.otlp
+            ? JSON.stringify(res.otlp, null, 2)
+            : '';
+      await deliverExportPayload(json, x.exportOtlp, false);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExportingKind(null);
+    }
+  };
+
+  const handleExportCsv = async () => {
+    if (exportingKind !== null) return;
+    setExportingKind('csv');
+    try {
+      const res = await bridge.callTool<{ csv?: string }>('app_xray_export_csv', {});
+      const csv = typeof res?.csv === 'string' ? res.csv : '';
+      await deliverExportPayload(csv, x.exportCsv, false);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : String(err));
+    } finally {
+      setExportingKind(null);
     }
   };
 
   const canOpenFile = caps.isWorkbench || caps.message || caps.updateModelContext;
   const canAttachContext = caps.isWorkbench || caps.updateModelContext;
+
+  const warningLevel = analytics?.fiveHourWindow.warningLevel ?? 'ok';
+  const warningBadgeClass =
+    warningLevel === 'critical'
+      ? 'xr-sev-danger'
+      : warningLevel === 'warn'
+        ? 'xr-sev-warn'
+        : 'xr-sev-good';
+
+  const maxDailyUsd = analytics
+    ? Math.max(0.0001, ...analytics.dailyTrend.map((d) => d.estimatedUsd))
+    : 1;
+  const maxDailyTokens = analytics
+    ? Math.max(1, ...analytics.dailyTrend.map((d) => d.totalTokens))
+    : 1;
+  const hasAnyTrendActivity = Boolean(
+    analytics?.dailyTrend.some((d) => d.totalTokens > 0 || d.estimatedUsd > 0),
+  );
+
+  const renderCostTab = () => {
+    if (analyticsLoading && !analytics) {
+      return <div className="xr-card xr-empty-state">{dict.common.loading}</div>;
+    }
+    if (!analytics) {
+      return (
+        <div className="xr-card xr-empty-state">
+          <div>{dict.common.empty}</div>
+          <div className="xr-empty-sub">
+            <button type="button" className="xr-btn" onClick={() => void fetchCostAnalytics()}>
+              {x.refresh}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const fw = analytics.fiveHourWindow;
+    return (
+      <div className="xr-stack">
+        {/* 4 Billing KPI Cards */}
+        <section className="xr-kpi-grid" aria-label={x.tabCost}>
+          <div className="xr-card">
+            <div className="xr-kpi-label">{x.todayCost}</div>
+            <div className="xr-kpi-value">{fmtUsd(analytics.todayEstimatedUsd)}</div>
+            <div className="xr-kpi-sub xr-mono">UTC · {analytics.sessionsAnalyzed}S</div>
+          </div>
+          <div className="xr-card">
+            <div className="xr-kpi-label">{x.weekCost}</div>
+            <div className="xr-kpi-value">{fmtUsd(analytics.weekEstimatedUsd)}</div>
+            <div className="xr-kpi-sub xr-mono">
+              7d · {fmtUsd(analytics.totalEstimatedUsd)}
+            </div>
+          </div>
+          <div className="xr-card">
+            <div className="xr-kpi-label">{x.cacheSavings}</div>
+            <div className="xr-kpi-value" style={{ color: 'var(--nov-success)' }}>
+              {fmtUsd(analytics.cacheSavingsUsd)}
+            </div>
+            <div className="xr-kpi-sub">{dict.badgeOffline}</div>
+          </div>
+          <div className="xr-card">
+            <div className="xr-window-header">
+              <span className="xr-kpi-label">{x.fiveHourWindow}</span>
+              <span className={`xr-badge ${warningBadgeClass}`}>
+                {warningLevel.toUpperCase()}
+              </span>
+            </div>
+            <div className="xr-kpi-value">{fmtUsd(fw.estimatedUsd)}</div>
+            <div className="xr-kpi-sub xr-mono">
+              {x.burnRate}: {fmtUsd(fw.burnRateUsdPerHour)}/h · {fmtTokens(fw.burnRateTokensPerHour)}/h
+            </div>
+          </div>
+        </section>
+
+        {/* Export Actions Bar (anti-double-click disabled state) */}
+        <section className="xr-card">
+          <div className="xr-section-title">
+            <span>{x.exportHandoff}</span>
+            <span className="xr-badge xr-sev-good">{dict.badgeOffline}</span>
+          </div>
+          <div className="xr-export-bar">
+            <button
+              type="button"
+              className="xr-btn xr-btn-primary"
+              disabled={!detail || exportingKind !== null}
+              onClick={() => void handleExportHandoff(false)}
+            >
+              {exportingKind === 'handoff' ? dict.common.loading : x.exportHandoff}
+            </button>
+            {canAttachContext && (
+              <button
+                type="button"
+                className="xr-btn"
+                disabled={!detail || exportingKind !== null}
+                onClick={() => void handleExportHandoff(true)}
+              >
+                {exportingKind === 'handoff-attach' ? dict.common.loading : x.attachContext}
+              </button>
+            )}
+            <button
+              type="button"
+              className="xr-btn"
+              disabled={!detail || exportingKind !== null}
+              onClick={() => void handleExportOtlp()}
+            >
+              {exportingKind === 'otlp' ? dict.common.loading : x.exportOtlp}
+            </button>
+            <button
+              type="button"
+              className="xr-btn"
+              disabled={exportingKind !== null}
+              onClick={() => void handleExportCsv()}
+            >
+              {exportingKind === 'csv' ? dict.common.loading : x.exportCsv}
+            </button>
+          </div>
+        </section>
+
+        {/* 14-Day Horizontal Bar Trend */}
+        <section className="xr-card">
+          <div className="xr-section-title">
+            <span>{x.dailyTrendTitle}</span>
+            <span className="xr-badge xr-mono">14d UTC</span>
+          </div>
+          {!hasAnyTrendActivity ? (
+            <div className="xr-empty-state">{dict.common.empty}</div>
+          ) : (
+            <div className="xr-trend-list">
+              {analytics.dailyTrend.map((d) => {
+                const ratio =
+                  d.estimatedUsd > 0
+                    ? (d.estimatedUsd / maxDailyUsd) * 100
+                    : d.totalTokens > 0
+                      ? (d.totalTokens / maxDailyTokens) * 100
+                      : 0;
+                const widthPct = d.totalTokens > 0 || d.estimatedUsd > 0 ? Math.max(3, Math.min(100, ratio)) : 0;
+                return (
+                  <div key={d.date} className="xr-trend-row">
+                    <span className="xr-trend-date xr-mono">{d.date.slice(5)}</span>
+                    <div className="xr-trend-track" title={`${d.date}: ${fmtUsd(d.estimatedUsd)} · ${fmtTokens(d.totalTokens)}`}>
+                      <div
+                        className="xr-trend-fill"
+                        style={{
+                          width: `${widthPct}%`,
+                          background:
+                            d.estimatedUsd >= 15
+                              ? 'var(--nov-warn)'
+                              : 'var(--nov-accent)',
+                        }}
+                      />
+                    </div>
+                    <span className="xr-trend-val xr-mono">
+                      {fmtUsd(d.estimatedUsd)} · {fmtTokens(d.totalTokens)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Model Cost Totals */}
+        {analytics.modelTotals.length > 0 && (
+          <section className="xr-card">
+            <div className="xr-section-title">
+              <span>{x.modelBreakdown}</span>
+              <span className="xr-badge xr-mono">{analytics.modelTotals.length}</span>
+            </div>
+            <div className="xr-list">
+              {analytics.modelTotals.map((m) => (
+                <div key={m.model} className="xr-file-row">
+                  <div className="xr-step-badges">
+                    <span className="xr-badge xr-sev-info xr-mono">{m.model}</span>
+                    <span className="xr-kpi-sub xr-mono">
+                      {m.sessions}S · {fmtTokens(m.totalTokens)} · {(m.cacheHitRate * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <strong className="xr-mono">{fmtUsd(m.estimatedUsd)}</strong>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="mod-xray" data-theme={theme}>
@@ -355,9 +652,9 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
             type="button"
             className="xr-btn xr-btn-primary"
             onClick={() => void handleExportBrief()}
-            disabled={!detail}
+            disabled={!detail || exportingKind !== null}
           >
-            {x.exportBrief}
+            {exportingKind === 'brief' ? dict.common.loading : x.exportBrief}
           </button>
         </div>
       </header>
@@ -401,6 +698,20 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
           {x.tabSteps}
           {detail && <span className="xr-badge">{detail.recentSteps.length}</span>}
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'cost'}
+          className={`xr-tab ${tab === 'cost' ? 'is-active' : ''}`}
+          onClick={() => setTab('cost')}
+        >
+          {x.tabCost}
+          {warningLevel !== 'ok' && (
+            <span className={`xr-badge ${warningBadgeClass}`}>
+              {warningLevel.toUpperCase()}
+            </span>
+          )}
+        </button>
       </nav>
 
       {loadError && (
@@ -412,7 +723,9 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
         </div>
       )}
 
-      {loading && !detail ? (
+      {tab === 'cost' ? (
+        <main className="xr-main">{renderCostTab()}</main>
+      ) : loading && !detail ? (
         <div className="xr-card xr-empty-state">{dict.common.loading}</div>
       ) : !detail ? (
         <div className="xr-card xr-empty-state">
@@ -446,6 +759,15 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
                 {fmtTokens(detail.summary.totalFreshInputTokens)}
               </div>
             </div>
+            <div className="xr-card">
+              <div className="xr-kpi-label">{x.estCostUsd}</div>
+              <div className="xr-kpi-value">{fmtUsd(detail.summary.estimatedUsd)}</div>
+              {detail.summary.cacheSavingsUsd != null && detail.summary.cacheSavingsUsd > 0 && (
+                <div className="xr-kpi-sub xr-mono">
+                  {x.cacheSavings}: {fmtUsd(detail.summary.cacheSavingsUsd)}
+                </div>
+              )}
+            </div>
           </section>
           {tab === 'overview' && (
             <>
@@ -474,14 +796,15 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
                           <div key={m.model} className="xr-file-row">
                             <div className="xr-step-badges">
                               <span className="xr-badge xr-sev-info xr-mono">{m.model}</span>
-                              <span className="xr-kpi-sub">
-                                {m.turns}T · in {fmtTokens(m.inputTokens)} · out{' '}
+                              <span className="xr-kpi-sub xr-mono">
+                                {m.turns}T · IN {fmtTokens(m.inputTokens)} · OUT{' '}
                                 {fmtTokens(m.outputTokens)} · {(m.cacheHitRate * 100).toFixed(0)}%{' '}
                                 ({m.sharePercent}%)
+                                {m.estimatedUsd != null ? ` · ${fmtUsd(m.estimatedUsd)}` : ''}
                               </span>
                               {m.retrySignals > 0 && (
                                 <span className="xr-badge xr-sev-warn">
-                                  429/retry ×{m.retrySignals}
+                                  429 ×{m.retrySignals}
                                 </span>
                               )}
                             </div>
@@ -507,7 +830,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
                               <span className="xr-kpi-sub xr-mono">{ch.model}</span>
                               {ch.transcriptFound && (
                                 <span className="xr-kpi-sub xr-mono">
-                                  in {fmtTokens(ch.totalInputTokens)} · out{' '}
+                                  IN {fmtTokens(ch.totalInputTokens)} · OUT{' '}
                                   {fmtTokens(ch.totalOutputTokens)}
                                 </span>
                               )}
@@ -539,6 +862,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
               artifacts={detail.artifacts}
               hits={hits}
               searching={searching}
+              hasSearched={hasSearched}
               canInject={canAttachContext}
               onSearch={(q) => void handleSearch(q)}
               onSelectSession={(id) => void handleSelectSession(id)}
@@ -568,11 +892,11 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
                             {tn}
                           </span>
                         ))}
-                        {st.truncated && <span className="xr-badge xr-sev-warn">TRUNCATED</span>}
+                        {st.truncated && <span className="xr-badge xr-sev-warn">TRUNC</span>}
                         {st.inputTokens != null && (
                           <span className="xr-kpi-sub xr-mono">
-                            in {fmtTokens(st.inputTokens)} · cache{' '}
-                            {fmtTokens(st.cacheReadTokens ?? 0)} · out{' '}
+                            IN {fmtTokens(st.inputTokens)} · CACHE{' '}
+                            {fmtTokens(st.cacheReadTokens ?? 0)} · OUT{' '}
                             {fmtTokens(st.outputTokens ?? 0)}
                           </span>
                         )}

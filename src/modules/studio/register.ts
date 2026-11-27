@@ -11,12 +11,14 @@ import {
   inspectStudioData,
   inspectStudioDocument,
   listStudioSources,
+  parseStudioOpenApiFile,
   runLoopbackHttpProbe,
   STUDIO_HTTP_MAX_TIMEOUT_MS,
   STUDIO_HTTP_MIN_TIMEOUT_MS,
   STUDIO_MAX_DATA_ROWS,
   STUDIO_MAX_DOC_LINES,
   type DemoStudioService,
+  type ParsedOpenApiSpec,
   type StudioDataResult,
   type StudioDocumentResult,
   type StudioHttpProbeOptions,
@@ -81,6 +83,11 @@ function formatDocumentSummary(result: StudioDocumentResult): string {
   const lines: string[] = [
     `${result.filePath} (${result.format}, ${result.bytes} B, lines ${result.startLine}-${result.endLine}/${result.totalLines}${result.truncated ? ', truncated' : ''})`,
   ];
+  if (result.openApiSpec) {
+    lines.push(
+      `OpenAPI ${result.openApiSpec.specVersion}: ${result.openApiSpec.title}${result.openApiSpec.apiVersion ? ` v${result.openApiSpec.apiVersion}` : ''} (${result.openApiSpec.totalEndpoints} endpoint(s))`,
+    );
+  }
   if (result.outline.length > 0) {
     lines.push(
       `Outline (${result.outline.length}):\n${result.outline
@@ -143,6 +150,11 @@ export function registerStudioModule(
 
   const runHttpProbe = async (opts: StudioHttpProbeOptions): Promise<StudioHttpProbeResult> =>
     isDemo && demoService ? demoService.httpProbe(opts) : runLoopbackHttpProbe(opts);
+
+  const runParseOpenApi = (filePath: string): ParsedOpenApiSpec =>
+    isDemo && demoService
+      ? demoService.parseOpenApi(filePath)
+      : parseStudioOpenApiFile(workspaceRoot, filePath);
 
   const modelTools: ModuleToolHandle[] = [];
 
@@ -408,6 +420,33 @@ export function registerStudioModule(
     async ({ url, method, headers, body, timeoutMs }) => {
       try {
         const result = await runHttpProbe({ url, method, headers, body, timeoutMs });
+        return {
+          content: [{ type: 'text', text: 'ok' }],
+          structuredContent: { ...result },
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: formatErrorMessage(err) }],
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    'app_studio_parse_openapi',
+    {
+      title: 'Parse OpenAPI Spec (App Only)',
+      description:
+        'Parse a local OpenAPI 3.x or Swagger 2.0 JSON/YAML specification into structured loopback-ready endpoints for the Studio UI.',
+      inputSchema: {
+        filePath: z.string().min(1),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ filePath }) => {
+      try {
+        const result = runParseOpenApi(filePath);
         return {
           content: [{ type: 'text', text: 'ok' }],
           structuredContent: { ...result },

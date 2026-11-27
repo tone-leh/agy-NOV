@@ -86,9 +86,9 @@ export const ZH_TW_DICT: UiDictionary = {
     review: {
       name: 'Diff 審閱台',
       shortLabel: '審閱',
-      tagline: 'PR 等級工作區/暫存區 Diff 逐行批註審閱',
+      tagline: 'PR 等級語法高亮 Diff、風險行標紅與批註籃批次審閱',
       description:
-        '如同審查 GitHub PR 般逐行檢視工作區、暫存區或提交差異，加入分類行內批註，並一鍵傳送精準 file:line 修正指令給 Agent。',
+        '支援語法高亮與忽略空白，逐行檢視工作區、暫存區或提交差異，自動標紅風險行並一鍵批註，將分級意見彙整至批註籃後批次傳回 file:line 修正指令給 Agent。',
     },
     guard: {
       name: '安全護盾與快照',
@@ -100,9 +100,9 @@ export const ZH_TW_DICT: UiDictionary = {
     xray: {
       name: '上下文與快取透視',
       shortLabel: '透視',
-      tagline: '真實快取命中與 Token 拆解、檔案活動樹與跨對話檢索',
+      tagline: 'Token/USD 成本與快取透視、5 小時速率、檔案樹與跨對話檢索',
       description:
-        '檢視每輪快取與新鮮 Token 消耗、診斷快取失效與高消耗工具、一鍵開啟異動檔案，並支援中英文 BM25 跨對話搜尋。',
+        '即時拆解每輪快取命中、估算 USD 費用、快取節省與 5 小時消耗速率，定位高耗熱點，支援匯出 Handoff/OTLP/CSV 報表與中英文 BM25 跨對話搜尋。',
     },
     turbo: {
       name: '極速批處理與防洗版',
@@ -121,9 +121,9 @@ export const ZH_TW_DICT: UiDictionary = {
     verify: {
       name: '驗收門禁',
       shortLabel: '驗收',
-      tagline: 'Stop Hook 實測門禁，攔截未經查驗的完工宣告',
+      tagline: '技術堆疊自動偵測與 Stop Hook 實測門禁，攔截未經驗證的完工宣告',
       description:
-        '於 Stop 階段強制核對白名單測試、型別檢查與 Lint 結束碼及非空檔案寫入（遵循 continuation_active 與迴圈護欄），逐輪留存去敏證據鏈。',
+        '自動偵測專案技術堆疊並一鍵套用白名單測試、型別檢查與 Lint 指令，於 Stop 階段強制查驗真實結束碼與非空檔案寫入（遵循 continuation_active 與迴圈護欄），逐輪留存去敏證據鏈。',
     },
     worktree: {
       name: '工作樹編排',
@@ -142,9 +142,9 @@ export const ZH_TW_DICT: UiDictionary = {
     studio: {
       name: '工作區工坊',
       shortLabel: '工坊',
-      tagline: '按需 SQLite/CSV/JSON 資料檢視、DOCX/XLSX/PDF 切片與本機迴環 HTTP 探測',
+      tagline: '按需 SQLite/CSV/JSON 資料檢視、DOCX/XLSX/PDF 切片與 OpenAPI 迴環 HTTP 探測',
       description:
-        '無須外部執行檔即可離線檢視本機 SQLite/CSV/JSON 資料、切片預覽 DOCX/XLSX/PDF/Markdown 文件，並探測 localhost/127.0.0.1 介面；關閉即享零工具預算負擔。',
+        '無須外部執行檔即可離線檢視本機 SQLite/CSV/JSON 資料、切片預覽 DOCX/XLSX/PDF/Markdown 文件，自動探索 OpenAPI 端點並一鍵探測 localhost/127.0.0.1 介面；關閉即享零工具預算負擔。',
     },
     canvas: {
       name: '視覺批註畫布',
@@ -278,6 +278,23 @@ export const ZH_TW_DICT: UiDictionary = {
       annotations: '行內批註',
       filesChanged: '異動檔案',
       noChanges: '工作區目前乾淨，未偵測到差異變更。',
+      ignoreWhitespace: '忽略空白',
+      syntaxHighlight: '語法高亮',
+      riskLineBadge: '風險行',
+      quickAnnotateRisk: '一鍵批註風險',
+      cartTitle: '批註籃',
+      cartEmpty: '批註籃目前為空。點擊任意 Diff 行或風險標記即可加入待送批註。',
+      cartCopyAll: '複製全部',
+      cartSendAll: '全部傳給 Agent',
+      cartClear: '清空批註籃',
+      addComment: '新增批註',
+      commentPlaceholder: '描述此行問題或期望的修改建議…',
+      severityHigh: '高',
+      severityMed: '中',
+      severityLow: '低',
+      filesTitle: '檔案清單',
+      resolved: '已解決',
+      unresolved: '未解決',
     },
     guard: {
       title: '安全護盾與快照',
@@ -300,6 +317,7 @@ export const ZH_TW_DICT: UiDictionary = {
       tabFiles: '檔案活動',
       tabTimeMachine: '時光機搜尋',
       tabSteps: '步驟明細',
+      tabCost: '成本與預算',
       refresh: '重新整理遙測',
       exportBrief: '匯出摘要',
       searchPlaceholder: '搜尋歷史對話（支援中英文 BM25）…',
@@ -311,6 +329,26 @@ export const ZH_TW_DICT: UiDictionary = {
       subagents: '子代理數',
       orphanSuspects: '疑似孤兒',
       modelBreakdown: '模型用量拆解',
+      estCostUsd: '預估費用 (USD)',
+      todayCost: '今日費用',
+      weekCost: '近 7 天費用',
+      cacheSavings: '快取節省',
+      fiveHourWindow: '5 小時視窗',
+      burnRate: '消耗速率',
+      exportHandoff: '匯出交接單',
+      exportOtlp: '匯出 OTLP',
+      exportCsv: '匯出 CSV',
+      dailyTrendTitle: '每日消耗趨勢',
+      compositionTitle: 'Token 組成分布',
+      hotspotsTitle: '高消耗熱點分析',
+      diagnosticsTitle: '上下文與快取診斷',
+      filesEmpty: '目前對話尚無檔案活動紀錄。',
+      openFile: '開啟檔案',
+      attachContext: '附加至上下文',
+      timeMachineTitle: '跨對話時光機搜尋',
+      artifactsTitle: '對話產物',
+      injectExcerpt: '注入摘錄',
+      noSearchHits: '找不到符合條件的對話摘錄。',
     },
     verify: {
       title: '驗收門禁',
@@ -334,6 +372,10 @@ export const ZH_TW_DICT: UiDictionary = {
       executablePlaceholder: '可執行檔（例如 npm、pnpm、node）',
       argsPlaceholder: '空白分隔參數（例如 run typecheck）',
       labelPlaceholder: '指令標籤（例如 型別檢查）',
+      detectStackBtn: '自動偵測技術堆疊',
+      detectedCommandsTitle: '偵測到的查驗指令',
+      applyDetectedBtn: '一鍵套用偵測結果',
+      noDetectedCommands: '目前工作區未偵測到常見建置、Lint 或測試指令。',
     },
     worktree: {
       title: '工作樹編排',
@@ -408,6 +450,10 @@ export const ZH_TW_DICT: UiDictionary = {
       rowsCount: '列數',
       statusCode: '狀態碼',
       truncatedNotice: '結果已依安全預覽上限截斷。',
+      openApiEndpointsTitle: 'OpenAPI 端點清單',
+      loadEndpointBtn: '載入 HTTP 探測',
+      openApiEmpty: '目前工作區尚未發現 OpenAPI 或 Swagger 規格檔。',
+      serversTitle: '伺服器位址',
     },
     canvas: {
       title: '視覺批註畫布',
@@ -448,5 +494,14 @@ export const ZH_TW_DICT: UiDictionary = {
       dispatchTask: '派發任務',
       promptPlaceholder: '輸入要遠端派發給 Agent 的任務指令…',
     },
+  },
+  quickStart: {
+    title: '30 秒零風險首體驗',
+    subtitle: '純唯讀直覺探索，不修改工作區任何檔案即可體驗核心價值。',
+    step1: '開啟 X-Ray 檢視目前對話 Token/USD 成本、快取命中率與 5 小時速率',
+    step2: '在 Diff Review 自動標紅風險行並一鍵加入批註籃',
+    step3: '依需求啟用 Verify 自動偵測查驗指令，或隨時切換模組預設',
+    tryNowBtn: '立即體驗 X-Ray',
+    dismissBtn: '收起引導',
   },
 };

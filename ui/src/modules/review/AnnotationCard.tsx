@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNovI18n } from '../../i18n/index.js';
 import { AnnotationComposer } from './AnnotationComposer';
 import type { AnnotationCategory, ReviewAnnotation } from './types';
 
@@ -9,11 +10,11 @@ interface AnnotationCardProps {
   onDelete: (id: string) => Promise<void>;
 }
 
-const BADGE_TEXT: Record<AnnotationCategory, string> = {
-  security: 'SECURITY',
+const BADGE_CODE: Record<AnnotationCategory, string> = {
+  security: 'SEC',
   bug: 'BUG',
-  refactor: 'REFACTOR',
-  question: 'QUESTION',
+  refactor: 'REF',
+  question: '?',
   nit: 'NIT',
 };
 
@@ -23,6 +24,9 @@ export const AnnotationCard: React.FC<AnnotationCardProps> = ({
   onToggleResolve,
   onDelete,
 }) => {
+  const { dict } = useNovI18n();
+  const r = dict.panels.review;
+
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(!annotation.resolved);
   const [busy, setBusy] = useState(false);
@@ -31,6 +35,15 @@ export const AnnotationCard: React.FC<AnnotationCardProps> = ({
     annotation.endLine > annotation.startLine
       ? `L${annotation.startLine}–L${annotation.endLine}`
       : `L${annotation.startLine}`;
+
+  const severityLabel =
+    annotation.category === 'security' || annotation.category === 'bug'
+      ? r.severityHigh
+      : annotation.category === 'refactor'
+        ? r.severityMed
+        : r.severityLow;
+
+  const badgeText = `${severityLabel} · ${BADGE_CODE[annotation.category]}`;
 
   if (editing) {
     return (
@@ -41,7 +54,7 @@ export const AnnotationCard: React.FC<AnnotationCardProps> = ({
         endLine={annotation.endLine}
         initialCategory={annotation.category}
         initialComment={annotation.comment}
-        submitLabel="Save Changes"
+        submitLabel={dict.common.save}
         saving={busy}
         onCancel={() => setEditing(false)}
         onSubmit={async (cat, text) => {
@@ -61,10 +74,10 @@ export const AnnotationCard: React.FC<AnnotationCardProps> = ({
     return (
       <div className="rv-ann-card rv-ann-resolved-collapsed" onClick={() => setExpanded(true)}>
         <span className="rv-ann-resolved-check">✓</span>
-        <span className={`rv-ann-badge rv-cat-${annotation.category}`}>{BADGE_TEXT[annotation.category]}</span>
+        <span className={`rv-ann-badge rv-cat-${annotation.category}`}>{badgeText}</span>
         <span className="rv-ann-range">{lineLabel}</span>
         <span className="rv-ann-preview-text">{annotation.comment}</span>
-        <span className="rv-ann-expand-hint">Resolved · click to expand</span>
+        <span className="rv-ann-expand-hint">{r.resolved}</span>
       </div>
     );
   }
@@ -75,17 +88,17 @@ export const AnnotationCard: React.FC<AnnotationCardProps> = ({
     >
       <div className="rv-ann-header">
         <div className="rv-ann-meta">
-          <span className={`rv-ann-badge rv-cat-${annotation.category}`}>{BADGE_TEXT[annotation.category]}</span>
+          <span className={`rv-ann-badge rv-cat-${annotation.category}`}>{badgeText}</span>
           <span className="rv-ann-range">
             {lineLabel}
-            {annotation.side === 'old' ? ' (removed)' : ''}
+            {annotation.side === 'old' ? ' [-]' : ''}
           </span>
           {annotation.stale && (
-            <span className="rv-ann-stale" title={annotation.staleReason ?? 'Anchored code changed'}>
-              Stale
+            <span className="rv-ann-stale" title={annotation.staleReason ?? dict.panels.mem.stale}>
+              {dict.panels.mem.stale}
             </span>
           )}
-          {annotation.resolved && <span className="rv-ann-resolved-pill">Resolved</span>}
+          {annotation.resolved && <span className="rv-ann-resolved-pill">{r.resolved}</span>}
         </div>
         <div className="rv-ann-actions">
           <button
@@ -93,8 +106,10 @@ export const AnnotationCard: React.FC<AnnotationCardProps> = ({
             className="rv-ann-action-btn"
             disabled={busy}
             onClick={() => setEditing(true)}
+            title={r.addComment}
+            aria-label={r.addComment}
           >
-            Edit
+            ✎
           </button>
           <button
             type="button"
@@ -110,7 +125,7 @@ export const AnnotationCard: React.FC<AnnotationCardProps> = ({
               }
             }}
           >
-            {annotation.resolved ? 'Reopen' : 'Resolve'}
+            {annotation.resolved ? r.unresolved : r.resolved}
           </button>
           <button
             type="button"
@@ -125,7 +140,7 @@ export const AnnotationCard: React.FC<AnnotationCardProps> = ({
               }
             }}
           >
-            Delete
+            {dict.common.delete}
           </button>
         </div>
       </div>

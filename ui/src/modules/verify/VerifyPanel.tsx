@@ -104,6 +104,24 @@ interface PolicyDraft {
   commands: EditableCommand[];
 }
 
+interface DetectedVerifyRecommendation {
+  id: string;
+  label: string;
+  executable: string;
+  args: string[];
+  timeoutMs: number;
+  reason: string;
+}
+
+interface DetectedStackResult {
+  detectedStacks: string[];
+  recommendations: DetectedVerifyRecommendation[];
+}
+
+function commandSignature(executable: string, args: readonly string[]): string {
+  return `${executable.trim()}\0${args.map((a) => a.trim()).join('\0')}`;
+}
+
 function splitArgsText(raw: string): string[] {
   const args: string[] = [];
   let current = '';
@@ -250,6 +268,7 @@ export const VerifyPanel: React.FC<NovModulePanelProps> = ({
   const [newExec, setNewExec] = useState('');
   const [newArgs, setNewArgs] = useState('');
 
+  const [detectedResult, setDetectedResult] = useState<DetectedStackResult | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
 
   const applyServerState = useCallback((next: VerifyStateView, syncDraft: boolean) => {
@@ -408,6 +427,75 @@ export const VerifyPanel: React.FC<NovModulePanelProps> = ({
     }));
   };
 
+  const handleDetectStack = async () => {
+    if (busyAction) return;
+    setBusyAction('detect');
+    try {
+      const res = await bridge.callTool<DetectedStackResult>('app_verify_detect_commands', {});
+      const stacks = Array.isArray(res?.detectedStacks) ? res.detectedStacks : [];
+      const recommendations = Array.isArray(res?.recommendations) ? res.recommendations : [];
+      setDetectedResult({ detectedStacks: stacks, recommendations });
+      if (recommendations.length === 0) {
+        onNotify?.(vDict.noDetectedCommands);
+      }
+    } catch (err) {
+      onNotify?.(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const isRecommendationInDraft = useCallback(
+    (rec: DetectedVerifyRecommendation, commands: readonly EditableCommand[]): boolean => {
+      const recSig = commandSignature(rec.executable, rec.args);
+      return commands.some(
+        (c) =>
+          c.id === rec.id || commandSignature(c.executable, splitArgsText(c.argsText)) === recSig,
+      );
+    },
+    [],
+  );
+
+  const handleApplyDetected = (items: readonly DetectedVerifyRecommendation[]) => {
+    if (!draft || items.length === 0) return;
+    const toAdd: EditableCommand[] = [];
+    const existingIds = new Set(draft.commands.map((c) => c.id));
+    const existingSigs = new Set(
+      draft.commands.map((c) => commandSignature(c.executable, splitArgsText(c.argsText))),
+    );
+    for (const rec of items) {
+      const sig = commandSignature(rec.executable, rec.args);
+      if (existingIds.has(rec.id) || existingSigs.has(sig)) continue;
+      existingIds.add(rec.id);
+      existingSigs.add(sig);
+      toAdd.push({
+        id: rec.id,
+        label: rec.label,
+        executable: rec.executable,
+        argsText: joinArgs(rec.args),
+        timeoutMs: rec.timeoutMs,
+        enabled: true,
+      });
+    }
+    if (toAdd.length === 0) return;
+    updateDraft((prev) => {
+      const merged = [...prev.commands];
+      const prevIds = new Set(merged.map((c) => c.id));
+      const prevSigs = new Set(
+        merged.map((c) => commandSignature(c.executable, splitArgsText(c.argsText))),
+      );
+      for (const item of toAdd) {
+        const sig = commandSignature(item.executable, splitArgsText(item.argsText));
+        if (prevIds.has(item.id) || prevSigs.has(sig)) continue;
+        prevIds.add(item.id);
+        prevSigs.add(sig);
+        merged.push(item);
+      }
+      return { ...prev, commands: merged };
+    });
+    onNotify?.(`${vDict.applyDetectedBtn} (+${toAdd.length})`);
+  };
+
   const allDirtyFiles = useMemo(() => {
     const set = new Set<string>();
     const sessions = Array.isArray(state?.sessions) ? state.sessions : [];
@@ -535,6 +623,106 @@ export const VerifyPanel: React.FC<NovModulePanelProps> = ({
 
       {tab === 'gate' && draft && (
         <>
+          <section className="nov-p-card">
+            <div className="nov-p-row">
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
+                <h3 className="nov-card-title">{vDict.detectedCommandsTitle}</h3>
+                {detectedResult &&
+                  detectedResult.detectedStacks.map((stack) => (
+                    <span key={stack} className="nov-badge is-offline">
+                      {stack}
+                    </span>
+                  ))}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                <button
+                  type="button"
+                  className="nov-p-btn"
+                  disabled={isBusy}
+                  onClick={() => void handleDetectStack()}
+                >
+                  {busyAction === 'detect' ? dict.common.loading : vDict.detectStackBtn}
+                </button>
+                {detectedResult && detectedResult.recommendations.length > 0 && (
+                  <button
+                    type="button"
+                    className="nov-p-btn is-primary"
+                    disabled={
+                      isBusy ||
+                      detectedResult.recommendations.every((rec) =>
+                        isRecommendationInDraft(rec, draft.commands),
+                      )
+                    }
+                    onClick={() => handleApplyDetected(detectedResult.recommendations)}
+                  >
+                    {vDict.applyDetectedBtn}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {detectedResult && (
+              detectedResult.recommendations.length === 0 ? (
+                <p style={{ margin: 0, fontSize: '12px', color: 'var(--nov-text-2)' }}>
+                  {vDict.noDetectedCommands}
+                </p>
+              ) : (
+                <div className="nov-p-list">
+                  {detectedResult.recommendations.map((rec) => {
+                    const alreadyAdded = isRecommendationInDraft(rec, draft.commands);
+                    return (
+                      <div key={rec.id} className="nov-p-item">
+                        <div className="nov-p-row">
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '3px',
+                              minWidth: 0,
+                              flex: 1,
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                alignItems: 'center',
+                                gap: '6px',
+                              }}
+                            >
+                              <strong>{rec.label}</strong>
+                              <code
+                                style={{
+                                  fontFamily: 'var(--nov-font-mono)',
+                                  fontSize: '12px',
+                                  color: 'var(--nov-accent)',
+                                }}
+                              >
+                                {[rec.executable, ...rec.args].join(' ')}
+                              </code>
+                              <span className="nov-badge">{formatDuration(rec.timeoutMs)}</span>
+                            </div>
+                            <span style={{ fontSize: '11.5px', color: 'var(--nov-text-2)' }}>
+                              {rec.reason}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className={alreadyAdded ? 'nov-p-btn' : 'nov-p-btn is-primary'}
+                            disabled={isBusy || alreadyAdded}
+                            onClick={() => handleApplyDetected([rec])}
+                          >
+                            {alreadyAdded ? dict.common.enabled : vDict.applyDetectedBtn}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            )}
+          </section>
+
           <section className="nov-p-card">
             <div className="nov-p-row">
               <h3 className="nov-card-title">{vDict.tabGate}</h3>

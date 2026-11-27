@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNovI18n } from '../../i18n/index.js';
 import type { AnnotationCategory, AnnotationSide } from './types';
 
 interface AnnotationComposerProps {
@@ -15,14 +16,6 @@ interface AnnotationComposerProps {
   onCancel: () => void;
 }
 
-const CATEGORIES: Array<{ value: AnnotationCategory; label: string }> = [
-  { value: 'bug', label: 'Bug' },
-  { value: 'security', label: 'Security' },
-  { value: 'refactor', label: 'Refactor' },
-  { value: 'question', label: 'Question' },
-  { value: 'nit', label: 'Nit' },
-];
-
 export const AnnotationComposer: React.FC<AnnotationComposerProps> = ({
   filePath,
   side,
@@ -31,18 +24,34 @@ export const AnnotationComposer: React.FC<AnnotationComposerProps> = ({
   snippetPreview,
   initialCategory = 'bug',
   initialComment = '',
-  submitLabel = 'Add Annotation',
+  submitLabel,
   saving = false,
   onSubmit,
   onCancel,
 }) => {
+  const { dict } = useNovI18n();
+  const r = dict.panels.review;
+
   const [category, setCategory] = useState<AnnotationCategory>(initialCategory);
   const [comment, setComment] = useState(initialComment);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    setCategory(initialCategory);
+    setComment(initialComment);
+  }, [filePath, side, startLine, endLine, initialCategory, initialComment]);
+
+  useEffect(() => {
     textareaRef.current?.focus();
-  }, []);
+  }, [filePath, side, startLine, endLine]);
+
+  const categories: Array<{ value: AnnotationCategory; label: string }> = [
+    { value: 'security', label: `${r.severityHigh} · SEC` },
+    { value: 'bug', label: `${r.severityHigh} · BUG` },
+    { value: 'refactor', label: `${r.severityMed} · REF` },
+    { value: 'question', label: `${r.severityLow} · ?` },
+    { value: 'nit', label: `${r.severityLow} · NIT` },
+  ];
 
   const lineLabel = endLine > startLine ? `L${startLine}–L${endLine}` : `L${startLine}`;
 
@@ -57,10 +66,10 @@ export const AnnotationComposer: React.FC<AnnotationComposerProps> = ({
       <div className="rv-composer-header">
         <span className="rv-composer-anchor">
           {filePath}:{lineLabel}
-          {side === 'old' ? ' (removed)' : ''}
+          {side === 'old' ? ' [-]' : ''}
         </span>
-        <div className="rv-category-group" role="radiogroup" aria-label="Annotation category">
-          {CATEGORIES.map((c) => (
+        <div className="rv-category-group" role="radiogroup" aria-label={r.annotations}>
+          {categories.map((c) => (
             <button
               key={c.value}
               type="button"
@@ -85,7 +94,7 @@ export const AnnotationComposer: React.FC<AnnotationComposerProps> = ({
         rows={3}
         value={comment}
         onChange={(e) => setComment(e.target.value)}
-        placeholder="Write an actionable review note for the agent… (⌘/Ctrl + Enter to save)"
+        placeholder={r.commentPlaceholder}
         onKeyDown={(e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
             e.preventDefault();
@@ -98,10 +107,10 @@ export const AnnotationComposer: React.FC<AnnotationComposerProps> = ({
       />
 
       <div className="rv-composer-footer">
-        <span className="rv-composer-hint">Shift+click another line to annotate a range</span>
+        <span className="rv-composer-hint">Shift+Click · ⌘/Ctrl+Enter</span>
         <div className="rv-composer-buttons">
           <button type="button" className="rv-btn rv-btn-subtle" onClick={onCancel} disabled={saving}>
-            Cancel
+            {dict.common.clear}
           </button>
           <button
             type="button"
@@ -109,7 +118,7 @@ export const AnnotationComposer: React.FC<AnnotationComposerProps> = ({
             onClick={handleSubmit}
             disabled={!comment.trim() || saving}
           >
-            {saving ? 'Saving…' : submitLabel}
+            {saving ? dict.common.loading : (submitLabel ?? r.addComment)}
           </button>
         </div>
       </div>

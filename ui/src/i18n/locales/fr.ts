@@ -88,9 +88,9 @@ export const FR_DICT: UiDictionary = {
     review: {
       name: 'Revue de Diff',
       shortLabel: 'Review',
-      tagline: 'Revue de diff ligne par ligne de niveau PR avec annotations',
+      tagline: 'Revue de diff PR avec coloration syntaxique, alertes de risque et panier',
       description:
-        'Inspectez les diffs de l’arbre de travail, de l’index ou des commits ligne par ligne, ajoutez des remarques classées et renvoyez des correctifs file:line à l’agent.',
+        'Inspectez les diffs avec coloration syntaxique et gestion des espaces, signalez les lignes à risque en un clic, regroupez vos remarques par gravité dans le panier et envoyez des correctifs file:line à l’agent.',
     },
     guard: {
       name: 'Garde et Instantanés',
@@ -102,9 +102,9 @@ export const FR_DICT: UiDictionary = {
     xray: {
       name: 'Contexte X-Ray',
       shortLabel: 'X-Ray',
-      tagline: 'Analyse tokens et cache, arbre de fichiers actif et recherche de sessions',
+      tagline: 'Coût Token/USD et cache, rythme 5 h, fichiers actifs et recherche de sessions',
       description:
-        'Examinez les tokens mis en cache et nouveaux par tour, repérez les baisses de cache et outils lourds, ouvrez les fichiers modifiés et recherchez vos sessions en BM25 EN+CJK.',
+        'Analysez tokens mis en cache et nouveaux, coût estimé en USD, économies de cache et rythme sur 5 heures ; repérez les foyers coûteux, exportez en Handoff/OTLP/CSV et recherchez vos sessions en BM25 EN+CJK.',
     },
     turbo: {
       name: 'Turbo et Garde de Sortie',
@@ -123,9 +123,9 @@ export const FR_DICT: UiDictionary = {
     verify: {
       name: 'Porte Verify',
       shortLabel: 'Verify',
-      tagline: 'Porte de vérification Stop-hook empêchant les clôtures non testées',
+      tagline: 'Détection auto de stack et porte Stop-hook bloquant les clôtures sans preuve',
       description:
-        'Impose des codes de sortie réels de tests/typecheck/lint et vérifie l’absence de fichiers vides dans les hooks Stop (avec garde-fous continuation_active et anti-boucle), en consignant une chaîne de preuves expurgée.',
+        'Détectez automatiquement la stack du projet pour configurer tests, typecheck et lint en un clic, imposez les codes de sortie réels et fichiers non vides sur Stop (avec continuation_active et anti-boucle), et consignez la chaîne de preuves.',
     },
     worktree: {
       name: 'Orchestrateur Worktree',
@@ -144,9 +144,9 @@ export const FR_DICT: UiDictionary = {
     studio: {
       name: 'Studio de l’Espace de Travail',
       shortLabel: 'Studio',
-      tagline: 'Visionneuse SQLite/CSV/JSON à la demande, découpeur DOCX/XLSX/PDF et sonde HTTP locale',
+      tagline: 'Visionneuse SQLite/CSV/JSON, découpeur DOCX/XLSX/PDF et sonde HTTP OpenAPI',
       description:
-        'Inspectez des jeux de données SQLite/CSV/JSON locaux, découpez des documents DOCX/XLSX/PDF/Markdown hors ligne sans binaire externe et sondez les API localhost/127.0.0.1 ; désactivez-le pour zéro coût d’outils.',
+        'Inspectez SQLite/CSV/JSON en local, découpez DOCX/XLSX/PDF/Markdown hors ligne sans binaire externe, découvrez les endpoints OpenAPI et sondez localhost/127.0.0.1 ; désactivez-le pour zéro coût d’outils.',
     },
     canvas: {
       name: 'Canevas Visuel',
@@ -283,6 +283,24 @@ export const FR_DICT: UiDictionary = {
       annotations: 'Annotations',
       filesChanged: 'Fichiers modifiés',
       noChanges: 'L’arbre de travail est propre. Aucune différence détectée.',
+      ignoreWhitespace: 'Ignorer les espaces',
+      syntaxHighlight: 'Coloration syntaxique',
+      riskLineBadge: 'Risque',
+      quickAnnotateRisk: 'Annoter le risque',
+      cartTitle: 'Panier de revue',
+      cartEmpty:
+        'Le panier de revue est vide. Cliquez sur une ligne de diff ou une alerte de risque pour ajouter une annotation.',
+      cartCopyAll: 'Tout copier',
+      cartSendAll: 'Tout envoyer à l’agent',
+      cartClear: 'Vider le panier',
+      addComment: 'Ajouter un commentaire',
+      commentPlaceholder: 'Décrivez le problème ou la correction souhaitée pour cette ligne…',
+      severityHigh: 'Haute',
+      severityMed: 'Moyenne',
+      severityLow: 'Basse',
+      filesTitle: 'Fichiers',
+      resolved: 'Résolu',
+      unresolved: 'Non résolu',
     },
     guard: {
       title: 'Garde et Instantanés',
@@ -306,6 +324,7 @@ export const FR_DICT: UiDictionary = {
       tabFiles: 'Activité fichiers',
       tabTimeMachine: 'Machine à remonter',
       tabSteps: 'Étapes',
+      tabCost: 'Coût et Budget',
       refresh: 'Actualiser la télémétrie',
       exportBrief: 'Exporter la synthèse',
       searchPlaceholder: 'Rechercher dans les sessions passées (BM25 EN + CJK)…',
@@ -317,6 +336,26 @@ export const FR_DICT: UiDictionary = {
       subagents: 'Sous-agents',
       orphanSuspects: 'Orphelins suspects',
       modelBreakdown: 'Répartition par modèle',
+      estCostUsd: 'Coût est. (USD)',
+      todayCost: 'Coût du jour',
+      weekCost: 'Coût sur 7 jours',
+      cacheSavings: 'Économies cache',
+      fiveHourWindow: 'Fenêtre 5 h',
+      burnRate: 'Rythme de dépense',
+      exportHandoff: 'Exporter Handoff',
+      exportOtlp: 'Exporter OTLP',
+      exportCsv: 'Exporter CSV',
+      dailyTrendTitle: 'Tendance d’usage quotidienne',
+      compositionTitle: 'Répartition des tokens',
+      hotspotsTitle: 'Foyers de coût et tokens',
+      diagnosticsTitle: 'Diagnostic contexte et cache',
+      filesEmpty: 'Aucune activité de fichier enregistrée pour cette session.',
+      openFile: 'Ouvrir le fichier',
+      attachContext: 'Joindre au contexte',
+      timeMachineTitle: 'Machine à remonter inter-sessions',
+      artifactsTitle: 'Artefacts de session',
+      injectExcerpt: 'Injecter l’extrait',
+      noSearchHits: 'Aucun extrait de session correspondant trouvé.',
     },
     verify: {
       title: 'Porte Verify',
@@ -342,6 +381,11 @@ export const FR_DICT: UiDictionary = {
       executablePlaceholder: 'Exécutable (ex. npm, pnpm, node)',
       argsPlaceholder: 'Arguments séparés par des espaces (ex. run typecheck)',
       labelPlaceholder: 'Libellé de commande (ex. Typecheck)',
+      detectStackBtn: 'Détecter la stack',
+      detectedCommandsTitle: 'Commandes de vérification détectées',
+      applyDetectedBtn: 'Appliquer la sélection',
+      noDetectedCommands:
+        'Aucune commande courante de build, lint ou test détectée dans cet espace de travail.',
     },
     worktree: {
       title: 'Orchestrateur Worktree',
@@ -420,6 +464,10 @@ export const FR_DICT: UiDictionary = {
       rowsCount: 'Lignes',
       statusCode: 'Statut',
       truncatedNotice: 'Sortie tronquée pour respecter les limites sûres d’aperçu.',
+      openApiEndpointsTitle: 'Endpoints OpenAPI',
+      loadEndpointBtn: 'Charger dans HTTP',
+      openApiEmpty: 'Aucune spécification OpenAPI ou Swagger trouvée dans cet espace de travail.',
+      serversTitle: 'Serveurs',
     },
     canvas: {
       title: 'Canevas Visuel',
@@ -462,5 +510,16 @@ export const FR_DICT: UiDictionary = {
       dispatchTask: 'Envoyer une tâche',
       promptPlaceholder: 'Saisissez une instruction de tâche à envoyer à distance…',
     },
+  },
+  quickStart: {
+    title: 'Prise en main 30 s en lecture seule',
+    subtitle: 'Explorez télémétrie réelle et revue de diff sans aucune modification de fichier.',
+    step1:
+      'Ouvrez X-Ray pour consulter le coût Token/USD, le taux de cache et le rythme sur 5 h.',
+    step2: 'Ouvrez Diff Review pour repérer les lignes à risque et annoter en un clic.',
+    step3:
+      'Activez Verify pour détecter les contrôles de votre stack ou changez de préréglage.',
+    tryNowBtn: 'Ouvrir X-Ray maintenant',
+    dismissBtn: 'Masquer',
   },
 };

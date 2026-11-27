@@ -88,9 +88,9 @@ export const KO_DICT: UiDictionary = {
     review: {
       name: 'Diff 리뷰',
       shortLabel: 'Review',
-      tagline: 'PR 수준 인라인 Diff 리뷰 및 행 단위 주석',
+      tagline: 'PR 수준 구문 강조 Diff 리뷰, 위험 행 표시 및 리뷰 카트',
       description:
-        '작업 트리, 스테이징, 커밋 차이를 한 줄씩 검토하고 분류된 주석을 남겨 정확한 file:line 수정 프롬프트를 Agent로 보냅니다.',
+        '구문 강조와 공백 무시 옵션으로 작업 트리·스테이징·커밋 차이를 한 줄씩 검토하고, 위험 행에 원클릭 주석을 달아 심각도별 코멘트를 리뷰 카트에서 Agent로 일괄 전송합니다.',
     },
     guard: {
       name: '가드 및 스냅샷',
@@ -102,9 +102,9 @@ export const KO_DICT: UiDictionary = {
     xray: {
       name: '컨텍스트 X-Ray',
       shortLabel: 'X-Ray',
-      tagline: '토큰·캐시 분석, 실시간 파일 트리 및 과거 세션 검색',
+      tagline: '토큰/USD 비용·캐시 분석, 5시간 소진율, 파일 트리 및 과거 세션 검색',
       description:
-        '턴별 캐시 적중 토큰과 신규 토큰을 확인하고 캐시 저하와 무거운 도구를 진단하며, 변경 파일을 바로 열고 EN+CJK BM25로 이전 세션을 검색합니다.',
+        '턴별 캐시 적중·신규 토큰, 추정 USD 비용, 캐시 절감액, 5시간 소진율을 확인하고 고비용 지점을 진단합니다. Handoff/OTLP/CSV 내보내기와 EN+CJK BM25 세션 검색을 지원합니다.',
     },
     turbo: {
       name: 'Turbo 및 출력 가드',
@@ -123,9 +123,9 @@ export const KO_DICT: UiDictionary = {
     verify: {
       name: '검증 게이트',
       shortLabel: 'Verify',
-      tagline: '검증 없는 완료 선언을 차단하는 Stop Hook 품질 게이트',
+      tagline: '기술 스택 자동 감지 및 미검증 완료 선언을 차단하는 Stop Hook 품질 게이트',
       description:
-        'Stop Hook에서 허용 목록 테스트·타입검사·린트의 실제 종료 코드와 빈 파일 쓰기를 검증하며(continuation_active 및 루프 제한 준수) 마스킹된 증적 체인을 기록합니다.',
+        '프로젝트 기술 스택을 자동 감지해 허용 목록 검증 명령을 원클릭 구성하고, Stop Hook에서 실제 종료 코드와 빈 파일 쓰기를 검증하며(continuation_active 및 루프 제한 준수) 마스킹된 증적 체인을 기록합니다.',
     },
     worktree: {
       name: 'Worktree 오케스트레이터',
@@ -144,9 +144,10 @@ export const KO_DICT: UiDictionary = {
     studio: {
       name: '워크스페이스 Studio',
       shortLabel: 'Studio',
-      tagline: '온디맨드 SQLite/CSV/JSON 데이터 뷰어, DOCX/XLSX/PDF 슬라이서 및 루프백 HTTP 프로브',
+      tagline:
+        '온디맨드 SQLite/CSV/JSON 뷰어, DOCX/XLSX/PDF 슬라이서 및 OpenAPI 루프백 HTTP 프로브',
       description:
-        '외부 바이너리 없이 로컬 SQLite/CSV/JSON 데이터를 검사하고 DOCX/XLSX/PDF/Markdown 문서를 오프라인으로 슬라이싱하며 localhost/127.0.0.1 API를 점검합니다. 끄면 도구 예산 부담이 0입니다.',
+        '외부 바이너리 없이 로컬 SQLite/CSV/JSON 데이터를 검사하고 DOCX/XLSX/PDF/Markdown 문서를 오프라인 슬라이싱하며 OpenAPI 엔드포인트를 자동 탐지해 localhost/127.0.0.1 API를 점검합니다. 끄면 도구 예산 부담이 0입니다.',
     },
     canvas: {
       name: '비주얼 캔버스',
@@ -282,6 +283,23 @@ export const KO_DICT: UiDictionary = {
       annotations: '주석',
       filesChanged: '변경된 파일',
       noChanges: '작업 트리가 깨끗합니다. 감지된 Diff 변경 사항이 없습니다.',
+      ignoreWhitespace: '공백 무시',
+      syntaxHighlight: '구문 강조',
+      riskLineBadge: '위험 행',
+      quickAnnotateRisk: '위험 행 주석',
+      cartTitle: '리뷰 카트',
+      cartEmpty: '리뷰 카트가 비어 있습니다. Diff 행이나 위험 표시를 클릭해 주석을 담으세요.',
+      cartCopyAll: '전체 복사',
+      cartSendAll: 'Agent에 일괄 전송',
+      cartClear: '카트 비우기',
+      addComment: '코멘트 추가',
+      commentPlaceholder: '이 행의 문제점이나 수정 요청 사항을 입력하세요…',
+      severityHigh: '높음',
+      severityMed: '보통',
+      severityLow: '낮음',
+      filesTitle: '파일 목록',
+      resolved: '해결됨',
+      unresolved: '미해결',
     },
     guard: {
       title: '가드 및 스냅샷',
@@ -305,6 +323,7 @@ export const KO_DICT: UiDictionary = {
       tabFiles: '파일 활동',
       tabTimeMachine: '타임머신',
       tabSteps: '단계별 내역',
+      tabCost: '비용 및 예산',
       refresh: '텔레메트리 새로고침',
       exportBrief: '요약 내보내기',
       searchPlaceholder: '이전 세션 검색 (EN + CJK BM25)…',
@@ -316,6 +335,26 @@ export const KO_DICT: UiDictionary = {
       subagents: '서브에이전트',
       orphanSuspects: '고아 의심',
       modelBreakdown: '모델별 사용량',
+      estCostUsd: '추정 비용 (USD)',
+      todayCost: '오늘 비용',
+      weekCost: '최근 7일 비용',
+      cacheSavings: '캐시 절감액',
+      fiveHourWindow: '5시간 윈도우',
+      burnRate: '소진 속도',
+      exportHandoff: 'Handoff 내보내기',
+      exportOtlp: 'OTLP 내보내기',
+      exportCsv: 'CSV 내보내기',
+      dailyTrendTitle: '일별 사용 추세',
+      compositionTitle: '토큰 구성 비율',
+      hotspotsTitle: '비용·토큰 핫스팟',
+      diagnosticsTitle: '컨텍스트 및 캐시 진단',
+      filesEmpty: '이 세션에 기록된 파일 활동이 아직 없습니다.',
+      openFile: '파일 열기',
+      attachContext: '컨텍스트에 첨부',
+      timeMachineTitle: '세션 간 타임머신 검색',
+      artifactsTitle: '세션 아티팩트',
+      injectExcerpt: '발췌 주입',
+      noSearchHits: '일치하는 세션 발췌 내용이 없습니다.',
     },
     verify: {
       title: '검증 게이트',
@@ -341,6 +380,10 @@ export const KO_DICT: UiDictionary = {
       executablePlaceholder: '실행 파일 (예: npm, pnpm, node)',
       argsPlaceholder: '공백으로 구분된 인자 (예: run typecheck)',
       labelPlaceholder: '명령 라벨 (예: 타입 검사)',
+      detectStackBtn: '스택 자동 감지',
+      detectedCommandsTitle: '감지된 검증 명령',
+      applyDetectedBtn: '감지 결과 적용',
+      noDetectedCommands: '이 워크스페이스에서 일반적인 빌드·린트·테스트 명령을 찾지 못했습니다.',
     },
     worktree: {
       title: 'Worktree 오케스트레이터',
@@ -418,6 +461,10 @@ export const KO_DICT: UiDictionary = {
       rowsCount: '행 수',
       statusCode: '상태 코드',
       truncatedNotice: '안전한 미리보기 한도에 맞춰 출력이 잘렸습니다.',
+      openApiEndpointsTitle: 'OpenAPI 엔드포인트',
+      loadEndpointBtn: 'HTTP 프로브로 불러오기',
+      openApiEmpty: '이 워크스페이스에서 OpenAPI 또는 Swagger 명세를 찾지 못했습니다.',
+      serversTitle: '서버 목록',
     },
     canvas: {
       title: '비주얼 캔버스',
@@ -460,5 +507,14 @@ export const KO_DICT: UiDictionary = {
       dispatchTask: '작업 전달',
       promptPlaceholder: '원격으로 전달할 작업 프롬프트를 입력하세요…',
     },
+  },
+  quickStart: {
+    title: '30초 무위험 첫 체험',
+    subtitle: '파일을 전혀 수정하지 않는 읽기 전용 탐색으로 핵심 가치를 바로 확인하세요.',
+    step1: 'X-Ray를 열어 현재 세션의 토큰/USD 비용, 캐시 적중률, 5시간 소진율 확인',
+    step2: 'Diff Review에서 강조된 위험 행을 살피고 원클릭으로 리뷰 카트에 주석 추가',
+    step3: '필요에 따라 Verify 자동 스택 검증을 켜거나 모듈 프리셋을 언제든 전환',
+    tryNowBtn: '지금 X-Ray 열기',
+    dismissBtn: '안내 닫기',
   },
 };

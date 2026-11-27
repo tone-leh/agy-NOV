@@ -3259,8 +3259,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path31) {
-      let input2 = path31;
+    function removeDotSegments(path33) {
+      let input2 = path33;
       const output2 = [];
       let nextSlash = -1;
       let len = 0;
@@ -3334,11 +3334,11 @@ var require_utils = __commonJS({
       }
       return output2.join("");
     }
-    function removeDotSegmentsRelative(path31) {
-      if (path31 === "" || path31[0] === "/") {
-        return removeDotSegments(path31);
+    function removeDotSegmentsRelative(path33) {
+      if (path33 === "" || path33[0] === "/") {
+        return removeDotSegments(path33);
       }
-      const segments = path31.split("/");
+      const segments = path33.split("/");
       const last = segments.length - 1;
       const output2 = [];
       let trailingDirectory = false;
@@ -3701,8 +3701,8 @@ var require_schemes = __commonJS({
       }
       if (wsComponent.resourceName) {
         const queryIndex = wsComponent.resourceName.indexOf("?");
-        const path31 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
-        wsComponent.path = path31 && path31 !== "/" ? path31 : void 0;
+        const path33 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
+        wsComponent.path = path33 && path33 !== "/" ? path33 : void 0;
         wsComponent.query = queryIndex === -1 ? void 0 : wsComponent.resourceName.slice(queryIndex + 1);
         wsComponent.resourceName = void 0;
       }
@@ -7239,12 +7239,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs23, exportName) {
+    function addFormats(ajv, list, fs26, exportName) {
       var _a3;
       var _b;
       (_a3 = (_b = ajv.opts.code).formats) !== null && _a3 !== void 0 ? _a3 : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs23[f]);
+        ajv.addFormat(f, fs26[f]);
     }
     module2.exports = exports2 = formatsPlugin;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -7261,8 +7261,8 @@ __export(index_exports, {
   createNovServer: () => createNovServer
 });
 module.exports = __toCommonJS(index_exports);
-var import_node_fs22 = __toESM(require("node:fs"), 1);
-var import_node_path30 = __toESM(require("node:path"), 1);
+var import_node_fs25 = __toESM(require("node:fs"), 1);
+var import_node_path32 = __toESM(require("node:path"), 1);
 
 // node_modules/zod/v3/helpers/util.js
 var util;
@@ -7638,8 +7638,8 @@ function getErrorMap() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path31, errorMaps, issueData } = params;
-  const fullPath = [...path31, ...issueData.path || []];
+  const { data, path: path33, errorMaps, issueData } = params;
+  const fullPath = [...path33, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -7754,11 +7754,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path31, key) {
+  constructor(parent, value, path33, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path31;
+    this._path = path33;
     this._key = key;
   }
   get path() {
@@ -11714,10 +11714,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path31) {
-  if (!path31)
+function getElementAtPath(obj, path33) {
+  if (!path33)
     return obj;
-  return path31.reduce((acc, key) => acc?.[key], obj);
+  return path33.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -12057,11 +12057,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path31, issues) {
+function prefixIssues(path33, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path31);
+    iss.path.unshift(path33);
     return iss;
   });
 }
@@ -12523,16 +12523,16 @@ function flattenError(error62, mapper = (issue2) => issue2.message) {
 }
 function formatError(error62, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error63, path31 = []) => {
+  const processError = (error63, path33 = []) => {
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path31, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path33, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path31, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path33, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path31, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path33, ...issue2.path]);
       } else {
-        const fullpath = [...path31, ...issue2.path];
+        const fullpath = [...path33, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -12571,17 +12571,17 @@ function formatError(error62, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error62, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error63, path31 = []) => {
+  const processError = (error63, path33 = []) => {
     var _a3;
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path31, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path33, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path31, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path33, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path31, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path33, ...issue2.path]);
       } else {
-        const fullpath = [...path31, ...issue2.path];
+        const fullpath = [...path33, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -12620,8 +12620,8 @@ function treeifyError(error62, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path31 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path31) {
+  const path33 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path33) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -28172,11 +28172,11 @@ function normalizeObjectSchema(schema) {
   }
   return void 0;
 }
-function getDotPath(path31) {
-  if (path31.length === 0) {
+function getDotPath(path33) {
+  if (path33.length === 0) {
     return "object root";
   }
-  return path31.reduce((acc, seg, index) => {
+  return path33.reduce((acc, seg, index) => {
     if (index === 0) {
       return String(seg);
     }
@@ -30403,13 +30403,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path31 = ref.slice(1).split("/").filter(Boolean);
-  if (path31.length === 0) {
+  const path33 = ref.slice(1).split("/").filter(Boolean);
+  if (path33.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path31[0] === defsKey) {
-    const key = path31[1] === void 0 ? void 0 : decodeJSONPointerSegment(path31[1]);
+  if (path33[0] === defsKey) {
+    const key = path33[1] === void 0 ? void 0 : decodeJSONPointerSegment(path33[1]);
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -45786,6 +45786,113 @@ var TEST_PATH_PATTERNS = [
   /\.(test|spec)\.[^/]+$/i,
   /_test\.[^/]+$/i
 ];
+var MAX_RISK_SCAN_LINE_CHARS = 1024;
+var SECRET_TOKEN_PATTERNS = [
+  /(?:^|[^A-Za-z0-9_])ghp_[A-Za-z0-9_]{6,}/,
+  /(?:^|[^A-Za-z0-9_])github_pat_[A-Za-z0-9_]{6,}/,
+  /(?:^|[^A-Za-z0-9_-])sk-(?:proj-|live-)?[A-Za-z0-9_-]{12,}/,
+  /(?:^|[^A-Za-z0-9])AKIA[0-9A-Z]{16}(?:[^A-Za-z0-9]|$)/,
+  /BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY/
+];
+var HARDCODED_SECRET_ASSIGN_RE = /\b(?:password|passwd|secret|api[_-]?key|access[_-]?token|private[_-]?key)\b[ \t]*[:=][ \t]*(['"`])([^'"`\r\n]{6,256})\1/i;
+var PLACEHOLDER_SECRET_WORDS = [
+  "example",
+  "placeholder",
+  "changeme",
+  "dummy",
+  "sample",
+  "your_",
+  "your-",
+  "redacted",
+  "todo",
+  "xxx"
+];
+function isPlaceholderSecretValue(rawVal) {
+  const val = rawVal.trim();
+  if (!val) return true;
+  if (val.includes("${") || val.includes("{{")) return true;
+  if (val.startsWith("<") && val.endsWith(">")) return true;
+  if (/<[^<>\r\n]{1,64}>/.test(val)) return true;
+  if (/^[xX*._-]+$/.test(val)) return true;
+  const lower = val.toLowerCase();
+  return PLACEHOLDER_SECRET_WORDS.some((word) => lower.includes(word));
+}
+var PERMISSION_PATTERNS = [
+  {
+    re: /\bchmod[ \t]+(?:-R[ \t]+)?0?777\b/,
+    message: "Overly permissive file mode (chmod 777) detected."
+  },
+  {
+    re: /\brejectUnauthorized[ \t]*:[ \t]*false\b/,
+    message: "TLS certificate validation disabled (rejectUnauthorized: false)."
+  },
+  {
+    re: /\bNODE_TLS_REJECT_UNAUTHORIZED[ \t]*=[ \t]*['"]?0\b/,
+    message: "TLS certificate verification disabled via NODE_TLS_REJECT_UNAUTHORIZED=0."
+  },
+  {
+    re: /(?:^|[^\d.])0\.0\.0\.0(?:[^\d.]|$)/,
+    message: "Wildcard network bind address (0.0.0.0) exposes listener beyond localhost."
+  }
+];
+var UNSAFE_EVAL_PATTERNS = [
+  {
+    re: /\beval[ \t]*\(/,
+    message: "Dynamic code evaluation via eval() detected."
+  },
+  {
+    re: /\bnew[ \t]+Function[ \t]*\(/,
+    message: "Dynamic code compilation via new Function() detected."
+  },
+  {
+    re: /\bdangerouslySetInnerHTML\b/,
+    message: "Raw HTML injection surface (dangerouslySetInnerHTML) detected."
+  },
+  {
+    re: /\bchild_process\b[^\r\n]{0,120}\bexec[ \t]*\(/,
+    message: "Shell-interpolated child_process exec() detected; prefer execFile without shell."
+  }
+];
+function detectLineRiskHint(content) {
+  if (!content) return void 0;
+  const sample = content.length > MAX_RISK_SCAN_LINE_CHARS ? content.slice(0, MAX_RISK_SCAN_LINE_CHARS) : content;
+  for (const re of SECRET_TOKEN_PATTERNS) {
+    if (re.test(sample)) {
+      return {
+        severity: "high",
+        category: "secret",
+        message: "Potential credential, API token, or private key detected (value redacted)."
+      };
+    }
+  }
+  const secretAssign = HARDCODED_SECRET_ASSIGN_RE.exec(sample);
+  if (secretAssign && !isPlaceholderSecretValue(secretAssign[2])) {
+    return {
+      severity: "high",
+      category: "secret",
+      message: "Potential hardcoded secret or credential assignment detected (value redacted)."
+    };
+  }
+  for (const rule of PERMISSION_PATTERNS) {
+    if (rule.re.test(sample)) {
+      return {
+        severity: "high",
+        category: "permission",
+        message: rule.message
+      };
+    }
+  }
+  for (const rule of UNSAFE_EVAL_PATTERNS) {
+    if (rule.re.test(sample)) {
+      return {
+        severity: "medium",
+        category: "unsafe_eval",
+        message: rule.message
+      };
+    }
+  }
+  return void 0;
+}
 function unquoteGitPath(raw) {
   const trimmed = raw.trim();
   if (!(trimmed.startsWith('"') && trimmed.endsWith('"'))) {
@@ -46070,11 +46177,13 @@ function parseUnifiedDiff(rawDiff, options = {}) {
       let diffLine;
       if (prefix === "+") {
         current.additions += 1;
+        const riskHint = detectLineRiskHint(content);
         diffLine = {
           type: "add",
           content,
           oldLine: null,
-          newLine: current.newCursor
+          newLine: current.newCursor,
+          ...riskHint ? { riskHint } : {}
         };
         current.newCursor += 1;
       } else if (prefix === "-") {
@@ -46479,11 +46588,14 @@ function buildUntrackedDiffFile(repoRoot, relPath, maxLinesPerFile, remainingGlo
   const lineTruncated = byteTruncated || rawLines.length > allowedLines;
   const lines = [];
   for (let i = 0; i < sliceLen; i++) {
+    const content = rawLines[i];
+    const riskHint = detectLineRiskHint(content);
     lines.push({
       type: "add",
-      content: rawLines[i],
+      content,
       oldLine: null,
-      newLine: i + 1
+      newLine: i + 1,
+      ...riskHint ? { riskHint } : {}
     });
   }
   const hunks = lines.length > 0 ? [
@@ -46519,6 +46631,8 @@ function listUntrackedFiles(repoRoot) {
 function scanGitDiff(options) {
   const requestedPath = import_node_path16.default.resolve(options.repoPath || process.cwd());
   const scope = options.scope ?? "working";
+  const ignoreWhitespace = Boolean(options.ignoreWhitespace);
+  const wsArgs = ignoreWhitespace ? ["-w"] : [];
   const maxLinesPerFile = options.maxLinesPerFile ?? DEFAULT_MAX_LINES_PER_FILE2;
   const maxTotalLines = options.maxTotalLines ?? DEFAULT_MAX_TOTAL_LINES2;
   const maxUntrackedBytes = options.maxUntrackedBytes ?? DEFAULT_MAX_UNTRACKED_BYTES;
@@ -46585,22 +46699,42 @@ function scanGitDiff(options) {
   if (scope === "working") {
     includeUntracked = true;
     if (hasHead) {
-      const diffRes = runGit(repoRoot, ["diff", "HEAD", "--unified=3", "--find-renames", "--"], maxGitBuffer);
+      const diffRes = runGit(
+        repoRoot,
+        ["diff", "HEAD", "--unified=3", "--find-renames", ...wsArgs, "--"],
+        maxGitBuffer
+      );
       rawDiff = recordDiffResult(diffRes, "working");
     } else {
-      const stagedRes = runGit(repoRoot, ["diff", "--cached", "--unified=3", "--find-renames", "--"], maxGitBuffer);
-      const unstagedRes = runGit(repoRoot, ["diff", "--unified=3", "--find-renames", "--"], maxGitBuffer);
+      const stagedRes = runGit(
+        repoRoot,
+        ["diff", "--cached", "--unified=3", "--find-renames", ...wsArgs, "--"],
+        maxGitBuffer
+      );
+      const unstagedRes = runGit(
+        repoRoot,
+        ["diff", "--unified=3", "--find-renames", ...wsArgs, "--"],
+        maxGitBuffer
+      );
       rawDiff = [
         recordDiffResult(stagedRes, "staged"),
         recordDiffResult(unstagedRes, "unstaged")
       ].filter(Boolean).join("\n");
     }
   } else if (scope === "staged") {
-    const diffRes = runGit(repoRoot, ["diff", "--cached", "--unified=3", "--find-renames", "--"], maxGitBuffer);
+    const diffRes = runGit(
+      repoRoot,
+      ["diff", "--cached", "--unified=3", "--find-renames", ...wsArgs, "--"],
+      maxGitBuffer
+    );
     rawDiff = recordDiffResult(diffRes, "staged");
   } else if (scope === "unstaged") {
     includeUntracked = true;
-    const diffRes = runGit(repoRoot, ["diff", "--unified=3", "--find-renames", "--"], maxGitBuffer);
+    const diffRes = runGit(
+      repoRoot,
+      ["diff", "--unified=3", "--find-renames", ...wsArgs, "--"],
+      maxGitBuffer
+    );
     rawDiff = recordDiffResult(diffRes, "unstaged");
   } else if (scope === "head~1") {
     if (!hasHead) {
@@ -46608,16 +46742,28 @@ function scanGitDiff(options) {
     } else {
       const parentCheck = runGit(repoRoot, ["rev-parse", "--verify", "HEAD~1"]);
       if (parentCheck.ok) {
-        const diffRes = runGit(repoRoot, ["diff", "HEAD~1", "HEAD", "--unified=3", "--find-renames", "--"], maxGitBuffer);
+        const diffRes = runGit(
+          repoRoot,
+          ["diff", "HEAD~1", "HEAD", "--unified=3", "--find-renames", ...wsArgs, "--"],
+          maxGitBuffer
+        );
         rawDiff = recordDiffResult(diffRes, "head~1");
       } else {
-        const diffRes = runGit(repoRoot, ["show", "--format=", "--unified=3", "--find-renames", "HEAD", "--"], maxGitBuffer);
+        const diffRes = runGit(
+          repoRoot,
+          ["show", "--format=", "--unified=3", "--find-renames", ...wsArgs, "HEAD", "--"],
+          maxGitBuffer
+        );
         rawDiff = recordDiffResult(diffRes, "HEAD");
       }
     }
   } else if (scope === "commit-range") {
     effectiveRange = validateCommitRange(options.commitRange || "HEAD~1..HEAD");
-    const diffRes = runGit(repoRoot, ["diff", effectiveRange, "--unified=3", "--find-renames", "--"], maxGitBuffer);
+    const diffRes = runGit(
+      repoRoot,
+      ["diff", effectiveRange, "--unified=3", "--find-renames", ...wsArgs, "--"],
+      maxGitBuffer
+    );
     rawDiff = recordDiffResult(diffRes, effectiveRange);
   }
   const parsed = parseUnifiedDiff(rawDiff, {
@@ -46666,6 +46812,7 @@ function scanGitDiff(options) {
     headCommit,
     scope,
     commitRange: effectiveRange,
+    ignoreWhitespace,
     isGitRepo: true,
     notice,
     totalFiles: files.length,
@@ -46838,6 +46985,7 @@ function resolveEffectiveRepoPath(requestedRepoPath, workspaceRoot, moduleDataDi
 function buildSessionData(store, moduleDataDir, opts, params) {
   const scope = params.scope ?? "working";
   const useDemo = params.demo ?? Boolean(opts.demoMode);
+  const ignoreWhitespace = Boolean(params.ignoreWhitespace);
   if (useDemo) {
     const demoBase = createDemoSession(scope);
     const demoFiles = buildDemoFiles();
@@ -46852,6 +47000,7 @@ function buildSessionData(store, moduleDataDir, opts, params) {
     const viewedFiles2 = store.getViewedFiles(DEMO_REPO_KEY, scope);
     return {
       ...demoBase,
+      ignoreWhitespace,
       files: demoFiles,
       annotations: annotations2,
       viewedFiles: viewedFiles2
@@ -46861,7 +47010,8 @@ function buildSessionData(store, moduleDataDir, opts, params) {
   const scan = scanGitDiff({
     repoPath: targetRepo,
     scope,
-    commitRange: params.commitRange
+    commitRange: params.commitRange,
+    ignoreWhitespace
   });
   const savedAnnotations = store.listAnnotations(scan.repoKey, scope);
   const annotations = evaluateAnnotationStaleness(savedAnnotations, scan.files);
@@ -46875,6 +47025,7 @@ function buildSessionData(store, moduleDataDir, opts, params) {
     headCommit: scan.headCommit,
     scope: scan.scope,
     commitRange: scan.commitRange,
+    ignoreWhitespace: scan.ignoreWhitespace,
     isGitRepo: scan.isGitRepo,
     isDemo: false,
     notice: scan.notice,
@@ -46912,6 +47063,7 @@ function buildSummaryFromSession(session, maxFiles = DEFAULT_SUMMARY_MAX_FILES) 
     branch: session.branch,
     scope: session.scope,
     commitRange: session.commitRange,
+    ignoreWhitespace: session.ignoreWhitespace,
     isGitRepo: session.isGitRepo,
     isDemo: session.isDemo,
     notice: session.notice,
@@ -46981,6 +47133,7 @@ function registerReviewModule(server, opts, uiResourceUri) {
         repoPath: external_exports.string().optional().describe("Optional path to a Git repository; defaults to active workspace"),
         scope: SCOPE_ENUM.optional().describe("Diff scope: working (default), staged, unstaged, head~1, or commit-range"),
         commitRange: external_exports.string().optional().describe("Git commit range when scope is commit-range (e.g. HEAD~2..HEAD)"),
+        ignoreWhitespace: external_exports.boolean().optional().describe("Ignore whitespace-only changes (git diff -w)"),
         selectedFile: external_exports.string().optional().describe("Optional relative file path to focus initially"),
         demo: external_exports.boolean().optional().describe("Launch with built-in synthetic demo diff")
       },
@@ -46988,9 +47141,15 @@ function registerReviewModule(server, opts, uiResourceUri) {
         ui: { resourceUri: uiResourceUri }
       }
     },
-    async ({ repoPath, scope, commitRange, selectedFile, demo }) => {
+    async ({ repoPath, scope, commitRange, ignoreWhitespace, selectedFile, demo }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, { repoPath, scope, commitRange, demo });
+        const session = buildSessionData(store, moduleDataDir, opts, {
+          repoPath,
+          scope,
+          commitRange,
+          ignoreWhitespace,
+          demo
+        });
         const summary = buildSummaryFromSession(session);
         return {
           content: [{ type: "text", text: formatSummaryText(summary) }],
@@ -47000,6 +47159,7 @@ function registerReviewModule(server, opts, uiResourceUri) {
               repoPath: session.repoPath,
               scope: session.scope,
               commitRange: session.commitRange,
+              ignoreWhitespace: session.ignoreWhitespace,
               selectedFile: selectedFile ?? session.files[0]?.path,
               demo: session.isDemo
             },
@@ -47024,12 +47184,19 @@ function registerReviewModule(server, opts, uiResourceUri) {
         repoPath: external_exports.string().optional().describe("Optional path to a Git repository"),
         scope: SCOPE_ENUM.optional().describe("Diff scope (default: working)"),
         commitRange: external_exports.string().optional().describe("Optional Git range when scope is commit-range"),
+        ignoreWhitespace: external_exports.boolean().optional().describe("Ignore whitespace-only changes (git diff -w)"),
         demo: external_exports.boolean().optional().describe("Use built-in synthetic demo diff")
       }
     },
-    async ({ repoPath, scope, commitRange, demo }) => {
+    async ({ repoPath, scope, commitRange, ignoreWhitespace, demo }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, { repoPath, scope, commitRange, demo });
+        const session = buildSessionData(store, moduleDataDir, opts, {
+          repoPath,
+          scope,
+          commitRange,
+          ignoreWhitespace,
+          demo
+        });
         const summary = buildSummaryFromSession(session);
         return {
           content: [{ type: "text", text: formatSummaryText(summary) }],
@@ -47053,13 +47220,20 @@ function registerReviewModule(server, opts, uiResourceUri) {
         repoPath: external_exports.string().optional(),
         scope: SCOPE_ENUM.optional(),
         commitRange: external_exports.string().optional(),
+        ignoreWhitespace: external_exports.boolean().optional(),
         demo: external_exports.boolean().optional()
       },
       _meta: APP_ONLY_META2
     },
-    async ({ repoPath, scope, commitRange, demo }) => {
+    async ({ repoPath, scope, commitRange, ignoreWhitespace, demo }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, { repoPath, scope, commitRange, demo });
+        const session = buildSessionData(store, moduleDataDir, opts, {
+          repoPath,
+          scope,
+          commitRange,
+          ignoreWhitespace,
+          demo
+        });
         return {
           content: [
             {
@@ -47302,15 +47476,22 @@ function registerReviewModule(server, opts, uiResourceUri) {
         repoPath: external_exports.string().optional(),
         scope: SCOPE_ENUM.optional(),
         commitRange: external_exports.string().optional(),
+        ignoreWhitespace: external_exports.boolean().optional(),
         demo: external_exports.boolean().optional(),
         includeResolved: external_exports.boolean().optional(),
         annotationIds: external_exports.array(external_exports.string()).optional()
       },
       _meta: APP_ONLY_META2
     },
-    async ({ repoPath, scope, commitRange, demo, includeResolved, annotationIds }) => {
+    async ({ repoPath, scope, commitRange, ignoreWhitespace, demo, includeResolved, annotationIds }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, { repoPath, scope, commitRange, demo });
+        const session = buildSessionData(store, moduleDataDir, opts, {
+          repoPath,
+          scope,
+          commitRange,
+          ignoreWhitespace,
+          demo
+        });
         const enrichedAnnotations = session.annotations.map((ann) => {
           if (ann.codeSnippet) return ann;
           const file2 = session.files.find((f) => f.path === ann.filePath);
@@ -48725,13 +48906,1469 @@ function registerSpecModule(server, options, uiResourceUri) {
 }
 
 // src/modules/studio/register.ts
-var import_node_path21 = __toESM(require("node:path"), 1);
+var import_node_path22 = __toESM(require("node:path"), 1);
 
 // src/modules/studio/core.ts
 var import_node_child_process2 = require("node:child_process");
+var import_node_fs16 = __toESM(require("node:fs"), 1);
+var import_node_path21 = __toESM(require("node:path"), 1);
+var import_node_zlib = __toESM(require("node:zlib"), 1);
+
+// src/modules/studio/openapi.ts
 var import_node_fs15 = __toESM(require("node:fs"), 1);
 var import_node_path20 = __toESM(require("node:path"), 1);
-var import_node_zlib = __toESM(require("node:zlib"), 1);
+var OPENAPI_MAX_FILE_BYTES = 2 * 1024 * 1024;
+var OPENAPI_MAX_YAML_LINES = 2e4;
+var OPENAPI_MAX_DEPTH = 24;
+var OPENAPI_MAX_ENDPOINTS = 200;
+var OPENAPI_SAMPLE_MAX_DEPTH = 3;
+var OPENAPI_SAMPLE_MAX_BYTES = 8 * 1024;
+var OPENAPI_DEFAULT_LOOPBACK_BASE = "http://127.0.0.1:3000";
+var DANGEROUS_KEYS = /* @__PURE__ */ new Set(["__proto__", "constructor", "prototype"]);
+var SUPPORTED_METHODS = ["get", "post", "put", "patch", "delete", "head"];
+function createSafeRecord() {
+  return /* @__PURE__ */ Object.create(null);
+}
+function isPlainRecord(val) {
+  return typeof val === "object" && val !== null && !Array.isArray(val);
+}
+function setSafeProperty(target, key, value) {
+  if (DANGEROUS_KEYS.has(key)) return;
+  Object.defineProperty(target, key, {
+    value,
+    enumerable: true,
+    writable: true,
+    configurable: true
+  });
+}
+function getSafeProperty(obj, key) {
+  if (!isPlainRecord(obj) || DANGEROUS_KEYS.has(key)) return void 0;
+  return Object.prototype.hasOwnProperty.call(obj, key) ? obj[key] : void 0;
+}
+function getSafeKeys(obj) {
+  return Object.keys(obj).filter((k) => !DANGEROUS_KEYS.has(k));
+}
+function assertDepth(depth) {
+  if (depth > OPENAPI_MAX_DEPTH) {
+    throw new Error(
+      `OpenAPI specification exceeds maximum nesting depth of ${OPENAPI_MAX_DEPTH}`
+    );
+  }
+}
+function sanitizeJsonValue(value, depth) {
+  assertDepth(depth);
+  if (value === null || value === void 0 || typeof value !== "object") {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    const out = [];
+    for (let i = 0; i < value.length; i += 1) {
+      out.push(sanitizeJsonValue(value[i], depth + 1));
+    }
+    return out;
+  }
+  const src = value;
+  const safe = createSafeRecord();
+  for (const key of Object.keys(src)) {
+    if (DANGEROUS_KEYS.has(key)) continue;
+    setSafeProperty(safe, key, sanitizeJsonValue(src[key], depth + 1));
+  }
+  return safe;
+}
+var ANCHOR_OR_ALIAS_PREFIX_RE = /^(?:&|\*)[^\s,[\]{}]+(?=\s|$|,|\]|\})/;
+function assertNoAnchorOrAlias(token, lineNo) {
+  const trimmed = token.trimStart();
+  if (!trimmed) return;
+  if (trimmed[0] === '"' || trimmed[0] === "'") return;
+  if (ANCHOR_OR_ALIAS_PREFIX_RE.test(trimmed)) {
+    throw new Error(
+      `YAML anchors (&) and aliases (*) are not supported for security reasons (line ${lineNo})`
+    );
+  }
+}
+function stripInlineComment(raw) {
+  let inSingle = false;
+  let inDouble = false;
+  let escaped = false;
+  for (let i = 0; i < raw.length; i += 1) {
+    const ch = raw[i];
+    if (inDouble) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === '"') {
+        inDouble = false;
+      }
+      continue;
+    }
+    if (inSingle) {
+      if (ch === "'") {
+        if (i + 1 < raw.length && raw[i + 1] === "'") {
+          i += 1;
+        } else {
+          inSingle = false;
+        }
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inDouble = true;
+    } else if (ch === "'") {
+      inSingle = true;
+    } else if (ch === "#" && (i === 0 || raw[i - 1] === " " || raw[i - 1] === "	")) {
+      return raw.slice(0, i).trimEnd();
+    }
+  }
+  return raw.trimEnd();
+}
+function decodeDoubleQuotedString(inner) {
+  let out = "";
+  for (let i = 0; i < inner.length; i += 1) {
+    const ch = inner[i];
+    if (ch !== "\\" || i + 1 >= inner.length) {
+      out += ch;
+      continue;
+    }
+    const next = inner[i + 1];
+    switch (next) {
+      case "n":
+        out += "\n";
+        i += 1;
+        break;
+      case "r":
+        out += "\r";
+        i += 1;
+        break;
+      case "t":
+        out += "	";
+        i += 1;
+        break;
+      case '"':
+        out += '"';
+        i += 1;
+        break;
+      case "\\":
+        out += "\\";
+        i += 1;
+        break;
+      case "/":
+        out += "/";
+        i += 1;
+        break;
+      case "u": {
+        const hex3 = inner.slice(i + 2, i + 6);
+        if (/^[0-9a-fA-F]{4}$/.test(hex3)) {
+          out += String.fromCharCode(Number.parseInt(hex3, 16));
+          i += 5;
+        } else {
+          out += next;
+          i += 1;
+        }
+        break;
+      }
+      default:
+        out += next;
+        i += 1;
+        break;
+    }
+  }
+  return out;
+}
+function parseScalarToken(rawToken, lineNo) {
+  const cleaned = stripInlineComment(rawToken).trim();
+  if (!cleaned) return null;
+  assertNoAnchorOrAlias(cleaned, lineNo);
+  if (cleaned[0] === '"') {
+    let i = 1;
+    let escaped = false;
+    while (i < cleaned.length) {
+      const ch = cleaned[i];
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === '"') {
+        return decodeDoubleQuotedString(cleaned.slice(1, i));
+      }
+      i += 1;
+    }
+    return decodeDoubleQuotedString(cleaned.slice(1));
+  }
+  if (cleaned[0] === "'") {
+    let i = 1;
+    let out = "";
+    while (i < cleaned.length) {
+      if (cleaned[i] === "'") {
+        if (i + 1 < cleaned.length && cleaned[i + 1] === "'") {
+          out += "'";
+          i += 2;
+          continue;
+        }
+        return out;
+      }
+      out += cleaned[i];
+      i += 1;
+    }
+    return out;
+  }
+  const lower = cleaned.toLowerCase();
+  if (lower === "null" || cleaned === "~") return null;
+  if (lower === "true") return true;
+  if (lower === "false") return false;
+  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(cleaned)) {
+    const num = Number(cleaned);
+    if (Number.isFinite(num)) return num;
+  }
+  return cleaned;
+}
+function splitYamlKeyValue(text, lineNo) {
+  if (!text) return null;
+  if (text[0] === '"') {
+    let i = 1;
+    let escaped = false;
+    while (i < text.length) {
+      const ch = text[i];
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === '"') {
+        const rest = text.slice(i + 1);
+        const colonMatch = /^\s*:(?:\s+(.*)|\s*)$/.exec(rest);
+        if (!colonMatch) return null;
+        return {
+          key: decodeDoubleQuotedString(text.slice(1, i)),
+          rawValue: (colonMatch[1] ?? "").trim()
+        };
+      }
+      i += 1;
+    }
+    return null;
+  }
+  if (text[0] === "'") {
+    let i = 1;
+    let key = "";
+    while (i < text.length) {
+      if (text[i] === "'") {
+        if (i + 1 < text.length && text[i + 1] === "'") {
+          key += "'";
+          i += 2;
+          continue;
+        }
+        const rest = text.slice(i + 1);
+        const colonMatch = /^\s*:(?:\s+(.*)|\s*)$/.exec(rest);
+        if (!colonMatch) return null;
+        return {
+          key,
+          rawValue: (colonMatch[1] ?? "").trim()
+        };
+      }
+      key += text[i];
+      i += 1;
+    }
+    return null;
+  }
+  if (text[0] === "[" || text[0] === "{" || text[0] === "-" || text[0] === "?") {
+    return null;
+  }
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === "#" && i > 0 && (text[i - 1] === " " || text[i - 1] === "	")) {
+      return null;
+    }
+    if (ch === ":") {
+      const next = i + 1 < text.length ? text[i + 1] : "";
+      if (next === "" || next === " " || next === "	") {
+        const key = text.slice(0, i).trim();
+        if (!key) return null;
+        assertNoAnchorOrAlias(key, lineNo);
+        if (key === "<<") {
+          throw new Error(
+            `YAML merge keys (<<) are not supported for security reasons (line ${lineNo})`
+          );
+        }
+        const rawValue = text.slice(i + 1).trim();
+        return { key, rawValue };
+      }
+    }
+  }
+  return null;
+}
+var FlowYamlParser = class {
+  constructor(src, lineNo) {
+    this.src = src;
+    this.lineNo = lineNo;
+  }
+  pos = 0;
+  skipWs() {
+    while (this.pos < this.src.length) {
+      const ch = this.src[this.pos];
+      if (ch === " " || ch === "	" || ch === "\r" || ch === "\n") {
+        this.pos += 1;
+      } else {
+        break;
+      }
+    }
+  }
+  parseValue(depth) {
+    assertDepth(depth);
+    this.skipWs();
+    if (this.pos >= this.src.length) return null;
+    const ch = this.src[this.pos];
+    if (ch === "[") return this.parseArray(depth);
+    if (ch === "{") return this.parseObject(depth);
+    if (ch === '"') return this.parseDoubleQuoted();
+    if (ch === "'") return this.parseSingleQuoted();
+    const remaining = this.src.slice(this.pos);
+    assertNoAnchorOrAlias(remaining, this.lineNo);
+    const start = this.pos;
+    while (this.pos < this.src.length) {
+      const c = this.src[this.pos];
+      if (c === "," || c === "]" || c === "}") break;
+      if (c === ":" && (this.pos + 1 >= this.src.length || /[\s,\]}]/.test(this.src[this.pos + 1]))) {
+        break;
+      }
+      this.pos += 1;
+    }
+    const token = this.src.slice(start, this.pos).trim();
+    return parseScalarToken(token, this.lineNo);
+  }
+  parseDoubleQuoted() {
+    this.pos += 1;
+    const start = this.pos;
+    let escaped = false;
+    while (this.pos < this.src.length) {
+      const ch = this.src[this.pos];
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === '"') {
+        const inner = this.src.slice(start, this.pos);
+        this.pos += 1;
+        return decodeDoubleQuotedString(inner);
+      }
+      this.pos += 1;
+    }
+    throw new Error(`Unterminated double-quoted string in YAML flow value (line ${this.lineNo})`);
+  }
+  parseSingleQuoted() {
+    this.pos += 1;
+    let out = "";
+    while (this.pos < this.src.length) {
+      const ch = this.src[this.pos];
+      if (ch === "'") {
+        if (this.pos + 1 < this.src.length && this.src[this.pos + 1] === "'") {
+          out += "'";
+          this.pos += 2;
+          continue;
+        }
+        this.pos += 1;
+        return out;
+      }
+      out += ch;
+      this.pos += 1;
+    }
+    throw new Error(`Unterminated single-quoted string in YAML flow value (line ${this.lineNo})`);
+  }
+  parseArray(depth) {
+    this.pos += 1;
+    const arr = [];
+    this.skipWs();
+    if (this.pos < this.src.length && this.src[this.pos] === "]") {
+      this.pos += 1;
+      return arr;
+    }
+    while (this.pos < this.src.length) {
+      this.skipWs();
+      if (this.src[this.pos] === "]") {
+        this.pos += 1;
+        return arr;
+      }
+      arr.push(this.parseValue(depth + 1));
+      this.skipWs();
+      if (this.src[this.pos] === ",") {
+        this.pos += 1;
+        continue;
+      }
+      if (this.src[this.pos] === "]") {
+        this.pos += 1;
+        return arr;
+      }
+      throw new Error(`Invalid YAML flow array syntax (line ${this.lineNo})`);
+    }
+    throw new Error(`Unterminated YAML flow array (line ${this.lineNo})`);
+  }
+  parseObject(depth) {
+    this.pos += 1;
+    const obj = createSafeRecord();
+    this.skipWs();
+    if (this.pos < this.src.length && this.src[this.pos] === "}") {
+      this.pos += 1;
+      return obj;
+    }
+    while (this.pos < this.src.length) {
+      this.skipWs();
+      if (this.src[this.pos] === "}") {
+        this.pos += 1;
+        return obj;
+      }
+      const keyRaw = this.parseKey();
+      this.skipWs();
+      if (this.src[this.pos] !== ":") {
+        throw new Error(`Expected ':' in YAML flow mapping (line ${this.lineNo})`);
+      }
+      this.pos += 1;
+      const val = this.parseValue(depth + 1);
+      if (keyRaw === "<<") {
+        throw new Error(
+          `YAML merge keys (<<) are not supported for security reasons (line ${this.lineNo})`
+        );
+      }
+      setSafeProperty(obj, keyRaw, val);
+      this.skipWs();
+      if (this.src[this.pos] === ",") {
+        this.pos += 1;
+        continue;
+      }
+      if (this.src[this.pos] === "}") {
+        this.pos += 1;
+        return obj;
+      }
+      throw new Error(`Invalid YAML flow mapping syntax (line ${this.lineNo})`);
+    }
+    throw new Error(`Unterminated YAML flow mapping (line ${this.lineNo})`);
+  }
+  parseKey() {
+    this.skipWs();
+    const ch = this.src[this.pos];
+    if (ch === '"') return this.parseDoubleQuoted();
+    if (ch === "'") return this.parseSingleQuoted();
+    const remaining = this.src.slice(this.pos);
+    assertNoAnchorOrAlias(remaining, this.lineNo);
+    const start = this.pos;
+    while (this.pos < this.src.length) {
+      const c = this.src[this.pos];
+      if (c === ":" && (this.pos + 1 >= this.src.length || /[\s,\]}]/.test(this.src[this.pos + 1]))) {
+        break;
+      }
+      if (c === "," || c === "}" || c === "]") break;
+      this.pos += 1;
+    }
+    return this.src.slice(start, this.pos).trim();
+  }
+};
+function isFlowBalanced(text) {
+  let inSingle = false;
+  let inDouble = false;
+  let escaped = false;
+  let brackets = 0;
+  let braces = 0;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (inDouble) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === "\\") {
+        escaped = true;
+      } else if (ch === '"') {
+        inDouble = false;
+      }
+      continue;
+    }
+    if (inSingle) {
+      if (ch === "'") {
+        if (i + 1 < text.length && text[i + 1] === "'") {
+          i += 1;
+        } else {
+          inSingle = false;
+        }
+      }
+      continue;
+    }
+    if (ch === '"') inDouble = true;
+    else if (ch === "'") inSingle = true;
+    else if (ch === "[") brackets += 1;
+    else if (ch === "]") brackets -= 1;
+    else if (ch === "{") braces += 1;
+    else if (ch === "}") braces -= 1;
+  }
+  return !inSingle && !inDouble && brackets <= 0 && braces <= 0;
+}
+var BLOCK_SCALAR_HEADER_RE = /^([|>])([+-])?(?:\d+)?(?:\s+#.*)?$/;
+function parseSafeYamlSubset(rawYaml) {
+  const normalized = rawYaml.charCodeAt(0) === 65279 ? rawYaml.slice(1) : rawYaml;
+  const rawLines = normalized.split(/\r?\n/);
+  if (rawLines.length > OPENAPI_MAX_YAML_LINES) {
+    throw new Error(
+      `YAML specification exceeds maximum line limit (${rawLines.length} > ${OPENAPI_MAX_YAML_LINES})`
+    );
+  }
+  const lines = [];
+  let seenContent = false;
+  for (let i = 0; i < rawLines.length; i += 1) {
+    const raw = rawLines[i];
+    const lineNo = i + 1;
+    let indent = 0;
+    while (indent < raw.length && raw[indent] === " ") {
+      indent += 1;
+    }
+    if (indent < raw.length && raw[indent] === "	") {
+      throw new Error(`YAML tab indentation is not supported (line ${lineNo})`);
+    }
+    const trimmed = raw.slice(indent);
+    if (!trimmed || trimmed[0] === "#") continue;
+    if (indent === 0) {
+      if (/^---(?:\s|$)/.test(trimmed)) {
+        if (seenContent) break;
+        continue;
+      }
+      if (/^\.\.\.(?:\s|$)/.test(trimmed)) {
+        if (seenContent) break;
+        continue;
+      }
+    }
+    seenContent = true;
+    lines.push({ lineNo, indent, text: trimmed, raw });
+  }
+  if (lines.length === 0) {
+    return createSafeRecord();
+  }
+  let idx = 0;
+  const readBlockScalar = (parentIndent, style, chomp) => {
+    const startLineNo = lines[idx - 1]?.lineNo ?? 1;
+    const nextIdx = idx;
+    if (nextIdx >= lines.length || lines[nextIdx].indent <= parentIndent) {
+      return "";
+    }
+    const blockIndent = lines[nextIdx].indent;
+    const rawStartIdx = startLineNo;
+    while (idx < lines.length && lines[idx].indent >= blockIndent) {
+      idx += 1;
+    }
+    const endRawLineNo = idx < lines.length ? lines[idx].lineNo - 1 : rawLines.length;
+    const collected = [];
+    for (let r = rawStartIdx; r < endRawLineNo; r += 1) {
+      const rawLine = rawLines[r] ?? "";
+      if (rawLine.trim().length === 0) {
+        collected.push("");
+      } else if (rawLine.length >= blockIndent && rawLine.slice(0, blockIndent).trim() === "") {
+        collected.push(rawLine.slice(blockIndent));
+      } else {
+        break;
+      }
+    }
+    while (chomp !== "+" && collected.length > 0 && collected[collected.length - 1] === "") {
+      collected.pop();
+    }
+    if (style === "|") {
+      return collected.join("\n");
+    }
+    let folded = "";
+    for (let k = 0; k < collected.length; k += 1) {
+      const part = collected[k];
+      if (part === "") {
+        folded += "\n";
+      } else if (folded === "" || folded.endsWith("\n")) {
+        folded += part;
+      } else {
+        folded += ` ${part}`;
+      }
+    }
+    return folded;
+  };
+  const readFlowValue = (firstText, lineNo, depth) => {
+    let combined = stripInlineComment(firstText).trim();
+    let extraLines = 0;
+    while (!isFlowBalanced(combined) && idx < lines.length && extraLines < 200) {
+      combined += ` ${stripInlineComment(lines[idx].text).trim()}`;
+      idx += 1;
+      extraLines += 1;
+    }
+    const parser = new FlowYamlParser(combined, lineNo);
+    return parser.parseValue(depth);
+  };
+  const parseInlineOrNestedValue = (rawValue, parentIndent, lineNo, depth) => {
+    assertDepth(depth);
+    const cleaned = stripInlineComment(rawValue).trim();
+    if (cleaned) {
+      assertNoAnchorOrAlias(cleaned, lineNo);
+      const blockHeader = BLOCK_SCALAR_HEADER_RE.exec(cleaned);
+      if (blockHeader) {
+        return readBlockScalar(
+          parentIndent,
+          blockHeader[1],
+          blockHeader[2] ?? ""
+        );
+      }
+      if (cleaned[0] === "[" || cleaned[0] === "{") {
+        return readFlowValue(cleaned, lineNo, depth);
+      }
+      return parseScalarToken(cleaned, lineNo);
+    }
+    if (idx >= lines.length) return null;
+    const next = lines[idx];
+    if (next.indent === parentIndent && isSequenceLine(next.text)) {
+      return parseSequence(next.indent, depth);
+    }
+    if (next.indent > parentIndent) {
+      return parseNode(next.indent, depth);
+    }
+    return null;
+  };
+  const isSequenceLine = (text) => text === "-" || text.startsWith("- ");
+  const parseMapping = (baseIndent, depth) => {
+    assertDepth(depth);
+    const map2 = createSafeRecord();
+    while (idx < lines.length) {
+      const line = lines[idx];
+      if (line.indent < baseIndent) break;
+      if (line.indent > baseIndent) {
+        throw new Error(
+          `Unexpected YAML indentation at line ${line.lineNo} (expected ${baseIndent}, got ${line.indent})`
+        );
+      }
+      if (isSequenceLine(line.text)) break;
+      const kv = splitYamlKeyValue(line.text, line.lineNo);
+      if (!kv) {
+        throw new Error(`Invalid YAML mapping entry at line ${line.lineNo}`);
+      }
+      idx += 1;
+      const value = parseInlineOrNestedValue(kv.rawValue, line.indent, line.lineNo, depth + 1);
+      setSafeProperty(map2, kv.key, value);
+    }
+    return map2;
+  };
+  const parseSequence = (baseIndent, depth) => {
+    assertDepth(depth);
+    const seq = [];
+    while (idx < lines.length) {
+      const line = lines[idx];
+      if (line.indent < baseIndent) break;
+      if (line.indent > baseIndent) {
+        throw new Error(
+          `Unexpected YAML sequence indentation at line ${line.lineNo} (expected ${baseIndent}, got ${line.indent})`
+        );
+      }
+      if (!isSequenceLine(line.text)) break;
+      idx += 1;
+      const afterDashRaw = line.text.length > 1 ? line.text.slice(1) : "";
+      const leadingSpacesAfterDash = afterDashRaw.length - afterDashRaw.trimStart().length;
+      const remainder = afterDashRaw.trim();
+      const itemIndent = line.indent + 1 + Math.max(1, leadingSpacesAfterDash);
+      if (!remainder) {
+        if (idx < lines.length && lines[idx].indent > baseIndent) {
+          seq.push(parseNode(lines[idx].indent, depth + 1));
+        } else {
+          seq.push(null);
+        }
+        continue;
+      }
+      assertNoAnchorOrAlias(remainder, line.lineNo);
+      const blockHeader = BLOCK_SCALAR_HEADER_RE.exec(stripInlineComment(remainder).trim());
+      if (blockHeader) {
+        seq.push(
+          readBlockScalar(
+            baseIndent,
+            blockHeader[1],
+            blockHeader[2] ?? ""
+          )
+        );
+        continue;
+      }
+      if (remainder[0] === "[" || remainder[0] === "{") {
+        seq.push(readFlowValue(remainder, line.lineNo, depth + 1));
+        continue;
+      }
+      if (isSequenceLine(remainder)) {
+        assertDepth(depth + 1);
+        const nestedSeq = [];
+        const nestedVal = parseScalarToken(remainder.slice(1).trim(), line.lineNo);
+        nestedSeq.push(nestedVal);
+        seq.push(nestedSeq);
+        continue;
+      }
+      const kv = splitYamlKeyValue(remainder, line.lineNo);
+      if (kv) {
+        assertDepth(depth + 1);
+        const itemMap = createSafeRecord();
+        const firstVal = parseInlineOrNestedValue(
+          kv.rawValue,
+          itemIndent,
+          line.lineNo,
+          depth + 2
+        );
+        setSafeProperty(itemMap, kv.key, firstVal);
+        while (idx < lines.length) {
+          const next = lines[idx];
+          if (next.indent <= baseIndent) break;
+          if (next.indent < itemIndent) {
+            throw new Error(
+              `Misaligned YAML mapping inside sequence at line ${next.lineNo}`
+            );
+          }
+          if (next.indent > itemIndent) {
+            throw new Error(
+              `Unexpected indentation inside sequence item at line ${next.lineNo}`
+            );
+          }
+          if (isSequenceLine(next.text)) break;
+          const sibKv = splitYamlKeyValue(next.text, next.lineNo);
+          if (!sibKv) {
+            throw new Error(`Invalid YAML mapping entry inside sequence at line ${next.lineNo}`);
+          }
+          idx += 1;
+          const sibVal = parseInlineOrNestedValue(
+            sibKv.rawValue,
+            next.indent,
+            next.lineNo,
+            depth + 2
+          );
+          setSafeProperty(itemMap, sibKv.key, sibVal);
+        }
+        seq.push(itemMap);
+        continue;
+      }
+      seq.push(parseScalarToken(remainder, line.lineNo));
+    }
+    return seq;
+  };
+  const parseNode = (baseIndent, depth) => {
+    assertDepth(depth);
+    const line = lines[idx];
+    if (!line) return null;
+    if (isSequenceLine(line.text)) {
+      return parseSequence(baseIndent, depth);
+    }
+    const cleaned = stripInlineComment(line.text).trim();
+    if (cleaned[0] === "[" || cleaned[0] === "{") {
+      idx += 1;
+      return readFlowValue(cleaned, line.lineNo, depth);
+    }
+    const kv = splitYamlKeyValue(line.text, line.lineNo);
+    if (kv) {
+      return parseMapping(baseIndent, depth);
+    }
+    idx += 1;
+    return parseScalarToken(line.text, line.lineNo);
+  };
+  return parseNode(lines[0].indent, 0);
+}
+function resolveLocalRef(doc, ref) {
+  if (typeof ref !== "string" || !ref.startsWith("#/")) {
+    return void 0;
+  }
+  const segments = ref.slice(2).split("/").map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"));
+  let current = doc;
+  for (const seg of segments) {
+    if (!seg || DANGEROUS_KEYS.has(seg)) return void 0;
+    if (isPlainRecord(current)) {
+      current = getSafeProperty(current, seg);
+    } else if (Array.isArray(current)) {
+      const idx = Number.parseInt(seg, 10);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= current.length) return void 0;
+      current = current[idx];
+    } else {
+      return void 0;
+    }
+    if (current === void 0) return void 0;
+  }
+  return current;
+}
+function derefObject(node2, doc, visitedRefs) {
+  if (!isPlainRecord(node2)) return { value: null };
+  const ref = getSafeProperty(node2, "$ref");
+  if (typeof ref === "string") {
+    if (visitedRefs.has(ref)) return { value: null };
+    const target = resolveLocalRef(doc, ref);
+    if (!isPlainRecord(target)) return { value: null };
+    visitedRefs.add(ref);
+    return { value: target, addedRef: ref };
+  }
+  return { value: node2 };
+}
+function sanitizeAndRedactSampleValue(value, depth) {
+  if (depth > OPENAPI_SAMPLE_MAX_DEPTH + 1) return void 0;
+  if (value === null || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "string") {
+    return redactStudioSecrets(value);
+  }
+  if (Array.isArray(value)) {
+    return value.slice(0, 5).map((item) => sanitizeAndRedactSampleValue(item, depth + 1)).filter((item) => item !== void 0);
+  }
+  if (isPlainRecord(value)) {
+    const out = {};
+    const keys = getSafeKeys(value).slice(0, 20);
+    for (const k of keys) {
+      const v = sanitizeAndRedactSampleValue(getSafeProperty(value, k), depth + 1);
+      if (v !== void 0) {
+        out[k] = v;
+      }
+    }
+    return out;
+  }
+  return void 0;
+}
+var OPENAPI_SAMPLE_MAX_STEPS = 256;
+var SENSITIVE_PARAM_NAME_RE = /(?:authorization|auth|cookie|session|jwt|api[_-]?key|apikey|token|secret|password|passwd|sig|signature|credential)/i;
+function synthesizeSampleFromSchema(rawSchema, doc, depth, visitedRefs, budget = { steps: 0 }) {
+  if (depth > OPENAPI_SAMPLE_MAX_DEPTH) return void 0;
+  budget.steps += 1;
+  if (budget.steps > OPENAPI_SAMPLE_MAX_STEPS) return void 0;
+  if (!isPlainRecord(rawSchema)) return void 0;
+  const { value: schema, addedRef } = derefObject(rawSchema, doc, visitedRefs);
+  if (!schema) return void 0;
+  try {
+    const explicitExample = getSafeProperty(schema, "example");
+    if (explicitExample !== void 0) {
+      return sanitizeAndRedactSampleValue(explicitExample, depth);
+    }
+    const explicitDefault = getSafeProperty(schema, "default");
+    if (explicitDefault !== void 0) {
+      return sanitizeAndRedactSampleValue(explicitDefault, depth);
+    }
+    const enumVal = getSafeProperty(schema, "enum");
+    if (Array.isArray(enumVal) && enumVal.length > 0) {
+      return sanitizeAndRedactSampleValue(enumVal[0], depth);
+    }
+    const allOf = getSafeProperty(schema, "allOf");
+    if (Array.isArray(allOf) && allOf.length > 0) {
+      if (depth >= OPENAPI_SAMPLE_MAX_DEPTH) return {};
+      const merged = {};
+      for (const sub of allOf.slice(0, 8)) {
+        if (budget.steps >= OPENAPI_SAMPLE_MAX_STEPS) break;
+        const part = synthesizeSampleFromSchema(sub, doc, depth + 1, visitedRefs, budget);
+        if (part && typeof part === "object" && !Array.isArray(part)) {
+          for (const [k, v] of Object.entries(part)) {
+            if (!DANGEROUS_KEYS.has(k)) {
+              merged[k] = v;
+            }
+          }
+        }
+      }
+      return merged;
+    }
+    const oneOf = getSafeProperty(schema, "oneOf") ?? getSafeProperty(schema, "anyOf");
+    if (Array.isArray(oneOf) && oneOf.length > 0) {
+      if (depth >= OPENAPI_SAMPLE_MAX_DEPTH) return void 0;
+      return synthesizeSampleFromSchema(oneOf[0], doc, depth + 1, visitedRefs, budget);
+    }
+    const rawType = getSafeProperty(schema, "type");
+    const schemaType = Array.isArray(rawType) ? String(rawType.find((t) => t !== "null") ?? "string") : typeof rawType === "string" ? rawType : getSafeProperty(schema, "properties") ? "object" : getSafeProperty(schema, "items") ? "array" : "object";
+    if (schemaType === "object") {
+      if (depth >= OPENAPI_SAMPLE_MAX_DEPTH) {
+        return {};
+      }
+      const props = getSafeProperty(schema, "properties");
+      if (!isPlainRecord(props)) {
+        return {};
+      }
+      const result = {};
+      const propKeys = getSafeKeys(props).slice(0, 20);
+      for (const key of propKeys) {
+        if (budget.steps >= OPENAPI_SAMPLE_MAX_STEPS) break;
+        const propSample = synthesizeSampleFromSchema(
+          getSafeProperty(props, key),
+          doc,
+          depth + 1,
+          visitedRefs,
+          budget
+        );
+        if (propSample !== void 0) {
+          result[key] = propSample;
+        }
+      }
+      return result;
+    }
+    if (schemaType === "array") {
+      if (depth >= OPENAPI_SAMPLE_MAX_DEPTH) {
+        return [];
+      }
+      const items = getSafeProperty(schema, "items");
+      const itemSample = synthesizeSampleFromSchema(items, doc, depth + 1, visitedRefs, budget);
+      return itemSample !== void 0 ? [itemSample] : [];
+    }
+    if (schemaType === "integer") return 1;
+    if (schemaType === "number") return 1.5;
+    if (schemaType === "boolean") return true;
+    if (schemaType === "null") return null;
+    const format = String(getSafeProperty(schema, "format") ?? "").toLowerCase();
+    switch (format) {
+      case "date-time":
+        return "2026-11-27T00:00:00Z";
+      case "date":
+        return "2026-11-27";
+      case "email":
+        return "dev@localhost";
+      case "uri":
+      case "url":
+        return OPENAPI_DEFAULT_LOOPBACK_BASE;
+      case "uuid":
+        return "00000000-0000-4000-8000-000000000001";
+      default:
+        return "sample";
+    }
+  } finally {
+    if (addedRef) {
+      visitedRefs.delete(addedRef);
+    }
+  }
+}
+function toCleanString(val) {
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    return trimmed ? redactStudioSecrets(trimmed) : void 0;
+  }
+  if (typeof val === "number" || typeof val === "boolean") {
+    return String(val);
+  }
+  return void 0;
+}
+function expandServerTemplateVariables(rawUrl, serverObj) {
+  const variables = getSafeProperty(serverObj, "variables");
+  if (!isPlainRecord(variables)) return rawUrl;
+  return rawUrl.replace(/\{([^{}]+)\}/g, (match, varName) => {
+    const varDef = getSafeProperty(variables, varName.trim());
+    if (!isPlainRecord(varDef)) return match;
+    const defVal = getSafeProperty(varDef, "default");
+    if (typeof defVal === "string" || typeof defVal === "number") {
+      return String(defVal);
+    }
+    return match;
+  });
+}
+function checkIsLoopbackUrl(candidateUrl) {
+  try {
+    validateLoopbackProbeUrl(candidateUrl);
+    return true;
+  } catch {
+    return false;
+  }
+}
+function extractServers(doc, isSwagger2) {
+  const servers = [];
+  const seen = /* @__PURE__ */ new Set();
+  let swaggerBasePath = "";
+  if (!isSwagger2) {
+    const rawServers = getSafeProperty(doc, "servers");
+    if (Array.isArray(rawServers)) {
+      for (const item of rawServers.slice(0, 20)) {
+        if (!isPlainRecord(item)) continue;
+        const rawUrl = getSafeProperty(item, "url");
+        if (typeof rawUrl !== "string" || !rawUrl.trim()) continue;
+        const expanded = expandServerTemplateVariables(rawUrl.trim(), item);
+        const isLoopback = checkIsLoopbackUrl(expanded);
+        const redactedUrl = redactStudioSecrets(expanded);
+        if (seen.has(redactedUrl)) continue;
+        seen.add(redactedUrl);
+        const description = toCleanString(getSafeProperty(item, "description"));
+        servers.push({
+          url: redactedUrl,
+          ...description ? { description } : {},
+          isLoopback
+        });
+      }
+    }
+    return { servers, swaggerBasePath };
+  }
+  const rawHost = getSafeProperty(doc, "host");
+  const host = typeof rawHost === "string" ? rawHost.trim() : "";
+  const rawBasePath = getSafeProperty(doc, "basePath");
+  const basePath = typeof rawBasePath === "string" && rawBasePath.trim() ? rawBasePath.trim().startsWith("/") ? rawBasePath.trim().replace(/\/+$/, "") : `/${rawBasePath.trim().replace(/\/+$/, "")}` : "";
+  swaggerBasePath = basePath;
+  const rawSchemes = getSafeProperty(doc, "schemes");
+  const schemes = Array.isArray(rawSchemes) ? rawSchemes.map((s) => typeof s === "string" ? s.trim().toLowerCase() : "").filter((s) => s === "http" || s === "https") : [];
+  if (host) {
+    const effectiveSchemes = schemes.length > 0 ? schemes : ["http"];
+    for (const scheme of effectiveSchemes.slice(0, 4)) {
+      const candidate = `${scheme}://${host}${basePath}`;
+      const isLoopback = checkIsLoopbackUrl(candidate);
+      const redactedUrl = redactStudioSecrets(candidate);
+      if (seen.has(redactedUrl)) continue;
+      seen.add(redactedUrl);
+      servers.push({
+        url: redactedUrl,
+        description: `Swagger 2.0 (${scheme.toUpperCase()})`,
+        isLoopback
+      });
+    }
+  }
+  return { servers, swaggerBasePath };
+}
+function extractParameterExample(paramObj, doc) {
+  const direct = getSafeProperty(paramObj, "example");
+  if (direct !== void 0 && direct !== null) {
+    return toCleanString(
+      typeof direct === "object" ? JSON.stringify(direct) : direct
+    );
+  }
+  const examples = getSafeProperty(paramObj, "examples");
+  if (isPlainRecord(examples)) {
+    const keys = getSafeKeys(examples);
+    if (keys.length > 0) {
+      const firstEx = getSafeProperty(examples, keys[0]);
+      if (isPlainRecord(firstEx)) {
+        const val = getSafeProperty(firstEx, "value");
+        if (val !== void 0 && val !== null) {
+          return toCleanString(typeof val === "object" ? JSON.stringify(val) : val);
+        }
+      }
+    }
+  }
+  const rawSchema = getSafeProperty(paramObj, "schema");
+  if (isPlainRecord(rawSchema)) {
+    const { value: resolvedSchema } = derefObject(rawSchema, doc, /* @__PURE__ */ new Set());
+    if (resolvedSchema) {
+      const schemaEx = getSafeProperty(resolvedSchema, "example") ?? getSafeProperty(resolvedSchema, "default");
+      if (schemaEx !== void 0 && schemaEx !== null) {
+        return toCleanString(typeof schemaEx === "object" ? JSON.stringify(schemaEx) : schemaEx);
+      }
+      const schemaEnum = getSafeProperty(resolvedSchema, "enum");
+      if (Array.isArray(schemaEnum) && schemaEnum.length > 0) {
+        return toCleanString(schemaEnum[0]);
+      }
+    }
+  }
+  const paramDefault = getSafeProperty(paramObj, "default");
+  if (paramDefault !== void 0 && paramDefault !== null) {
+    return toCleanString(paramDefault);
+  }
+  const paramEnum = getSafeProperty(paramObj, "enum");
+  if (Array.isArray(paramEnum) && paramEnum.length > 0) {
+    return toCleanString(paramEnum[0]);
+  }
+  return void 0;
+}
+function inferPlaceholderValue(paramName, paramObj, doc) {
+  if (paramObj && doc) {
+    const rawSchema = getSafeProperty(paramObj, "schema");
+    const resolvedSchema = isPlainRecord(rawSchema) ? derefObject(rawSchema, doc, /* @__PURE__ */ new Set()).value : paramObj;
+    const rawType = resolvedSchema ? getSafeProperty(resolvedSchema, "type") : void 0;
+    const paramType = typeof rawType === "string" ? rawType.toLowerCase() : "";
+    const format = resolvedSchema ? String(getSafeProperty(resolvedSchema, "format") ?? "").toLowerCase() : "";
+    if (paramType === "integer" || paramType === "number") return "1";
+    if (paramType === "boolean") return "true";
+    if (format === "uuid") return "00000000-0000-4000-8000-000000000001";
+  }
+  return /id$/i.test(paramName) ? "1" : "sample";
+}
+function extractParameters(pathItem, operation, doc) {
+  const merged = /* @__PURE__ */ new Map();
+  const collect = (list) => {
+    if (!Array.isArray(list)) return;
+    for (const entry of list.slice(0, 60)) {
+      const { value: paramObj } = derefObject(entry, doc, /* @__PURE__ */ new Set());
+      if (!paramObj) continue;
+      const name = toCleanString(getSafeProperty(paramObj, "name"));
+      const paramIn = toCleanString(getSafeProperty(paramObj, "in"))?.toLowerCase();
+      if (!name || !paramIn) continue;
+      const required2 = Boolean(getSafeProperty(paramObj, "required")) || paramIn === "path";
+      const rawExample = extractParameterExample(paramObj, doc);
+      const isSensitiveParam = (paramIn === "header" || paramIn === "query" || paramIn === "cookie") && SENSITIVE_PARAM_NAME_RE.test(name);
+      const example = rawExample !== void 0 && isSensitiveParam ? "[REDACTED]" : rawExample;
+      const dedupKey = `${paramIn}:${name}`;
+      merged.set(dedupKey, {
+        item: {
+          name,
+          in: paramIn,
+          required: required2,
+          ...example !== void 0 ? { example } : {}
+        },
+        raw: paramObj
+      });
+    }
+  };
+  collect(getSafeProperty(pathItem, "parameters"));
+  collect(getSafeProperty(operation, "parameters"));
+  const params = [];
+  const rawByKey = /* @__PURE__ */ new Map();
+  for (const [k, v] of merged.entries()) {
+    params.push(v.item);
+    rawByKey.set(k, v.raw);
+  }
+  return { params, rawByKey };
+}
+function extractSampleBody(operation, rawParamsByKey, doc, isSwagger2) {
+  let candidateSample = void 0;
+  if (!isSwagger2) {
+    const rawReqBody = getSafeProperty(operation, "requestBody");
+    const { value: reqBody } = derefObject(rawReqBody, doc, /* @__PURE__ */ new Set());
+    if (reqBody) {
+      const content = getSafeProperty(reqBody, "content");
+      if (isPlainRecord(content)) {
+        const contentKeys = getSafeKeys(content);
+        const jsonKey = contentKeys.find((k) => k.toLowerCase() === "application/json") ?? contentKeys.find((k) => k.toLowerCase().includes("json"));
+        if (jsonKey) {
+          const media = getSafeProperty(content, jsonKey);
+          if (isPlainRecord(media)) {
+            const directEx = getSafeProperty(media, "example");
+            if (directEx !== void 0) {
+              candidateSample = sanitizeAndRedactSampleValue(directEx, 0);
+            } else {
+              const examples = getSafeProperty(media, "examples");
+              if (isPlainRecord(examples)) {
+                const exKeys = getSafeKeys(examples);
+                if (exKeys.length > 0) {
+                  const first = getSafeProperty(examples, exKeys[0]);
+                  if (isPlainRecord(first) && getSafeProperty(first, "value") !== void 0) {
+                    candidateSample = sanitizeAndRedactSampleValue(
+                      getSafeProperty(first, "value"),
+                      0
+                    );
+                  }
+                }
+              }
+            }
+            if (candidateSample === void 0) {
+              const schema = getSafeProperty(media, "schema");
+              if (schema !== void 0) {
+                candidateSample = synthesizeSampleFromSchema(schema, doc, 0, /* @__PURE__ */ new Set());
+              }
+            }
+          }
+        }
+      }
+    }
+  } else {
+    for (const [key, rawParam] of rawParamsByKey.entries()) {
+      if (!key.startsWith("body:")) continue;
+      const schema = getSafeProperty(rawParam, "schema");
+      if (schema !== void 0) {
+        candidateSample = synthesizeSampleFromSchema(schema, doc, 0, /* @__PURE__ */ new Set());
+        break;
+      }
+    }
+  }
+  if (candidateSample === void 0) return void 0;
+  let serialized;
+  try {
+    serialized = typeof candidateSample === "string" ? candidateSample : JSON.stringify(candidateSample, null, 2);
+  } catch {
+    return void 0;
+  }
+  if (serialized.length > OPENAPI_SAMPLE_MAX_BYTES) {
+    serialized = `${serialized.slice(0, OPENAPI_SAMPLE_MAX_BYTES)}\u2026`;
+  }
+  return redactStudioSecrets(serialized);
+}
+function buildResolvedLoopbackUrl(loopbackBase, rawPath, params, rawParamsByKey, doc) {
+  const cleanBase = loopbackBase.replace(/\/+$/, "");
+  const normalizedPath = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
+  const substitutedPath = normalizedPath.replace(/\{([^{}]+)\}/g, (_m, paramName) => {
+    const trimmedName = paramName.trim();
+    const matchedParam = params.find((p) => p.in === "path" && p.name === trimmedName);
+    const rawParam = rawParamsByKey.get(`path:${trimmedName}`);
+    const val = matchedParam?.example ?? inferPlaceholderValue(trimmedName, rawParam, doc);
+    return encodeURIComponent(val);
+  });
+  const queryParts = [];
+  for (const p of params) {
+    if (p.in !== "query") continue;
+    if (!p.required && p.example === void 0) continue;
+    if (queryParts.length >= 8) break;
+    const rawParam = rawParamsByKey.get(`query:${p.name}`);
+    const val = p.example ?? inferPlaceholderValue(p.name, rawParam, doc);
+    queryParts.push(`${encodeURIComponent(p.name)}=${encodeURIComponent(val)}`);
+  }
+  const querySuffix = queryParts.length > 0 ? `?${queryParts.join("&")}` : "";
+  const candidate = `${cleanBase}${substitutedPath}${querySuffix}`;
+  try {
+    const validated = validateLoopbackProbeUrl(candidate);
+    return redactStudioSecrets(validated.toString());
+  } catch {
+    const safePath = substitutedPath.split("/").map((seg) => encodeURIComponent(seg)).join("/");
+    const fallbackCandidate = `${OPENAPI_DEFAULT_LOOPBACK_BASE}${safePath.startsWith("/") ? safePath : `/${safePath}`}`;
+    try {
+      return redactStudioSecrets(validateLoopbackProbeUrl(fallbackCandidate).toString());
+    } catch {
+      return `${OPENAPI_DEFAULT_LOOPBACK_BASE}/`;
+    }
+  }
+}
+function isLikelyOpenApiDocument(filePath, rawText, format) {
+  const head = rawText.slice(0, 4096);
+  if (format === "json") {
+    if (/"(?:openapi|swagger)"\s*:\s*"[23]\./i.test(head)) return true;
+  } else if (/^(?:openapi|swagger)\s*:\s*['"]?[23]\./m.test(head)) {
+    return true;
+  }
+  const baseLower = import_node_path20.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
+  if (/(?:^|[-_.])(?:openapi|swagger)(?:[-_.]|$)/i.test(baseLower)) {
+    if (format === "json") {
+      return /"(?:openapi|swagger)"\s*:/i.test(head);
+    }
+    return /^(?:openapi|swagger)\s*:/m.test(head);
+  }
+  return false;
+}
+function parseOpenApiSpecFromContent(filePath, rawContent, ext) {
+  const byteLength = Buffer.byteLength(rawContent, "utf8");
+  if (byteLength > OPENAPI_MAX_FILE_BYTES) {
+    throw new Error(
+      `OpenAPI file exceeds 2 MiB size limit (${byteLength} bytes > ${OPENAPI_MAX_FILE_BYTES} bytes): ${filePath}`
+    );
+  }
+  let parsedUnknown;
+  if (ext === ".json") {
+    let rawJson;
+    try {
+      rawJson = JSON.parse(rawContent);
+    } catch (err) {
+      throw new Error(
+        `Invalid OpenAPI JSON in ${filePath}: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+    parsedUnknown = sanitizeJsonValue(rawJson, 0);
+  } else {
+    parsedUnknown = parseSafeYamlSubset(rawContent);
+  }
+  if (!isPlainRecord(parsedUnknown)) {
+    throw new Error(`OpenAPI specification root must be an object: ${filePath}`);
+  }
+  const doc = parsedUnknown;
+  const openapiRaw = getSafeProperty(doc, "openapi");
+  const swaggerRaw = getSafeProperty(doc, "swagger");
+  const openapiVersion = openapiRaw !== void 0 && openapiRaw !== null ? String(openapiRaw).trim() : "";
+  const swaggerVersion = swaggerRaw !== void 0 && swaggerRaw !== null ? String(swaggerRaw).trim() : "";
+  let specVersion = "";
+  let isSwagger2 = false;
+  if (/^3\./.test(openapiVersion)) {
+    specVersion = redactStudioSecrets(openapiVersion);
+    isSwagger2 = false;
+  } else if (/^2\./.test(swaggerVersion)) {
+    specVersion = redactStudioSecrets(swaggerVersion);
+    isSwagger2 = true;
+  } else {
+    throw new Error(
+      `Unsupported or missing OpenAPI/Swagger version in ${filePath} (expected openapi 3.x or swagger 2.0)`
+    );
+  }
+  const info = getSafeProperty(doc, "info");
+  const title = (isPlainRecord(info) ? toCleanString(getSafeProperty(info, "title")) : void 0) ?? "Untitled API";
+  const apiVersion = isPlainRecord(info) ? toCleanString(getSafeProperty(info, "version")) : void 0;
+  const warnings = [];
+  const { servers, swaggerBasePath } = extractServers(doc, isSwagger2);
+  const firstLoopbackServer = servers.find((s) => s.isLoopback);
+  let loopbackBase = firstLoopbackServer?.url;
+  if (!loopbackBase) {
+    loopbackBase = swaggerBasePath ? `${OPENAPI_DEFAULT_LOOPBACK_BASE}${swaggerBasePath}` : OPENAPI_DEFAULT_LOOPBACK_BASE;
+    if (servers.length > 0) {
+      warnings.push(
+        `No loopback server found in spec; endpoints were mapped to ${loopbackBase} to enforce Loopback-Only security policy.`
+      );
+    } else {
+      warnings.push(
+        `No servers defined in spec; endpoints defaulted to ${loopbackBase} to enforce Loopback-Only security policy.`
+      );
+    }
+  }
+  const rawPaths = getSafeProperty(doc, "paths");
+  const endpoints = [];
+  let totalEndpoints = 0;
+  if (isPlainRecord(rawPaths)) {
+    const pathKeys = getSafeKeys(rawPaths);
+    for (const rawPath of pathKeys) {
+      if (!rawPath.startsWith("/")) continue;
+      const pathItem = getSafeProperty(rawPaths, rawPath);
+      if (!isPlainRecord(pathItem)) continue;
+      const safePath = redactStudioSecrets(rawPath);
+      for (const lowerMethod of SUPPORTED_METHODS) {
+        const opVal = getSafeProperty(pathItem, lowerMethod);
+        if (!isPlainRecord(opVal)) continue;
+        totalEndpoints += 1;
+        if (endpoints.length >= OPENAPI_MAX_ENDPOINTS) continue;
+        const method = lowerMethod.toUpperCase();
+        const summary = toCleanString(getSafeProperty(opVal, "summary")) ?? toCleanString(getSafeProperty(opVal, "description"));
+        const operationId = toCleanString(getSafeProperty(opVal, "operationId"));
+        const rawTags = getSafeProperty(opVal, "tags");
+        const tags = Array.isArray(rawTags) ? rawTags.map((t) => toCleanString(t)).filter((t) => Boolean(t)).slice(0, 12) : [];
+        const { params, rawByKey } = extractParameters(pathItem, opVal, doc);
+        const sampleBody = method !== "GET" && method !== "HEAD" ? extractSampleBody(opVal, rawByKey, doc, isSwagger2) : void 0;
+        const rawSampleHeaders = {
+          Accept: "application/json"
+        };
+        if (sampleBody !== void 0) {
+          rawSampleHeaders["Content-Type"] = "application/json";
+        }
+        for (const p of params) {
+          if (p.in !== "header") continue;
+          if (DANGEROUS_KEYS.has(p.name) || /[\r\n:]/.test(p.name)) continue;
+          const lowerHeader = p.name.toLowerCase();
+          if (lowerHeader === "host" || lowerHeader === "content-length") continue;
+          const val = p.example ?? "sample";
+          rawSampleHeaders[p.name] = val;
+        }
+        const sampleHeaders = sanitizeHeadersMap(rawSampleHeaders);
+        const resolvedLoopbackUrl = buildResolvedLoopbackUrl(
+          loopbackBase,
+          rawPath,
+          params,
+          rawByKey,
+          doc
+        );
+        endpoints.push({
+          id: `${method}:${safePath}`,
+          method,
+          path: safePath,
+          ...summary ? { summary: summary.slice(0, 240) } : {},
+          ...operationId ? { operationId } : {},
+          tags,
+          parameters: params,
+          sampleHeaders,
+          ...sampleBody !== void 0 ? { sampleBody } : {},
+          resolvedLoopbackUrl
+        });
+      }
+    }
+  }
+  const truncated = totalEndpoints > endpoints.length;
+  if (truncated) {
+    warnings.push(
+      `Endpoints truncated to ${OPENAPI_MAX_ENDPOINTS} of ${totalEndpoints} total operations.`
+    );
+  }
+  return {
+    filePath: redactStudioSecrets(filePath),
+    specVersion,
+    title,
+    ...apiVersion ? { apiVersion } : {},
+    servers,
+    endpoints,
+    totalEndpoints,
+    truncated,
+    warnings: warnings.map((w) => redactStudioSecrets(w))
+  };
+}
+function parseStudioOpenApiFile(workspaceRoot, filePath) {
+  const resolved = resolveStudioWorkspaceFile(workspaceRoot, filePath);
+  const ext = import_node_path20.default.extname(resolved.relPath).toLowerCase();
+  if (ext !== ".json" && ext !== ".yaml" && ext !== ".yml") {
+    throw new Error(
+      `Unsupported OpenAPI file extension "${ext || "(none)"}" (supported: .json, .yaml, .yml): ${resolved.relPath}`
+    );
+  }
+  if (resolved.stat.size > OPENAPI_MAX_FILE_BYTES) {
+    throw new Error(
+      `OpenAPI file exceeds 2 MiB size limit (${resolved.stat.size} bytes > ${OPENAPI_MAX_FILE_BYTES} bytes): ${resolved.relPath}`
+    );
+  }
+  const rawText = import_node_fs15.default.readFileSync(resolved.realTarget, "utf8");
+  return parseOpenApiSpecFromContent(resolved.relPath, rawText, ext);
+}
+function createDemoOpenApiSpec(filePath = "api/openapi.yaml") {
+  return {
+    filePath,
+    specVersion: "3.1.0",
+    title: "Local Sandbox Dev API",
+    apiVersion: "0.5.0",
+    servers: [
+      {
+        url: "http://127.0.0.1:4399",
+        description: "Local Loopback Dev Server",
+        isLoopback: true
+      },
+      {
+        url: "https://api.example.com/v1",
+        description: "Production (Blocked by Loopback-Only Guard)",
+        isLoopback: false
+      }
+    ],
+    endpoints: [
+      {
+        id: "GET:/api/health",
+        method: "GET",
+        path: "/api/health",
+        summary: "Loopback service health and readiness check",
+        operationId: "getHealth",
+        tags: ["system"],
+        parameters: [],
+        sampleHeaders: { Accept: "application/json" },
+        resolvedLoopbackUrl: "http://127.0.0.1:4399/api/health"
+      },
+      {
+        id: "GET:/api/projects/{id}",
+        method: "GET",
+        path: "/api/projects/{id}",
+        summary: "Fetch workspace project metadata by identifier",
+        operationId: "getProjectById",
+        tags: ["projects"],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            example: "proj_101"
+          },
+          {
+            name: "includeStats",
+            in: "query",
+            required: false,
+            example: "true"
+          }
+        ],
+        sampleHeaders: { Accept: "application/json" },
+        resolvedLoopbackUrl: "http://127.0.0.1:4399/api/projects/proj_101?includeStats=true"
+      },
+      {
+        id: "POST:/api/reviews",
+        method: "POST",
+        path: "/api/reviews",
+        summary: "Create a local code review annotation batch",
+        operationId: "createReview",
+        tags: ["reviews"],
+        parameters: [
+          {
+            name: "X-Trace-Id",
+            in: "header",
+            required: false,
+            example: "trace-demo-01"
+          }
+        ],
+        sampleHeaders: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "X-Trace-Id": "trace-demo-01"
+        },
+        sampleBody: JSON.stringify(
+          {
+            filePath: "src/modules/studio/openapi.ts",
+            severity: "med",
+            comment: "Verify loopback URL mapping on non-local servers."
+          },
+          null,
+          2
+        ),
+        resolvedLoopbackUrl: "http://127.0.0.1:4399/api/reviews"
+      },
+      {
+        id: "DELETE:/api/cache",
+        method: "DELETE",
+        path: "/api/cache",
+        summary: "Evict local loopback preview cache entries",
+        operationId: "purgeCache",
+        tags: ["system", "maintenance"],
+        parameters: [
+          {
+            name: "scope",
+            in: "query",
+            required: false,
+            example: "preview"
+          }
+        ],
+        sampleHeaders: { Accept: "application/json" },
+        resolvedLoopbackUrl: "http://127.0.0.1:4399/api/cache?scope=preview"
+      }
+    ],
+    totalEndpoints: 4,
+    truncated: false,
+    warnings: []
+  };
+}
+
+// src/modules/studio/core.ts
 var STUDIO_MAX_FILE_BYTES = 10 * 1024 * 1024;
 var STUDIO_MAX_SCAN_FILES = 500;
 var STUDIO_MAX_SCAN_DEPTH = 6;
@@ -48914,14 +50551,14 @@ function isSensitiveStudioPath(relPathInput) {
     if (lower.startsWith("credentials")) return true;
     if (lower.includes("secret")) return true;
   }
-  const base = import_node_path20.default.posix.basename(normalized);
+  const base = import_node_path21.default.posix.basename(normalized);
   const lowerBase = base.toLowerCase();
   if (SENSITIVE_EXACT_BASENAMES.has(lowerBase)) return true;
   if (lowerBase.startsWith("id_rsa.") || lowerBase.startsWith("id_ed25519.") || lowerBase.startsWith("id_dsa.") || lowerBase.startsWith("id_ecdsa.")) {
     return true;
   }
   if (/service[-_]?account.*\.json$/i.test(lowerBase)) return true;
-  const ext = import_node_path20.default.posix.extname(lowerBase);
+  const ext = import_node_path21.default.posix.extname(lowerBase);
   if (SENSITIVE_EXTENSIONS3.has(ext)) return true;
   return false;
 }
@@ -48932,31 +50569,31 @@ function resolveStudioWorkspaceFile(workspaceRoot, targetPath) {
   if (!targetPath || !targetPath.trim() || targetPath.includes("\0")) {
     throw new Error("Invalid file path");
   }
-  const realRoot = import_node_fs15.default.realpathSync(import_node_path20.default.resolve(workspaceRoot));
+  const realRoot = import_node_fs16.default.realpathSync(import_node_path21.default.resolve(workspaceRoot));
   const cleanedTarget = targetPath.trim();
-  const candidate = import_node_path20.default.isAbsolute(cleanedTarget) ? import_node_path20.default.resolve(cleanedTarget) : import_node_path20.default.resolve(realRoot, cleanedTarget);
-  if (!import_node_path20.default.isAbsolute(cleanedTarget) && isSensitiveStudioPath(cleanedTarget)) {
+  const candidate = import_node_path21.default.isAbsolute(cleanedTarget) ? import_node_path21.default.resolve(cleanedTarget) : import_node_path21.default.resolve(realRoot, cleanedTarget);
+  if (!import_node_path21.default.isAbsolute(cleanedTarget) && isSensitiveStudioPath(cleanedTarget)) {
     throw new Error(`Refused to access sensitive or restricted path: ${cleanedTarget}`);
   }
-  const logicalRel = import_node_path20.default.relative(realRoot, candidate).replace(/\\/g, "/");
+  const logicalRel = import_node_path21.default.relative(realRoot, candidate).replace(/\\/g, "/");
   if (logicalRel && !logicalRel.startsWith("..") && isSensitiveStudioPath(logicalRel)) {
     throw new Error(`Refused to access sensitive or restricted path: ${logicalRel}`);
   }
   let realTarget;
   try {
-    realTarget = import_node_fs15.default.realpathSync(candidate);
+    realTarget = import_node_fs16.default.realpathSync(candidate);
   } catch {
     throw new Error(`File does not exist or cannot be resolved: ${cleanedTarget}`);
   }
-  const prefix = realRoot.endsWith(import_node_path20.default.sep) ? realRoot : `${realRoot}${import_node_path20.default.sep}`;
+  const prefix = realRoot.endsWith(import_node_path21.default.sep) ? realRoot : `${realRoot}${import_node_path21.default.sep}`;
   if (realTarget === realRoot || !realTarget.startsWith(prefix)) {
     throw new Error(`Path escapes workspace boundary: ${cleanedTarget}`);
   }
-  const relPath = import_node_path20.default.relative(realRoot, realTarget).replace(/\\/g, "/");
+  const relPath = import_node_path21.default.relative(realRoot, realTarget).replace(/\\/g, "/");
   if (isSensitiveStudioPath(relPath)) {
     throw new Error(`Refused to access sensitive or restricted path: ${relPath}`);
   }
-  const stat = import_node_fs15.default.statSync(realTarget);
+  const stat = import_node_fs16.default.statSync(realTarget);
   if (!stat.isFile()) {
     throw new Error(`Target is not a regular file: ${relPath}`);
   }
@@ -48975,9 +50612,9 @@ function looksLikeOpenApiFile(realFilePath, baseLower, ext, bytes) {
   if (bytes === 0 || bytes > 256 * 1024) return false;
   let fd = null;
   try {
-    fd = import_node_fs15.default.openSync(realFilePath, "r");
+    fd = import_node_fs16.default.openSync(realFilePath, "r");
     const probe = Buffer.alloc(Math.min(bytes, 2048));
-    const n = import_node_fs15.default.readSync(fd, probe, 0, probe.length, 0);
+    const n = import_node_fs16.default.readSync(fd, probe, 0, probe.length, 0);
     const head = probe.subarray(0, n).toString("utf8");
     if (ext === ".json") {
       return /"(?:openapi|swagger)"\s*:\s*"[23]\./i.test(head);
@@ -48988,7 +50625,7 @@ function looksLikeOpenApiFile(realFilePath, baseLower, ext, bytes) {
   } finally {
     if (fd !== null) {
       try {
-        import_node_fs15.default.closeSync(fd);
+        import_node_fs16.default.closeSync(fd);
       } catch {
       }
     }
@@ -48996,7 +50633,7 @@ function looksLikeOpenApiFile(realFilePath, baseLower, ext, bytes) {
 }
 function classifyStudioSource(realFilePath, baseName, bytes) {
   const lower = baseName.toLowerCase();
-  const ext = import_node_path20.default.extname(lower);
+  const ext = import_node_path21.default.extname(lower);
   if (!ext) return null;
   if (ext === ".json" && SKIP_JSON_LOCK_BASENAMES.has(lower)) {
     return null;
@@ -49045,8 +50682,8 @@ function classifyStudioSource(realFilePath, baseName, bytes) {
 }
 function listStudioSources(workspaceRoot, opts = {}) {
   const category = opts.category ?? "all";
-  const realRoot = import_node_fs15.default.realpathSync(import_node_path20.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path20.default.sep) ? realRoot : `${realRoot}${import_node_path20.default.sep}`;
+  const realRoot = import_node_fs16.default.realpathSync(import_node_path21.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path21.default.sep) ? realRoot : `${realRoot}${import_node_path21.default.sep}`;
   const isInsideRoot = (realCandidate) => realCandidate === realRoot || realCandidate.startsWith(rootPrefix);
   const allSources = [];
   const visitedDirs = /* @__PURE__ */ new Set();
@@ -49061,7 +50698,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
     }
     let realDir;
     try {
-      realDir = import_node_fs15.default.realpathSync(dir);
+      realDir = import_node_fs16.default.realpathSync(dir);
     } catch {
       skippedSymlinks += 1;
       return;
@@ -49074,7 +50711,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
     visitedDirs.add(realDir);
     let entries;
     try {
-      entries = import_node_fs15.default.readdirSync(dir, { withFileTypes: true });
+      entries = import_node_fs16.default.readdirSync(dir, { withFileTypes: true });
     } catch {
       return;
     }
@@ -49084,8 +50721,8 @@ function listStudioSources(workspaceRoot, opts = {}) {
         truncated = true;
         break;
       }
-      const fullPath = import_node_path20.default.join(dir, entry.name);
-      const rawRel = import_node_path20.default.relative(realRoot, fullPath).replace(/\\/g, "/");
+      const fullPath = import_node_path21.default.join(dir, entry.name);
+      const rawRel = import_node_path21.default.relative(realRoot, fullPath).replace(/\\/g, "/");
       if (entry.isDirectory()) {
         if (STUDIO_SKIP_DIRS.has(entry.name) || isSensitiveStudioPath(rawRel)) {
           if (isSensitiveStudioPath(rawRel)) skippedSensitive += 1;
@@ -49098,15 +50735,15 @@ function listStudioSources(workspaceRoot, opts = {}) {
       let isFile = entry.isFile();
       if (entry.isSymbolicLink()) {
         try {
-          realFilePath = import_node_fs15.default.realpathSync(fullPath);
+          realFilePath = import_node_fs16.default.realpathSync(fullPath);
           if (!isInsideRoot(realFilePath)) {
             skippedSymlinks += 1;
             continue;
           }
-          const st = import_node_fs15.default.statSync(realFilePath);
+          const st = import_node_fs16.default.statSync(realFilePath);
           if (st.isDirectory()) {
-            const realRelDir = import_node_path20.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
-            if (STUDIO_SKIP_DIRS.has(import_node_path20.default.basename(realFilePath)) || isSensitiveStudioPath(rawRel) || isSensitiveStudioPath(realRelDir)) {
+            const realRelDir = import_node_path21.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+            if (STUDIO_SKIP_DIRS.has(import_node_path21.default.basename(realFilePath)) || isSensitiveStudioPath(rawRel) || isSensitiveStudioPath(realRelDir)) {
               skippedSensitive += 1;
               continue;
             }
@@ -49121,7 +50758,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
       }
       if (!isFile) continue;
       try {
-        realFilePath = import_node_fs15.default.realpathSync(realFilePath);
+        realFilePath = import_node_fs16.default.realpathSync(realFilePath);
       } catch {
         skippedSymlinks += 1;
         continue;
@@ -49130,7 +50767,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
         skippedSymlinks += 1;
         continue;
       }
-      const realRel = import_node_path20.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+      const realRel = import_node_path21.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
       if (isSensitiveStudioPath(rawRel) || isSensitiveStudioPath(realRel)) {
         skippedSensitive += 1;
         continue;
@@ -49138,7 +50775,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
       if (seenRealFiles.has(realFilePath)) continue;
       let stat;
       try {
-        stat = import_node_fs15.default.statSync(realFilePath);
+        stat = import_node_fs16.default.statSync(realFilePath);
       } catch {
         continue;
       }
@@ -49646,9 +51283,9 @@ function inspectJsonOrNdjson(relPath, format, buf, bytes, filter, limit) {
 function readSqliteHeaderMetadata(realFilePath) {
   let fd = null;
   try {
-    fd = import_node_fs15.default.openSync(realFilePath, "r");
+    fd = import_node_fs16.default.openSync(realFilePath, "r");
     const header = Buffer.alloc(100);
-    const bytesRead = import_node_fs15.default.readSync(fd, header, 0, 100, 0);
+    const bytesRead = import_node_fs16.default.readSync(fd, header, 0, 100, 0);
     if (bytesRead < 16) {
       return { validHeader: false, headerFormat: "unknown" };
     }
@@ -49662,7 +51299,7 @@ function readSqliteHeaderMetadata(realFilePath) {
   } finally {
     if (fd !== null) {
       try {
-        import_node_fs15.default.closeSync(fd);
+        import_node_fs16.default.closeSync(fd);
       } catch {
       }
     }
@@ -49670,12 +51307,12 @@ function readSqliteHeaderMetadata(realFilePath) {
 }
 var SQLITE_COMPANION_SUFFIXES = ["-wal", "-shm", "-journal"];
 function assertSafeSqliteCompanionFiles(realRoot, realDbPath) {
-  const rootPrefix = realRoot.endsWith(import_node_path20.default.sep) ? realRoot : `${realRoot}${import_node_path20.default.sep}`;
+  const rootPrefix = realRoot.endsWith(import_node_path21.default.sep) ? realRoot : `${realRoot}${import_node_path21.default.sep}`;
   for (const suffix of SQLITE_COMPANION_SUFFIXES) {
     const companionPath = `${realDbPath}${suffix}`;
     let lstat;
     try {
-      lstat = import_node_fs15.default.lstatSync(companionPath);
+      lstat = import_node_fs16.default.lstatSync(companionPath);
     } catch (err) {
       const code = err.code;
       if (code === "ENOENT") continue;
@@ -49685,28 +51322,28 @@ function assertSafeSqliteCompanionFiles(realRoot, realDbPath) {
     }
     if (lstat.isSymbolicLink()) {
       throw new Error(
-        `Refused to open SQLite database: companion file "${import_node_path20.default.basename(companionPath)}" is a symbolic link`
+        `Refused to open SQLite database: companion file "${import_node_path21.default.basename(companionPath)}" is a symbolic link`
       );
     }
     if (!lstat.isFile()) {
       throw new Error(
-        `Refused to open SQLite database: companion file "${import_node_path20.default.basename(companionPath)}" is not a regular file`
+        `Refused to open SQLite database: companion file "${import_node_path21.default.basename(companionPath)}" is not a regular file`
       );
     }
     let realCompanion;
     try {
-      realCompanion = import_node_fs15.default.realpathSync(companionPath);
+      realCompanion = import_node_fs16.default.realpathSync(companionPath);
     } catch (err) {
       throw new Error(
-        `Refused to open SQLite database: companion file "${import_node_path20.default.basename(companionPath)}" could not be resolved: ${err instanceof Error ? err.message : String(err)}`
+        `Refused to open SQLite database: companion file "${import_node_path21.default.basename(companionPath)}" could not be resolved: ${err instanceof Error ? err.message : String(err)}`
       );
     }
     if (realCompanion === realRoot || !realCompanion.startsWith(rootPrefix)) {
       throw new Error(
-        `Refused to open SQLite database: companion file "${import_node_path20.default.basename(companionPath)}" escapes workspace boundary`
+        `Refused to open SQLite database: companion file "${import_node_path21.default.basename(companionPath)}" escapes workspace boundary`
       );
     }
-    const companionRel = import_node_path20.default.relative(realRoot, realCompanion).replace(/\\/g, "/");
+    const companionRel = import_node_path21.default.relative(realRoot, realCompanion).replace(/\\/g, "/");
     if (isSensitiveStudioPath(companionRel)) {
       throw new Error(
         `Refused to open SQLite database: companion file "${companionRel}" points to a sensitive path`
@@ -49903,7 +51540,7 @@ async function inspectSqliteDatabase(realRoot, realPath, relPath, bytes, query, 
 }
 async function inspectStudioData(workspaceRoot, opts) {
   const resolved = resolveStudioWorkspaceFile(workspaceRoot, opts.filePath);
-  const ext = import_node_path20.default.extname(resolved.relPath).toLowerCase();
+  const ext = import_node_path21.default.extname(resolved.relPath).toLowerCase();
   const limit = clampDataLimit(opts.limit);
   if (ext === ".sqlite" || ext === ".sqlite3" || ext === ".db") {
     return inspectSqliteDatabase(
@@ -49918,7 +51555,7 @@ async function inspectStudioData(workspaceRoot, opts) {
     );
   }
   if (ext === ".csv" || ext === ".tsv") {
-    const buf = import_node_fs15.default.readFileSync(resolved.realTarget);
+    const buf = import_node_fs16.default.readFileSync(resolved.realTarget);
     return inspectCsvOrTsv(
       resolved.relPath,
       ext === ".tsv" ? "tsv" : "csv",
@@ -49929,7 +51566,7 @@ async function inspectStudioData(workspaceRoot, opts) {
     );
   }
   if (ext === ".json" || ext === ".ndjson" || ext === ".jsonl") {
-    const buf = import_node_fs15.default.readFileSync(resolved.realTarget);
+    const buf = import_node_fs16.default.readFileSync(resolved.realTarget);
     return inspectJsonOrNdjson(
       resolved.relPath,
       ext === ".json" ? "json" : "ndjson",
@@ -50802,8 +52439,8 @@ function parsePdfDocument(relPath, buf, bytes, startLine, maxLines) {
 }
 function inspectStudioDocument(workspaceRoot, opts) {
   const resolved = resolveStudioWorkspaceFile(workspaceRoot, opts.filePath);
-  const ext = import_node_path20.default.extname(resolved.relPath).toLowerCase();
-  const buf = import_node_fs15.default.readFileSync(resolved.realTarget);
+  const ext = import_node_path21.default.extname(resolved.relPath).toLowerCase();
+  const buf = import_node_fs16.default.readFileSync(resolved.realTarget);
   if (ext === ".docx") {
     return parseDocxDocument(resolved.relPath, buf, resolved.stat.size, opts.startLine, opts.maxLines);
   }
@@ -50857,6 +52494,16 @@ function inspectStudioDocument(workspaceRoot, opts) {
     const vbMatch = /\bviewBox=["']([^"']+)["']/i.exec(rawText);
     if (vbMatch) metadata.viewBox = vbMatch[1];
   }
+  let openApiSpec;
+  if ((textFormat === "yaml" || textFormat === "json") && resolved.stat.size <= OPENAPI_MAX_FILE_BYTES && isLikelyOpenApiDocument(resolved.relPath, rawText, textFormat)) {
+    try {
+      const openApiExt = ext === ".json" ? ".json" : ext === ".yml" ? ".yml" : ".yaml";
+      openApiSpec = parseOpenApiSpecFromContent(resolved.relPath, rawText, openApiExt);
+      metadata.openapi = openApiSpec.specVersion;
+      metadata.openApiEndpoints = openApiSpec.totalEndpoints;
+    } catch {
+    }
+  }
   return {
     mode: "live",
     filePath: resolved.relPath,
@@ -50869,7 +52516,8 @@ function inspectStudioDocument(workspaceRoot, opts) {
     outline,
     content: sliced.content,
     lines: sliced.lines,
-    metadata
+    metadata,
+    ...openApiSpec ? { openApiSpec } : {}
   };
 }
 var STRICT_LOOPBACK_URL_PREFIX_RE = /^(https?):\/\/(127\.0\.0\.1|localhost|\[::1\])(?::(\d{1,5}))?(?:[/?#]|$)/i;
@@ -51174,7 +52822,7 @@ function createDemoStudioService(workspaceRoot) {
     }
     const limit = clampDataLimit(opts.limit);
     const needle = opts.filter?.trim().toLowerCase() || "";
-    const base = import_node_path20.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
+    const base = import_node_path21.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
     if (base === "analytics.sqlite" || base.endsWith(".sqlite") || base.endsWith(".db")) {
       const safeSql = opts.query && opts.query.trim() ? validateReadOnlySqliteQuery(opts.query) : void 0;
       if (!safeSql) {
@@ -51259,7 +52907,7 @@ function createDemoStudioService(workspaceRoot) {
     if (!filePath || isSensitiveStudioPath(filePath)) {
       throw new Error(`Refused to access sensitive or invalid path: ${filePath}`);
     }
-    const base = import_node_path20.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
+    const base = import_node_path21.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
     if (base === "architecture.docx" || base.endsWith(".docx")) {
       const allLines = [
         "agy-NOV v0.4.0 Workspace Studio Architecture",
@@ -51359,18 +53007,28 @@ function createDemoStudioService(workspaceRoot) {
         "openapi: 3.1.0",
         "info:",
         "  title: Local Sandbox Dev API",
-        "  version: 0.4.0",
+        "  version: 0.5.0",
         "servers:",
         "  - url: http://127.0.0.1:4399",
+        "    description: Local Loopback Dev Server",
+        "  - url: https://api.example.com/v1",
+        "    description: Production (Blocked by Loopback-Only Guard)",
         "paths:",
         "  /api/health:",
         "    get:",
-        "      summary: Loopback service health check",
-        "  /api/items:",
+        "      summary: Loopback service health and readiness check",
+        "  /api/projects/{id}:",
         "    get:",
-        "      summary: List local workspace preview items"
+        "      summary: Fetch workspace project metadata by identifier",
+        "  /api/reviews:",
+        "    post:",
+        "      summary: Create a local code review annotation batch",
+        "  /api/cache:",
+        "    delete:",
+        "      summary: Evict local loopback preview cache entries"
       ];
       const sliced = sliceLines(allLines, opts.startLine, opts.maxLines);
+      const demoSpec = createDemoOpenApiSpec("api/openapi.yaml");
       return {
         mode: "demo",
         filePath: "api/openapi.yaml",
@@ -51383,7 +53041,13 @@ function createDemoStudioService(workspaceRoot) {
         outline: extractTextOutline("yaml", allLines),
         content: sliced.content,
         lines: sliced.lines,
-        metadata: { extension: ".yaml", lineCount: allLines.length, openapi: "3.1.0" }
+        metadata: {
+          extension: ".yaml",
+          lineCount: allLines.length,
+          openapi: "3.1.0",
+          openApiEndpoints: demoSpec.totalEndpoints
+        },
+        openApiSpec: demoSpec
       };
     }
     throw new Error(
@@ -51432,11 +53096,26 @@ function createDemoStudioService(workspaceRoot) {
       truncated: false
     };
   };
+  const parseOpenApi = (rawFilePath) => {
+    const filePath = (rawFilePath ?? "").trim();
+    if (!filePath || isSensitiveStudioPath(filePath)) {
+      throw new Error(`Refused to access sensitive or invalid path: ${filePath}`);
+    }
+    const normalized = filePath.replace(/\\/g, "/").replace(/^\.\//, "");
+    const base = import_node_path21.default.posix.basename(normalized).toLowerCase();
+    if (normalized === "api/openapi.yaml" || base === "openapi.yaml" || base === "openapi.yml" || base === "openapi.json") {
+      return createDemoOpenApiSpec("api/openapi.yaml");
+    }
+    throw new Error(
+      `Demo OpenAPI spec not found: ${filePath} (available: api/openapi.yaml)`
+    );
+  };
   return {
     listSources,
     inspectData,
     inspectDocument,
-    httpProbe
+    httpProbe,
+    parseOpenApi
   };
 }
 
@@ -51490,6 +53169,11 @@ function formatDocumentSummary(result) {
   const lines = [
     `${result.filePath} (${result.format}, ${result.bytes} B, lines ${result.startLine}-${result.endLine}/${result.totalLines}${result.truncated ? ", truncated" : ""})`
   ];
+  if (result.openApiSpec) {
+    lines.push(
+      `OpenAPI ${result.openApiSpec.specVersion}: ${result.openApiSpec.title}${result.openApiSpec.apiVersion ? ` v${result.openApiSpec.apiVersion}` : ""} (${result.openApiSpec.totalEndpoints} endpoint(s))`
+    );
+  }
   if (result.outline.length > 0) {
     lines.push(
       `Outline (${result.outline.length}):
@@ -51515,7 +53199,7 @@ ${preview}`);
   return lines.join("\n");
 }
 function registerStudioModule(server, options, uiResourceUri) {
-  const workspaceRoot = import_node_path21.default.resolve(options.workspaceRoot);
+  const workspaceRoot = import_node_path22.default.resolve(options.workspaceRoot);
   const isDemo = options.demoMode === true;
   const demoService = isDemo ? createDemoStudioService(workspaceRoot) : null;
   const APP_ONLY_META2 = {
@@ -51528,6 +53212,7 @@ function registerStudioModule(server, options, uiResourceUri) {
   const runInspectData = async (opts) => isDemo && demoService ? demoService.inspectData(opts) : inspectStudioData(workspaceRoot, opts);
   const runInspectDocument = (opts) => isDemo && demoService ? demoService.inspectDocument(opts) : inspectStudioDocument(workspaceRoot, opts);
   const runHttpProbe = async (opts) => isDemo && demoService ? demoService.httpProbe(opts) : runLoopbackHttpProbe(opts);
+  const runParseOpenApi = (filePath) => isDemo && demoService ? demoService.parseOpenApi(filePath) : parseStudioOpenApiFile(workspaceRoot, filePath);
   const modelTools = [];
   const listSourcesTool = server.registerTool(
     "studio_list_sources",
@@ -51749,6 +53434,31 @@ function registerStudioModule(server, options, uiResourceUri) {
       }
     }
   );
+  server.registerTool(
+    "app_studio_parse_openapi",
+    {
+      title: "Parse OpenAPI Spec (App Only)",
+      description: "Parse a local OpenAPI 3.x or Swagger 2.0 JSON/YAML specification into structured loopback-ready endpoints for the Studio UI.",
+      inputSchema: {
+        filePath: external_exports.string().min(1)
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ filePath }) => {
+      try {
+        const result = runParseOpenApi(filePath);
+        return {
+          content: [{ type: "text", text: "ok" }],
+          structuredContent: { ...result }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
   return {
     moduleId: "studio",
     modelTools,
@@ -51758,8 +53468,8 @@ function registerStudioModule(server, options, uiResourceUri) {
 
 // src/modules/turbo/core.ts
 var import_node_crypto12 = __toESM(require("node:crypto"), 1);
-var import_node_fs16 = __toESM(require("node:fs"), 1);
-var import_node_path22 = __toESM(require("node:path"), 1);
+var import_node_fs17 = __toESM(require("node:fs"), 1);
+var import_node_path23 = __toESM(require("node:path"), 1);
 var TURBO_MAX_QUERIES = 8;
 var TURBO_MAX_QUERY_LENGTH = 128;
 var TURBO_MAX_FILE_BYTES = 512 * 1024;
@@ -52005,13 +53715,13 @@ function isSensitiveTurboPath(inputPath) {
       return true;
     }
   }
-  const base = import_node_path22.default.posix.basename(normalized);
+  const base = import_node_path23.default.posix.basename(normalized);
   const lowerBase = base.toLowerCase();
   if (SENSITIVE_EXACT_BASENAMES2.has(lowerBase)) return true;
   if (lowerBase.startsWith("id_rsa.") || lowerBase.startsWith("id_ed25519.") || lowerBase.startsWith("id_dsa.") || lowerBase.startsWith("id_ecdsa.")) {
     return true;
   }
-  const ext = import_node_path22.default.posix.extname(lowerBase);
+  const ext = import_node_path23.default.posix.extname(lowerBase);
   if (SENSITIVE_EXTENSIONS4.has(ext)) return true;
   return false;
 }
@@ -52022,23 +53732,23 @@ function resolveInsideWorkspaceReal(workspaceRoot, targetPath) {
   if (!targetPath || targetPath.includes("\0")) {
     throw new Error("Invalid target path");
   }
-  const realRoot = import_node_fs16.default.realpathSync(import_node_path22.default.resolve(workspaceRoot));
-  const candidate = import_node_path22.default.isAbsolute(targetPath) ? import_node_path22.default.resolve(targetPath) : import_node_path22.default.resolve(realRoot, targetPath);
+  const realRoot = import_node_fs17.default.realpathSync(import_node_path23.default.resolve(workspaceRoot));
+  const candidate = import_node_path23.default.isAbsolute(targetPath) ? import_node_path23.default.resolve(targetPath) : import_node_path23.default.resolve(realRoot, targetPath);
   let realTarget;
   try {
-    realTarget = import_node_fs16.default.realpathSync(candidate);
+    realTarget = import_node_fs17.default.realpathSync(candidate);
   } catch {
     throw new Error(`Target path does not exist or cannot be resolved: ${targetPath}`);
   }
-  const prefix = realRoot.endsWith(import_node_path22.default.sep) ? realRoot : `${realRoot}${import_node_path22.default.sep}`;
+  const prefix = realRoot.endsWith(import_node_path23.default.sep) ? realRoot : `${realRoot}${import_node_path23.default.sep}`;
   if (realTarget !== realRoot && !realTarget.startsWith(prefix)) {
     throw new Error(`Path escapes workspace boundary: ${targetPath}`);
   }
-  const relPath = realTarget === realRoot ? "." : import_node_path22.default.relative(realRoot, realTarget).replace(/\\/g, "/");
+  const relPath = realTarget === realRoot ? "." : import_node_path23.default.relative(realRoot, realTarget).replace(/\\/g, "/");
   return { realRoot, realTarget, relPath };
 }
 function isBinaryFilename(filePath) {
-  const ext = import_node_path22.default.extname(filePath).toLowerCase();
+  const ext = import_node_path23.default.extname(filePath).toLowerCase();
   return BINARY_EXTENSIONS.has(ext);
 }
 function isBufferBinary(buf) {
@@ -52121,13 +53831,13 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
   if (cleanedQueries.length === 0) {
     throw new Error("At least one non-empty query is required");
   }
-  const realRoot = import_node_fs16.default.realpathSync(import_node_path22.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path22.default.sep) ? realRoot : `${realRoot}${import_node_path22.default.sep}`;
+  const realRoot = import_node_fs17.default.realpathSync(import_node_path23.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path23.default.sep) ? realRoot : `${realRoot}${import_node_path23.default.sep}`;
   let searchRoot = realRoot;
   let scope = ".";
   if (opts.directory && opts.directory.trim()) {
     const resolved = resolveInsideWorkspaceReal(realRoot, opts.directory.trim());
-    if (!import_node_path22.default.isAbsolute(opts.directory.trim()) && isSensitiveTurboPath(opts.directory) || isSensitiveTurboPath(resolved.relPath)) {
+    if (!import_node_path23.default.isAbsolute(opts.directory.trim()) && isSensitiveTurboPath(opts.directory) || isSensitiveTurboPath(resolved.relPath)) {
       throw new Error(`Refused to search sensitive directory: ${opts.directory}`);
     }
     searchRoot = resolved.realTarget;
@@ -52164,7 +53874,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
     visitedDirs.add(currentDir);
     let entries;
     try {
-      entries = import_node_fs16.default.readdirSync(currentDir, { withFileTypes: true });
+      entries = import_node_fs17.default.readdirSync(currentDir, { withFileTypes: true });
     } catch {
       continue;
     }
@@ -52174,20 +53884,20 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
         truncated = true;
         break;
       }
-      const fullPath = import_node_path22.default.join(currentDir, entry.name);
-      const rawRel = import_node_path22.default.relative(realRoot, fullPath).replace(/\\/g, "/");
+      const fullPath = import_node_path23.default.join(currentDir, entry.name);
+      const rawRel = import_node_path23.default.relative(realRoot, fullPath).replace(/\\/g, "/");
       if (entry.isDirectory()) {
         if (SKIP_DIRS2.has(entry.name) || isSensitiveTurboPath(rawRel)) {
           if (isSensitiveTurboPath(rawRel)) skippedSensitive += 1;
           continue;
         }
         try {
-          const realSub = import_node_fs16.default.realpathSync(fullPath);
+          const realSub = import_node_fs17.default.realpathSync(fullPath);
           if (!isInsideRealRoot(realSub)) {
             skippedSymlinks += 1;
             continue;
           }
-          const realSubRel = import_node_path22.default.relative(realRoot, realSub).replace(/\\/g, "/");
+          const realSubRel = import_node_path23.default.relative(realRoot, realSub).replace(/\\/g, "/");
           if (isSensitiveTurboPath(realSubRel)) {
             skippedSensitive += 1;
             continue;
@@ -52202,15 +53912,15 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       let isFile = entry.isFile();
       if (entry.isSymbolicLink()) {
         try {
-          realFilePath = import_node_fs16.default.realpathSync(fullPath);
+          realFilePath = import_node_fs17.default.realpathSync(fullPath);
           if (!isInsideRealRoot(realFilePath)) {
             skippedSymlinks += 1;
             continue;
           }
-          const st = import_node_fs16.default.statSync(realFilePath);
+          const st = import_node_fs17.default.statSync(realFilePath);
           if (st.isDirectory()) {
-            const realRelDir = import_node_path22.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
-            if (SKIP_DIRS2.has(import_node_path22.default.basename(realFilePath)) || isSensitiveTurboPath(realRelDir)) {
+            const realRelDir = import_node_path23.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+            if (SKIP_DIRS2.has(import_node_path23.default.basename(realFilePath)) || isSensitiveTurboPath(realRelDir)) {
               skippedSensitive += 1;
               continue;
             }
@@ -52225,7 +53935,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       }
       if (!isFile) continue;
       try {
-        realFilePath = import_node_fs16.default.realpathSync(realFilePath);
+        realFilePath = import_node_fs17.default.realpathSync(realFilePath);
       } catch {
         skippedSymlinks += 1;
         continue;
@@ -52234,7 +53944,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
         skippedSymlinks += 1;
         continue;
       }
-      const realRel = import_node_path22.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+      const realRel = import_node_path23.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
       if (isSensitiveTurboPath(rawRel) || isSensitiveTurboPath(realRel)) {
         skippedSensitive += 1;
         continue;
@@ -52245,7 +53955,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       }
       let stat;
       try {
-        stat = import_node_fs16.default.statSync(realFilePath);
+        stat = import_node_fs17.default.statSync(realFilePath);
       } catch {
         skippedFiles += 1;
         continue;
@@ -52256,7 +53966,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       }
       let buf;
       try {
-        buf = import_node_fs16.default.readFileSync(realFilePath);
+        buf = import_node_fs17.default.readFileSync(realFilePath);
       } catch {
         skippedFiles += 1;
         continue;
@@ -52311,7 +54021,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
   };
 }
 function detectLanguage(filePath) {
-  const ext = import_node_path22.default.extname(filePath).toLowerCase();
+  const ext = import_node_path23.default.extname(filePath).toLowerCase();
   if (ext === ".ts" || ext === ".tsx" || ext === ".mts" || ext === ".cts") return "typescript";
   if (ext === ".js" || ext === ".jsx" || ext === ".mjs" || ext === ".cjs") return "javascript";
   if (ext === ".py" || ext === ".pyi") return "python";
@@ -52423,20 +54133,20 @@ function extractOutlineSymbols(content, language, maxItems = 120) {
 }
 function readFileOutlineAndSlice(workspaceRoot, filePath, opts = {}) {
   const { realTarget, relPath } = resolveInsideWorkspaceReal(workspaceRoot, filePath);
-  if (!import_node_path22.default.isAbsolute(filePath) && isSensitiveTurboPath(filePath) || isSensitiveTurboPath(relPath)) {
-    throw new Error(`Refused to read sensitive file: ${import_node_path22.default.basename(filePath)}`);
+  if (!import_node_path23.default.isAbsolute(filePath) && isSensitiveTurboPath(filePath) || isSensitiveTurboPath(relPath)) {
+    throw new Error(`Refused to read sensitive file: ${import_node_path23.default.basename(filePath)}`);
   }
   if (isBinaryFilename(realTarget)) {
     throw new Error(`Refused to read binary file: ${relPath}`);
   }
-  const stat = import_node_fs16.default.statSync(realTarget);
+  const stat = import_node_fs17.default.statSync(realTarget);
   if (!stat.isFile()) {
     throw new Error(`Target is not a regular file: ${relPath}`);
   }
   if (stat.size > TURBO_MAX_OUTLINE_FILE_BYTES) {
     throw new Error(`File exceeds ${TURBO_MAX_OUTLINE_FILE_BYTES} byte limit: ${relPath}`);
   }
-  const buf = import_node_fs16.default.readFileSync(realTarget);
+  const buf = import_node_fs17.default.readFileSync(realTarget);
   if (isBufferBinary(buf)) {
     throw new Error(`Detected binary content in file: ${relPath}`);
   }
@@ -53052,7 +54762,7 @@ var CompactedChunkStore = class {
     this.totalRawBytes += rawBytes;
     if (opts.persistStats && dataDir) {
       try {
-        atomicWriteJson(import_node_path22.default.join(dataDir, "stats.json"), {
+        atomicWriteJson(import_node_path23.default.join(dataDir, "stats.json"), {
           schemaVersion: 1,
           totalCompactions: this.totalCompactions,
           totalSavedTokens: this.totalSavedTokens,
@@ -53140,18 +54850,18 @@ var defaultCompactedChunkStore = new CompactedChunkStore(TURBO_MAX_COMPACTED_CHU
 var SNAPSHOT_EXPAND_DIRS = /* @__PURE__ */ new Set(["src", "app", "apps", "packages", "lib", "ui", "test", "tests", "scripts", "cmd", "pkg", "internal"]);
 function buildWorkspaceSnapshot(workspaceRoot) {
   const startedAt = Date.now();
-  const realRoot = import_node_fs16.default.realpathSync(import_node_path22.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path22.default.sep) ? realRoot : `${realRoot}${import_node_path22.default.sep}`;
-  const workspaceName = import_node_path22.default.basename(realRoot) || "workspace";
+  const realRoot = import_node_fs17.default.realpathSync(import_node_path23.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path23.default.sep) ? realRoot : `${realRoot}${import_node_path23.default.sep}`;
+  const workspaceName = import_node_path23.default.basename(realRoot) || "workspace";
   const techStack = [];
   const scripts = [];
   let packageName;
   let packageVersion;
   const hasFile = (name) => {
     try {
-      const candidate = import_node_path22.default.join(realRoot, name);
-      const real = import_node_fs16.default.realpathSync(candidate);
-      return real.startsWith(rootPrefix) && import_node_fs16.default.statSync(real).isFile();
+      const candidate = import_node_path23.default.join(realRoot, name);
+      const real = import_node_fs17.default.realpathSync(candidate);
+      return real.startsWith(rootPrefix) && import_node_fs17.default.statSync(real).isFile();
     } catch {
       return false;
     }
@@ -53159,7 +54869,7 @@ function buildWorkspaceSnapshot(workspaceRoot) {
   if (hasFile("package.json")) {
     techStack.push("Node.js");
     try {
-      const pkg = JSON.parse(import_node_fs16.default.readFileSync(import_node_path22.default.join(realRoot, "package.json"), "utf8"));
+      const pkg = JSON.parse(import_node_fs17.default.readFileSync(import_node_path23.default.join(realRoot, "package.json"), "utf8"));
       if (typeof pkg.name === "string") packageName = pkg.name.slice(0, 64);
       if (typeof pkg.version === "string") packageVersion = pkg.version.slice(0, 32);
       if (pkg.scripts && typeof pkg.scripts === "object") {
@@ -53187,7 +54897,7 @@ function buildWorkspaceSnapshot(workspaceRoot) {
   const maxTreeLines = 28;
   let extraEntries = 0;
   try {
-    const entries = import_node_fs16.default.readdirSync(realRoot, { withFileTypes: true }).sort((a, b) => {
+    const entries = import_node_fs17.default.readdirSync(realRoot, { withFileTypes: true }).sort((a, b) => {
       if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
       return a.name.localeCompare(b.name);
     });
@@ -53195,8 +54905,8 @@ function buildWorkspaceSnapshot(workspaceRoot) {
       if (SKIP_DIRS2.has(entry.name) || isSensitiveTurboPath(entry.name)) continue;
       if (entry.isSymbolicLink()) {
         try {
-          const realEntry = import_node_fs16.default.realpathSync(import_node_path22.default.join(realRoot, entry.name));
-          const realEntryRel = import_node_path22.default.relative(realRoot, realEntry).replace(/\\/g, "/");
+          const realEntry = import_node_fs17.default.realpathSync(import_node_path23.default.join(realRoot, entry.name));
+          const realEntryRel = import_node_path23.default.relative(realRoot, realEntry).replace(/\\/g, "/");
           if (!realEntry.startsWith(rootPrefix) || isSensitiveTurboPath(realEntryRel)) continue;
         } catch {
           continue;
@@ -53210,14 +54920,14 @@ function buildWorkspaceSnapshot(workspaceRoot) {
         treeLines.push(`- ${entry.name}/`);
         if (SNAPSHOT_EXPAND_DIRS.has(entry.name) && treeLines.length < maxTreeLines) {
           try {
-            const subEntries = import_node_fs16.default.readdirSync(import_node_path22.default.join(realRoot, entry.name), { withFileTypes: true }).filter((sub) => {
+            const subEntries = import_node_fs17.default.readdirSync(import_node_path23.default.join(realRoot, entry.name), { withFileTypes: true }).filter((sub) => {
               if (SKIP_DIRS2.has(sub.name) || isSensitiveTurboPath(`${entry.name}/${sub.name}`)) {
                 return false;
               }
               if (sub.isSymbolicLink()) {
                 try {
-                  const realSub = import_node_fs16.default.realpathSync(import_node_path22.default.join(realRoot, entry.name, sub.name));
-                  const realSubRel = import_node_path22.default.relative(realRoot, realSub).replace(/\\/g, "/");
+                  const realSub = import_node_fs17.default.realpathSync(import_node_path23.default.join(realRoot, entry.name, sub.name));
+                  const realSubRel = import_node_path23.default.relative(realRoot, realSub).replace(/\\/g, "/");
                   return realSub.startsWith(rootPrefix) && !isSensitiveTurboPath(realSubRel);
                 } catch {
                   return false;
@@ -53714,8 +55424,8 @@ ${result.summaryText}`;
 // src/modules/verify/core.ts
 var import_node_child_process3 = require("node:child_process");
 var import_node_crypto13 = __toESM(require("node:crypto"), 1);
-var import_node_fs17 = __toESM(require("node:fs"), 1);
-var import_node_path23 = __toESM(require("node:path"), 1);
+var import_node_fs18 = __toESM(require("node:fs"), 1);
+var import_node_path24 = __toESM(require("node:path"), 1);
 var ALLOWED_VERIFY_EXECUTABLES = /* @__PURE__ */ new Set([
   "npm",
   "pnpm",
@@ -53927,7 +55637,7 @@ function redactVerifyOutput(input2) {
   return out;
 }
 function getVerifyStatePath(moduleDataDir) {
-  return import_node_path23.default.join(moduleDataDir, "state.json");
+  return import_node_path24.default.join(moduleDataDir, "state.json");
 }
 function clampCommandTimeout(raw) {
   if (typeof raw !== "number" || !Number.isFinite(raw)) {
@@ -54467,11 +56177,11 @@ function normalizeEvidenceFromDisk(raw) {
 }
 function loadVerifyStateReadOnly(moduleDataDir) {
   const statePath = getVerifyStatePath(moduleDataDir);
-  if (!import_node_fs17.default.existsSync(statePath)) {
+  if (!import_node_fs18.default.existsSync(statePath)) {
     return createDefaultVerifyState();
   }
   try {
-    const raw = JSON.parse(import_node_fs17.default.readFileSync(statePath, "utf8"));
+    const raw = JSON.parse(import_node_fs18.default.readFileSync(statePath, "utf8"));
     const policy = normalizePolicyFromDisk(raw.policy);
     const sessions = {};
     if (raw.sessions && typeof raw.sessions === "object" && !Array.isArray(raw.sessions)) {
@@ -54560,33 +56270,33 @@ function resolveRealPathWithMissingTail2(inputPath, depth = 0) {
   if (depth > MAX_SYMLINK_DEPTH2) {
     throw new Error(`Too many levels of symbolic links: ${inputPath}`);
   }
-  const resolved = import_node_path23.default.resolve(inputPath);
+  const resolved = import_node_path24.default.resolve(inputPath);
   const missingSegments = [];
   let current = resolved;
   while (true) {
     try {
-      const realBase = import_node_fs17.default.realpathSync(current);
-      return missingSegments.length > 0 ? import_node_path23.default.join(realBase, ...missingSegments.reverse()) : realBase;
+      const realBase = import_node_fs18.default.realpathSync(current);
+      return missingSegments.length > 0 ? import_node_path24.default.join(realBase, ...missingSegments.reverse()) : realBase;
     } catch (err) {
       const code = err?.code;
       if (code !== "ENOENT" && code !== "ENOTDIR") {
         throw err;
       }
       try {
-        const lstat = import_node_fs17.default.lstatSync(current);
+        const lstat = import_node_fs18.default.lstatSync(current);
         if (lstat.isSymbolicLink()) {
-          const linkTarget = import_node_fs17.default.readlinkSync(current);
-          const resolvedLink = import_node_path23.default.resolve(import_node_path23.default.dirname(current), linkTarget);
-          const nextTarget = missingSegments.length > 0 ? import_node_path23.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
+          const linkTarget = import_node_fs18.default.readlinkSync(current);
+          const resolvedLink = import_node_path24.default.resolve(import_node_path24.default.dirname(current), linkTarget);
+          const nextTarget = missingSegments.length > 0 ? import_node_path24.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
           return resolveRealPathWithMissingTail2(nextTarget, depth + 1);
         }
       } catch {
       }
-      const parent = import_node_path23.default.dirname(current);
+      const parent = import_node_path24.default.dirname(current);
       if (parent === current) {
         return resolved;
       }
-      missingSegments.push(import_node_path23.default.basename(current));
+      missingSegments.push(import_node_path24.default.basename(current));
       current = parent;
     }
   }
@@ -54597,16 +56307,16 @@ function inspectWorkspaceFile(workspaceRoot, targetPath) {
   }
   try {
     const realRoot = resolveRealPathWithMissingTail2(workspaceRoot);
-    const candidate = import_node_path23.default.isAbsolute(targetPath) ? targetPath : import_node_path23.default.resolve(workspaceRoot, targetPath);
+    const candidate = import_node_path24.default.isAbsolute(targetPath) ? targetPath : import_node_path24.default.resolve(workspaceRoot, targetPath);
     const realTarget = resolveRealPathWithMissingTail2(candidate);
-    const rootPrefix = realRoot.endsWith(import_node_path23.default.sep) ? realRoot : `${realRoot}${import_node_path23.default.sep}`;
+    const rootPrefix = realRoot.endsWith(import_node_path24.default.sep) ? realRoot : `${realRoot}${import_node_path24.default.sep}`;
     if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
       return { inside: false };
     }
     if (realTarget === realRoot) {
       return { inside: false };
     }
-    const relPath = import_node_path23.default.relative(realRoot, realTarget).split(import_node_path23.default.sep).join("/");
+    const relPath = import_node_path24.default.relative(realRoot, realTarget).split(import_node_path24.default.sep).join("/");
     if (!relPath || relPath === "." || relPath.startsWith("../")) {
       return { inside: false };
     }
@@ -54614,7 +56324,7 @@ function inspectWorkspaceFile(workspaceRoot, targetPath) {
     let isFile = false;
     let isEmpty = false;
     try {
-      const stat = import_node_fs17.default.statSync(realTarget);
+      const stat = import_node_fs18.default.statSync(realTarget);
       exists = true;
       isFile = stat.isFile();
       isEmpty = isFile && stat.size === 0;
@@ -54696,8 +56406,8 @@ function executeVerifyCommand(command, workspaceRoot, options = {}) {
   );
   let resolvedCwd;
   try {
-    resolvedCwd = import_node_fs17.default.realpathSync(import_node_path23.default.resolve(workspaceRoot));
-    if (!import_node_fs17.default.statSync(resolvedCwd).isDirectory()) {
+    resolvedCwd = import_node_fs18.default.realpathSync(import_node_path24.default.resolve(workspaceRoot));
+    if (!import_node_fs18.default.statSync(resolvedCwd).isDirectory()) {
       throw new Error("Workspace root is not a directory.");
     }
   } catch (err) {
@@ -54972,7 +56682,7 @@ function clearVerifyHistory(moduleDataDir) {
   const statePath = getVerifyStatePath(moduleDataDir);
   const state = loadVerifyStateReadOnly(moduleDataDir);
   const cleared = clearVerifyHistoryInState(state);
-  if (cleared === 0 && !import_node_fs17.default.existsSync(statePath)) {
+  if (cleared === 0 && !import_node_fs18.default.existsSync(statePath)) {
     return { cleared: 0, state };
   }
   const saved = saveVerifyState(moduleDataDir, state);
@@ -55211,6 +56921,252 @@ function createDemoVerifyState(nowMs = Date.now()) {
     updatedAt: new Date(nowMs).toISOString()
   };
 }
+var MAX_DETECT_FILE_BYTES = 256 * 1024;
+var COMMON_NODE_VERIFY_SCRIPTS = [
+  { script: "typecheck", label: "Typecheck", timeoutMs: 2e4 },
+  { script: "type-check", label: "Type Check", timeoutMs: 2e4 },
+  { script: "check", label: "Check", timeoutMs: 2e4 },
+  { script: "lint", label: "Lint", timeoutMs: 2e4 },
+  { script: "test", label: "Tests", timeoutMs: 3e4 }
+];
+function resolveTopLevelWorkspaceFile(realRoot, rootPrefix, fileName) {
+  if (!fileName || fileName.includes("/") || fileName.includes("\\") || fileName.includes("..") || fileName.includes("\0")) {
+    return null;
+  }
+  const candidate = import_node_path24.default.join(realRoot, fileName);
+  try {
+    import_node_fs18.default.lstatSync(candidate);
+    const realTarget = import_node_fs18.default.realpathSync(candidate);
+    if (!realTarget.startsWith(rootPrefix)) {
+      return null;
+    }
+    const stat = import_node_fs18.default.statSync(realTarget);
+    if (!stat.isFile()) {
+      return null;
+    }
+    return { realTarget, size: stat.size };
+  } catch {
+    return null;
+  }
+}
+function readTopLevelWorkspaceFile(realRoot, rootPrefix, fileName, maxBytes = MAX_DETECT_FILE_BYTES) {
+  const resolved = resolveTopLevelWorkspaceFile(realRoot, rootPrefix, fileName);
+  if (!resolved) return null;
+  const readLen = Math.min(resolved.size, maxBytes);
+  const buf = Buffer.alloc(readLen);
+  try {
+    const fd = import_node_fs18.default.openSync(resolved.realTarget, "r");
+    try {
+      if (readLen > 0) {
+        import_node_fs18.default.readSync(fd, buf, 0, readLen, 0);
+      }
+    } finally {
+      import_node_fs18.default.closeSync(fd);
+    }
+    return buf.toString("utf8");
+  } catch {
+    return null;
+  }
+}
+function detectWorkspaceVerifyCommands(workspaceRoot) {
+  if (!workspaceRoot || typeof workspaceRoot !== "string" || workspaceRoot.includes("\0")) {
+    return { detectedStacks: [], recommendations: [] };
+  }
+  let realRoot;
+  try {
+    realRoot = import_node_fs18.default.realpathSync(import_node_path24.default.resolve(workspaceRoot));
+    if (!import_node_fs18.default.statSync(realRoot).isDirectory()) {
+      return { detectedStacks: [], recommendations: [] };
+    }
+  } catch {
+    return { detectedStacks: [], recommendations: [] };
+  }
+  const rootPrefix = realRoot.endsWith(import_node_path24.default.sep) ? realRoot : `${realRoot}${import_node_path24.default.sep}`;
+  const stacks = [];
+  const stackSet = /* @__PURE__ */ new Set();
+  const recommendations = [];
+  const seenIds = /* @__PURE__ */ new Set();
+  const addStack = (name) => {
+    if (!stackSet.has(name)) {
+      stackSet.add(name);
+      stacks.push(name);
+    }
+  };
+  const pushValidated = (candidate) => {
+    const checked = validateVerifyCommand({
+      id: candidate.id,
+      label: candidate.label,
+      executable: candidate.executable,
+      args: candidate.args,
+      timeoutMs: candidate.timeoutMs,
+      enabled: true
+    });
+    if (!checked.valid || !checked.command) return;
+    if (seenIds.has(checked.command.id)) return;
+    seenIds.add(checked.command.id);
+    recommendations.push({
+      id: checked.command.id,
+      label: checked.command.label,
+      executable: checked.command.executable,
+      args: [...checked.command.args],
+      timeoutMs: checked.command.timeoutMs,
+      reason: candidate.reason
+    });
+  };
+  const pkgRaw = readTopLevelWorkspaceFile(realRoot, rootPrefix, "package.json");
+  if (pkgRaw !== null) {
+    addStack("node");
+    let pm = "npm";
+    if (resolveTopLevelWorkspaceFile(realRoot, rootPrefix, "pnpm-lock.yaml")) {
+      pm = "pnpm";
+    } else if (resolveTopLevelWorkspaceFile(realRoot, rootPrefix, "yarn.lock")) {
+      pm = "yarn";
+    } else if (resolveTopLevelWorkspaceFile(realRoot, rootPrefix, "bun.lock") || resolveTopLevelWorkspaceFile(realRoot, rootPrefix, "bun.lockb")) {
+      pm = "bun";
+    }
+    const hasTsConfig = Boolean(resolveTopLevelWorkspaceFile(realRoot, rootPrefix, "tsconfig.json"));
+    if (hasTsConfig) {
+      addStack("typescript");
+    }
+    try {
+      const pkg = JSON.parse(pkgRaw);
+      const deps = pkg.dependencies && typeof pkg.dependencies === "object" && !Array.isArray(pkg.dependencies) ? pkg.dependencies : null;
+      const devDeps = pkg.devDependencies && typeof pkg.devDependencies === "object" && !Array.isArray(pkg.devDependencies) ? pkg.devDependencies : null;
+      if (deps?.typescript || devDeps?.typescript) {
+        addStack("typescript");
+      }
+      if (pkg.scripts && typeof pkg.scripts === "object" && !Array.isArray(pkg.scripts)) {
+        const scripts = pkg.scripts;
+        for (const item of COMMON_NODE_VERIFY_SCRIPTS) {
+          if (!Object.prototype.hasOwnProperty.call(scripts, item.script)) continue;
+          const scriptVal = scripts[item.script];
+          if (typeof scriptVal !== "string" || !scriptVal.trim()) continue;
+          pushValidated({
+            id: `node-${item.script}`,
+            label: `${item.label} (${pm})`,
+            executable: pm,
+            args: item.script === "test" ? ["test"] : ["run", item.script],
+            timeoutMs: item.timeoutMs,
+            reason: `Detected "${item.script}" script in package.json (${pm})`
+          });
+        }
+      }
+    } catch {
+    }
+  }
+  const pyprojectRaw = readTopLevelWorkspaceFile(realRoot, rootPrefix, "pyproject.toml");
+  const hasPytestIni = Boolean(resolveTopLevelWorkspaceFile(realRoot, rootPrefix, "pytest.ini"));
+  if (pyprojectRaw !== null || hasPytestIni) {
+    addStack("python");
+    pushValidated({
+      id: "python-pytest",
+      label: "Python Pytest",
+      executable: "python3",
+      args: ["-m", "pytest"],
+      timeoutMs: 3e4,
+      reason: pyprojectRaw !== null ? "Detected pyproject.toml" : "Detected pytest.ini"
+    });
+    const hasRuff = pyprojectRaw !== null && /\bruff\b/i.test(pyprojectRaw) || Boolean(resolveTopLevelWorkspaceFile(realRoot, rootPrefix, "ruff.toml")) || Boolean(resolveTopLevelWorkspaceFile(realRoot, rootPrefix, ".ruff.toml"));
+    if (hasRuff) {
+      pushValidated({
+        id: "python-ruff",
+        label: "Python Ruff Check",
+        executable: "ruff",
+        args: ["check", "."],
+        timeoutMs: 15e3,
+        reason: "Detected ruff configuration in Python project"
+      });
+    }
+  }
+  if (resolveTopLevelWorkspaceFile(realRoot, rootPrefix, "Cargo.toml")) {
+    addStack("rust");
+    pushValidated({
+      id: "rust-check",
+      label: "Cargo Check",
+      executable: "cargo",
+      args: ["check"],
+      timeoutMs: 3e4,
+      reason: "Detected Cargo.toml"
+    });
+    pushValidated({
+      id: "rust-test",
+      label: "Cargo Test",
+      executable: "cargo",
+      args: ["test"],
+      timeoutMs: 45e3,
+      reason: "Detected Cargo.toml"
+    });
+  }
+  if (resolveTopLevelWorkspaceFile(realRoot, rootPrefix, "go.mod")) {
+    addStack("go");
+    pushValidated({
+      id: "go-vet",
+      label: "Go Vet",
+      executable: "go",
+      args: ["vet", "./..."],
+      timeoutMs: 2e4,
+      reason: "Detected go.mod"
+    });
+    pushValidated({
+      id: "go-test",
+      label: "Go Test",
+      executable: "go",
+      args: ["test", "./..."],
+      timeoutMs: 45e3,
+      reason: "Detected go.mod"
+    });
+  }
+  return {
+    detectedStacks: stacks,
+    recommendations
+  };
+}
+function createDemoVerifyDetection() {
+  const candidates = [
+    {
+      id: "node-typecheck",
+      label: "Typecheck (npm)",
+      executable: "npm",
+      args: ["run", "typecheck"],
+      timeoutMs: 2e4,
+      reason: '[demo] Detected "typecheck" script in package.json (npm)'
+    },
+    {
+      id: "node-lint",
+      label: "Lint (npm)",
+      executable: "npm",
+      args: ["run", "lint"],
+      timeoutMs: 2e4,
+      reason: '[demo] Detected "lint" script in package.json (npm)'
+    },
+    {
+      id: "node-test",
+      label: "Tests (npm)",
+      executable: "npm",
+      args: ["test"],
+      timeoutMs: 3e4,
+      reason: '[demo] Detected "test" script in package.json (npm)'
+    }
+  ];
+  const recommendations = [];
+  for (const item of candidates) {
+    const checked = validateVerifyCommand({ ...item, enabled: true });
+    if (checked.valid && checked.command) {
+      recommendations.push({
+        id: checked.command.id,
+        label: checked.command.label,
+        executable: checked.command.executable,
+        args: [...checked.command.args],
+        timeoutMs: checked.command.timeoutMs,
+        reason: item.reason
+      });
+    }
+  }
+  return {
+    detectedStacks: ["node", "typescript"],
+    recommendations
+  };
+}
 
 // src/modules/verify/register.ts
 function toHandle9(name, tool) {
@@ -55286,6 +57242,7 @@ function registerVerifyModule(server, options, uiResourceUri) {
   };
   const getCurrentStateFile = () => isDemo && demoState ? demoState : loadVerifyStateReadOnly(moduleDataDir);
   const getStateView = () => buildVerifyStateView(getCurrentStateFile(), isDemo ? "demo" : "live");
+  const getDetectedStack = () => isDemo ? createDemoVerifyDetection() : detectWorkspaceVerifyCommands(workspaceRoot);
   const applyPolicyPatch = (patch) => {
     if (isDemo && demoState) {
       const checked = validateAndBuildPolicy(demoState.policy, patch);
@@ -55324,6 +57281,7 @@ function registerVerifyModule(server, options, uiResourceUri) {
     },
     async () => {
       const view = getStateView();
+      const detected = getDetectedStack();
       const enabledCount = view.policy.commands.filter((c) => c.enabled).length;
       const lines = [
         `Verify Gate Policy (${view.mode}): enforceOnStop=${view.policy.enforceOnStop}, autoRunOnStop=${view.policy.autoRunOnStop}, blockEmptyWrites=${view.policy.blockEmptyWrites}, maxConsecutiveBlocks=${view.policy.maxConsecutiveBlocks}`,
@@ -55339,7 +57297,9 @@ function registerVerifyModule(server, options, uiResourceUri) {
           mode: view.mode,
           policy: view.policy,
           stats: view.stats,
-          allowedExecutables: [...ALLOWED_VERIFY_EXECUTABLES]
+          allowedExecutables: [...ALLOWED_VERIFY_EXECUTABLES],
+          detectedStacks: detected.detectedStacks,
+          detectedStackRecommendations: detected.recommendations
         }
       };
     }
@@ -55549,20 +57509,45 @@ function registerVerifyModule(server, options, uiResourceUri) {
       };
     }
   );
+  server.registerTool(
+    "app_verify_detect_commands",
+    {
+      title: "Detect Workspace Verification Commands (App Only)",
+      description: "Read-only inspection of top-level workspace manifests (package.json, pyproject.toml, Cargo.toml, go.mod) to recommend allowlisted verification commands.",
+      inputSchema: {},
+      _meta: APP_ONLY_META2
+    },
+    async () => {
+      const detected = getDetectedStack();
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Detected ${detected.recommendations.length} recommendation(s) across [${detected.detectedStacks.join(", ")}]`
+          }
+        ],
+        structuredContent: {
+          mode: isDemo ? "demo" : "live",
+          detectedStacks: detected.detectedStacks,
+          recommendations: detected.recommendations
+        }
+      };
+    }
+  );
   return {
     moduleId: "verify",
     modelTools,
-    exemptReadOnlyAppTools: ["app_verify_get_state"]
+    exemptReadOnlyAppTools: ["app_verify_get_state", "app_verify_detect_commands"]
   };
 }
 
 // src/modules/worktree/register.ts
-var import_node_path25 = __toESM(require("node:path"), 1);
+var import_node_path26 = __toESM(require("node:path"), 1);
 
 // src/modules/worktree/core.ts
 var import_node_child_process4 = require("node:child_process");
-var import_node_fs18 = __toESM(require("node:fs"), 1);
-var import_node_path24 = __toESM(require("node:path"), 1);
+var import_node_fs19 = __toESM(require("node:fs"), 1);
+var import_node_path25 = __toESM(require("node:path"), 1);
 var WORKTREE_MANAGED_DIR = ".agy-worktrees";
 var GIT_TIMEOUT_MS = 1e4;
 var GIT_MAX_BUFFER_BYTES = 2 * 1024 * 1024;
@@ -55635,29 +57620,29 @@ function deriveSafeWorktreeSlug(branch) {
   return validateWorktreeDirName(slug);
 }
 function isPathInside(parentReal, childReal) {
-  const rel = import_node_path24.default.relative(parentReal, childReal);
-  return rel !== "" && !rel.startsWith("..") && !import_node_path24.default.isAbsolute(rel);
+  const rel = import_node_path25.default.relative(parentReal, childReal);
+  return rel !== "" && !rel.startsWith("..") && !import_node_path25.default.isAbsolute(rel);
 }
 function canonicalizePath(inputPath) {
   if (typeof inputPath !== "string" || inputPath.length === 0 || inputPath.includes("\0")) {
     throw new Error("Invalid path: must be a non-empty string without NUL bytes.");
   }
-  const resolved = import_node_path24.default.resolve(inputPath);
+  const resolved = import_node_path25.default.resolve(inputPath);
   try {
-    return import_node_fs18.default.realpathSync(resolved);
+    return import_node_fs19.default.realpathSync(resolved);
   } catch {
     const missingSegments = [];
     let cursor = resolved;
     while (true) {
-      const parent = import_node_path24.default.dirname(cursor);
+      const parent = import_node_path25.default.dirname(cursor);
       if (parent === cursor) {
         return resolved;
       }
-      missingSegments.unshift(import_node_path24.default.basename(cursor));
+      missingSegments.unshift(import_node_path25.default.basename(cursor));
       cursor = parent;
       try {
-        const realAncestor = import_node_fs18.default.realpathSync(cursor);
-        return import_node_path24.default.join(realAncestor, ...missingSegments);
+        const realAncestor = import_node_fs19.default.realpathSync(cursor);
+        return import_node_path25.default.join(realAncestor, ...missingSegments);
       } catch {
       }
     }
@@ -55829,7 +57814,7 @@ function computeCounts(worktrees) {
   };
 }
 async function resolveGitContext(workspaceRoot) {
-  if (!workspaceRoot || !import_node_fs18.default.existsSync(workspaceRoot)) {
+  if (!workspaceRoot || !import_node_fs19.default.existsSync(workspaceRoot)) {
     return {
       isGitRepo: false,
       toplevelReal: workspaceRoot,
@@ -55839,7 +57824,7 @@ async function resolveGitContext(workspaceRoot) {
   }
   let stat;
   try {
-    stat = import_node_fs18.default.statSync(workspaceRoot);
+    stat = import_node_fs19.default.statSync(workspaceRoot);
   } catch {
     return {
       isGitRepo: false,
@@ -55912,38 +57897,38 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot) {
     const commonRes = await runGit2(repoRoot, ["rev-parse", "--git-common-dir"]);
     if (!commonRes.ok || !commonRes.stdout.trim()) return;
     const rawCommonDir = commonRes.stdout.trim();
-    const commonDir = import_node_path24.default.isAbsolute(rawCommonDir) ? rawCommonDir : import_node_path24.default.resolve(repoRoot, rawCommonDir);
-    const commonStat = import_node_fs18.default.lstatSync(commonDir);
+    const commonDir = import_node_path25.default.isAbsolute(rawCommonDir) ? rawCommonDir : import_node_path25.default.resolve(repoRoot, rawCommonDir);
+    const commonStat = import_node_fs19.default.lstatSync(commonDir);
     if (commonStat.isSymbolicLink() || !commonStat.isDirectory()) return;
-    const realCommonDir = import_node_fs18.default.realpathSync(commonDir);
-    if (!import_node_fs18.default.statSync(realCommonDir).isDirectory()) return;
-    const infoDir = import_node_path24.default.join(realCommonDir, "info");
+    const realCommonDir = import_node_fs19.default.realpathSync(commonDir);
+    if (!import_node_fs19.default.statSync(realCommonDir).isDirectory()) return;
+    const infoDir = import_node_path25.default.join(realCommonDir, "info");
     if (!isPathInside(realCommonDir, infoDir)) return;
     let infoExists = false;
     try {
-      const infoStat = import_node_fs18.default.lstatSync(infoDir);
+      const infoStat = import_node_fs19.default.lstatSync(infoDir);
       if (infoStat.isSymbolicLink() || !infoStat.isDirectory()) return;
       infoExists = true;
     } catch (err) {
       if (err?.code !== "ENOENT") return;
     }
     if (!infoExists) {
-      import_node_fs18.default.mkdirSync(infoDir);
-      const createdInfoStat = import_node_fs18.default.lstatSync(infoDir);
+      import_node_fs19.default.mkdirSync(infoDir);
+      const createdInfoStat = import_node_fs19.default.lstatSync(infoDir);
       if (createdInfoStat.isSymbolicLink() || !createdInfoStat.isDirectory()) return;
     }
-    const realInfoDir = import_node_fs18.default.realpathSync(infoDir);
+    const realInfoDir = import_node_fs19.default.realpathSync(infoDir);
     if (!isPathInside(realCommonDir, realInfoDir)) return;
-    const excludeFile = import_node_path24.default.join(realInfoDir, "exclude");
+    const excludeFile = import_node_path25.default.join(realInfoDir, "exclude");
     if (!isPathInside(realCommonDir, excludeFile) || !isPathInside(realInfoDir, excludeFile)) {
       return;
     }
     let excludeExists = false;
     let realExcludeFile = excludeFile;
     try {
-      const excludeStat = import_node_fs18.default.lstatSync(excludeFile);
+      const excludeStat = import_node_fs19.default.lstatSync(excludeFile);
       if (excludeStat.isSymbolicLink() || !excludeStat.isFile()) return;
-      realExcludeFile = import_node_fs18.default.realpathSync(excludeFile);
+      realExcludeFile = import_node_fs19.default.realpathSync(excludeFile);
       if (!isPathInside(realCommonDir, realExcludeFile) || !isPathInside(realInfoDir, realExcludeFile)) {
         return;
       }
@@ -55953,7 +57938,7 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot) {
     }
     let existing = "";
     if (excludeExists) {
-      existing = import_node_fs18.default.readFileSync(realExcludeFile, "utf8");
+      existing = import_node_fs19.default.readFileSync(realExcludeFile, "utf8");
     }
     const pattern = `/${WORKTREE_MANAGED_DIR}/`;
     const hasEntry = existing.split(/\r?\n/).some((line) => {
@@ -55964,29 +57949,29 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot) {
     const prefix = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
     const lineToWrite = `${prefix}${pattern}
 `;
-    const noFollow = import_node_fs18.default.constants.O_NOFOLLOW ?? 0;
+    const noFollow = import_node_fs19.default.constants.O_NOFOLLOW ?? 0;
     if (excludeExists) {
-      const reStat = import_node_fs18.default.lstatSync(realExcludeFile);
+      const reStat = import_node_fs19.default.lstatSync(realExcludeFile);
       if (reStat.isSymbolicLink() || !reStat.isFile()) return;
-      const fd = import_node_fs18.default.openSync(
+      const fd = import_node_fs19.default.openSync(
         realExcludeFile,
-        import_node_fs18.default.constants.O_WRONLY | import_node_fs18.default.constants.O_APPEND | noFollow
+        import_node_fs19.default.constants.O_WRONLY | import_node_fs19.default.constants.O_APPEND | noFollow
       );
       try {
-        import_node_fs18.default.writeSync(fd, lineToWrite, void 0, "utf8");
+        import_node_fs19.default.writeSync(fd, lineToWrite, void 0, "utf8");
       } finally {
-        import_node_fs18.default.closeSync(fd);
+        import_node_fs19.default.closeSync(fd);
       }
     } else {
-      const fd = import_node_fs18.default.openSync(
+      const fd = import_node_fs19.default.openSync(
         excludeFile,
-        import_node_fs18.default.constants.O_WRONLY | import_node_fs18.default.constants.O_CREAT | import_node_fs18.default.constants.O_EXCL | noFollow,
+        import_node_fs19.default.constants.O_WRONLY | import_node_fs19.default.constants.O_CREAT | import_node_fs19.default.constants.O_EXCL | noFollow,
         420
       );
       try {
-        import_node_fs18.default.writeSync(fd, lineToWrite, void 0, "utf8");
+        import_node_fs19.default.writeSync(fd, lineToWrite, void 0, "utf8");
       } finally {
-        import_node_fs18.default.closeSync(fd);
+        import_node_fs19.default.closeSync(fd);
       }
     }
   } catch {
@@ -56026,7 +58011,7 @@ async function inspectWorktrees(workspaceRoot) {
   }
   const worktrees = await Promise.all(
     ctx.rawEntries.map(async (raw) => {
-      const exists = import_node_fs18.default.existsSync(raw.path);
+      const exists = import_node_fs19.default.existsSync(raw.path);
       let isDirty2 = false;
       let changedFilesCount = 0;
       if (exists && !raw.bare) {
@@ -56120,35 +58105,35 @@ async function createWorktree(workspaceRoot, opts) {
   const branch = validateGitRef(opts.branch);
   const baseRef = opts.baseRef !== void 0 && opts.baseRef !== "" ? validateGitRef(opts.baseRef) : void 0;
   const safeSlug = opts.dirName !== void 0 && opts.dirName !== "" ? validateWorktreeDirName(opts.dirName) : deriveSafeWorktreeSlug(branch);
-  const repoRealRoot = import_node_fs18.default.realpathSync(ctx.mainRootReal);
+  const repoRealRoot = import_node_fs19.default.realpathSync(ctx.mainRootReal);
   const alreadyCheckedOut = ctx.rawEntries.find((w) => w.branch === branch);
   if (alreadyCheckedOut) {
     throw new Error(
       `Branch "${branch}" is already checked out in worktree: ${alreadyCheckedOut.path}`
     );
   }
-  const managedRootCandidate = import_node_path24.default.join(repoRealRoot, WORKTREE_MANAGED_DIR);
+  const managedRootCandidate = import_node_path25.default.join(repoRealRoot, WORKTREE_MANAGED_DIR);
   if (!isPathInside(repoRealRoot, managedRootCandidate)) {
     throw new Error("Controlled worktree root escapes repository boundary.");
   }
-  if (import_node_fs18.default.existsSync(managedRootCandidate)) {
-    const lstat = import_node_fs18.default.lstatSync(managedRootCandidate);
+  if (import_node_fs19.default.existsSync(managedRootCandidate)) {
+    const lstat = import_node_fs19.default.lstatSync(managedRootCandidate);
     if (lstat.isSymbolicLink() || !lstat.isDirectory()) {
       throw new Error(
         `Controlled worktree root "${managedRootCandidate}" must be a real directory (not a symlink or file).`
       );
     }
-    const realManaged = import_node_fs18.default.realpathSync(managedRootCandidate);
+    const realManaged = import_node_fs19.default.realpathSync(managedRootCandidate);
     if (!isPathInside(repoRealRoot, realManaged)) {
       throw new Error("Controlled worktree root symlink escapes repository boundary.");
     }
   }
-  const preTargetPath = import_node_path24.default.join(managedRootCandidate, safeSlug);
+  const preTargetPath = import_node_path25.default.join(managedRootCandidate, safeSlug);
   if (!isPathInside(managedRootCandidate, preTargetPath)) {
     throw new Error(`Target worktree path escapes controlled directory "${WORKTREE_MANAGED_DIR}".`);
   }
   try {
-    import_node_fs18.default.lstatSync(preTargetPath);
+    import_node_fs19.default.lstatSync(preTargetPath);
     throw new Error(
       `Target worktree directory already exists (refusing to overwrite): ${preTargetPath}`
     );
@@ -56170,13 +58155,13 @@ async function createWorktree(workspaceRoot, opts) {
     `refs/heads/${branch}`
   ]);
   const branchExists = branchRefRes.ok;
-  import_node_fs18.default.mkdirSync(managedRootCandidate, { recursive: true });
-  const realManagedRoot = import_node_fs18.default.realpathSync(managedRootCandidate);
+  import_node_fs19.default.mkdirSync(managedRootCandidate, { recursive: true });
+  const realManagedRoot = import_node_fs19.default.realpathSync(managedRootCandidate);
   if (!isPathInside(repoRealRoot, realManagedRoot)) {
     throw new Error("Controlled worktree root escapes repository boundary after creation.");
   }
-  const targetPath = import_node_path24.default.join(realManagedRoot, safeSlug);
-  if (import_node_path24.default.dirname(targetPath) !== realManagedRoot || !isPathInside(realManagedRoot, targetPath)) {
+  const targetPath = import_node_path25.default.join(realManagedRoot, safeSlug);
+  if (import_node_path25.default.dirname(targetPath) !== realManagedRoot || !isPathInside(realManagedRoot, targetPath)) {
     throw new Error("Resolved target worktree path escapes controlled worktree root.");
   }
   await ensureWorktreeDirExcludedInGitInfo(repoRealRoot);
@@ -56248,7 +58233,7 @@ async function getWorktreeDiffSummary(workspaceRoot, worktreePath, baseRef) {
   }
   let normalizedInput;
   try {
-    normalizedInput = import_node_fs18.default.realpathSync(import_node_path24.default.resolve(worktreePath));
+    normalizedInput = import_node_fs19.default.realpathSync(import_node_path25.default.resolve(worktreePath));
   } catch {
     throw new Error(`Worktree path does not exist or is not accessible: ${worktreePath}`);
   }
@@ -56392,10 +58377,10 @@ async function cleanupWorktree(workspaceRoot, opts) {
   };
 }
 function createDemoWorktreeStore(workspaceRoot) {
-  const repoRoot = import_node_path24.default.resolve(workspaceRoot);
-  const managedRoot = import_node_path24.default.join(repoRoot, WORKTREE_MANAGED_DIR);
-  const featPath = import_node_path24.default.join(managedRoot, "feat-verify-gate");
-  const fixPath = import_node_path24.default.join(managedRoot, "fix-cache-leak");
+  const repoRoot = import_node_path25.default.resolve(workspaceRoot);
+  const managedRoot = import_node_path25.default.join(repoRoot, WORKTREE_MANAGED_DIR);
+  const featPath = import_node_path25.default.join(managedRoot, "feat-verify-gate");
+  const fixPath = import_node_path25.default.join(managedRoot, "fix-cache-leak");
   let seq = 1;
   const entries = [
     {
@@ -56499,7 +58484,7 @@ function createDemoWorktreeStore(workspaceRoot) {
         validateGitRef(opts.baseRef);
       }
       const safeSlug = opts.dirName !== void 0 && opts.dirName !== "" ? validateWorktreeDirName(opts.dirName) : deriveSafeWorktreeSlug(branch);
-      const targetPath = import_node_path24.default.join(managedRoot, safeSlug);
+      const targetPath = import_node_path25.default.join(managedRoot, safeSlug);
       if (!isPathInside(managedRoot, targetPath)) {
         throw new Error("Target worktree path escapes controlled worktree root.");
       }
@@ -56542,7 +58527,7 @@ function createDemoWorktreeStore(workspaceRoot) {
         throw new Error("Invalid worktreePath: must be a non-empty filesystem path.");
       }
       const resolvedBaseRef = baseRef !== void 0 && baseRef !== "" ? validateGitRef(baseRef) : "main";
-      const normalized = import_node_path24.default.resolve(worktreePath);
+      const normalized = import_node_path25.default.resolve(worktreePath);
       const entry = entries.find((e) => e.path === normalized);
       if (!entry) {
         throw new Error(
@@ -56580,7 +58565,7 @@ function createDemoWorktreeStore(workspaceRoot) {
       if (!opts.worktreePath || !opts.worktreePath.trim()) {
         throw new Error("Either worktreePath or pruneOnly: true must be provided.");
       }
-      const normalized = import_node_path24.default.resolve(opts.worktreePath);
+      const normalized = import_node_path25.default.resolve(opts.worktreePath);
       const idx = entries.findIndex((e) => e.path === normalized);
       if (idx < 0) {
         throw new Error(
@@ -56664,7 +58649,7 @@ function formatDiffSummary(diff) {
   return lines.join("\n");
 }
 function registerWorktreeModule(server, options, uiResourceUri) {
-  const workspaceRoot = import_node_path25.default.resolve(options.workspaceRoot);
+  const workspaceRoot = import_node_path26.default.resolve(options.workspaceRoot);
   const isDemo = options.demoMode === true;
   const demoStore = isDemo ? createDemoWorktreeStore(workspaceRoot) : null;
   const APP_ONLY_META2 = {
@@ -56901,14 +58886,235 @@ function registerWorktreeModule(server, options, uiResourceUri) {
 }
 
 // src/modules/xray/register.ts
-var import_node_path29 = __toESM(require("node:path"), 1);
+var import_node_path31 = __toESM(require("node:path"), 1);
+
+// src/modules/xray/analytics.ts
+var import_node_fs23 = __toESM(require("node:fs"), 1);
 
 // src/modules/xray/discovery.ts
-var import_node_fs20 = __toESM(require("node:fs"), 1);
+var import_node_fs22 = __toESM(require("node:fs"), 1);
 var import_node_os4 = __toESM(require("node:os"), 1);
+var import_node_path29 = __toESM(require("node:path"), 1);
+
+// src/modules/xray/pricing.ts
+var import_node_fs20 = __toESM(require("node:fs"), 1);
 var import_node_path27 = __toESM(require("node:path"), 1);
+var MAX_OVERRIDES_FILE_BYTES = 1024 * 1024;
+var BUILTIN_MODEL_PRICING = Object.freeze({
+  "gemini-4-neon": { inputPerM: 2.5, cacheReadPerM: 0.25, outputPerM: 12 },
+  "gemini-4-hydrogen": { inputPerM: 1.5, cacheReadPerM: 0.15, outputPerM: 8 },
+  "gemini-4-pro": { inputPerM: 2, cacheReadPerM: 0.2, outputPerM: 10 },
+  "gemini-4-flash": { inputPerM: 0.3, cacheReadPerM: 0.03, outputPerM: 1.5 },
+  "gemini-3-pro": { inputPerM: 1.75, cacheReadPerM: 0.18, outputPerM: 9 },
+  "gemini-3-flash": { inputPerM: 0.25, cacheReadPerM: 0.025, outputPerM: 1.25 },
+  "gemini-3": { inputPerM: 1.25, cacheReadPerM: 0.125, outputPerM: 6 },
+  "gemini-2.5-pro": { inputPerM: 1.25, cacheReadPerM: 0.125, outputPerM: 10 },
+  "gemini-2.5-flash": { inputPerM: 0.3, cacheReadPerM: 0.03, outputPerM: 2.5 },
+  "gemini-2.0-flash": { inputPerM: 0.1, cacheReadPerM: 0.025, outputPerM: 0.4 },
+  "claude-opus": { inputPerM: 15, cacheReadPerM: 1.5, outputPerM: 75 },
+  "claude-sonnet": { inputPerM: 3, cacheReadPerM: 0.3, outputPerM: 15 },
+  "claude-haiku": { inputPerM: 0.8, cacheReadPerM: 0.08, outputPerM: 4 },
+  "gpt-5-mini": { inputPerM: 0.25, cacheReadPerM: 0.025, outputPerM: 2 },
+  "gpt-5": { inputPerM: 1.25, cacheReadPerM: 0.125, outputPerM: 10 },
+  "gpt-4o-mini": { inputPerM: 0.15, cacheReadPerM: 0.075, outputPerM: 0.6 },
+  "gpt-4o": { inputPerM: 2.5, cacheReadPerM: 1.25, outputPerM: 10 },
+  "o3-mini": { inputPerM: 1.1, cacheReadPerM: 0.55, outputPerM: 4.4 },
+  o3: { inputPerM: 2, cacheReadPerM: 0.5, outputPerM: 8 }
+});
+var FALLBACK_PRICING_RATE = Object.freeze({
+  inputPerM: 1.5,
+  cacheReadPerM: 0.15,
+  outputPerM: 6
+});
+var BUILTIN_KEYS_DESC = Object.keys(BUILTIN_MODEL_PRICING).sort((a, b) => b.length - a.length);
+var PROVIDER_PREFIX_RE = /^(?:models|google|vertex|anthropic|openai|azure|bedrock|openrouter)\//i;
+function normalizeModelName(model) {
+  const trimmed = (model ?? "").trim().toLowerCase();
+  if (!trimmed) return "unknown";
+  let normalized = trimmed;
+  while (PROVIDER_PREFIX_RE.test(normalized)) {
+    normalized = normalized.replace(PROVIDER_PREFIX_RE, "");
+  }
+  return normalized || "unknown";
+}
+var MAX_REASONABLE_RATE_PER_M = 1e4;
+var FORBIDDEN_OVERRIDE_KEYS = /* @__PURE__ */ new Set([
+  "__proto__",
+  "constructor",
+  "prototype"
+]);
+function isValidRate(candidate) {
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return false;
+  const obj = candidate;
+  const { inputPerM, cacheReadPerM, outputPerM } = obj;
+  return typeof inputPerM === "number" && Number.isFinite(inputPerM) && inputPerM >= 0 && inputPerM <= MAX_REASONABLE_RATE_PER_M && typeof cacheReadPerM === "number" && Number.isFinite(cacheReadPerM) && cacheReadPerM >= 0 && cacheReadPerM <= MAX_REASONABLE_RATE_PER_M && typeof outputPerM === "number" && Number.isFinite(outputPerM) && outputPerM >= 0 && outputPerM <= MAX_REASONABLE_RATE_PER_M;
+}
+function sanitizeOverridesRecord(raw) {
+  const out = /* @__PURE__ */ Object.create(null);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  const obj = raw;
+  const container = Object.prototype.hasOwnProperty.call(obj, "models") && obj.models && typeof obj.models === "object" && !Array.isArray(obj.models) ? obj.models : Object.prototype.hasOwnProperty.call(obj, "overrides") && obj.overrides && typeof obj.overrides === "object" && !Array.isArray(obj.overrides) ? obj.overrides : obj;
+  for (const key of Object.keys(container)) {
+    if (FORBIDDEN_OVERRIDE_KEYS.has(key)) continue;
+    const cleanKey = normalizeModelName(key);
+    if (!cleanKey || cleanKey === "unknown" || FORBIDDEN_OVERRIDE_KEYS.has(cleanKey)) continue;
+    const value = container[key];
+    if (!isValidRate(value)) continue;
+    out[cleanKey] = {
+      inputPerM: value.inputPerM,
+      cacheReadPerM: value.cacheReadPerM,
+      outputPerM: value.outputPerM
+    };
+  }
+  return out;
+}
+function loadPricingOverrides(dataDir) {
+  if (!dataDir || !dataDir.trim()) return {};
+  const resolved = import_node_path27.default.resolve(dataDir);
+  const candidates = [
+    import_node_path27.default.join(resolved, "pricing-overrides.json"),
+    import_node_path27.default.join(resolved, "modules", "xray", "pricing-overrides.json")
+  ];
+  for (const filePath of candidates) {
+    try {
+      if (!import_node_fs20.default.existsSync(filePath)) continue;
+      const stat = import_node_fs20.default.statSync(filePath);
+      if (!stat.isFile() || stat.size === 0 || stat.size > MAX_OVERRIDES_FILE_BYTES) {
+        continue;
+      }
+      const rawText = import_node_fs20.default.readFileSync(filePath, "utf8");
+      const parsed = JSON.parse(rawText);
+      return sanitizeOverridesRecord(parsed);
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+function matchModelRate(model, overrides) {
+  const normalized = normalizeModelName(model);
+  if (overrides) {
+    const sanitized = sanitizeOverridesRecord(overrides);
+    if (Object.prototype.hasOwnProperty.call(sanitized, normalized)) {
+      return {
+        rate: sanitized[normalized],
+        matchedRule: normalized,
+        pricingSource: "override"
+      };
+    }
+    const overrideKeysDesc = Object.keys(sanitized).sort((a, b) => b.length - a.length);
+    for (const key of overrideKeysDesc) {
+      if (normalized.startsWith(key)) {
+        return {
+          rate: sanitized[key],
+          matchedRule: key,
+          pricingSource: "override"
+        };
+      }
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(BUILTIN_MODEL_PRICING, normalized)) {
+    return {
+      rate: BUILTIN_MODEL_PRICING[normalized],
+      matchedRule: normalized,
+      pricingSource: "builtin-estimated"
+    };
+  }
+  for (const key of BUILTIN_KEYS_DESC) {
+    if (normalized.startsWith(key)) {
+      return {
+        rate: BUILTIN_MODEL_PRICING[key],
+        matchedRule: key,
+        pricingSource: "builtin-estimated"
+      };
+    }
+  }
+  if (normalized.includes("claude")) {
+    if (normalized.includes("opus")) {
+      return { rate: BUILTIN_MODEL_PRICING["claude-opus"], matchedRule: "claude-opus", pricingSource: "builtin-estimated" };
+    }
+    if (normalized.includes("haiku")) {
+      return { rate: BUILTIN_MODEL_PRICING["claude-haiku"], matchedRule: "claude-haiku", pricingSource: "builtin-estimated" };
+    }
+    if (normalized.includes("sonnet")) {
+      return { rate: BUILTIN_MODEL_PRICING["claude-sonnet"], matchedRule: "claude-sonnet", pricingSource: "builtin-estimated" };
+    }
+  }
+  if (normalized.includes("gemini")) {
+    if (normalized.includes("neon")) {
+      return { rate: BUILTIN_MODEL_PRICING["gemini-4-neon"], matchedRule: "gemini-4-neon", pricingSource: "builtin-estimated" };
+    }
+    if (normalized.includes("hydrogen")) {
+      return { rate: BUILTIN_MODEL_PRICING["gemini-4-hydrogen"], matchedRule: "gemini-4-hydrogen", pricingSource: "builtin-estimated" };
+    }
+    if (normalized.includes("flash")) {
+      return { rate: BUILTIN_MODEL_PRICING["gemini-4-flash"], matchedRule: "gemini-4-flash", pricingSource: "builtin-estimated" };
+    }
+    if (normalized.includes("pro")) {
+      return { rate: BUILTIN_MODEL_PRICING["gemini-4-pro"], matchedRule: "gemini-4-pro", pricingSource: "builtin-estimated" };
+    }
+  }
+  return {
+    rate: FALLBACK_PRICING_RATE,
+    matchedRule: "fallback",
+    pricingSource: "fallback-estimated"
+  };
+}
+function roundUsd(amount) {
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  return Math.round(amount * 1e6) / 1e6;
+}
+function formatUsd(usd) {
+  if (usd == null || !Number.isFinite(usd) || usd <= 0) return "$0.00";
+  if (usd < 0.01) return `$${usd.toFixed(4)}`;
+  return `$${usd.toFixed(2)}`;
+}
+function estimateTokenCostUsd(model, usage, overrides) {
+  const { rate, matchedRule, pricingSource } = matchModelRate(model, overrides);
+  const fresh = Math.max(0, Number(usage.freshInputTokens) || 0);
+  const cached2 = Math.max(0, Number(usage.cacheReadTokens) || 0);
+  const output2 = Math.max(0, Number(usage.outputTokens) || 0);
+  const inputUsdRaw = fresh * rate.inputPerM / 1e6;
+  const cacheReadUsdRaw = cached2 * rate.cacheReadPerM / 1e6;
+  const outputUsdRaw = output2 * rate.outputPerM / 1e6;
+  const totalUsdRaw = inputUsdRaw + cacheReadUsdRaw + outputUsdRaw;
+  const cacheSavingsRaw = Math.max(0, cached2 * (rate.inputPerM - rate.cacheReadPerM) / 1e6);
+  return {
+    model: model || "unknown",
+    matchedRule,
+    totalUsd: roundUsd(totalUsdRaw),
+    inputUsd: roundUsd(inputUsdRaw),
+    cacheReadUsd: roundUsd(cacheReadUsdRaw),
+    outputUsd: roundUsd(outputUsdRaw),
+    cacheSavingsUsd: roundUsd(cacheSavingsRaw),
+    pricingSource,
+    estimated: true,
+    rate: { ...rate }
+  };
+}
 
 // src/modules/xray/demo-data.ts
+function applyEstimatedCosts(detail) {
+  let totalUsd = 0;
+  let totalSavings = 0;
+  const enrichedBreakdown = detail.modelBreakdown.map((item) => {
+    const cost = estimateTokenCostUsd(item.model, {
+      freshInputTokens: item.freshInputTokens,
+      cacheReadTokens: item.cacheReadTokens,
+      outputTokens: item.outputTokens
+    });
+    totalUsd += cost.totalUsd;
+    totalSavings += cost.cacheSavingsUsd;
+    return {
+      ...item,
+      estimatedUsd: cost.totalUsd
+    };
+  });
+  detail.summary.estimatedUsd = roundUsd(totalUsd);
+  detail.summary.cacheSavingsUsd = roundUsd(totalSavings);
+  detail.modelBreakdown = enrichedBreakdown;
+  return detail;
+}
 function buildDemoSessions() {
   const s1Summary = {
     id: "demo-auth-refactor-2026",
@@ -57164,6 +59370,9 @@ function buildDemoSessions() {
       }
     ]
   };
+  applyEstimatedCosts(s1Detail);
+  applyEstimatedCosts(s2Detail);
+  applyEstimatedCosts(s3Detail);
   return {
     summaries: [s1Summary, s2Summary, s3Summary],
     details: {
@@ -57214,8 +59423,8 @@ function searchDemoSessions(query) {
 }
 
 // src/modules/xray/transcript.ts
-var import_node_fs19 = __toESM(require("node:fs"), 1);
-var import_node_path26 = __toESM(require("node:path"), 1);
+var import_node_fs21 = __toESM(require("node:fs"), 1);
+var import_node_path28 = __toESM(require("node:path"), 1);
 var import_node_url3 = require("node:url");
 
 // src/modules/xray/sanitize.ts
@@ -57225,7 +59434,7 @@ var SECRET_PATTERNS2 = [
   { pattern: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, replacement: "[REDACTED_JWT]" },
   // Common provider API keys
   {
-    pattern: /\b(sk-[A-Za-z0-9_-]{16,}|AIza[0-9A-Za-z\-_]{24,}|ghp_[A-Za-z0-9]{20,}|gho_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16})\b/g,
+    pattern: /\b(sk-[A-Za-z0-9_-]{16,}|sk_(?:live|test)_[A-Za-z0-9]{12,}|AIza[0-9A-Za-z\-_]{24,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|(?:AKIA|ASIA)[0-9A-Z]{16})\b/g,
     replacement: "[REDACTED_KEY]"
   },
   // Generic key/secret/token assignments in env or JSON
@@ -57233,9 +59442,14 @@ var SECRET_PATTERNS2 = [
     pattern: /(["']?(?:api[_-]?key|secret|token|password|passwd|authorization|csrf[_-]?token)["']?\s*[:=]\s*["']?)([^\s"',;}{]{8,})(["']?)/gi,
     replacement: "$1[REDACTED]$3"
   },
-  // Private key blocks
+  // Complete PEM private key blocks (PKCS#8, RSA, EC, OPENSSH, etc.)
   {
-    pattern: /-----BEGIN [A-Z ]+ PRIVATE KEY-----[\s\S]*?-----END [A-Z ]+ PRIVATE KEY-----/g,
+    pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/g,
+    replacement: "[REDACTED_PRIVATE_KEY]"
+  },
+  // Truncated PEM private key blocks (when upstream slicing removed the END marker)
+  {
+    pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*/g,
     replacement: "[REDACTED_PRIVATE_KEY]"
   }
 ];
@@ -57308,7 +59522,7 @@ function cleanUserRequest(raw) {
 function toSafeFileUri(filePath) {
   if (filePath.startsWith("file://")) return filePath;
   try {
-    return (0, import_node_url3.pathToFileURL)(import_node_path26.default.resolve(filePath)).href;
+    return (0, import_node_url3.pathToFileURL)(import_node_path28.default.resolve(filePath)).href;
   } catch {
     return `file://${filePath}`;
   }
@@ -57334,17 +59548,17 @@ function extractFilePathsFromArgs(args) {
   return results;
 }
 function listArtifactsInBrainDir(brainDir) {
-  if (!brainDir || !import_node_fs19.default.existsSync(brainDir)) return [];
+  if (!brainDir || !import_node_fs21.default.existsSync(brainDir)) return [];
   const artifacts = [];
   try {
-    for (const entry of import_node_fs19.default.readdirSync(brainDir, { withFileTypes: true })) {
+    for (const entry of import_node_fs21.default.readdirSync(brainDir, { withFileTypes: true })) {
       if (!entry.isFile()) continue;
       if (!/\.(md|txt|json|html|svg)$/i.test(entry.name)) continue;
       if (entry.name.startsWith(".")) continue;
-      const fullPath = import_node_path26.default.join(brainDir, entry.name);
+      const fullPath = import_node_path28.default.join(brainDir, entry.name);
       try {
-        const stat = import_node_fs19.default.statSync(fullPath);
-        const content = import_node_fs19.default.readFileSync(fullPath, "utf8").slice(0, 800);
+        const stat = import_node_fs21.default.statSync(fullPath);
+        const content = import_node_fs21.default.readFileSync(fullPath, "utf8").slice(0, 800);
         artifacts.push({
           name: entry.name,
           path: fullPath,
@@ -57409,9 +59623,9 @@ function isSubagentToolCall(toolName, args) {
   return false;
 }
 function listSiblingBrainDirs(siblingBrainRoot, parentSessionId) {
-  if (!siblingBrainRoot || !import_node_fs19.default.existsSync(siblingBrainRoot)) return [];
+  if (!siblingBrainRoot || !import_node_fs21.default.existsSync(siblingBrainRoot)) return [];
   try {
-    const entries = import_node_fs19.default.readdirSync(siblingBrainRoot, { withFileTypes: true });
+    const entries = import_node_fs21.default.readdirSync(siblingBrainRoot, { withFileTypes: true });
     return entries.filter((entry) => entry.isDirectory() && isSafeChildId(entry.name, parentSessionId)).map((entry) => entry.name).sort((a, b) => b.length - a.length);
   } catch {
     return [];
@@ -57497,25 +59711,25 @@ function extractChildIdFromStep(step, parentSessionId, siblingDirNames, usedIds)
   return extractChildIdFromText(content, parentSessionId, siblingDirNames, usedIds);
 }
 function resolveChildTranscriptPath(siblingBrainRoot, childId) {
-  if (!siblingBrainRoot || !import_node_fs19.default.existsSync(siblingBrainRoot)) return null;
+  if (!siblingBrainRoot || !import_node_fs21.default.existsSync(siblingBrainRoot)) return null;
   let realRoot;
   try {
-    realRoot = import_node_fs19.default.realpathSync(siblingBrainRoot);
+    realRoot = import_node_fs21.default.realpathSync(siblingBrainRoot);
   } catch {
     return null;
   }
   const candidates = [
-    import_node_path26.default.join(siblingBrainRoot, childId, ".system_generated", "logs", "transcript.jsonl"),
-    import_node_path26.default.join(siblingBrainRoot, childId, "transcript.jsonl")
+    import_node_path28.default.join(siblingBrainRoot, childId, ".system_generated", "logs", "transcript.jsonl"),
+    import_node_path28.default.join(siblingBrainRoot, childId, "transcript.jsonl")
   ];
   for (const candidate of candidates) {
-    if (!import_node_fs19.default.existsSync(candidate)) continue;
+    if (!import_node_fs21.default.existsSync(candidate)) continue;
     try {
-      const realCandidate = import_node_fs19.default.realpathSync(candidate);
-      if (realCandidate !== realRoot && !realCandidate.startsWith(`${realRoot}${import_node_path26.default.sep}`)) {
+      const realCandidate = import_node_fs21.default.realpathSync(candidate);
+      if (realCandidate !== realRoot && !realCandidate.startsWith(`${realRoot}${import_node_path28.default.sep}`)) {
         continue;
       }
-      const stat = import_node_fs19.default.statSync(realCandidate);
+      const stat = import_node_fs21.default.statSync(realCandidate);
       if (!stat.isFile()) continue;
       return realCandidate;
     } catch {
@@ -57554,11 +59768,11 @@ var MAX_CHILD_TRANSCRIPT_BYTES = 20 * 1024 * 1024;
 function readChildTranscriptStats(transcriptPath) {
   let rawText;
   try {
-    const st = import_node_fs19.default.statSync(transcriptPath);
+    const st = import_node_fs21.default.statSync(transcriptPath);
     if (!st.isFile() || st.size > MAX_CHILD_TRANSCRIPT_BYTES) {
       return null;
     }
-    rawText = import_node_fs19.default.readFileSync(transcriptPath, "utf8");
+    rawText = import_node_fs21.default.readFileSync(transcriptPath, "utf8");
   } catch {
     return null;
   }
@@ -57622,13 +59836,14 @@ function hasRetrySignalInStep(step) {
   return parts.some((part) => Boolean(part) && RETRY_SIGNAL_RE.test(part));
 }
 function parseTranscriptFile(transcriptPath, opts = {}) {
-  const rawText = import_node_fs19.default.readFileSync(transcriptPath, "utf8");
+  const rawText = import_node_fs21.default.readFileSync(transcriptPath, "utf8");
   return parseTranscriptLines(rawText.split(/\r?\n/), {
     transcriptPath,
-    brainDir: opts.brainDir ?? import_node_path26.default.resolve(import_node_path26.default.dirname(transcriptPath), "..", ".."),
-    sessionId: opts.sessionId ?? import_node_path26.default.basename(import_node_path26.default.resolve(import_node_path26.default.dirname(transcriptPath), "..", "..")),
+    brainDir: opts.brainDir ?? import_node_path28.default.resolve(import_node_path28.default.dirname(transcriptPath), "..", ".."),
+    sessionId: opts.sessionId ?? import_node_path28.default.basename(import_node_path28.default.resolve(import_node_path28.default.dirname(transcriptPath), "..", "..")),
     source: opts.source ?? "desktop",
-    siblingBrainRoot: opts.siblingBrainRoot
+    siblingBrainRoot: opts.siblingBrainRoot,
+    pricingOverrides: opts.pricingOverrides
   });
 }
 function parseTranscriptLines(lines, meta3) {
@@ -57802,11 +60017,11 @@ function parseTranscriptLines(lines, meta3) {
         const op = classifyToolFileOp(name);
         if (op) {
           for (const fp of extractFilePathsFromArgs(tc.args)) {
-            const normalized = import_node_path26.default.resolve(fp);
+            const normalized = import_node_path28.default.resolve(fp);
             const cur = fileMap.get(normalized) ?? {
               path: normalized,
-              basename: import_node_path26.default.basename(normalized),
-              dir: import_node_path26.default.dirname(normalized),
+              basename: import_node_path28.default.basename(normalized),
+              dir: import_node_path28.default.dirname(normalized),
               uri: toSafeFileUri(normalized),
               ops: [],
               readCount: 0,
@@ -57970,9 +60185,22 @@ function parseTranscriptLines(lines, meta3) {
     0
   );
   const totalModelTurns = Array.from(modelStats.values()).reduce((sum, m) => sum + m.turns, 0);
+  let sessionEstimatedUsdRaw = 0;
+  let sessionCacheSavingsUsdRaw = 0;
   const modelBreakdown = Array.from(modelStats.entries()).map(([model, stat]) => {
     const combined = stat.inputTokens + stat.outputTokens;
     const sharePercent = totalModelCombinedTokens > 0 ? Number((combined / totalModelCombinedTokens * 100).toFixed(1)) : totalModelTurns > 0 ? Number((stat.turns / totalModelTurns * 100).toFixed(1)) : 0;
+    const cost = estimateTokenCostUsd(
+      model,
+      {
+        freshInputTokens: stat.freshInputTokens,
+        cacheReadTokens: stat.cacheReadTokens,
+        outputTokens: stat.outputTokens
+      },
+      meta3.pricingOverrides
+    );
+    sessionEstimatedUsdRaw += cost.totalUsd;
+    sessionCacheSavingsUsdRaw += cost.cacheSavingsUsd;
     return {
       model,
       turns: stat.turns,
@@ -57982,11 +60210,27 @@ function parseTranscriptLines(lines, meta3) {
       outputTokens: stat.outputTokens,
       cacheHitRate: stat.inputTokens > 0 ? stat.cacheReadTokens / stat.inputTokens : 0,
       retrySignals: stat.retrySignals,
-      sharePercent
+      sharePercent,
+      estimatedUsd: cost.totalUsd
     };
   }).sort(
     (a, b) => b.inputTokens + b.outputTokens - (a.inputTokens + a.outputTokens) || b.turns - a.turns || a.model.localeCompare(b.model)
   );
+  if (modelBreakdown.length === 0 && totalInputTokens + totalOutputTokens > 0) {
+    const fallbackCost = estimateTokenCostUsd(
+      lastModel,
+      {
+        freshInputTokens: totalFreshInputTokens,
+        cacheReadTokens: totalCacheReadTokens,
+        outputTokens: totalOutputTokens
+      },
+      meta3.pricingOverrides
+    );
+    sessionEstimatedUsdRaw = fallbackCost.totalUsd;
+    sessionCacheSavingsUsdRaw = fallbackCost.cacheSavingsUsd;
+  }
+  const estimatedUsd = roundUsd(sessionEstimatedUsdRaw);
+  const cacheSavingsUsd = roundUsd(sessionCacheSavingsUsdRaw);
   const totalToolBytes = Array.from(toolStats.values()).reduce((sum, v) => sum + v.totalOutputBytes, 0);
   const toolHotspots = Array.from(toolStats.entries()).map(([toolName, stat]) => ({
     toolName,
@@ -58126,6 +60370,8 @@ function parseTranscriptLines(lines, meta3) {
     toolCallsCount: totalToolCalls,
     filesTouchedCount: fileActivity.length,
     artifactsCount: artifacts.length,
+    estimatedUsd,
+    cacheSavingsUsd,
     transcriptPath: meta3.transcriptPath,
     brainDir: meta3.brainDir
   };
@@ -58156,6 +60402,9 @@ function renderRedactedBrief(detail) {
     `- **Model**: \`${s.model}\` | **Turns**: ${s.turns} | **Steps**: ${s.steps}`,
     `- **Input Tokens**: ${formatCompactTokens(s.totalInputTokens)} (Cache Hit: **${(s.cacheHitRate * 100).toFixed(1)}%**, Peak Window: ${formatCompactTokens(s.peakContextTokens)})`,
     `- **Output Tokens**: ${formatCompactTokens(s.totalOutputTokens)} | **Tool Calls**: ${s.toolCallsCount}`,
+    ...s.estimatedUsd != null ? [
+      `- **Est. Cost (USD)**: ~${formatUsd(s.estimatedUsd)} (Cache Savings: ~${formatUsd(s.cacheSavingsUsd)}, offline ref. pricing)`
+    ] : [],
     "",
     "## Context Diagnostics",
     ...detail.diagnostics.map((d) => `- **[${d.severity.toUpperCase()}] ${redactSecrets2(d.title)}** \u2014 ${redactSecrets2(d.detail)}`)
@@ -58210,18 +60459,18 @@ function renderRedactedBrief(detail) {
 function getDefaultBrainDirs() {
   const home = import_node_os4.default.homedir();
   const candidates = [
-    { dir: import_node_path27.default.join(home, ".gemini", "antigravity", "brain"), source: "desktop" },
-    { dir: import_node_path27.default.join(home, ".gemini", "antigravity-cli", "brain"), source: "cli" },
-    { dir: import_node_path27.default.join(home, ".gemini", "antigravity-ide", "brain"), source: "ide" }
+    { dir: import_node_path29.default.join(home, ".gemini", "antigravity", "brain"), source: "desktop" },
+    { dir: import_node_path29.default.join(home, ".gemini", "antigravity-cli", "brain"), source: "cli" },
+    { dir: import_node_path29.default.join(home, ".gemini", "antigravity-ide", "brain"), source: "ide" }
   ];
-  return candidates.filter((c) => import_node_fs20.default.existsSync(c.dir));
+  return candidates.filter((c) => import_node_fs22.default.existsSync(c.dir));
 }
 function readLiveHookState(dataDir) {
   if (!dataDir) return { recentEvents: [] };
-  const statePath = import_node_path27.default.join(dataDir, "live-state.json");
-  if (!import_node_fs20.default.existsSync(statePath)) return { recentEvents: [] };
+  const statePath = import_node_path29.default.join(dataDir, "live-state.json");
+  if (!import_node_fs22.default.existsSync(statePath)) return { recentEvents: [] };
   try {
-    const parsed = JSON.parse(import_node_fs20.default.readFileSync(statePath, "utf8"));
+    const parsed = JSON.parse(import_node_fs22.default.readFileSync(statePath, "utf8"));
     return {
       ...parsed,
       recentEvents: Array.isArray(parsed.recentEvents) ? parsed.recentEvents : []
@@ -58235,26 +60484,26 @@ function discoverTranscriptEntries(opts = {}) {
   const entries = [];
   const seen = /* @__PURE__ */ new Set();
   for (const root of roots) {
-    if (!import_node_fs20.default.existsSync(root.dir)) continue;
+    if (!import_node_fs22.default.existsSync(root.dir)) continue;
     let children;
     try {
-      children = import_node_fs20.default.readdirSync(root.dir, { withFileTypes: true });
+      children = import_node_fs22.default.readdirSync(root.dir, { withFileTypes: true });
     } catch {
       continue;
     }
     for (const child of children) {
       if (!child.isDirectory()) continue;
-      const brainDir = import_node_path27.default.join(root.dir, child.name);
+      const brainDir = import_node_path29.default.join(root.dir, child.name);
       const candidates = [
-        import_node_path27.default.join(brainDir, ".system_generated", "logs", "transcript.jsonl"),
-        import_node_path27.default.join(brainDir, "transcript.jsonl")
+        import_node_path29.default.join(brainDir, ".system_generated", "logs", "transcript.jsonl"),
+        import_node_path29.default.join(brainDir, "transcript.jsonl")
       ];
       for (const transcriptPath of candidates) {
-        if (!import_node_fs20.default.existsSync(transcriptPath)) continue;
+        if (!import_node_fs22.default.existsSync(transcriptPath)) continue;
         if (seen.has(transcriptPath)) continue;
         seen.add(transcriptPath);
         try {
-          const stat = import_node_fs20.default.statSync(transcriptPath);
+          const stat = import_node_fs22.default.statSync(transcriptPath);
           if (stat.size === 0) continue;
           entries.push({
             id: child.name,
@@ -58277,13 +60526,15 @@ function listSessions(opts = {}) {
   }
   const limit = opts.limit ?? 30;
   const entries = discoverTranscriptEntries(opts).slice(0, limit);
+  const pricingOverrides = loadPricingOverrides(opts.dataDir);
   const summaries = [];
   for (const entry of entries) {
     try {
       const detail = parseTranscriptFile(entry.transcriptPath, {
         sessionId: entry.id,
         source: entry.source,
-        brainDir: entry.brainDir
+        brainDir: entry.brainDir,
+        pricingOverrides
       });
       summaries.push(detail.summary);
     } catch {
@@ -58298,6 +60549,7 @@ function loadSessionDetail(sessionId, opts = {}) {
     return demo.details[demo.summaries[0].id] ?? null;
   }
   const hookState = readLiveHookState(opts.dataDir);
+  const pricingOverrides = loadPricingOverrides(opts.dataDir);
   const targetId = sessionId || hookState.activeConversationId;
   const entries = discoverTranscriptEntries(opts);
   if (targetId) {
@@ -58307,18 +60559,20 @@ function loadSessionDetail(sessionId, opts = {}) {
         sessionId: match.id,
         source: match.source,
         brainDir: match.brainDir,
-        siblingBrainRoot: import_node_path27.default.dirname(match.brainDir)
+        siblingBrainRoot: import_node_path29.default.dirname(match.brainDir),
+        pricingOverrides
       });
     }
   }
-  if (!sessionId && hookState.activeTranscriptPath && import_node_fs20.default.existsSync(hookState.activeTranscriptPath)) {
-    const parentDir = import_node_path27.default.dirname(hookState.activeTranscriptPath);
-    const activeBrainDir = import_node_path27.default.basename(parentDir) === "logs" && import_node_path27.default.basename(import_node_path27.default.dirname(parentDir)) === ".system_generated" ? import_node_path27.default.resolve(parentDir, "..", "..") : parentDir;
+  if (!sessionId && hookState.activeTranscriptPath && import_node_fs22.default.existsSync(hookState.activeTranscriptPath)) {
+    const parentDir = import_node_path29.default.dirname(hookState.activeTranscriptPath);
+    const activeBrainDir = import_node_path29.default.basename(parentDir) === "logs" && import_node_path29.default.basename(import_node_path29.default.dirname(parentDir)) === ".system_generated" ? import_node_path29.default.resolve(parentDir, "..", "..") : parentDir;
     return parseTranscriptFile(hookState.activeTranscriptPath, {
-      sessionId: hookState.activeConversationId ?? import_node_path27.default.basename(activeBrainDir) ?? "active",
+      sessionId: hookState.activeConversationId ?? import_node_path29.default.basename(activeBrainDir) ?? "active",
       source: "desktop",
       brainDir: activeBrainDir,
-      siblingBrainRoot: import_node_path27.default.dirname(activeBrainDir)
+      siblingBrainRoot: import_node_path29.default.dirname(activeBrainDir),
+      pricingOverrides
     });
   }
   const latest = entries[0];
@@ -58327,13 +60581,722 @@ function loadSessionDetail(sessionId, opts = {}) {
     sessionId: latest.id,
     source: latest.source,
     brainDir: latest.brainDir,
-    siblingBrainRoot: import_node_path27.default.dirname(latest.brainDir)
+    siblingBrainRoot: import_node_path29.default.dirname(latest.brainDir),
+    pricingOverrides
   });
 }
 
+// src/modules/xray/analytics.ts
+var MAX_ANALYTICS_SESSIONS = 60;
+var MAX_ANALYTICS_TRANSCRIPT_BYTES = 20 * 1024 * 1024;
+var FIVE_HOUR_WINDOW_HOURS = 5;
+var FIVE_HOUR_MS = FIVE_HOUR_WINDOW_HOURS * 36e5;
+var DAY_MS = 24 * 36e5;
+var TREND_DAYS = 14;
+var WEEK_DAYS = 7;
+var FIVE_HOUR_WARN_TOKENS = 5e6;
+var FIVE_HOUR_CRITICAL_TOKENS = 15e6;
+var FIVE_HOUR_WARN_USD = 15;
+var FIVE_HOUR_CRITICAL_USD = 40;
+var FORMULA_PREFIX_RE = /^[=+\-@\t\r]/;
+var LEADING_WS_FORMULA_RE = /^[\s]*[=+\-@\t\r]/;
+var ERROR_STEP_RE = /\b(?:error|failed|exception|429|RESOURCE_EXHAUSTED|rate[\s_-]*limit|timeout)\b/i;
+function toUtcDateKey(ms) {
+  return new Date(ms).toISOString().slice(0, 10);
+}
+function buildUtcDateWindow(nowMs, days) {
+  const todayStart = Date.UTC(
+    new Date(nowMs).getUTCFullYear(),
+    new Date(nowMs).getUTCMonth(),
+    new Date(nowMs).getUTCDate()
+  );
+  const dates = [];
+  for (let offset = days - 1; offset >= 0; offset -= 1) {
+    dates.push(toUtcDateKey(todayStart - offset * DAY_MS));
+  }
+  return dates;
+}
+function classifyFiveHourWarning(totalTokens, estimatedUsd) {
+  if (totalTokens >= FIVE_HOUR_CRITICAL_TOKENS || estimatedUsd >= FIVE_HOUR_CRITICAL_USD) {
+    return "critical";
+  }
+  if (totalTokens >= FIVE_HOUR_WARN_TOKENS || estimatedUsd >= FIVE_HOUR_WARN_USD) {
+    return "warn";
+  }
+  return "ok";
+}
+function buildDemoCostAnalytics(nowMs) {
+  const dates = buildUtcDateWindow(nowMs, TREND_DAYS);
+  const last7Seeds = [
+    { sessions: 2, freshInput: 165e3, cacheRead: 39e4, output: 24e3, model: "gemini-4-flash" },
+    { sessions: 3, freshInput: 31e4, cacheRead: 82e4, output: 41e3, model: "gemini-4-neon-high" },
+    { sessions: 1, freshInput: 12e4, cacheRead: 295e3, output: 18500, model: "claude-sonnet-4" },
+    { sessions: 4, freshInput: 48e4, cacheRead: 136e4, output: 64200, model: "gemini-4-neon-high" },
+    { sessions: 2, freshInput: 215e3, cacheRead: 64e4, output: 31400, model: "gemini-4-flash" },
+    { sessions: 3, freshInput: 39e4, cacheRead: 112e4, output: 52e3, model: "claude-sonnet-4" },
+    { sessions: 3, freshInput: 425e3, cacheRead: 149e4, output: 58600, model: "gemini-4-neon-high" }
+  ];
+  const modelAgg = /* @__PURE__ */ new Map();
+  let totalEstimatedUsdRaw = 0;
+  let totalCacheSavingsRaw = 0;
+  let totalSessions = 0;
+  const dailyTrend = dates.map((date5, idx) => {
+    const activeIdx = idx - (TREND_DAYS - WEEK_DAYS);
+    if (activeIdx < 0) {
+      return {
+        date: date5,
+        sessions: 0,
+        totalTokens: 0,
+        estimatedUsd: 0,
+        cacheHitRate: 0
+      };
+    }
+    const seed = last7Seeds[activeIdx];
+    const cost = estimateTokenCostUsd(seed.model, {
+      freshInputTokens: seed.freshInput,
+      cacheReadTokens: seed.cacheRead,
+      outputTokens: seed.output
+    });
+    const inputTokens = seed.freshInput + seed.cacheRead;
+    const totalTokens = inputTokens + seed.output;
+    const cacheHitRate = inputTokens > 0 ? Number((seed.cacheRead / inputTokens).toFixed(4)) : 0;
+    totalEstimatedUsdRaw += cost.totalUsd;
+    totalCacheSavingsRaw += cost.cacheSavingsUsd;
+    totalSessions += seed.sessions;
+    const m = modelAgg.get(seed.model) ?? {
+      sessions: 0,
+      inputTokens: 0,
+      cacheReadTokens: 0,
+      outputTokens: 0,
+      estimatedUsd: 0
+    };
+    m.sessions += seed.sessions;
+    m.inputTokens += inputTokens;
+    m.cacheReadTokens += seed.cacheRead;
+    m.outputTokens += seed.output;
+    m.estimatedUsd += cost.totalUsd;
+    modelAgg.set(seed.model, m);
+    return {
+      date: date5,
+      sessions: seed.sessions,
+      totalTokens,
+      estimatedUsd: cost.totalUsd,
+      cacheHitRate
+    };
+  });
+  const modelTotals = Array.from(modelAgg.entries()).map(([model, m]) => ({
+    model,
+    sessions: m.sessions,
+    totalTokens: m.inputTokens + m.outputTokens,
+    estimatedUsd: roundUsd(m.estimatedUsd),
+    cacheHitRate: m.inputTokens > 0 ? Number((m.cacheReadTokens / m.inputTokens).toFixed(4)) : 0
+  })).sort((a, b) => b.estimatedUsd - a.estimatedUsd || b.totalTokens - a.totalTokens);
+  const todayItem = dailyTrend[dailyTrend.length - 1];
+  const weekEstimatedUsd = roundUsd(
+    dailyTrend.slice(-WEEK_DAYS).reduce((sum, item) => sum + item.estimatedUsd, 0)
+  );
+  const fiveHourTokens = Math.round(todayItem.totalTokens * 0.78);
+  const fiveHourUsd = roundUsd(todayItem.estimatedUsd * 0.78);
+  return {
+    mode: "demo",
+    generatedAt: new Date(nowMs).toISOString(),
+    sessionsAnalyzed: totalSessions,
+    totalEstimatedUsd: roundUsd(totalEstimatedUsdRaw),
+    todayEstimatedUsd: todayItem.estimatedUsd,
+    weekEstimatedUsd,
+    cacheSavingsUsd: roundUsd(totalCacheSavingsRaw),
+    dailyTrend,
+    modelTotals,
+    fiveHourWindow: {
+      windowStartIso: new Date(nowMs - FIVE_HOUR_MS).toISOString(),
+      windowHours: FIVE_HOUR_WINDOW_HOURS,
+      sessionsCount: Math.max(1, todayItem.sessions - 1),
+      totalTokens: fiveHourTokens,
+      estimatedUsd: fiveHourUsd,
+      burnRateUsdPerHour: roundUsd(fiveHourUsd / FIVE_HOUR_WINDOW_HOURS),
+      burnRateTokensPerHour: Math.round(fiveHourTokens / FIVE_HOUR_WINDOW_HOURS),
+      warningLevel: classifyFiveHourWarning(fiveHourTokens, fiveHourUsd)
+    }
+  };
+}
+function parseTimestampMs(iso, fallbackMs) {
+  if (iso) {
+    const parsed = Date.parse(iso);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return fallbackMs;
+}
+function computeCostAnalytics(opts = {}) {
+  const nowMs = opts.nowMs ?? Date.now();
+  if (opts.demoMode) {
+    return buildDemoCostAnalytics(nowMs);
+  }
+  const maxSessions = Math.min(
+    MAX_ANALYTICS_SESSIONS,
+    Math.max(1, Math.floor(opts.limit ?? MAX_ANALYTICS_SESSIONS))
+  );
+  const pricingOverrides = loadPricingOverrides(opts.dataDir);
+  const entries = discoverTranscriptEntries(opts).slice(0, maxSessions);
+  const dateKeys = buildUtcDateWindow(nowMs, TREND_DAYS);
+  const todayKey = dateKeys[dateKeys.length - 1];
+  const weekDateSet = new Set(dateKeys.slice(-WEEK_DAYS));
+  const dailyBuckets = /* @__PURE__ */ new Map();
+  for (const key of dateKeys) {
+    dailyBuckets.set(key, {
+      sessionIds: /* @__PURE__ */ new Set(),
+      inputTokens: 0,
+      cacheReadTokens: 0,
+      outputTokens: 0,
+      estimatedUsd: 0
+    });
+  }
+  const modelBuckets = /* @__PURE__ */ new Map();
+  const windowStartMs = nowMs - FIVE_HOUR_MS;
+  const windowUpperMs = nowMs + 6e4;
+  const fiveHourSessionIds = /* @__PURE__ */ new Set();
+  let fiveHourTokens = 0;
+  let fiveHourUsdRaw = 0;
+  let sessionsAnalyzed = 0;
+  let totalEstimatedUsdRaw = 0;
+  let totalCacheSavingsUsdRaw = 0;
+  for (const entry of entries) {
+    try {
+      const st = import_node_fs23.default.statSync(entry.transcriptPath);
+      if (!st.isFile() || st.size === 0 || st.size > MAX_ANALYTICS_TRANSCRIPT_BYTES) {
+        continue;
+      }
+    } catch {
+      continue;
+    }
+    let detail;
+    try {
+      detail = parseTranscriptFile(entry.transcriptPath, {
+        sessionId: entry.id,
+        source: entry.source,
+        brainDir: entry.brainDir,
+        pricingOverrides
+      });
+    } catch {
+      continue;
+    }
+    sessionsAnalyzed += 1;
+    const sessionFallbackMs = parseTimestampMs(detail.summary.updatedAt, entry.mtimeMs);
+    const recordUsageUnit = (tsMs, model, freshInputTokens, cacheReadTokens, outputTokens) => {
+      const effectiveInput = Math.max(0, freshInputTokens) + Math.max(0, cacheReadTokens);
+      const safeOutput = Math.max(0, outputTokens);
+      const totalTokens = effectiveInput + safeOutput;
+      const cost = estimateTokenCostUsd(
+        model,
+        {
+          freshInputTokens,
+          cacheReadTokens,
+          outputTokens: safeOutput
+        },
+        pricingOverrides
+      );
+      totalEstimatedUsdRaw += cost.totalUsd;
+      totalCacheSavingsUsdRaw += cost.cacheSavingsUsd;
+      const modelKey = model || "unknown";
+      let mBucket = modelBuckets.get(modelKey);
+      if (!mBucket) {
+        mBucket = {
+          sessionIds: /* @__PURE__ */ new Set(),
+          inputTokens: 0,
+          cacheReadTokens: 0,
+          outputTokens: 0,
+          estimatedUsd: 0
+        };
+        modelBuckets.set(modelKey, mBucket);
+      }
+      mBucket.sessionIds.add(entry.id);
+      mBucket.inputTokens += effectiveInput;
+      mBucket.cacheReadTokens += Math.max(0, cacheReadTokens);
+      mBucket.outputTokens += safeOutput;
+      mBucket.estimatedUsd += cost.totalUsd;
+      const dateKey = toUtcDateKey(tsMs);
+      const dBucket = dailyBuckets.get(dateKey);
+      if (dBucket) {
+        dBucket.sessionIds.add(entry.id);
+        dBucket.inputTokens += effectiveInput;
+        dBucket.cacheReadTokens += Math.max(0, cacheReadTokens);
+        dBucket.outputTokens += safeOutput;
+        dBucket.estimatedUsd += cost.totalUsd;
+      }
+      if (tsMs >= windowStartMs && tsMs <= windowUpperMs) {
+        fiveHourSessionIds.add(entry.id);
+        fiveHourTokens += totalTokens;
+        fiveHourUsdRaw += cost.totalUsd;
+      }
+    };
+    if (detail.turns.length > 0) {
+      for (const turn of detail.turns) {
+        const turnTs = parseTimestampMs(turn.timestamp, sessionFallbackMs);
+        recordUsageUnit(
+          turnTs,
+          turn.model,
+          turn.freshInputTokens,
+          turn.cacheReadTokens,
+          turn.outputTokens
+        );
+      }
+    } else if (detail.summary.totalInputTokens + detail.summary.totalOutputTokens > 0) {
+      recordUsageUnit(
+        sessionFallbackMs,
+        detail.summary.model,
+        detail.summary.totalFreshInputTokens,
+        detail.summary.totalCacheReadTokens,
+        detail.summary.totalOutputTokens
+      );
+    }
+  }
+  const dailyTrend = dateKeys.map((date5) => {
+    const b = dailyBuckets.get(date5);
+    return {
+      date: date5,
+      sessions: b.sessionIds.size,
+      totalTokens: b.inputTokens + b.outputTokens,
+      estimatedUsd: roundUsd(b.estimatedUsd),
+      cacheHitRate: b.inputTokens > 0 ? Number((b.cacheReadTokens / b.inputTokens).toFixed(4)) : 0
+    };
+  });
+  const todayEstimatedUsd = dailyTrend.find((item) => item.date === todayKey)?.estimatedUsd ?? 0;
+  const weekEstimatedUsd = roundUsd(
+    dailyTrend.filter((item) => weekDateSet.has(item.date)).reduce((sum, item) => sum + item.estimatedUsd, 0)
+  );
+  const modelTotals = Array.from(modelBuckets.entries()).map(([model, m]) => ({
+    model,
+    sessions: m.sessionIds.size,
+    totalTokens: m.inputTokens + m.outputTokens,
+    estimatedUsd: roundUsd(m.estimatedUsd),
+    cacheHitRate: m.inputTokens > 0 ? Number((m.cacheReadTokens / m.inputTokens).toFixed(4)) : 0
+  })).sort((a, b) => b.estimatedUsd - a.estimatedUsd || b.totalTokens - a.totalTokens);
+  const fiveHourUsd = roundUsd(fiveHourUsdRaw);
+  return {
+    mode: "live",
+    generatedAt: new Date(nowMs).toISOString(),
+    sessionsAnalyzed,
+    totalEstimatedUsd: roundUsd(totalEstimatedUsdRaw),
+    todayEstimatedUsd,
+    weekEstimatedUsd,
+    cacheSavingsUsd: roundUsd(totalCacheSavingsUsdRaw),
+    dailyTrend,
+    modelTotals,
+    fiveHourWindow: {
+      windowStartIso: new Date(windowStartMs).toISOString(),
+      windowHours: FIVE_HOUR_WINDOW_HOURS,
+      sessionsCount: fiveHourSessionIds.size,
+      totalTokens: fiveHourTokens,
+      estimatedUsd: fiveHourUsd,
+      burnRateUsdPerHour: roundUsd(fiveHourUsd / FIVE_HOUR_WINDOW_HOURS),
+      burnRateTokensPerHour: Math.round(fiveHourTokens / FIVE_HOUR_WINDOW_HOURS),
+      warningLevel: classifyFiveHourWarning(fiveHourTokens, fiveHourUsd)
+    }
+  };
+}
+function escapeMdCell(raw) {
+  return redactSecrets2(raw).replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
+}
+function resolveSessionCost(detail) {
+  if (detail.summary.estimatedUsd != null && detail.summary.cacheSavingsUsd != null) {
+    return {
+      estimatedUsd: detail.summary.estimatedUsd,
+      cacheSavingsUsd: detail.summary.cacheSavingsUsd
+    };
+  }
+  if (detail.modelBreakdown && detail.modelBreakdown.length > 0) {
+    let total = 0;
+    let savings = 0;
+    for (const m of detail.modelBreakdown) {
+      const c2 = estimateTokenCostUsd(m.model, {
+        freshInputTokens: m.freshInputTokens,
+        cacheReadTokens: m.cacheReadTokens,
+        outputTokens: m.outputTokens
+      });
+      total += c2.totalUsd;
+      savings += c2.cacheSavingsUsd;
+    }
+    return {
+      estimatedUsd: roundUsd(total),
+      cacheSavingsUsd: roundUsd(savings)
+    };
+  }
+  const c = estimateTokenCostUsd(detail.summary.model, {
+    freshInputTokens: detail.summary.totalFreshInputTokens,
+    cacheReadTokens: detail.summary.totalCacheReadTokens,
+    outputTokens: detail.summary.totalOutputTokens
+  });
+  return {
+    estimatedUsd: c.totalUsd,
+    cacheSavingsUsd: c.cacheSavingsUsd
+  };
+}
+function renderHandoffSnapshot(detail) {
+  const s = detail.summary;
+  const { estimatedUsd, cacheSavingsUsd } = resolveSessionCost(detail);
+  const objective = redactSecrets2(s.firstPrompt || s.title || `Session ${s.id}`);
+  const modifiedFiles = detail.fileActivity.filter((f) => f.editCount + f.writeCount > 0);
+  const readOnlyFiles = detail.fileActivity.filter((f) => f.editCount + f.writeCount === 0);
+  const prioritizedFiles = [...modifiedFiles, ...readOnlyFiles].slice(0, 25);
+  const errorOrTruncSteps = detail.recentSteps.filter((st) => st.type === "ERROR" || st.truncated || ERROR_STEP_RE.test(st.preview)).slice(0, 8);
+  const lines = [
+    `# Context Handoff Snapshot \u2014 ${redactSecrets2(s.title)}`,
+    "",
+    "> Redacted anti-compaction checkpoint generated offline by agy-NOV Context X-Ray.",
+    "",
+    "## 1. Session Goal & Metadata",
+    `- **Session ID**: \`${redactSecrets2(s.id)}\` (${s.source})`,
+    `- **Primary Model**: \`${redactSecrets2(s.model)}\` | **Turns**: ${s.turns} | **Steps**: ${s.steps}`,
+    `- **Timeframe**: ${s.startedAt} -> ${s.updatedAt}`,
+    `- **Original Objective**: ${objective}`,
+    "",
+    "## 2. Token & Estimated USD Telemetry",
+    `- **Peak Context Window**: ${formatCompactTokens(s.peakContextTokens)}${s.peakContextTokens >= 2e5 ? " (near compaction threshold \u2014 handoff recommended)" : ""}`,
+    `- **Total Input**: ${formatCompactTokens(s.totalInputTokens)} (Cached: ${formatCompactTokens(s.totalCacheReadTokens)} \xB7 Fresh: ${formatCompactTokens(s.totalFreshInputTokens)} \xB7 Cache Hit: **${(s.cacheHitRate * 100).toFixed(1)}%**)`,
+    `- **Total Output**: ${formatCompactTokens(s.totalOutputTokens)} | **Tool Calls**: ${s.toolCallsCount}`,
+    `- **Estimated Cost (USD, offline ref.)**: ~${formatUsd(estimatedUsd)} | **Prefix Cache Savings**: ~${formatUsd(cacheSavingsUsd)}`
+  ];
+  if (detail.modelBreakdown && detail.modelBreakdown.length > 0) {
+    lines.push(
+      "",
+      "| Model | Turns | Input | Cache Hit | Output | Est. USD | Retries |",
+      "| :--- | ---: | ---: | ---: | ---: | ---: | ---: |",
+      ...detail.modelBreakdown.map((m) => {
+        const mUsd = m.estimatedUsd ?? estimateTokenCostUsd(m.model, {
+          freshInputTokens: m.freshInputTokens,
+          cacheReadTokens: m.cacheReadTokens,
+          outputTokens: m.outputTokens
+        }).totalUsd;
+        return `| \`${escapeMdCell(m.model)}\` | ${m.turns} | ${formatCompactTokens(m.inputTokens)} | ${(m.cacheHitRate * 100).toFixed(1)}% | ${formatCompactTokens(m.outputTokens)} | ${formatUsd(mUsd)} | ${m.retrySignals} |`;
+      })
+    );
+  }
+  lines.push("", "## 3. Key Workspace Files (Modified & Read)");
+  if (prioritizedFiles.length === 0) {
+    lines.push("- No workspace file operations recorded.");
+  } else {
+    lines.push(
+      "| Path | Operations | Touches | Last Step |",
+      "| :--- | :--- | ---: | ---: |",
+      ...prioritizedFiles.map(
+        (f) => `| \`${escapeMdCell(f.path)}\` | ${f.ops.map((o) => o.toUpperCase()).join("/")} | ${f.totalTouches} | #${f.lastStepIndex} |`
+      )
+    );
+  }
+  lines.push("", "## 4. Swarm Subagent Summary");
+  if (detail.swarmLineage && detail.swarmLineage.totalSubagents > 0) {
+    const sl = detail.swarmLineage;
+    lines.push(
+      `- **Subagents**: ${sl.totalSubagents} (Linked: ${sl.linkedTranscripts}, Orphan Suspects: ${sl.orphanSuspects})`,
+      `- **Subagent Tokens**: Input ${formatCompactTokens(sl.totalSubagentInputTokens)} | Output ${formatCompactTokens(sl.totalSubagentOutputTokens)}`,
+      "| Role | Type | Model | Turns | Input | Output | Status |",
+      "| :--- | :--- | :--- | ---: | ---: | ---: | :--- |",
+      ...sl.children.slice(0, 12).map(
+        (c) => `| ${escapeMdCell(c.role)} | \`${escapeMdCell(c.typeName)}\` | \`${escapeMdCell(c.model)}\` | ${c.turns} | ${formatCompactTokens(c.totalInputTokens)} | ${formatCompactTokens(c.totalOutputTokens)} | ${c.statusHint} |`
+      )
+    );
+  } else {
+    lines.push("- No Swarm subagents dispatched in this session.");
+  }
+  lines.push("", "## 5. Recent Errors, Risk Diagnostics & Artifacts");
+  if (detail.diagnostics.length > 0) {
+    lines.push(
+      ...detail.diagnostics.map(
+        (d) => `- **[${d.severity.toUpperCase()}] ${redactSecrets2(d.title)}**: ${redactSecrets2(d.detail)}`
+      )
+    );
+  } else {
+    lines.push("- No automated risk diagnostics triggered.");
+  }
+  if (errorOrTruncSteps.length > 0) {
+    lines.push("", "### Flagged Recent Steps");
+    for (const st of errorOrTruncSteps) {
+      const tags = [st.type, ...st.truncated ? ["TRUNCATED"] : []].join(" \xB7 ");
+      lines.push(`- **Step #${st.stepIndex}** (${tags}): ${redactSecrets2(st.preview).slice(0, 160)}`);
+    }
+  }
+  if (detail.artifacts.length > 0) {
+    lines.push("", "### Session Artifacts");
+    for (const art of detail.artifacts.slice(0, 10)) {
+      lines.push(
+        `- \`${escapeMdCell(art.name)}\` (${(art.sizeBytes / 1024).toFixed(1)} KB): ${redactSecrets2(art.preview).replace(/\s+/g, " ").slice(0, 140)}`
+      );
+    }
+  }
+  const keyPathsList = (modifiedFiles.length > 0 ? modifiedFiles : prioritizedFiles).slice(0, 8).map((f) => `- ${redactSecrets2(f.path)} (${f.ops.join("/")})`).join("\n");
+  const warnSummary = detail.diagnostics.filter((d) => d.severity === "warn").map((d) => `- ${redactSecrets2(d.title)}`).join("\n");
+  lines.push(
+    "",
+    "## 6. Suggested Continuation Prompt",
+    "```text",
+    `Continue from session "${redactSecrets2(s.title)}" (ID: ${redactSecrets2(s.id)}).`,
+    `Primary goal: ${objective}`,
+    keyPathsList ? `Files already touched in workspace:
+${keyPathsList}` : "No modified workspace files were recorded yet.",
+    warnSummary ? `Open risks / diagnostics to keep in mind:
+${warnSummary}` : "No open warning diagnostics.",
+    "Next step: inspect the modified files above, verify current git status/tests, and continue cleanly without repeating completed work.",
+    "```"
+  );
+  return redactSecrets2(lines.join("\n"));
+}
+function toUnixNanoString(iso, fallbackMs) {
+  const ms = parseTimestampMs(iso, fallbackMs);
+  return (BigInt(Math.max(0, Math.floor(ms))) * 1000000n).toString();
+}
+function strAttr(key, value) {
+  return { key, value: { stringValue: redactSecrets2(value) } };
+}
+function boolAttr(key, value) {
+  return { key, value: { boolValue: value } };
+}
+function buildOtlpUsagePayload(detail, analytics) {
+  const s = detail.summary;
+  const fallbackNow = Date.now();
+  const startNano = toUnixNanoString(s.startedAt, fallbackNow);
+  const endNano = toUnixNanoString(s.updatedAt, fallbackNow);
+  const { estimatedUsd, cacheSavingsUsd } = resolveSessionCost(detail);
+  const models = detail.modelBreakdown && detail.modelBreakdown.length > 0 ? detail.modelBreakdown : [
+    {
+      model: s.model || "unknown",
+      turns: s.turns,
+      inputTokens: s.totalInputTokens,
+      cacheReadTokens: s.totalCacheReadTokens,
+      freshInputTokens: s.totalFreshInputTokens,
+      outputTokens: s.totalOutputTokens,
+      cacheHitRate: s.cacheHitRate,
+      retrySignals: 0,
+      sharePercent: 100,
+      estimatedUsd
+    }
+  ];
+  const tokenDataPoints = [];
+  const costDataPoints = [];
+  for (const m of models) {
+    const modelName = redactSecrets2(m.model || "unknown");
+    tokenDataPoints.push(
+      {
+        attributes: [
+          strAttr("gen_ai.request.model", modelName),
+          strAttr("gen_ai.token.type", "input_fresh")
+        ],
+        startTimeUnixNano: startNano,
+        timeUnixNano: endNano,
+        asInt: String(Math.max(0, Math.round(m.freshInputTokens)))
+      },
+      {
+        attributes: [
+          strAttr("gen_ai.request.model", modelName),
+          strAttr("gen_ai.token.type", "input_cache_read")
+        ],
+        startTimeUnixNano: startNano,
+        timeUnixNano: endNano,
+        asInt: String(Math.max(0, Math.round(m.cacheReadTokens)))
+      },
+      {
+        attributes: [
+          strAttr("gen_ai.request.model", modelName),
+          strAttr("gen_ai.token.type", "output")
+        ],
+        startTimeUnixNano: startNano,
+        timeUnixNano: endNano,
+        asInt: String(Math.max(0, Math.round(m.outputTokens)))
+      }
+    );
+    const modelUsd = m.estimatedUsd ?? estimateTokenCostUsd(m.model, {
+      freshInputTokens: m.freshInputTokens,
+      cacheReadTokens: m.cacheReadTokens,
+      outputTokens: m.outputTokens
+    }).totalUsd;
+    costDataPoints.push({
+      attributes: [
+        strAttr("gen_ai.request.model", modelName),
+        strAttr("agy_nov.cost.basis", "offline_estimated")
+      ],
+      startTimeUnixNano: startNano,
+      timeUnixNano: endNano,
+      asDouble: roundUsd(modelUsd)
+    });
+  }
+  const metrics = [
+    {
+      name: "gen_ai.client.token.usage",
+      description: "Offline read-only token usage broken down by model and token type",
+      unit: "{token}",
+      sum: {
+        aggregationTemporality: 2,
+        isMonotonic: true,
+        dataPoints: tokenDataPoints
+      }
+    },
+    {
+      name: "gen_ai.client.cost.estimated_usd",
+      description: "Offline estimated cost in USD using local reference pricing",
+      unit: "USD",
+      sum: {
+        aggregationTemporality: 2,
+        isMonotonic: true,
+        dataPoints: costDataPoints
+      }
+    },
+    {
+      name: "agy_nov.xray.cache.hit_ratio",
+      description: "Prompt prefix cache hit ratio (0 to 1)",
+      unit: "1",
+      gauge: {
+        dataPoints: [
+          {
+            attributes: [strAttr("gen_ai.request.model", s.model || "unknown")],
+            timeUnixNano: endNano,
+            asDouble: Number(Math.max(0, Math.min(1, s.cacheHitRate)).toFixed(4))
+          }
+        ]
+      }
+    },
+    {
+      name: "agy_nov.xray.cache.savings_usd",
+      description: "Estimated USD saved via prompt prefix cache hits",
+      unit: "USD",
+      sum: {
+        aggregationTemporality: 2,
+        isMonotonic: true,
+        dataPoints: [
+          {
+            attributes: [strAttr("agy_nov.cost.basis", "offline_estimated")],
+            startTimeUnixNano: startNano,
+            timeUnixNano: endNano,
+            asDouble: roundUsd(cacheSavingsUsd)
+          }
+        ]
+      }
+    },
+    {
+      name: "agy_nov.xray.context.peak_tokens",
+      description: "Peak context window token count observed in the session",
+      unit: "{token}",
+      gauge: {
+        dataPoints: [
+          {
+            attributes: [strAttr("gen_ai.request.model", s.model || "unknown")],
+            timeUnixNano: endNano,
+            asInt: String(Math.max(0, Math.round(s.peakContextTokens)))
+          }
+        ]
+      }
+    }
+  ];
+  if (analytics) {
+    const windowNowNano = toUnixNanoString(analytics.generatedAt, fallbackNow);
+    const w = analytics.fiveHourWindow;
+    metrics.push(
+      {
+        name: "agy_nov.xray.window_5h.tokens",
+        description: "Rolling 5-hour total tokens across recent local sessions",
+        unit: "{token}",
+        gauge: {
+          dataPoints: [
+            {
+              attributes: [
+                strAttr("agy_nov.window.warning_level", w.warningLevel),
+                strAttr("agy_nov.analytics.mode", analytics.mode)
+              ],
+              timeUnixNano: windowNowNano,
+              asInt: String(Math.max(0, Math.round(w.totalTokens)))
+            }
+          ]
+        }
+      },
+      {
+        name: "agy_nov.xray.window_5h.estimated_usd",
+        description: "Rolling 5-hour estimated USD across recent local sessions",
+        unit: "USD",
+        gauge: {
+          dataPoints: [
+            {
+              attributes: [
+                strAttr("agy_nov.window.warning_level", w.warningLevel),
+                strAttr("agy_nov.analytics.mode", analytics.mode)
+              ],
+              timeUnixNano: windowNowNano,
+              asDouble: roundUsd(w.estimatedUsd)
+            }
+          ]
+        }
+      },
+      {
+        name: "agy_nov.xray.window_5h.burn_rate_usd_per_hour",
+        description: "Rolling 5-hour estimated burn rate in USD per hour",
+        unit: "USD/h",
+        gauge: {
+          dataPoints: [
+            {
+              attributes: [strAttr("agy_nov.window.warning_level", w.warningLevel)],
+              timeUnixNano: windowNowNano,
+              asDouble: roundUsd(w.burnRateUsdPerHour)
+            }
+          ]
+        }
+      }
+    );
+  }
+  return {
+    resourceMetrics: [
+      {
+        resource: {
+          attributes: [
+            strAttr("service.name", "agy-nov-xray"),
+            strAttr("service.version", "0.5.0"),
+            strAttr("telemetry.sdk.name", "agy-nov"),
+            strAttr("gen_ai.system", "antigravity"),
+            strAttr("agy_nov.session.id", s.id),
+            strAttr("agy_nov.session.source", s.source),
+            boolAttr("agy_nov.export.redacted", true)
+          ]
+        },
+        scopeMetrics: [
+          {
+            scope: {
+              name: "agy-nov.xray.billing",
+              version: "0.5.0"
+            },
+            metrics
+          }
+        ]
+      }
+    ]
+  };
+}
+function escapeCsvCell(value) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? String(value) : "0";
+  }
+  let str = redactSecrets2(String(value));
+  if (FORMULA_PREFIX_RE.test(str) || LEADING_WS_FORMULA_RE.test(str)) {
+    str = `'${str}`;
+  }
+  if (/[",\r\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+function renderUsageCsv(analytics) {
+  const header = "date,sessions,total_tokens,estimated_usd,cache_hit_rate";
+  const rows = analytics.dailyTrend.map(
+    (row) => [
+      escapeCsvCell(row.date),
+      escapeCsvCell(Math.max(0, Math.round(row.sessions))),
+      escapeCsvCell(Math.max(0, Math.round(row.totalTokens))),
+      escapeCsvCell(roundUsd(row.estimatedUsd).toFixed(4)),
+      escapeCsvCell(Number(Math.max(0, Math.min(1, row.cacheHitRate)).toFixed(4)))
+    ].join(",")
+  );
+  return [header, ...rows].join("\n");
+}
+
 // src/modules/xray/search.ts
-var import_node_fs21 = __toESM(require("node:fs"), 1);
-var import_node_path28 = __toESM(require("node:path"), 1);
+var import_node_fs24 = __toESM(require("node:fs"), 1);
+var import_node_path30 = __toESM(require("node:path"), 1);
 var import_node_url4 = require("node:url");
 function tokenize2(text) {
   const lower = text.toLowerCase();
@@ -58378,7 +61341,7 @@ function collectDocuments(opts) {
     const updatedAt = new Date(entry.mtimeMs).toISOString();
     const transcriptChunks = [];
     try {
-      const lines = import_node_fs21.default.readFileSync(entry.transcriptPath, "utf8").split(/\r?\n/);
+      const lines = import_node_fs24.default.readFileSync(entry.transcriptPath, "utf8").split(/\r?\n/);
       for (const line of lines) {
         if (!line.trim()) continue;
         try {
@@ -58419,14 +61382,14 @@ function collectDocuments(opts) {
       });
     }
     try {
-      for (const dirent of import_node_fs21.default.readdirSync(entry.brainDir, { withFileTypes: true })) {
+      for (const dirent of import_node_fs24.default.readdirSync(entry.brainDir, { withFileTypes: true })) {
         if (!dirent.isFile() || !/\.md$/i.test(dirent.name) || dirent.name.startsWith(".")) continue;
-        const artPath = import_node_path28.default.join(entry.brainDir, dirent.name);
-        const content = import_node_fs21.default.readFileSync(artPath, "utf8").slice(0, 4e4);
+        const artPath = import_node_path30.default.join(entry.brainDir, dirent.name);
+        const content = import_node_fs24.default.readFileSync(artPath, "utf8").slice(0, 4e4);
         docs.push({
           sessionId: entry.id,
           sessionTitle,
-          updatedAt: import_node_fs21.default.statSync(artPath).mtime.toISOString(),
+          updatedAt: import_node_fs24.default.statSync(artPath).mtime.toISOString(),
           sourceKind: "artifact",
           sourceLabel: dirent.name,
           filePath: artPath,
@@ -58521,7 +61484,7 @@ function registerXrayModule(server, opts, uiResourceUri) {
   const moduleDataDir = getModuleDataDir(opts.dataDir, "xray");
   const discoveryOpts = {
     dataDir: moduleDataDir,
-    brainDirs: opts.brainDir ? [{ dir: import_node_path29.default.resolve(opts.brainDir), source: "custom" }] : void 0,
+    brainDirs: opts.brainDir ? [{ dir: import_node_path31.default.resolve(opts.brainDir), source: "custom" }] : void 0,
     demoMode: opts.demoMode
   };
   const INLINE_META = {
@@ -58534,7 +61497,7 @@ function registerXrayModule(server, opts, uiResourceUri) {
     "xray_analyze_context",
     {
       title: "Analyze Session Context",
-      description: 'Analyze an Antigravity session transcript for context composition, prompt cache hit rate, turn-by-turn growth, and tool-output hotspots ("Token Vampires").',
+      description: 'Analyze an Antigravity session transcript for context composition, prompt cache hit rate, estimated offline USD cost, turn-by-turn growth, and tool-output hotspots ("Token Vampires").',
       inputSchema: {
         sessionId: external_exports.string().optional().describe("Optional session ID; defaults to the active or latest session")
       },
@@ -58569,6 +61532,7 @@ function registerXrayModule(server, opts, uiResourceUri) {
               `Context X-Ray \u2014 ${s.title}`,
               `\u2022 Peak Window: ${formatCompactTokens(s.peakContextTokens)} | Total Input: ${formatCompactTokens(s.totalInputTokens)} | Output: ${formatCompactTokens(s.totalOutputTokens)}`,
               `\u2022 Prefix Cache Hit: ${(s.cacheHitRate * 100).toFixed(1)}% (${formatCompactTokens(s.totalCacheReadTokens)} cached)`,
+              `\u2022 Est. Cost (USD): ~${formatUsd(s.estimatedUsd)} | Cache Savings: ~${formatUsd(s.cacheSavingsUsd)} (offline ref. pricing)`,
               `\u2022 Top Tool Consumers: ${topTools || "none"}`,
               ...swarmAndModelParts.length > 0 ? [`\u2022 Swarm & Models: ${swarmAndModelParts.join(" | ")}`] : [],
               ...detail.diagnostics.map((d) => `\u2022 [${d.severity.toUpperCase()}] ${d.title}: ${d.detail}`)
@@ -58638,16 +61602,55 @@ function registerXrayModule(server, opts, uiResourceUri) {
   const exportBriefTool = server.registerTool(
     "xray_export_brief",
     {
-      title: "Export Redacted Session Brief",
-      description: "Generate a secret-redacted Markdown summary of a session including token telemetry, diagnostics, and touched files.",
+      title: "Export Redacted Session Brief / Handoff / OTLP / CSV",
+      description: "Generate a secret-redacted session export: Markdown brief (default), anti-compaction handoff snapshot, OpenTelemetry OTLP metrics JSON, or formula-safe daily usage CSV.",
       inputSchema: {
-        sessionId: external_exports.string().optional().describe("Optional session ID; defaults to latest")
+        sessionId: external_exports.string().optional().describe("Optional session ID; defaults to latest"),
+        format: external_exports.enum(["brief", "handoff", "otlp", "csv"]).optional().describe("Export format: 'brief' (default), 'handoff', 'otlp', or 'csv'")
       }
     },
-    async ({ sessionId }) => {
+    async ({ sessionId, format }) => {
+      const effectiveFormat = format ?? "brief";
+      if (effectiveFormat === "csv") {
+        const analytics = computeCostAnalytics(discoveryOpts);
+        const csv = renderUsageCsv(analytics);
+        return {
+          content: [{ type: "text", text: csv }],
+          structuredContent: {
+            format: "csv",
+            csv,
+            sessionsAnalyzed: analytics.sessionsAnalyzed
+          }
+        };
+      }
       const detail = loadSessionDetail(sessionId, discoveryOpts);
       if (!detail) {
         return { content: [{ type: "text", text: "No session found to export." }] };
+      }
+      if (effectiveFormat === "handoff") {
+        const markdown2 = renderHandoffSnapshot(detail);
+        return {
+          content: [{ type: "text", text: markdown2 }],
+          structuredContent: {
+            sessionId: detail.summary.id,
+            format: "handoff",
+            markdown: markdown2
+          }
+        };
+      }
+      if (effectiveFormat === "otlp") {
+        const analytics = computeCostAnalytics(discoveryOpts);
+        const otlp = buildOtlpUsagePayload(detail, analytics);
+        const json2 = JSON.stringify(otlp, null, 2);
+        return {
+          content: [{ type: "text", text: json2 }],
+          structuredContent: {
+            sessionId: detail.summary.id,
+            format: "otlp",
+            otlp,
+            json: json2
+          }
+        };
       }
       const markdown = renderRedactedBrief(detail);
       return {
@@ -58731,6 +61734,94 @@ function registerXrayModule(server, opts, uiResourceUri) {
       };
     }
   );
+  server.registerTool(
+    "app_xray_get_cost_analytics",
+    {
+      title: "Get Offline Cost Analytics (App Only)",
+      description: "Compute read-only offline USD billing estimates, 14-day UTC trend, and 5-hour rolling burn-rate alerts.",
+      inputSchema: {
+        limit: external_exports.number().int().min(1).max(60).optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ limit }) => {
+      const analytics = computeCostAnalytics({ ...discoveryOpts, limit });
+      return {
+        content: [
+          {
+            type: "text",
+            text: `${analytics.sessionsAnalyzed} sessions \xB7 ${formatUsd(analytics.totalEstimatedUsd)} (${analytics.fiveHourWindow.warningLevel})`
+          }
+        ],
+        structuredContent: { analytics }
+      };
+    }
+  );
+  server.registerTool(
+    "app_xray_export_handoff",
+    {
+      title: "Export Anti-Compaction Handoff Snapshot (App Only)",
+      description: "Generate a secret-redacted Markdown handoff snapshot for seamless session continuation.",
+      inputSchema: {
+        sessionId: external_exports.string().optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ sessionId }) => {
+      const detail = loadSessionDetail(sessionId, discoveryOpts);
+      const markdown = detail ? renderHandoffSnapshot(detail) : "";
+      return {
+        content: [{ type: "text", text: markdown }],
+        structuredContent: { sessionId: detail?.summary.id ?? null, markdown }
+      };
+    }
+  );
+  server.registerTool(
+    "app_xray_export_otlp",
+    {
+      title: "Export Redacted OTLP Usage Payload (App Only)",
+      description: "Generate a redacted OpenTelemetry OTLP resourceMetrics JSON payload from the UI.",
+      inputSchema: {
+        sessionId: external_exports.string().optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ sessionId }) => {
+      const detail = loadSessionDetail(sessionId, discoveryOpts);
+      if (!detail) {
+        return {
+          content: [{ type: "text", text: "" }],
+          structuredContent: { sessionId: null, otlp: null, json: "" }
+        };
+      }
+      const analytics = computeCostAnalytics(discoveryOpts);
+      const otlp = buildOtlpUsagePayload(detail, analytics);
+      const json2 = JSON.stringify(otlp, null, 2);
+      return {
+        content: [{ type: "text", text: json2 }],
+        structuredContent: { sessionId: detail.summary.id, otlp, json: json2 }
+      };
+    }
+  );
+  server.registerTool(
+    "app_xray_export_csv",
+    {
+      title: "Export Formula-Safe Daily Usage CSV (App Only)",
+      description: "Generate a formula-safe CSV of the 14-day daily token & estimated USD trend from the UI.",
+      inputSchema: {
+        limit: external_exports.number().int().min(1).max(60).optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ limit }) => {
+      const analytics = computeCostAnalytics({ ...discoveryOpts, limit });
+      const csv = renderUsageCsv(analytics);
+      return {
+        content: [{ type: "text", text: csv }],
+        structuredContent: { csv, sessionsAnalyzed: analytics.sessionsAnalyzed }
+      };
+    }
+  );
   return {
     moduleId: "xray",
     modelTools: [
@@ -58738,13 +61829,18 @@ function registerXrayModule(server, opts, uiResourceUri) {
       wrapModelTool3("xray_get_file_activity", getFileActivityTool),
       wrapModelTool3("xray_search_sessions", searchSessionsTool),
       wrapModelTool3("xray_export_brief", exportBriefTool)
+    ],
+    exemptReadOnlyAppTools: [
+      "app_xray_list_sessions",
+      "app_xray_get_session_detail",
+      "app_xray_get_cost_analytics"
     ]
   };
 }
 
 // src/server/index.ts
 var UI_RESOURCE_URI = "ui://agy-nov/app.html";
-var NOV_VERSION = "0.4.0";
+var NOV_VERSION = "0.5.0";
 var UI_ENTRYPOINT_META = {
   ui: { resourceUri: UI_RESOURCE_URI },
   "com.google.antigravity/ui": {
@@ -58763,14 +61859,14 @@ function resolveUiHtmlPath(override) {
   const candidates = [
     override,
     envOverride,
-    import_node_path30.default.resolve(process.cwd(), "dist/ui/app.html"),
-    import_node_path30.default.resolve(import_node_path30.default.dirname(process.argv[1] || process.cwd()), "ui/app.html"),
-    import_node_path30.default.resolve(import_node_path30.default.dirname(process.argv[1] || process.cwd()), "../dist/ui/app.html")
+    import_node_path32.default.resolve(process.cwd(), "dist/ui/app.html"),
+    import_node_path32.default.resolve(import_node_path32.default.dirname(process.argv[1] || process.cwd()), "ui/app.html"),
+    import_node_path32.default.resolve(import_node_path32.default.dirname(process.argv[1] || process.cwd()), "../dist/ui/app.html")
   ].filter((p) => Boolean(p));
   for (const candidate of candidates) {
-    if (import_node_fs22.default.existsSync(candidate)) return candidate;
+    if (import_node_fs25.default.existsSync(candidate)) return candidate;
   }
-  return candidates[0] ?? import_node_path30.default.resolve(process.cwd(), "dist/ui/app.html");
+  return candidates[0] ?? import_node_path32.default.resolve(process.cwd(), "dist/ui/app.html");
 }
 var DEFAULT_CONFIG_POLL_MS = 1500;
 function hasConfigChanged(prev, next) {
@@ -58783,7 +61879,7 @@ function readDiskConfigForSync(rootDataDir) {
   const cfgPath = getConfigPath(rootDataDir);
   let rawText;
   try {
-    rawText = import_node_fs22.default.readFileSync(cfgPath, "utf8");
+    rawText = import_node_fs25.default.readFileSync(cfgPath, "utf8");
   } catch (err) {
     if (err?.code === "ENOENT") {
       return { status: "missing", config: createDefaultConfig() };
@@ -58803,7 +61899,7 @@ function readDiskConfigForSync(rootDataDir) {
 function createNovServer(rawOpts = {}) {
   const options = {
     dataDir: resolveNovDataDir(rawOpts.dataDir),
-    workspaceRoot: import_node_path30.default.resolve(rawOpts.workspaceRoot ?? process.cwd()),
+    workspaceRoot: import_node_path32.default.resolve(rawOpts.workspaceRoot ?? process.cwd()),
     demoMode: Boolean(rawOpts.demoMode),
     brainDir: rawOpts.brainDir,
     uiHtmlPath: rawOpts.uiHtmlPath,
@@ -58829,7 +61925,7 @@ function createNovServer(rawOpts = {}) {
     },
     async () => {
       const htmlPath = resolveUiHtmlPath(options.uiHtmlPath);
-      const html = import_node_fs22.default.existsSync(htmlPath) ? import_node_fs22.default.readFileSync(htmlPath, "utf8") : "<!doctype html><html><body><p>agy-NOV UI bundle missing. Run npm run build.</p></body></html>";
+      const html = import_node_fs25.default.existsSync(htmlPath) ? import_node_fs25.default.readFileSync(htmlPath, "utf8") : "<!doctype html><html><body><p>agy-NOV UI bundle missing. Run npm run build.</p></body></html>";
       return {
         contents: [
           {

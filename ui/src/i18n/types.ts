@@ -37,6 +37,23 @@ export interface ReviewPanelI18n {
   annotations: string;
   filesChanged: string;
   noChanges: string;
+  ignoreWhitespace: string;
+  syntaxHighlight: string;
+  riskLineBadge: string;
+  quickAnnotateRisk: string;
+  cartTitle: string;
+  cartEmpty: string;
+  cartCopyAll: string;
+  cartSendAll: string;
+  cartClear: string;
+  addComment: string;
+  commentPlaceholder: string;
+  severityHigh: string;
+  severityMed: string;
+  severityLow: string;
+  filesTitle: string;
+  resolved: string;
+  unresolved: string;
 }
 
 export interface GuardPanelI18n {
@@ -61,6 +78,7 @@ export interface XrayPanelI18n {
   tabFiles: string;
   tabTimeMachine: string;
   tabSteps: string;
+  tabCost: string;
   refresh: string;
   exportBrief: string;
   searchPlaceholder: string;
@@ -72,6 +90,26 @@ export interface XrayPanelI18n {
   subagents: string;
   orphanSuspects: string;
   modelBreakdown: string;
+  estCostUsd: string;
+  todayCost: string;
+  weekCost: string;
+  cacheSavings: string;
+  fiveHourWindow: string;
+  burnRate: string;
+  exportHandoff: string;
+  exportOtlp: string;
+  exportCsv: string;
+  dailyTrendTitle: string;
+  compositionTitle: string;
+  hotspotsTitle: string;
+  diagnosticsTitle: string;
+  filesEmpty: string;
+  openFile: string;
+  attachContext: string;
+  timeMachineTitle: string;
+  artifactsTitle: string;
+  injectExcerpt: string;
+  noSearchHits: string;
 }
 
 export interface VerifyPanelI18n {
@@ -96,6 +134,10 @@ export interface VerifyPanelI18n {
   executablePlaceholder: string;
   argsPlaceholder: string;
   labelPlaceholder: string;
+  detectStackBtn: string;
+  detectedCommandsTitle: string;
+  applyDetectedBtn: string;
+  noDetectedCommands: string;
 }
 
 export interface WorktreePanelI18n {
@@ -171,6 +213,10 @@ export interface StudioPanelI18n {
   rowsCount: string;
   statusCode: string;
   truncatedNotice: string;
+  openApiEndpointsTitle: string;
+  loadEndpointBtn: string;
+  openApiEmpty: string;
+  serversTitle: string;
 }
 
 export interface CanvasPanelI18n {
@@ -352,6 +398,15 @@ export interface UiDictionary {
     mcpHealthTitle: string;
   };
   panels: PanelsI18n;
+  quickStart: {
+    title: string;
+    subtitle: string;
+    step1: string;
+    step2: string;
+    step3: string;
+    tryNowBtn: string;
+    dismissBtn: string;
+  };
 }
 
 export interface NovI18nContextValue {

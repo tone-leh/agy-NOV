@@ -589,7 +589,7 @@ function hasCliFlag(argv, flag) {
 }
 
 // src/server/cli.ts
-var CLI_VERSION = "0.4.0";
+var CLI_VERSION = "0.5.0";
 function printHelp() {
   console.log(`agy-NOV CLI (v${CLI_VERSION}) \u2014 The 100% Native Modular Super-Workbench for Antigravity 2.0
 
@@ -600,6 +600,7 @@ Usage:
   agy-nov preset <name> [--data-dir=<dir>]                      Apply preset (${PRESET_IDS.join(" | ")})
   agy-nov locale <lang> [--data-dir=<dir>]                      Set UI language (${LOCALE_IDS.join(" | ")})
   agy-nov statusline [--json] [--compact] [--data-dir=<dir>]    Zero-token read-only status line for Antigravity CLI
+  agy-nov recommend [--workspace=<dir>] [--json]                Read-only project scanner recommending preset & modules
   agy-nov doctor [--data-dir=<dir>]                             Verify plugin bundle, manifests & config health (read-only)
 `);
 }
@@ -781,6 +782,92 @@ function printStatus(dataDir) {
     }
   }
 }
+function buildWorkspaceRecommendation(workspaceRoot) {
+  const root = import_node_path2.default.resolve(workspaceRoot);
+  const exists = (rel) => {
+    try {
+      return import_node_fs2.default.existsSync(import_node_path2.default.join(root, rel));
+    } catch {
+      return false;
+    }
+  };
+  const detectedStacks = [];
+  let hasMultipleTestsOrScripts = false;
+  if (exists("package.json")) {
+    detectedStacks.push("Node.js / TypeScript");
+    const pkg = readJsonSilent(import_node_path2.default.join(root, "package.json"));
+    const scripts = pkg?.scripts && typeof pkg.scripts === "object" && !Array.isArray(pkg.scripts) ? Object.keys(pkg.scripts) : [];
+    if (scripts.some((s) => /test|typecheck|lint|check|build/i.test(s))) {
+      hasMultipleTestsOrScripts = true;
+    }
+  }
+  if (exists("pyproject.toml") || exists("pytest.ini") || exists("requirements.txt")) {
+    detectedStacks.push("Python");
+    hasMultipleTestsOrScripts = true;
+  }
+  if (exists("Cargo.toml")) {
+    detectedStacks.push("Rust");
+    hasMultipleTestsOrScripts = true;
+  }
+  if (exists("go.mod")) {
+    detectedStacks.push("Go");
+    hasMultipleTestsOrScripts = true;
+  }
+  const isGitRepo = exists(".git");
+  const hasRulesOrMcp = exists("GEMINI.md") || exists("AGENTS.md") || exists("CLAUDE.md") || exists(".mcp.json") || exists("mcp_config.json") || exists(".agents/rules");
+  let hasDataOrOpenApi = false;
+  try {
+    const entries = import_node_fs2.default.readdirSync(root, { withFileTypes: true }).slice(0, 120);
+    for (const ent of entries) {
+      if (ent.isFile() && /\.(?:sqlite|sqlite3|db|csv|openapi\.ya?ml|openapi\.json)$/i.test(ent.name)) {
+        hasDataOrOpenApi = true;
+        break;
+      }
+      if (ent.isFile() && /^(?:openapi|swagger)\.(?:ya?ml|json)$/i.test(ent.name)) {
+        hasDataOrOpenApi = true;
+        break;
+      }
+    }
+  } catch {
+  }
+  const reasons = [];
+  const suggestedExtraModules = [];
+  let recommendedPreset = "core";
+  if (isGitRepo && hasMultipleTestsOrScripts) {
+    recommendedPreset = "power";
+    reasons.push(
+      `Detected Git repository + ${detectedStacks.join(", ")} test/build setup -> "power" preset enables Verify Gate, Worktree Orchestrator, Spec Flow, Turbo RTK & Ops Budget Doctor (100% offline).`
+    );
+  } else {
+    reasons.push(
+      'Lightweight workspace detected -> "core" preset keeps tool footprint minimal (12 tools: Review, Guard & X-Ray, 100% offline).'
+    );
+  }
+  if (hasRulesOrMcp) {
+    reasons.push("Found workspace rules or MCP configuration -> Ops Budget Doctor helps prevent 24KB rule bloat & 100-tool limit overflows.");
+    if (recommendedPreset === "core") suggestedExtraModules.push("ops");
+  }
+  if (hasDataOrOpenApi) {
+    reasons.push("Found local database, CSV, or OpenAPI files -> enable Workspace Studio on demand for offline inspection & loopback API probing.");
+    suggestedExtraModules.push("studio");
+  }
+  const applyCommand = suggestedExtraModules.length > 0 ? `agy-nov preset ${recommendedPreset} && ${suggestedExtraModules.map((m) => `agy-nov enable ${m}`).join(" && ")}` : `agy-nov preset ${recommendedPreset}`;
+  return {
+    version: CLI_VERSION,
+    workspaceRoot: root,
+    detectedStacks,
+    signals: {
+      isGitRepo,
+      hasRulesOrMcp,
+      hasDataOrOpenApi,
+      hasMultipleTestsOrScripts
+    },
+    recommendedPreset,
+    suggestedExtraModules,
+    reasons,
+    applyCommand
+  };
+}
 function runDoctor(dataDir) {
   const rootDir = import_node_path2.default.resolve(import_node_path2.default.dirname(process.argv[1] || process.cwd()), "..");
   const requiredFiles = [
@@ -894,6 +981,24 @@ function main() {
     const compact = hasCliFlag(argv, "--compact");
     const snap = buildStatusLine(dataDir, compact);
     console.log(asJson ? JSON.stringify(snap) : snap.line);
+    return;
+  }
+  if (cmd === "recommend") {
+    const ws = parseCliFlag(argv, "--workspace") ?? process.cwd();
+    const asJson = hasCliFlag(argv, "--json");
+    const rec = buildWorkspaceRecommendation(ws);
+    if (asJson) {
+      console.log(JSON.stringify(rec, null, 2));
+    } else {
+      console.log(`agy-NOV v${CLI_VERSION} Workspace Recommendation (Read-Only)`);
+      console.log(`  Workspace:   ${rec.workspaceRoot}`);
+      console.log(`  Stacks:      ${rec.detectedStacks.length > 0 ? rec.detectedStacks.join(", ") : "Generic"}`);
+      console.log(`  Recommended: preset "${rec.recommendedPreset}"${rec.suggestedExtraModules.length > 0 ? ` + [${rec.suggestedExtraModules.join(", ")}]` : ""}`);
+      for (const r of rec.reasons) {
+        console.log(`  - ${r}`);
+      }
+      console.log(`  Apply:       ${rec.applyCommand}`);
+    }
     return;
   }
   if (cmd === "doctor") {

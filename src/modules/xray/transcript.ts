@@ -1,6 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import {
+  estimateTokenCostUsd,
+  formatUsd,
+  roundUsd,
+  type PricingOverrideMap,
+} from './pricing.js';
 import { redactSecrets } from './sanitize.js';
 import type {
   ArtifactSummary,
@@ -514,6 +520,7 @@ export function parseTranscriptFile(
     source?: SessionSummary['source'];
     brainDir?: string;
     siblingBrainRoot?: string;
+    pricingOverrides?: PricingOverrideMap;
   } = {},
 ): SessionDetail {
   const rawText = fs.readFileSync(transcriptPath, 'utf8');
@@ -523,6 +530,7 @@ export function parseTranscriptFile(
     sessionId: opts.sessionId ?? path.basename(path.resolve(path.dirname(transcriptPath), '..', '..')),
     source: opts.source ?? 'desktop',
     siblingBrainRoot: opts.siblingBrainRoot,
+    pricingOverrides: opts.pricingOverrides,
   });
 }
 
@@ -534,6 +542,7 @@ export function parseTranscriptLines(
     sessionId: string;
     source: SessionSummary['source'];
     siblingBrainRoot?: string;
+    pricingOverrides?: PricingOverrideMap;
   },
 ): SessionDetail {
   const steps: RawTranscriptStep[] = [];
@@ -939,6 +948,9 @@ export function parseTranscriptLines(
   );
   const totalModelTurns = Array.from(modelStats.values()).reduce((sum, m) => sum + m.turns, 0);
 
+  let sessionEstimatedUsdRaw = 0;
+  let sessionCacheSavingsUsdRaw = 0;
+
   const modelBreakdown: ModelCostBreakdownItem[] = Array.from(modelStats.entries())
     .map(([model, stat]) => {
       const combined = stat.inputTokens + stat.outputTokens;
@@ -948,6 +960,17 @@ export function parseTranscriptLines(
           : totalModelTurns > 0
             ? Number(((stat.turns / totalModelTurns) * 100).toFixed(1))
             : 0;
+      const cost = estimateTokenCostUsd(
+        model,
+        {
+          freshInputTokens: stat.freshInputTokens,
+          cacheReadTokens: stat.cacheReadTokens,
+          outputTokens: stat.outputTokens,
+        },
+        meta.pricingOverrides,
+      );
+      sessionEstimatedUsdRaw += cost.totalUsd;
+      sessionCacheSavingsUsdRaw += cost.cacheSavingsUsd;
       return {
         model,
         turns: stat.turns,
@@ -958,6 +981,7 @@ export function parseTranscriptLines(
         cacheHitRate: stat.inputTokens > 0 ? stat.cacheReadTokens / stat.inputTokens : 0,
         retrySignals: stat.retrySignals,
         sharePercent,
+        estimatedUsd: cost.totalUsd,
       };
     })
     .sort(
@@ -966,6 +990,23 @@ export function parseTranscriptLines(
         b.turns - a.turns ||
         a.model.localeCompare(b.model),
     );
+
+  if (modelBreakdown.length === 0 && totalInputTokens + totalOutputTokens > 0) {
+    const fallbackCost = estimateTokenCostUsd(
+      lastModel,
+      {
+        freshInputTokens: totalFreshInputTokens,
+        cacheReadTokens: totalCacheReadTokens,
+        outputTokens: totalOutputTokens,
+      },
+      meta.pricingOverrides,
+    );
+    sessionEstimatedUsdRaw = fallbackCost.totalUsd;
+    sessionCacheSavingsUsdRaw = fallbackCost.cacheSavingsUsd;
+  }
+
+  const estimatedUsd = roundUsd(sessionEstimatedUsdRaw);
+  const cacheSavingsUsd = roundUsd(sessionCacheSavingsUsdRaw);
 
   const totalToolBytes = Array.from(toolStats.values()).reduce((sum, v) => sum + v.totalOutputBytes, 0);
   const toolHotspots: ToolHotspot[] = Array.from(toolStats.entries())
@@ -1131,6 +1172,8 @@ export function parseTranscriptLines(
     toolCallsCount: totalToolCalls,
     filesTouchedCount: fileActivity.length,
     artifactsCount: artifacts.length,
+    estimatedUsd,
+    cacheSavingsUsd,
     transcriptPath: meta.transcriptPath,
     brainDir: meta.brainDir,
   };
@@ -1164,6 +1207,11 @@ export function renderRedactedBrief(detail: SessionDetail): string {
     `- **Model**: \`${s.model}\` | **Turns**: ${s.turns} | **Steps**: ${s.steps}`,
     `- **Input Tokens**: ${formatCompactTokens(s.totalInputTokens)} (Cache Hit: **${(s.cacheHitRate * 100).toFixed(1)}%**, Peak Window: ${formatCompactTokens(s.peakContextTokens)})`,
     `- **Output Tokens**: ${formatCompactTokens(s.totalOutputTokens)} | **Tool Calls**: ${s.toolCallsCount}`,
+    ...(s.estimatedUsd != null
+      ? [
+          `- **Est. Cost (USD)**: ~${formatUsd(s.estimatedUsd)} (Cache Savings: ~${formatUsd(s.cacheSavingsUsd)}, offline ref. pricing)`,
+        ]
+      : []),
     '',
     '## Context Diagnostics',
     ...detail.diagnostics.map((d) => `- **[${d.severity.toUpperCase()}] ${redactSecrets(d.title)}** — ${redactSecrets(d.detail)}`),

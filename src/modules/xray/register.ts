@@ -4,11 +4,18 @@ import { z } from 'zod';
 import { getModuleDataDir } from '../../core/config.js';
 import type { ModuleRegistrationResult, ModuleToolHandle, NovRuntimeOptions } from '../../core/types.js';
 import {
+  buildOtlpUsagePayload,
+  computeCostAnalytics,
+  renderHandoffSnapshot,
+  renderUsageCsv,
+} from './analytics.js';
+import {
   listSessions,
   loadSessionDetail,
   readLiveHookState,
   type DiscoveryOptions,
 } from './discovery.js';
+import { formatUsd } from './pricing.js';
 import { redactSecrets } from './sanitize.js';
 import { searchSessions } from './search.js';
 import { formatCompactTokens, renderRedactedBrief } from './transcript.js';
@@ -47,7 +54,7 @@ export function registerXrayModule(
     {
       title: 'Analyze Session Context',
       description:
-        'Analyze an Antigravity session transcript for context composition, prompt cache hit rate, turn-by-turn growth, and tool-output hotspots ("Token Vampires").',
+        'Analyze an Antigravity session transcript for context composition, prompt cache hit rate, estimated offline USD cost, turn-by-turn growth, and tool-output hotspots ("Token Vampires").',
       inputSchema: {
         sessionId: z.string().optional().describe('Optional session ID; defaults to the active or latest session'),
       },
@@ -87,6 +94,7 @@ export function registerXrayModule(
               `Context X-Ray — ${s.title}`,
               `• Peak Window: ${formatCompactTokens(s.peakContextTokens)} | Total Input: ${formatCompactTokens(s.totalInputTokens)} | Output: ${formatCompactTokens(s.totalOutputTokens)}`,
               `• Prefix Cache Hit: ${(s.cacheHitRate * 100).toFixed(1)}% (${formatCompactTokens(s.totalCacheReadTokens)} cached)`,
+              `• Est. Cost (USD): ~${formatUsd(s.estimatedUsd)} | Cache Savings: ~${formatUsd(s.cacheSavingsUsd)} (offline ref. pricing)`,
               `• Top Tool Consumers: ${topTools || 'none'}`,
               ...(swarmAndModelParts.length > 0
                 ? [`• Swarm & Models: ${swarmAndModelParts.join(' | ')}`]
@@ -171,18 +179,64 @@ export function registerXrayModule(
   const exportBriefTool = server.registerTool(
     'xray_export_brief',
     {
-      title: 'Export Redacted Session Brief',
+      title: 'Export Redacted Session Brief / Handoff / OTLP / CSV',
       description:
-        'Generate a secret-redacted Markdown summary of a session including token telemetry, diagnostics, and touched files.',
+        'Generate a secret-redacted session export: Markdown brief (default), anti-compaction handoff snapshot, OpenTelemetry OTLP metrics JSON, or formula-safe daily usage CSV.',
       inputSchema: {
         sessionId: z.string().optional().describe('Optional session ID; defaults to latest'),
+        format: z
+          .enum(['brief', 'handoff', 'otlp', 'csv'])
+          .optional()
+          .describe("Export format: 'brief' (default), 'handoff', 'otlp', or 'csv'"),
       },
     },
-    async ({ sessionId }) => {
+    async ({ sessionId, format }) => {
+      const effectiveFormat = format ?? 'brief';
+      if (effectiveFormat === 'csv') {
+        const analytics = computeCostAnalytics(discoveryOpts);
+        const csv = renderUsageCsv(analytics);
+        return {
+          content: [{ type: 'text', text: csv }],
+          structuredContent: {
+            format: 'csv',
+            csv,
+            sessionsAnalyzed: analytics.sessionsAnalyzed,
+          },
+        };
+      }
+
       const detail = loadSessionDetail(sessionId, discoveryOpts);
       if (!detail) {
         return { content: [{ type: 'text', text: 'No session found to export.' }] };
       }
+
+      if (effectiveFormat === 'handoff') {
+        const markdown = renderHandoffSnapshot(detail);
+        return {
+          content: [{ type: 'text', text: markdown }],
+          structuredContent: {
+            sessionId: detail.summary.id,
+            format: 'handoff',
+            markdown,
+          },
+        };
+      }
+
+      if (effectiveFormat === 'otlp') {
+        const analytics = computeCostAnalytics(discoveryOpts);
+        const otlp = buildOtlpUsagePayload(detail, analytics);
+        const json = JSON.stringify(otlp, null, 2);
+        return {
+          content: [{ type: 'text', text: json }],
+          structuredContent: {
+            sessionId: detail.summary.id,
+            format: 'otlp',
+            otlp,
+            json,
+          },
+        };
+      }
+
       const markdown = renderRedactedBrief(detail);
       return {
         content: [{ type: 'text', text: markdown }],
@@ -191,7 +245,7 @@ export function registerXrayModule(
     },
   );
 
-  // App-only tools (4)
+  // App-only tools (8)
   server.registerTool(
     'app_xray_list_sessions',
     {
@@ -271,6 +325,99 @@ export function registerXrayModule(
     },
   );
 
+  server.registerTool(
+    'app_xray_get_cost_analytics',
+    {
+      title: 'Get Offline Cost Analytics (App Only)',
+      description:
+        'Compute read-only offline USD billing estimates, 14-day UTC trend, and 5-hour rolling burn-rate alerts.',
+      inputSchema: {
+        limit: z.number().int().min(1).max(60).optional(),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ limit }) => {
+      const analytics = computeCostAnalytics({ ...discoveryOpts, limit });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `${analytics.sessionsAnalyzed} sessions · ${formatUsd(analytics.totalEstimatedUsd)} (${analytics.fiveHourWindow.warningLevel})`,
+          },
+        ],
+        structuredContent: { analytics },
+      };
+    },
+  );
+
+  server.registerTool(
+    'app_xray_export_handoff',
+    {
+      title: 'Export Anti-Compaction Handoff Snapshot (App Only)',
+      description: 'Generate a secret-redacted Markdown handoff snapshot for seamless session continuation.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ sessionId }) => {
+      const detail = loadSessionDetail(sessionId, discoveryOpts);
+      const markdown = detail ? renderHandoffSnapshot(detail) : '';
+      return {
+        content: [{ type: 'text', text: markdown }],
+        structuredContent: { sessionId: detail?.summary.id ?? null, markdown },
+      };
+    },
+  );
+
+  server.registerTool(
+    'app_xray_export_otlp',
+    {
+      title: 'Export Redacted OTLP Usage Payload (App Only)',
+      description: 'Generate a redacted OpenTelemetry OTLP resourceMetrics JSON payload from the UI.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ sessionId }) => {
+      const detail = loadSessionDetail(sessionId, discoveryOpts);
+      if (!detail) {
+        return {
+          content: [{ type: 'text', text: '' }],
+          structuredContent: { sessionId: null, otlp: null, json: '' },
+        };
+      }
+      const analytics = computeCostAnalytics(discoveryOpts);
+      const otlp = buildOtlpUsagePayload(detail, analytics);
+      const json = JSON.stringify(otlp, null, 2);
+      return {
+        content: [{ type: 'text', text: json }],
+        structuredContent: { sessionId: detail.summary.id, otlp, json },
+      };
+    },
+  );
+
+  server.registerTool(
+    'app_xray_export_csv',
+    {
+      title: 'Export Formula-Safe Daily Usage CSV (App Only)',
+      description: 'Generate a formula-safe CSV of the 14-day daily token & estimated USD trend from the UI.',
+      inputSchema: {
+        limit: z.number().int().min(1).max(60).optional(),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ limit }) => {
+      const analytics = computeCostAnalytics({ ...discoveryOpts, limit });
+      const csv = renderUsageCsv(analytics);
+      return {
+        content: [{ type: 'text', text: csv }],
+        structuredContent: { csv, sessionsAnalyzed: analytics.sessionsAnalyzed },
+      };
+    },
+  );
+
   return {
     moduleId: 'xray',
     modelTools: [
@@ -278,6 +425,11 @@ export function registerXrayModule(
       wrapModelTool('xray_get_file_activity', getFileActivityTool),
       wrapModelTool('xray_search_sessions', searchSessionsTool),
       wrapModelTool('xray_export_brief', exportBriefTool),
+    ],
+    exemptReadOnlyAppTools: [
+      'app_xray_list_sessions',
+      'app_xray_get_session_detail',
+      'app_xray_get_cost_analytics',
     ],
   };
 }

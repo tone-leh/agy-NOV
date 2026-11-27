@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
-import type { DiffFile, DiffHunk, DiffLine, FileStatus, RiskTag } from './types.js';
+import type { DiffFile, DiffHunk, DiffLine, DiffLineRiskHint, FileStatus, RiskTag } from './types.js';
 export { buildSplitRows, extractCodeSnippet } from './diff-helpers.js';
 
 export interface ParseDiffOptions {
@@ -37,6 +37,135 @@ const TEST_PATH_PATTERNS = [
   /\.(test|spec)\.[^/]+$/i,
   /_test\.[^/]+$/i,
 ];
+
+const MAX_RISK_SCAN_LINE_CHARS = 1024;
+
+// Linear-time (ReDoS-free) deterministic line risk patterns; messages never echo raw secret values.
+const SECRET_TOKEN_PATTERNS: readonly RegExp[] = [
+  /(?:^|[^A-Za-z0-9_])ghp_[A-Za-z0-9_]{6,}/,
+  /(?:^|[^A-Za-z0-9_])github_pat_[A-Za-z0-9_]{6,}/,
+  /(?:^|[^A-Za-z0-9_-])sk-(?:proj-|live-)?[A-Za-z0-9_-]{12,}/,
+  /(?:^|[^A-Za-z0-9])AKIA[0-9A-Z]{16}(?:[^A-Za-z0-9]|$)/,
+  /BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY/,
+];
+
+const HARDCODED_SECRET_ASSIGN_RE =
+  /\b(?:password|passwd|secret|api[_-]?key|access[_-]?token|private[_-]?key)\b[ \t]*[:=][ \t]*(['"`])([^'"`\r\n]{6,256})\1/i;
+
+const PLACEHOLDER_SECRET_WORDS = [
+  'example',
+  'placeholder',
+  'changeme',
+  'dummy',
+  'sample',
+  'your_',
+  'your-',
+  'redacted',
+  'todo',
+  'xxx',
+];
+
+function isPlaceholderSecretValue(rawVal: string): boolean {
+  const val = rawVal.trim();
+  if (!val) return true;
+  if (val.includes('${') || val.includes('{{')) return true;
+  if (val.startsWith('<') && val.endsWith('>')) return true;
+  if (/<[^<>\r\n]{1,64}>/.test(val)) return true;
+  if (/^[xX*._-]+$/.test(val)) return true;
+  const lower = val.toLowerCase();
+  return PLACEHOLDER_SECRET_WORDS.some((word) => lower.includes(word));
+}
+
+const PERMISSION_PATTERNS: ReadonlyArray<{ re: RegExp; message: string }> = [
+  {
+    re: /\bchmod[ \t]+(?:-R[ \t]+)?0?777\b/,
+    message: 'Overly permissive file mode (chmod 777) detected.',
+  },
+  {
+    re: /\brejectUnauthorized[ \t]*:[ \t]*false\b/,
+    message: 'TLS certificate validation disabled (rejectUnauthorized: false).',
+  },
+  {
+    re: /\bNODE_TLS_REJECT_UNAUTHORIZED[ \t]*=[ \t]*['"]?0\b/,
+    message: 'TLS certificate verification disabled via NODE_TLS_REJECT_UNAUTHORIZED=0.',
+  },
+  {
+    re: /(?:^|[^\d.])0\.0\.0\.0(?:[^\d.]|$)/,
+    message: 'Wildcard network bind address (0.0.0.0) exposes listener beyond localhost.',
+  },
+];
+
+const UNSAFE_EVAL_PATTERNS: ReadonlyArray<{ re: RegExp; message: string }> = [
+  {
+    re: /\beval[ \t]*\(/,
+    message: 'Dynamic code evaluation via eval() detected.',
+  },
+  {
+    re: /\bnew[ \t]+Function[ \t]*\(/,
+    message: 'Dynamic code compilation via new Function() detected.',
+  },
+  {
+    re: /\bdangerouslySetInnerHTML\b/,
+    message: 'Raw HTML injection surface (dangerouslySetInnerHTML) detected.',
+  },
+  {
+    re: /\bchild_process\b[^\r\n]{0,120}\bexec[ \t]*\(/,
+    message: 'Shell-interpolated child_process exec() detected; prefer execFile without shell.',
+  },
+];
+
+/**
+ * Deterministic O(n) line-level risk pre-annotation for added diff lines.
+ * Caps scan input to 1024 chars and never copies matched secret text into message.
+ */
+export function detectLineRiskHint(content: string): DiffLineRiskHint | undefined {
+  if (!content) return undefined;
+  const sample =
+    content.length > MAX_RISK_SCAN_LINE_CHARS
+      ? content.slice(0, MAX_RISK_SCAN_LINE_CHARS)
+      : content;
+
+  for (const re of SECRET_TOKEN_PATTERNS) {
+    if (re.test(sample)) {
+      return {
+        severity: 'high',
+        category: 'secret',
+        message: 'Potential credential, API token, or private key detected (value redacted).',
+      };
+    }
+  }
+
+  const secretAssign = HARDCODED_SECRET_ASSIGN_RE.exec(sample);
+  if (secretAssign && !isPlaceholderSecretValue(secretAssign[2])) {
+    return {
+      severity: 'high',
+      category: 'secret',
+      message: 'Potential hardcoded secret or credential assignment detected (value redacted).',
+    };
+  }
+
+  for (const rule of PERMISSION_PATTERNS) {
+    if (rule.re.test(sample)) {
+      return {
+        severity: 'high',
+        category: 'permission',
+        message: rule.message,
+      };
+    }
+  }
+
+  for (const rule of UNSAFE_EVAL_PATTERNS) {
+    if (rule.re.test(sample)) {
+      return {
+        severity: 'medium',
+        category: 'unsafe_eval',
+        message: rule.message,
+      };
+    }
+  }
+
+  return undefined;
+}
 
 /**
  * Decode a Git C-quoted path (e.g. "\"dir/\344\270\255\346\226\207 file.ts\"") into a UTF-8 string.
@@ -389,11 +518,13 @@ export function parseUnifiedDiff(rawDiff: string, options: ParseDiffOptions = {}
 
       if (prefix === '+') {
         current.additions += 1;
+        const riskHint = detectLineRiskHint(content);
         diffLine = {
           type: 'add',
           content,
           oldLine: null,
           newLine: current.newCursor,
+          ...(riskHint ? { riskHint } : {}),
         };
         current.newCursor += 1;
       } else if (prefix === '-') {

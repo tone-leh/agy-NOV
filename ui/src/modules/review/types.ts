@@ -14,11 +14,22 @@ export type DiffViewMode = 'unified' | 'split';
 
 export type FileFilterMode = 'all' | 'annotated' | 'unviewed' | 'risky';
 
+export type DiffLineRiskSeverity = 'high' | 'medium';
+
+export type DiffLineRiskCategory = 'secret' | 'permission' | 'unsafe_eval' | 'network';
+
+export interface DiffLineRiskHint {
+  severity: DiffLineRiskSeverity;
+  category: DiffLineRiskCategory;
+  message: string;
+}
+
 export interface DiffLine {
   type: DiffLineType;
   content: string;
   oldLine: number | null;
   newLine: number | null;
+  riskHint?: DiffLineRiskHint;
 }
 
 export interface SplitRow {
@@ -89,6 +100,7 @@ export interface ReviewSession {
   headCommit?: string;
   scope: ReviewScope;
   commitRange?: string;
+  ignoreWhitespace?: boolean;
   isGitRepo: boolean;
   isDemo: boolean;
   notice?: string;
@@ -114,6 +126,7 @@ export interface DiffQuery {
   repoPath?: string;
   scope?: ReviewScope;
   commitRange?: string;
+  ignoreWhitespace?: boolean;
   demo?: boolean;
 }
 

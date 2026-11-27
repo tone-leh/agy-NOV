@@ -1,6 +1,6 @@
 export type FileOp = 'read' | 'edit' | 'write';
 
-export type XrayTabKey = 'overview' | 'files' | 'timemachine' | 'steps';
+export type XrayTabKey = 'overview' | 'files' | 'timemachine' | 'steps' | 'cost';
 
 export interface TurnMetric {
   turnIndex: number;
@@ -70,6 +70,8 @@ export interface SessionSummary {
   toolCallsCount: number;
   filesTouchedCount: number;
   artifactsCount: number;
+  estimatedUsd?: number;
+  cacheSavingsUsd?: number;
   transcriptPath: string;
   brainDir: string;
 }
@@ -116,6 +118,7 @@ export interface ModelCostBreakdownItem {
   cacheHitRate: number;
   retrySignals: number;
   sharePercent: number;
+  estimatedUsd?: number;
 }
 
 export interface SessionDetail {
@@ -160,8 +163,54 @@ export interface SearchHit {
   snippet: string;
 }
 
+export interface DailyCostTrendItem {
+  date: string;
+  sessions: number;
+  totalTokens: number;
+  estimatedUsd: number;
+  cacheHitRate: number;
+}
+
+export interface ModelCostTotalItem {
+  model: string;
+  sessions: number;
+  totalTokens: number;
+  estimatedUsd: number;
+  cacheHitRate: number;
+}
+
+export interface FiveHourBurnWindow {
+  windowStartIso: string;
+  windowHours: 5;
+  sessionsCount: number;
+  totalTokens: number;
+  estimatedUsd: number;
+  burnRateUsdPerHour: number;
+  burnRateTokensPerHour: number;
+  warningLevel: 'ok' | 'warn' | 'critical';
+}
+
+export interface CostAnalyticsReport {
+  mode: 'live' | 'demo';
+  generatedAt: string;
+  sessionsAnalyzed: number;
+  totalEstimatedUsd: number;
+  todayEstimatedUsd: number;
+  weekEstimatedUsd: number;
+  cacheSavingsUsd: number;
+  dailyTrend: DailyCostTrendItem[];
+  modelTotals: ModelCostTotalItem[];
+  fiveHourWindow: FiveHourBurnWindow;
+}
+
 export function fmtTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(n);
+}
+
+export function fmtUsd(usd: number | undefined): string {
+  if (usd == null || !Number.isFinite(usd) || usd <= 0) return '$0.00';
+  if (usd < 0.01) return `$${usd.toFixed(4)}`;
+  return `$${usd.toFixed(2)}`;
 }

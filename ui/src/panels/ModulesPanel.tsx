@@ -28,6 +28,7 @@ export const ModulesPanel: React.FC<ModulesPanelProps> = ({
 }) => {
   const { dict, t } = useNovI18n();
   const [selectedCategory, setSelectedCategory] = useState<ModuleCategoryId | 'all'>('all');
+  const [showQuickStart, setShowQuickStart] = useState(true);
 
   const {
     config,
@@ -40,6 +41,8 @@ export const ModulesPanel: React.FC<ModulesPanelProps> = ({
 
   const visibleCategories: ModuleCategoryId[] =
     selectedCategory === 'all' ? [...MODULE_CATEGORY_IDS] : [selectedCategory];
+
+  const quickStartSteps = [dict.quickStart.step1, dict.quickStart.step2, dict.quickStart.step3];
 
   return (
     <div className="nov-modules-page">
@@ -72,6 +75,80 @@ export const ModulesPanel: React.FC<ModulesPanelProps> = ({
           )}
         </div>
       </section>
+
+      {showQuickStart && (
+        <section
+          className="nov-p-card"
+          aria-label={dict.quickStart.title}
+          style={{ borderLeft: '3px solid var(--nov-accent)' }}
+        >
+          <div className="nov-p-row">
+            <div>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: '13.5px',
+                  fontWeight: 700,
+                  color: 'var(--nov-text-0)',
+                }}
+              >
+                {dict.quickStart.title}
+              </h3>
+              <p
+                style={{
+                  margin: '2px 0 0',
+                  fontSize: '12px',
+                  color: 'var(--nov-text-1)',
+                }}
+              >
+                {dict.quickStart.subtitle}
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+              <button
+                type="button"
+                className="nov-p-btn is-primary"
+                onClick={() => onOpenModule('xray')}
+              >
+                {dict.quickStart.tryNowBtn}
+              </button>
+              <button
+                type="button"
+                className="nov-p-btn"
+                onClick={() => setShowQuickStart(false)}
+              >
+                {dict.quickStart.dismissBtn}
+              </button>
+            </div>
+          </div>
+
+          <ol
+            style={{
+              listStyle: 'none',
+              margin: 0,
+              padding: 0,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+              gap: '8px',
+            }}
+          >
+            {quickStartSteps.map((step, idx) => (
+              <li
+                key={idx}
+                className="nov-p-item"
+                style={{ flexDirection: 'row', alignItems: 'flex-start', gap: '8px' }}
+              >
+                <span className="nov-badge is-accent" style={{ flexShrink: 0 }}>
+                  {idx + 1}
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--nov-text-1)', lineHeight: 1.45 }}>
+                  {step}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       <section className="nov-presets-bar" aria-label={dict.presetsLabel}>
         <span className="nov-presets-label">{dict.presetsLabel}</span>

@@ -68,11 +68,13 @@ function buildSessionData(
     repoPath?: string;
     scope?: ReviewScope;
     commitRange?: string;
+    ignoreWhitespace?: boolean;
     demo?: boolean;
   },
 ): ReviewSession {
   const scope: ReviewScope = params.scope ?? 'working';
   const useDemo = params.demo ?? Boolean(opts.demoMode);
+  const ignoreWhitespace = Boolean(params.ignoreWhitespace);
 
   if (useDemo) {
     const demoBase = createDemoSession(scope);
@@ -88,6 +90,7 @@ function buildSessionData(
     const viewedFiles = store.getViewedFiles(DEMO_REPO_KEY, scope);
     return {
       ...demoBase,
+      ignoreWhitespace,
       files: demoFiles,
       annotations,
       viewedFiles,
@@ -99,6 +102,7 @@ function buildSessionData(
     repoPath: targetRepo,
     scope,
     commitRange: params.commitRange,
+    ignoreWhitespace,
   });
   const savedAnnotations = store.listAnnotations(scan.repoKey, scope);
   const annotations = evaluateAnnotationStaleness(savedAnnotations, scan.files);
@@ -113,6 +117,7 @@ function buildSessionData(
     headCommit: scan.headCommit,
     scope: scan.scope,
     commitRange: scan.commitRange,
+    ignoreWhitespace: scan.ignoreWhitespace,
     isGitRepo: scan.isGitRepo,
     isDemo: false,
     notice: scan.notice,
@@ -157,6 +162,7 @@ export function buildSummaryFromSession(
     branch: session.branch,
     scope: session.scope,
     commitRange: session.commitRange,
+    ignoreWhitespace: session.ignoreWhitespace,
     isGitRepo: session.isGitRepo,
     isDemo: session.isDemo,
     notice: session.notice,
@@ -234,6 +240,7 @@ export function registerReviewModule(
         repoPath: z.string().optional().describe('Optional path to a Git repository; defaults to active workspace'),
         scope: SCOPE_ENUM.optional().describe('Diff scope: working (default), staged, unstaged, head~1, or commit-range'),
         commitRange: z.string().optional().describe('Git commit range when scope is commit-range (e.g. HEAD~2..HEAD)'),
+        ignoreWhitespace: z.boolean().optional().describe('Ignore whitespace-only changes (git diff -w)'),
         selectedFile: z.string().optional().describe('Optional relative file path to focus initially'),
         demo: z.boolean().optional().describe('Launch with built-in synthetic demo diff'),
       },
@@ -241,9 +248,15 @@ export function registerReviewModule(
         ui: { resourceUri: uiResourceUri },
       },
     },
-    async ({ repoPath, scope, commitRange, selectedFile, demo }) => {
+    async ({ repoPath, scope, commitRange, ignoreWhitespace, selectedFile, demo }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, { repoPath, scope, commitRange, demo });
+        const session = buildSessionData(store, moduleDataDir, opts, {
+          repoPath,
+          scope,
+          commitRange,
+          ignoreWhitespace,
+          demo,
+        });
         const summary = buildSummaryFromSession(session);
         return {
           content: [{ type: 'text', text: formatSummaryText(summary) }],
@@ -253,6 +266,7 @@ export function registerReviewModule(
               repoPath: session.repoPath,
               scope: session.scope,
               commitRange: session.commitRange,
+              ignoreWhitespace: session.ignoreWhitespace,
               selectedFile: selectedFile ?? session.files[0]?.path,
               demo: session.isDemo,
             },
@@ -279,12 +293,19 @@ export function registerReviewModule(
         repoPath: z.string().optional().describe('Optional path to a Git repository'),
         scope: SCOPE_ENUM.optional().describe('Diff scope (default: working)'),
         commitRange: z.string().optional().describe('Optional Git range when scope is commit-range'),
+        ignoreWhitespace: z.boolean().optional().describe('Ignore whitespace-only changes (git diff -w)'),
         demo: z.boolean().optional().describe('Use built-in synthetic demo diff'),
       },
     },
-    async ({ repoPath, scope, commitRange, demo }) => {
+    async ({ repoPath, scope, commitRange, ignoreWhitespace, demo }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, { repoPath, scope, commitRange, demo });
+        const session = buildSessionData(store, moduleDataDir, opts, {
+          repoPath,
+          scope,
+          commitRange,
+          ignoreWhitespace,
+          demo,
+        });
         const summary = buildSummaryFromSession(session);
         return {
           content: [{ type: 'text', text: formatSummaryText(summary) }],
@@ -310,13 +331,20 @@ export function registerReviewModule(
         repoPath: z.string().optional(),
         scope: SCOPE_ENUM.optional(),
         commitRange: z.string().optional(),
+        ignoreWhitespace: z.boolean().optional(),
         demo: z.boolean().optional(),
       },
       _meta: APP_ONLY_META,
     },
-    async ({ repoPath, scope, commitRange, demo }) => {
+    async ({ repoPath, scope, commitRange, ignoreWhitespace, demo }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, { repoPath, scope, commitRange, demo });
+        const session = buildSessionData(store, moduleDataDir, opts, {
+          repoPath,
+          scope,
+          commitRange,
+          ignoreWhitespace,
+          demo,
+        });
         return {
           content: [
             {
@@ -566,15 +594,22 @@ export function registerReviewModule(
         repoPath: z.string().optional(),
         scope: SCOPE_ENUM.optional(),
         commitRange: z.string().optional(),
+        ignoreWhitespace: z.boolean().optional(),
         demo: z.boolean().optional(),
         includeResolved: z.boolean().optional(),
         annotationIds: z.array(z.string()).optional(),
       },
       _meta: APP_ONLY_META,
     },
-    async ({ repoPath, scope, commitRange, demo, includeResolved, annotationIds }) => {
+    async ({ repoPath, scope, commitRange, ignoreWhitespace, demo, includeResolved, annotationIds }) => {
       try {
-        const session = buildSessionData(store, moduleDataDir, opts, { repoPath, scope, commitRange, demo });
+        const session = buildSessionData(store, moduleDataDir, opts, {
+          repoPath,
+          scope,
+          commitRange,
+          ignoreWhitespace,
+          demo,
+        });
         const enrichedAnnotations = session.annotations.map((ann) => {
           if (ann.codeSnippet) return ann;
           const file = session.files.find((f) => f.path === ann.filePath);

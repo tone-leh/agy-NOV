@@ -11,6 +11,8 @@ interface HeaderBarProps {
   searchQuery: string;
   viewMode: DiffViewMode;
   filterMode: FileFilterMode;
+  ignoreWhitespace: boolean;
+  syntaxHighlight: boolean;
   viewedCount: number;
   totalFiles: number;
   totalAdditions: number;
@@ -24,6 +26,8 @@ interface HeaderBarProps {
   onSearchChange: (q: string) => void;
   onViewModeChange: (mode: DiffViewMode) => void;
   onFilterModeChange: (mode: FileFilterMode) => void;
+  onToggleIgnoreWhitespace: () => void;
+  onToggleSyntaxHighlight: () => void;
   onRefresh: () => void;
 }
 
@@ -36,6 +40,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   searchQuery,
   viewMode,
   filterMode,
+  ignoreWhitespace,
+  syntaxHighlight,
   viewedCount,
   totalFiles,
   totalAdditions,
@@ -49,6 +55,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   onSearchChange,
   onViewModeChange,
   onFilterModeChange,
+  onToggleIgnoreWhitespace,
+  onToggleSyntaxHighlight,
   onRefresh,
 }) => {
   const { dict } = useNovI18n();
@@ -195,8 +203,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             [
               ['all', dict.categoryAll],
               ['annotated', r.annotations],
-              ['unviewed', 'Unviewed'],
-              ['risky', 'Risky'],
+              ['unviewed', r.unresolved],
+              ['risky', r.riskLineBadge],
             ] as const
           ).map(([val, label]) => (
             <button
@@ -208,6 +216,27 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
               {label}
             </button>
           ))}
+        </div>
+
+        <div className="rv-filter-pills" role="group" aria-label={r.title}>
+          <button
+            type="button"
+            className={ignoreWhitespace ? 'rv-filter-pill is-active' : 'rv-filter-pill'}
+            onClick={onToggleIgnoreWhitespace}
+            aria-pressed={ignoreWhitespace}
+            title={r.ignoreWhitespace}
+          >
+            {r.ignoreWhitespace}
+          </button>
+          <button
+            type="button"
+            className={syntaxHighlight ? 'rv-filter-pill is-active' : 'rv-filter-pill'}
+            onClick={onToggleSyntaxHighlight}
+            aria-pressed={syntaxHighlight}
+            title={r.syntaxHighlight}
+          >
+            {r.syntaxHighlight}
+          </button>
         </div>
       </div>
     </header>

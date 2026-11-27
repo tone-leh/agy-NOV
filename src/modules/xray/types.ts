@@ -77,6 +77,8 @@ export interface SessionSummary {
   toolCallsCount: number;
   filesTouchedCount: number;
   artifactsCount: number;
+  estimatedUsd?: number;
+  cacheSavingsUsd?: number;
   transcriptPath: string;
   brainDir: string;
 }
@@ -123,6 +125,7 @@ export interface ModelCostBreakdownItem {
   cacheHitRate: number;
   retrySignals: number;
   sharePercent: number;
+  estimatedUsd?: number;
 }
 
 export interface SessionDetail {
@@ -182,4 +185,44 @@ export interface LiveHookState {
     timestamp: string;
     error?: string;
   }>;
+}
+
+export interface DailyCostTrendItem {
+  date: string;
+  sessions: number;
+  totalTokens: number;
+  estimatedUsd: number;
+  cacheHitRate: number;
+}
+
+export interface ModelCostTotalItem {
+  model: string;
+  sessions: number;
+  totalTokens: number;
+  estimatedUsd: number;
+  cacheHitRate: number;
+}
+
+export interface FiveHourBurnWindow {
+  windowStartIso: string;
+  windowHours: 5;
+  sessionsCount: number;
+  totalTokens: number;
+  estimatedUsd: number;
+  burnRateUsdPerHour: number;
+  burnRateTokensPerHour: number;
+  warningLevel: 'ok' | 'warn' | 'critical';
+}
+
+export interface CostAnalyticsReport {
+  mode: 'live' | 'demo';
+  generatedAt: string;
+  sessionsAnalyzed: number;
+  totalEstimatedUsd: number;
+  todayEstimatedUsd: number;
+  weekEstimatedUsd: number;
+  cacheSavingsUsd: number;
+  dailyTrend: DailyCostTrendItem[];
+  modelTotals: ModelCostTotalItem[];
+  fiveHourWindow: FiveHourBurnWindow;
 }
