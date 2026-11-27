@@ -3,6 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { getModuleDataDir, resolveNovDataDir, sanitizeDataDirCandidate } from '../../core/config.js';
+import {
+  atomicRenameSync,
+  canonicalRealpathSync,
+  isPathInsideDir,
+  isSamePath,
+} from '../../core/utils.js';
 import type {
   BatchHygieneResult,
   CodeAnchor,
@@ -446,15 +452,14 @@ export function isSensitiveFilePath(filePath: string): boolean {
 }
 
 function isRelativeInside(rootDir: string, targetPath: string): boolean {
-  const rel = path.relative(rootDir, targetPath);
-  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
+  return !isSamePath(rootDir, targetPath) && isPathInsideDir(rootDir, targetPath);
 }
 
 function resolveExistingAncestorRealpath(absTarget: string): string | undefined {
   let cursor = path.dirname(absTarget);
   while (true) {
     try {
-      const realAncestor = fs.realpathSync(cursor);
+      const realAncestor = canonicalRealpathSync(cursor);
       const tail = path.relative(cursor, absTarget);
       return path.join(realAncestor, tail);
     } catch {
@@ -488,14 +493,14 @@ export function inspectAnchorFile(
   const effectiveWorkspace = workspacePath && workspacePath.trim() ? workspacePath.trim() : process.cwd();
   let realWorkspace: string;
   try {
-    realWorkspace = fs.realpathSync(path.resolve(effectiveWorkspace));
+    realWorkspace = canonicalRealpathSync(path.resolve(effectiveWorkspace));
   } catch {
     return { status: 'skipped', reason: 'outside-workspace' };
   }
 
   let realFile: string;
   try {
-    realFile = fs.realpathSync(absFile);
+    realFile = canonicalRealpathSync(absFile);
   } catch (err) {
     const code = (err as NodeJS.ErrnoException | undefined)?.code;
     if (code === 'ENOENT' || code === 'ENOTDIR') {
@@ -580,7 +585,9 @@ function normalizeAnchor(raw: unknown): CodeAnchor | null {
   if (typeof r.filePath !== 'string' || !r.filePath.trim()) return null;
   const filePath = r.filePath.trim();
   const basename =
-    typeof r.basename === 'string' && r.basename.trim() ? r.basename.trim() : path.basename(filePath);
+    typeof r.basename === 'string' && r.basename.trim()
+      ? r.basename.trim()
+      : path.posix.basename(filePath.replace(/\\/g, '/'));
   const uri = typeof r.uri === 'string' && r.uri.trim() ? r.uri.trim() : safePathToFileUri(filePath);
   const symbol = typeof r.symbol === 'string' && r.symbol.trim() ? r.symbol.trim() : undefined;
   const sha256 = typeof r.sha256 === 'string' && r.sha256.trim() ? r.sha256.trim() : undefined;
@@ -742,7 +749,7 @@ export class MemoryStore {
       ? `${base}.${crypto.randomBytes(2).toString('hex')}`
       : base;
     try {
-      fs.renameSync(this.filePath, backupPath);
+      atomicRenameSync(this.filePath, backupPath, process.platform, false);
       try {
         fs.chmodSync(backupPath, 0o600);
       } catch {
@@ -817,7 +824,7 @@ export class MemoryStore {
       } catch {
         // ignore chmod failure
       }
-      fs.renameSync(tmp, this.filePath);
+      atomicRenameSync(tmp, this.filePath);
     } catch (err) {
       try {
         if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
@@ -903,7 +910,9 @@ export class MemoryStore {
     let items = this.readRaw().map((m) => this.evaluateDrift(m, nowMs));
     if (opts.workspacePath) {
       const target = path.resolve(opts.workspacePath);
-      items = items.filter((m) => !m.workspacePath || path.resolve(m.workspacePath) === target);
+      items = items.filter(
+        (m) => !m.workspacePath || isSamePath(path.resolve(m.workspacePath), target),
+      );
     }
     if (opts.kind) items = items.filter((m) => m.kind === opts.kind);
     if (opts.pinnedOnly) items = items.filter((m) => m.pinned);
@@ -1061,18 +1070,18 @@ export class MemoryStore {
       const trustedRoot = path.resolve(this.defaultWorkspaceRoot);
       const realTrusted = (() => {
         try {
-          return fs.realpathSync(trustedRoot);
+          return canonicalRealpathSync(trustedRoot);
         } catch {
           return trustedRoot;
         }
       })();
       let realReq: string;
       try {
-        realReq = fs.realpathSync(requestedWorkspace);
+        realReq = canonicalRealpathSync(requestedWorkspace);
       } catch {
         realReq = resolveExistingAncestorRealpath(requestedWorkspace) ?? requestedWorkspace;
       }
-      if (realReq === realTrusted || isRelativeInside(realTrusted, realReq)) {
+      if (isPathInsideDir(realTrusted, realReq)) {
         inspectWorkspace = realReq;
         resolvedWorkspace = requestedWorkspace;
       }
@@ -1096,7 +1105,7 @@ export class MemoryStore {
               : 'untracked';
         return {
           filePath: abs,
-          basename: path.basename(abs),
+          basename: path.posix.basename(abs.replace(/\\/g, '/')),
           uri: safePathToFileUri(abs),
           ...(cleanSymbol ? { symbol: cleanSymbol } : {}),
           ...(inspected.sha256 ? { sha256: inspected.sha256 } : {}),
@@ -1121,7 +1130,9 @@ export class MemoryStore {
       : items.findIndex(
           (m) =>
             m.title.toLowerCase() === cleanTitle.toLowerCase() &&
-            (m.workspacePath ?? '') === (resolvedWorkspace ?? ''),
+            (m.workspacePath && resolvedWorkspace
+              ? isSamePath(m.workspacePath, resolvedWorkspace)
+              : (m.workspacePath ?? '') === (resolvedWorkspace ?? '')),
         );
 
     const parsedInputTtl =

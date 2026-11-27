@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { canonicalRealpathSync, isPathInsideDir } from '../../core/utils.js';
 import { isSensitiveTurboPath, resolveInsideWorkspaceReal } from './core.js';
 
 export const CONTEXT_PACK_DEFAULT_MAX_TOKENS = 8_000;
@@ -498,6 +499,7 @@ function collectGitDiffFiles(realRoot: string): { files: string[]; note?: string
     const out = execFileSync('git', args, {
       cwd: realRoot,
       shell: false,
+      windowsHide: true,
       encoding: 'utf8',
       timeout: 5000,
       maxBuffer: 2 * 1024 * 1024,
@@ -525,7 +527,7 @@ function collectGitDiffFiles(realRoot: string): { files: string[]; note?: string
     if (!gitAvailable) {
       return {
         files: [],
-        note: `Git diff unavailable in workspace: ${err instanceof Error ? err.message.split('\n')[0] : String(err)}`,
+        note: `Git diff unavailable in workspace: ${err instanceof Error ? err.message.split(/\r?\n/)[0] : String(err)}`,
       };
     }
   }
@@ -546,8 +548,7 @@ export function buildContextPack(
     throw new Error('Invalid workspace root path');
   }
 
-  const realRoot = fs.realpathSync(path.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
+  const realRoot = canonicalRealpathSync(path.resolve(workspaceRoot));
 
   const maxTokens = Math.max(
     CONTEXT_PACK_MIN_TOKENS,
@@ -598,7 +599,7 @@ export function buildContextPack(
   }
 
   const isInsideRealRoot = (candidate: string): boolean =>
-    candidate === realRoot || candidate.startsWith(rootPrefix);
+    isPathInsideDir(realRoot, candidate);
 
   const matchesGlobs = (relPath: string): boolean => {
     if (globs.length === 0) return true;
@@ -642,7 +643,7 @@ export function buildContextPack(
 
     let realFile: string;
     try {
-      realFile = fs.realpathSync(absPath);
+      realFile = canonicalRealpathSync(absPath);
     } catch {
       skippedSymlinks += 1;
       return;
@@ -680,7 +681,7 @@ export function buildContextPack(
         continue;
       }
       const abs = path.resolve(realRoot, rel);
-      if (abs !== realRoot && !abs.startsWith(rootPrefix)) {
+      if (!isInsideRealRoot(abs)) {
         skippedSymlinks += 1;
         continue;
       }
@@ -730,7 +731,7 @@ export function buildContextPack(
               continue;
             }
             try {
-              const realSub = fs.realpathSync(fullPath);
+              const realSub = canonicalRealpathSync(fullPath);
               if (!isInsideRealRoot(realSub)) {
                 skippedSymlinks += 1;
                 continue;

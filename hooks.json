@@ -3,7 +3,7 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "node ./dist/hook.cjs --event SessionStart --data-dir=${PLUGIN_DATA}",
+        "command": "node \"${PLUGIN_ROOT}/dist/hook.cjs\" --event SessionStart --data-dir=\"${PLUGIN_DATA}\"",
         "timeout": 5
       }
     ],
@@ -13,7 +13,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ./dist/hook.cjs --event PreToolUse --data-dir=${PLUGIN_DATA}",
+            "command": "node \"${PLUGIN_ROOT}/dist/hook.cjs\" --event PreToolUse --data-dir=\"${PLUGIN_DATA}\"",
             "timeout": 28
           }
         ]
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ./dist/hook.cjs --event PostToolUse --data-dir=${PLUGIN_DATA}",
+            "command": "node \"${PLUGIN_ROOT}/dist/hook.cjs\" --event PostToolUse --data-dir=\"${PLUGIN_DATA}\"",
             "timeout": 5
           }
         ]
@@ -34,14 +34,14 @@
     "PreInvocation": [
       {
         "type": "command",
-        "command": "node ./dist/hook.cjs --event PreInvocation --data-dir=${PLUGIN_DATA}",
+        "command": "node \"${PLUGIN_ROOT}/dist/hook.cjs\" --event PreInvocation --data-dir=\"${PLUGIN_DATA}\"",
         "timeout": 5
       }
     ],
     "Stop": [
       {
         "type": "command",
-        "command": "node ./dist/hook.cjs --event Stop --data-dir=${PLUGIN_DATA}",
+        "command": "node \"${PLUGIN_ROOT}/dist/hook.cjs\" --event Stop --data-dir=\"${PLUGIN_DATA}\"",
         "timeout": 20
       }
     ]

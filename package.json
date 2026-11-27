@@ -1,6 +1,6 @@
 {
   "name": "agy-nov",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "The 100% Native Modular Super-Workbench for Google Antigravity 2.0 — 13 toggleable superpowers (Diff Review, Guard & Snapshots, Context X-Ray, Turbo RTK Compression, Session Radar, Verify Gate, Worktree Orchestrator, Spec Flow & Task DAG, Workspace Studio, Visual Canvas, Memory Graph, Prompt Vault & Budget Doctor, and Opt-In Mobile/IM Remote), native 8-language UI, CLI statusLine, Zero ASAR, Zero CDP, zero token tax when off.",
   "type": "module",
   "license": "MIT",
@@ -15,7 +15,7 @@
     "build:ui": "vite build --config ui/vite.config.ts",
     "build:server": "node scripts/bundle-server.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --import tsx --test test/*.test.ts",
+    "test": "npm run build && node scripts/run-tests.mjs",
     "workbench": "npm run build && node workbench/server.mjs",
     "cli": "node dist/cli.cjs"
   },

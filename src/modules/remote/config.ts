@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { getModuleDataDir, resolveNovDataDir, sanitizeDataDirCandidate } from '../../core/config.js';
+import { atomicRenameSync } from '../../core/utils.js';
 import type { ChannelConfig, RemoteConfig, RuntimeInfo, SafeChannelView } from './types.js';
 
 export const DEFAULT_PIN_TTL_MS = 5 * 60 * 1000;
@@ -16,6 +17,10 @@ export const DEFAULT_RISK_PATTERNS = [
   'curl\\b.*\\|\\s*(ba)?sh\\b',
   '\\bchmod\\s+777\\b',
   '\\bmkfs\\.|\\bdd\\s+if=',
+  '\\bremove-item\\b[^\\r\\n;&|]{0,160}\\s-(?:r|re|rec|recu|recur|recurs|recurse)\\b',
+  '\\b(?:rmdir|rd)(?:\\.exe)?\\b[^\\r\\n;&|]{0,120}(?:\\s|(?<=\\b(?:rmdir|rd)(?:\\.exe)?))(?:\\/[a-z]){0,3}\\/s(?=$|[\\s/"\'`;|&])',
+  '(?:^|[;&|\\r\\n]\\s*)format(?:\\.com|\\.exe)?\\s+(?:\\/[a-z0-9:_-]{1,24}\\s+){0,4}[a-z]:|\\b(?:clear-disk|diskpart)\\b',
+  '\\b(?:irm|iwr|invoke-restmethod|invoke-webrequest)\\b[^\\r\\n|]{0,240}\\|\\s*(?:iex|invoke-expression)\\b',
 ];
 
 export const DEFAULT_SENSITIVE_PATH_PATTERNS: Array<{ label: string; regex: RegExp }> = [
@@ -117,7 +122,7 @@ function writeSecureAtomicJson(filePath: string, dataDir: string, value: unknown
   ensureSecureDataDir(dataDir);
   const tmpPath = `${filePath}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
   fs.writeFileSync(tmpPath, JSON.stringify(value, null, 2), { encoding: 'utf8', mode: 0o600 });
-  fs.renameSync(tmpPath, filePath);
+  atomicRenameSync(tmpPath, filePath);
   try {
     fs.chmodSync(filePath, 0o600);
   } catch {

@@ -9,7 +9,7 @@ import {
   MODULE_IDS,
   type TeamPresetAuditResult,
 } from '../../core/config.js';
-import { atomicWriteJson } from '../../core/utils.js';
+import { atomicWriteJson, canonicalRealpathSync, isPathInsideDir } from '../../core/utils.js';
 
 export type { TeamPresetAuditResult };
 
@@ -754,7 +754,29 @@ const LOCAL_RUNTIME_COMMANDS = new Set([
   'perl',
   'php',
 ]);
+const KNOWN_PATH_CLI_COMMANDS = new Set([
+  ...LOCAL_RUNTIME_COMMANDS,
+  'npm',
+  'npx',
+  'pnpm',
+  'yarn',
+  'uv',
+  'uvx',
+  'docker',
+  'git',
+  'cmd',
+  'powershell',
+  'pwsh',
+]);
 const SCRIPT_EXT_RE = /\.(?:[cm]?js|[cm]?ts|py|sh|bash|zsh|rb|pl|php|exe|bin|cmd|bat)$/i;
+const WINDOWS_ABS_PATH_RE = /^[A-Za-z]:[\\/]/;
+
+function normalizeRuntimeCommandBase(command: string): string {
+  return path.posix
+    .basename(command.replace(/\\/g, '/'))
+    .toLowerCase()
+    .replace(/\.(?:exe|cmd|bat)$/i, '');
+}
 
 function containsSecretPattern(value: string): boolean {
   return SECRET_VALUE_PATTERN_RE.test(value);
@@ -948,7 +970,6 @@ function inspectMcpConfigSafe(
   relPath: string,
   realFilePath: string,
   realRoot: string,
-  rootPrefix: string,
   seenServerFiles: Map<string, string>,
 ): McpConfigInspectionResult {
   const findings: McpHealthFinding[] = [];
@@ -1049,7 +1070,7 @@ function inspectMcpConfigSafe(
   const allKeys = Object.keys(serversObj);
   const serverNames = allKeys.slice(0, 30).map(sanitizeMcpIdentifier);
   const configDir = path.dirname(realFilePath);
-  const isInsideWorkspace = (p: string): boolean => p === realRoot || p.startsWith(rootPrefix);
+  const isInsideWorkspace = (p: string): boolean => isPathInsideDir(realRoot, p);
 
   const checkLocalRelativeScript = (
     serverName: string,
@@ -1059,10 +1080,11 @@ function inspectMcpConfigSafe(
     const trimmed = candidate.trim();
     if (!trimmed || trimmed.startsWith('-') || trimmed.includes('://') || trimmed.includes('=')) return false;
     if (UNRESOLVED_PLACEHOLDER_RE.test(trimmed) || ENV_VAR_EMBED_RE.test(trimmed)) return false;
-    if (path.isAbsolute(trimmed)) return false;
+    if (path.isAbsolute(trimmed) || WINDOWS_ABS_PATH_RE.test(trimmed)) return false;
 
-    const fromConfigDir = path.resolve(configDir, trimmed);
-    const fromWorkspaceRoot = path.resolve(realRoot, trimmed);
+    const posixCandidate = trimmed.replace(/\\/g, '/');
+    const fromConfigDir = path.resolve(configDir, posixCandidate);
+    const fromWorkspaceRoot = path.resolve(realRoot, posixCandidate);
     const configInside = isInsideWorkspace(fromConfigDir);
     const rootInside = isInsideWorkspace(fromWorkspaceRoot);
 
@@ -1080,7 +1102,7 @@ function inspectMcpConfigSafe(
       if (!isInsideWorkspace(absPath)) return false;
       try {
         if (!fs.existsSync(absPath)) return false;
-        const real = fs.realpathSync(absPath);
+        const real = canonicalRealpathSync(absPath);
         return isInsideWorkspace(real);
       } catch {
         return false;
@@ -1183,8 +1205,14 @@ function inspectMcpConfigSafe(
       });
     }
 
+    const cmdBase = normalizeRuntimeCommandBase(command);
+    const isLocalRuntime = LOCAL_RUNTIME_COMMANDS.has(cmdBase);
+
     if (command) {
       recordEnvPlaceholder('command', command);
+      const isWinAbsCommand = WINDOWS_ABS_PATH_RE.test(command);
+      const hasPathSep = command.includes('/') || command.includes('\\');
+      const isBareKnownCli = !hasPathSep && KNOWN_PATH_CLI_COMMANDS.has(cmdBase);
       if (UNRESOLVED_PLACEHOLDER_RE.test(command) || ENV_VAR_EMBED_RE.test(command)) {
         pushFinding({
           severity: 'warn',
@@ -1195,7 +1223,13 @@ function inspectMcpConfigSafe(
       } else if (
         command.startsWith('./') ||
         command.startsWith('../') ||
-        (!path.isAbsolute(command) && !command.startsWith('@') && (command.includes('/') || SCRIPT_EXT_RE.test(command)))
+        command.startsWith('.\\') ||
+        command.startsWith('..\\') ||
+        (!path.isAbsolute(command) &&
+          !isWinAbsCommand &&
+          !command.startsWith('@') &&
+          !isBareKnownCli &&
+          (hasPathSep || SCRIPT_EXT_RE.test(command)))
       ) {
         const reported = checkLocalRelativeScript(safeServerName, command, 'command');
         if (!reported && containsSecretPattern(command)) {
@@ -1235,8 +1269,6 @@ function inspectMcpConfigSafe(
       }
     }
 
-    const cmdBase = path.basename(command).toLowerCase();
-    const isLocalRuntime = LOCAL_RUNTIME_COMMANDS.has(cmdBase);
     if (Array.isArray(def.args)) {
       let warnedArgPlaceholder = false;
       for (let argIdx = 0; argIdx < def.args.length; argIdx += 1) {
@@ -1257,7 +1289,12 @@ function inspectMcpConfigSafe(
           }
           continue;
         }
-        const explicitRelative = arg.startsWith('./') || arg.startsWith('../');
+        const explicitRelative =
+          arg.startsWith('./') ||
+          arg.startsWith('../') ||
+          arg.startsWith('.\\') ||
+          arg.startsWith('..\\');
+        const isWinAbsArg = WINDOWS_ABS_PATH_RE.test(arg);
         const runtimeScriptCandidate =
           isLocalRuntime &&
           !arg.startsWith('-') &&
@@ -1265,7 +1302,8 @@ function inspectMcpConfigSafe(
           !arg.includes('://') &&
           !arg.includes('=') &&
           !path.isAbsolute(arg) &&
-          (arg.includes('/') || SCRIPT_EXT_RE.test(arg));
+          !isWinAbsArg &&
+          (arg.includes('/') || arg.includes('\\') || SCRIPT_EXT_RE.test(arg));
         if (explicitRelative || runtimeScriptCandidate) {
           const reported = checkLocalRelativeScript(safeServerName, arg, 'args');
           if (!reported && containsSecretPattern(arg)) {
@@ -1392,9 +1430,6 @@ function measureDirReadOnly(
   allowedRootReal: string,
   maxDepth = 5,
 ): { bytes: number; files: number } {
-  const rootPrefix = allowedRootReal.endsWith(path.sep)
-    ? allowedRootReal
-    : `${allowedRootReal}${path.sep}`;
   let bytes = 0;
   let files = 0;
   const visited = new Set<string>();
@@ -1403,11 +1438,11 @@ function measureDirReadOnly(
     if (depth > maxDepth) return;
     let realDir: string;
     try {
-      realDir = fs.realpathSync(dir);
+      realDir = canonicalRealpathSync(dir);
     } catch {
       return;
     }
-    if (realDir !== allowedRootReal && !realDir.startsWith(rootPrefix)) return;
+    if (!isPathInsideDir(allowedRootReal, realDir)) return;
     if (visited.has(realDir)) return;
     visited.add(realDir);
 
@@ -1454,7 +1489,7 @@ function auditStorageReadOnly(rootDataDir: string | undefined): StorageAuditSumm
 
   let realDataRoot: string;
   try {
-    realDataRoot = fs.realpathSync(path.resolve(rootDataDir));
+    realDataRoot = canonicalRealpathSync(path.resolve(rootDataDir));
   } catch {
     return {
       rootDataDirExists: false,
@@ -1598,7 +1633,6 @@ type StrictReadResult =
 
 function readFileStrictNoSymlink(
   realRoot: string,
-  rootPrefix: string,
   relPosix: string,
   maxBytes: number,
 ): StrictReadResult {
@@ -1632,11 +1666,11 @@ function readFileStrictNoSymlink(
 
   let realTarget: string;
   try {
-    realTarget = fs.realpathSync(cur);
+    realTarget = canonicalRealpathSync(cur);
   } catch {
     return { ok: false, reason: 'error' };
   }
-  if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
+  if (!isPathInsideDir(realRoot, realTarget)) {
     return { ok: false, reason: 'symlink' };
   }
 
@@ -1672,7 +1706,6 @@ function readFileStrictNoSymlink(
 
 function listFilesStrictNoSymlink(
   realRoot: string,
-  rootPrefix: string,
   relBaseDir: string,
   maxDepth: number,
   maxEntries: number,
@@ -1699,11 +1732,11 @@ function listFilesStrictNoSymlink(
 
   let realBase: string;
   try {
-    realBase = fs.realpathSync(cur);
+    realBase = canonicalRealpathSync(cur);
   } catch {
     return [];
   }
-  if (realBase !== realRoot && !realBase.startsWith(rootPrefix)) return [];
+  if (!isPathInsideDir(realRoot, realBase)) return [];
 
   const results: string[] = [];
   const visited = new Set<string>();
@@ -2260,7 +2293,6 @@ type SecurityScanTargetKind = 'rule' | 'skill' | 'hook' | 'mcp' | 'client-settin
 
 function auditStaticSecurityReadOnly(
   realRoot: string,
-  rootPrefix: string,
 ): { securityFindings: OpsSecurityFinding[]; securityScore: number } {
   const findings: OpsSecurityFinding[] = [];
   const seenFindingIds = new Set<string>();
@@ -2296,7 +2328,6 @@ function auditStaticSecurityReadOnly(
   // Dynamic bounded directories (strictly no symlinks)
   for (const rel of listFilesStrictNoSymlink(
     realRoot,
-    rootPrefix,
     '.agents/rules',
     4,
     MAX_SECURITY_SCAN_FILES,
@@ -2307,7 +2338,6 @@ function auditStaticSecurityReadOnly(
 
   for (const rel of listFilesStrictNoSymlink(
     realRoot,
-    rootPrefix,
     '.cursor/rules',
     4,
     MAX_SECURITY_SCAN_FILES,
@@ -2318,7 +2348,6 @@ function auditStaticSecurityReadOnly(
 
   for (const rel of listFilesStrictNoSymlink(
     realRoot,
-    rootPrefix,
     'skills',
     2,
     MAX_SECURITY_SCAN_FILES,
@@ -2329,7 +2358,6 @@ function auditStaticSecurityReadOnly(
 
   for (const rel of listFilesStrictNoSymlink(
     realRoot,
-    rootPrefix,
     '.agents/skills',
     2,
     MAX_SECURITY_SCAN_FILES,
@@ -2343,7 +2371,6 @@ function auditStaticSecurityReadOnly(
     if (scannedCount >= MAX_SECURITY_SCAN_FILES) break;
     const read = readFileStrictNoSymlink(
       realRoot,
-      rootPrefix,
       target.relPath,
       MAX_SECURITY_SCAN_FILE_BYTES,
     );
@@ -2468,20 +2495,17 @@ function isThinRulePointer(text: string): boolean {
 
 function buildCrossClientMigrationPreviewReadOnly(
   realRoot: string,
-  rootPrefix: string,
 ): OpsMigrationPreview {
   const seenLineHashes = new Set<string>();
   const seenParaHashes = new Set<string>();
 
   const hasAgentsMd = readFileStrictNoSymlink(
     realRoot,
-    rootPrefix,
     'AGENTS.md',
     MAX_SECURITY_SCAN_FILE_BYTES,
   );
   const hasGeminiMd = readFileStrictNoSymlink(
     realRoot,
-    rootPrefix,
     'GEMINI.md',
     MAX_SECURITY_SCAN_FILE_BYTES,
   );
@@ -2498,14 +2522,13 @@ function buildCrossClientMigrationPreviewReadOnly(
 
   const canonicalAgentRules = listFilesStrictNoSymlink(
     realRoot,
-    rootPrefix,
     '.agents/rules',
     4,
     MAX_SECURITY_SCAN_FILES,
     (_rel, name) => /\.(?:md|mdx|txt)$/i.test(name),
   );
   for (const rel of canonicalAgentRules) {
-    const read = readFileStrictNoSymlink(realRoot, rootPrefix, rel, MAX_SECURITY_SCAN_FILE_BYTES);
+    const read = readFileStrictNoSymlink(realRoot, rel, MAX_SECURITY_SCAN_FILE_BYTES);
     if (read.ok) indexCanonicalText(read.text);
   }
 
@@ -2523,7 +2546,6 @@ function buildCrossClientMigrationPreviewReadOnly(
   addSource('claude', 'CLAUDE.md', false);
   for (const rel of listFilesStrictNoSymlink(
     realRoot,
-    rootPrefix,
     '.claude/rules',
     4,
     MAX_SECURITY_SCAN_FILES,
@@ -2533,7 +2555,6 @@ function buildCrossClientMigrationPreviewReadOnly(
   }
   for (const rel of listFilesStrictNoSymlink(
     realRoot,
-    rootPrefix,
     '.claude/commands',
     4,
     MAX_SECURITY_SCAN_FILES,
@@ -2547,7 +2568,6 @@ function buildCrossClientMigrationPreviewReadOnly(
   // Cursor sources
   for (const rel of listFilesStrictNoSymlink(
     realRoot,
-    rootPrefix,
     '.cursor/rules',
     4,
     MAX_SECURITY_SCAN_FILES,
@@ -2559,7 +2579,6 @@ function buildCrossClientMigrationPreviewReadOnly(
   // Codex sources
   for (const rel of listFilesStrictNoSymlink(
     realRoot,
-    rootPrefix,
     '.codex',
     4,
     MAX_SECURITY_SCAN_FILES,
@@ -2580,7 +2599,6 @@ function buildCrossClientMigrationPreviewReadOnly(
   for (const src of sources) {
     const read = readFileStrictNoSymlink(
       realRoot,
-      rootPrefix,
       src.relPath,
       MAX_SECURITY_SCAN_FILE_BYTES,
     );
@@ -2674,8 +2692,7 @@ export function auditWorkspaceAssets(
   rootDataDir?: string,
   optsOrEnabledNovTools?: number | AuditWorkspaceOptions,
 ): WorkspaceAuditReport {
-  const realRoot = fs.realpathSync(path.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
+  const realRoot = canonicalRealpathSync(path.resolve(workspaceRoot));
   const workspaceName = path.basename(realRoot) || 'workspace';
 
   const assets: WorkspaceAssetEntry[] = [];
@@ -2694,7 +2711,7 @@ export function auditWorkspaceAssets(
   let estimatedExternalTools = 0;
 
   const isInsideWorkspace = (realCandidate: string): boolean =>
-    realCandidate === realRoot || realCandidate.startsWith(rootPrefix);
+    isPathInsideDir(realRoot, realCandidate);
 
   const inspectFile = (candidatePath: string, kind: WorkspaceAssetKind): void => {
     const rawRel = path.relative(realRoot, candidatePath).replace(/\\/g, '/');
@@ -2713,7 +2730,7 @@ export function auditWorkspaceAssets(
     let realPath = candidatePath;
     if (lstat.isSymbolicLink()) {
       try {
-        realPath = fs.realpathSync(candidatePath);
+        realPath = canonicalRealpathSync(candidatePath);
       } catch {
         skippedSymlinks += 1;
         return;
@@ -2724,7 +2741,7 @@ export function auditWorkspaceAssets(
       }
     } else {
       try {
-        realPath = fs.realpathSync(candidatePath);
+        realPath = canonicalRealpathSync(candidatePath);
       } catch {
         return;
       }
@@ -2771,7 +2788,6 @@ export function auditWorkspaceAssets(
         rawRel,
         realPath,
         realRoot,
-        rootPrefix,
         seenMcpServerFiles,
       );
       mcpLiteralEnvCount += mcpInfo.envKeyCount;
@@ -2866,7 +2882,7 @@ export function auditWorkspaceAssets(
 
     let realStart: string;
     try {
-      realStart = fs.realpathSync(startDir);
+      realStart = canonicalRealpathSync(startDir);
     } catch {
       skippedSymlinks += 1;
       return;
@@ -2903,7 +2919,7 @@ export function auditWorkspaceAssets(
         if (entry.isSymbolicLink()) {
           let realSub: string;
           try {
-            realSub = fs.realpathSync(full);
+            realSub = canonicalRealpathSync(full);
           } catch {
             skippedSymlinks += 1;
             continue;
@@ -2983,7 +2999,7 @@ export function auditWorkspaceAssets(
     }
     let realTarget: string;
     try {
-      realTarget = fs.realpathSync(fullPath);
+      realTarget = canonicalRealpathSync(fullPath);
     } catch {
       skippedSymlinks += 1;
       return null;
@@ -3333,8 +3349,8 @@ export function auditWorkspaceAssets(
   }
 
   // 5. Ops 3.0 strictly read-only static security audit & cross-client dedup preview
-  const { securityFindings, securityScore } = auditStaticSecurityReadOnly(realRoot, rootPrefix);
-  const migrationPreview = buildCrossClientMigrationPreviewReadOnly(realRoot, rootPrefix);
+  const { securityFindings, securityScore } = auditStaticSecurityReadOnly(realRoot);
+  const migrationPreview = buildCrossClientMigrationPreviewReadOnly(realRoot);
 
   const highSecurityCount = securityFindings.filter((f) => f.severity === 'high').length;
   if (highSecurityCount > 0) {

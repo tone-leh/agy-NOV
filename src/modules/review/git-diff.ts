@@ -3,6 +3,12 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
+  canonicalRealpathSync,
+  isPathInsideDir,
+  isSamePath,
+  normalizePathForCompare,
+} from '../../core/utils.js';
+import {
   classifyRiskTags,
   computeFileFingerprint,
   detectLineRiskHint,
@@ -81,9 +87,21 @@ export function validateCommitRange(range: string): string {
   return trimmed;
 }
 
-export function computeRepoKey(repoPath: string): string {
-  const resolved = path.resolve(repoPath);
-  return crypto.createHash('sha256').update(resolved).digest('hex').slice(0, 16);
+export function computeRepoKey(
+  repoPath: string,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  const resolved = platform === process.platform ? path.resolve(repoPath) : repoPath;
+  let canonical = resolved;
+  if (platform === process.platform) {
+    try {
+      canonical = canonicalRealpathSync(resolved);
+    } catch {
+      // Keep resolved path when path does not exist yet
+    }
+  }
+  const normalized = normalizePathForCompare(canonical, platform);
+  return crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 16);
 }
 
 interface GitRunResult {
@@ -99,6 +117,8 @@ function runGit(cwd: string, args: string[], maxBuffer = MAX_GIT_BUFFER): GitRun
     const stdout = execFileSync('git', ['-c', 'core.quotepath=false', ...args], {
       cwd,
       encoding: 'utf8',
+      shell: false,
+      windowsHide: true,
       maxBuffer,
       timeout: 10_000,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -220,7 +240,7 @@ export function listGitWorktreesReadOnly(workspaceRoot: string): ReviewWorktreeC
 
   let toplevelReal: string;
   try {
-    toplevelReal = fs.realpathSync(path.resolve(topRes.stdout.trim()));
+    toplevelReal = canonicalRealpathSync(path.resolve(topRes.stdout.trim()));
   } catch {
     toplevelReal = path.resolve(topRes.stdout.trim());
   }
@@ -238,7 +258,7 @@ export function listGitWorktreesReadOnly(workspaceRoot: string): ReviewWorktreeC
     try {
       const resolved = path.resolve(item.rawPath);
       if (!fs.statSync(resolved).isDirectory()) continue;
-      realPath = fs.realpathSync(resolved);
+      realPath = canonicalRealpathSync(resolved);
     } catch {
       continue;
     }
@@ -296,16 +316,16 @@ export function resolveAllowedReviewTarget(
     throw new Error(`Refused: review target path "${trimmed}" is not a directory.`);
   }
 
-  const realRequested = fs.realpathSync(resolvedRequested);
+  const realRequested = canonicalRealpathSync(resolvedRequested);
 
   if (!ctx.isGitRepo) {
     let mainReal: string;
     try {
-      mainReal = fs.realpathSync(path.resolve(mainWorkspaceRoot));
+      mainReal = canonicalRealpathSync(path.resolve(mainWorkspaceRoot));
     } catch {
       mainReal = path.resolve(mainWorkspaceRoot);
     }
-    if (realRequested === mainReal) {
+    if (isSamePath(realRequested, mainReal)) {
       return { targetRepoPath: realRequested, availableWorktrees: [] };
     }
     throw new Error(
@@ -313,7 +333,7 @@ export function resolveAllowedReviewTarget(
     );
   }
 
-  const matched = ctx.worktrees.find((w) => w.path === realRequested);
+  const matched = ctx.worktrees.find((w) => isSamePath(w.path, realRequested));
   if (!matched) {
     throw new Error(
       `Refused: "${trimmed}" is not the main repository or a registered Git worktree for this workspace.`,
@@ -362,8 +382,7 @@ function buildUntrackedDiffFile(
   const normalizedRel = relPath.replace(/\\/g, '/');
   const absPath = path.resolve(repoRoot, normalizedRel);
 
-  const relativeCheck = path.relative(repoRoot, absPath);
-  if (relativeCheck.startsWith('..') || path.isAbsolute(relativeCheck)) {
+  if (!isPathInsideDir(repoRoot, absPath)) {
     const file: DiffFile = {
       path: normalizedRel,
       status: 'untracked',
@@ -571,7 +590,7 @@ export function scanGitDiff(options: ScanGitDiffOptions): ScanGitDiffResult {
 
   let repoRoot = path.resolve(topLevelRes.stdout.trim());
   try {
-    repoRoot = fs.realpathSync(repoRoot);
+    repoRoot = canonicalRealpathSync(repoRoot);
   } catch {
     // Keep resolved path when realpath fails
   }

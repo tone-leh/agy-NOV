@@ -7,9 +7,11 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [20, 22]
     steps:
       - uses: actions/checkout@v4
@@ -22,3 +24,4 @@ jobs:
       - run: npm test
       - run: node dist/cli.cjs status
       - run: node dist/cli.cjs doctor
+      - run: node workbench/server.mjs --smoke --port=0

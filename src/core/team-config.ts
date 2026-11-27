@@ -6,6 +6,7 @@ import {
   type ModuleId,
   type PresetId,
 } from './catalog.js';
+import { canonicalRealpathSync, isPathInsideDir } from './utils.js';
 
 export const TEAM_CONFIG_FILENAME = '.agy-nov.json';
 export const MAX_TEAM_CONFIG_BYTES = 64 * 1024; // 64 KiB hard cap
@@ -1115,12 +1116,11 @@ function isSensitiveRelativeTarget(relPath: string): boolean {
 export function loadTeamPresetReadOnly(workspaceRoot: string): TeamPresetAuditResult {
   let realRoot: string;
   try {
-    realRoot = fs.realpathSync(path.resolve(workspaceRoot));
+    realRoot = canonicalRealpathSync(path.resolve(workspaceRoot));
   } catch {
     return emptyNotFoundResult();
   }
 
-  const rootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
   const candidatePath = path.join(realRoot, TEAM_CONFIG_FILENAME);
 
   let lstat: fs.Stats;
@@ -1145,7 +1145,7 @@ export function loadTeamPresetReadOnly(workspaceRoot: string): TeamPresetAuditRe
 
   let realFile: string;
   try {
-    realFile = fs.realpathSync(candidatePath);
+    realFile = canonicalRealpathSync(candidatePath);
   } catch {
     return {
       found: true,
@@ -1161,7 +1161,7 @@ export function loadTeamPresetReadOnly(workspaceRoot: string): TeamPresetAuditRe
     };
   }
 
-  if (realFile !== realRoot && !realFile.startsWith(rootPrefix)) {
+  if (!isPathInsideDir(realRoot, realFile)) {
     return {
       found: true,
       filePath: TEAM_CONFIG_FILENAME,

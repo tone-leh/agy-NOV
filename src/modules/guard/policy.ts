@@ -167,6 +167,28 @@ const SENSITIVE_PATH_REGEXES: Array<{ ruleId: string; regex: RegExp; label: stri
   { ruleId: 'path.gnupg', regex: /(?:^|[/\\])\.gnupg(?:[/\\]|$)/i, label: 'GPG private keyring' },
 ];
 
+const WIN_CATASTROPHIC_TARGET_SOURCE = [
+  '[a-z]:[\\\\/](?:\\*(?:\\.\\*)?)?(?=$|[\\s"\'`;|&)])',
+  '[a-z]:[\\\\/]windows(?:[\\\\/][^\\s"\'`;|&]{0,120})?(?=$|[\\s"\'`;|&)])',
+  '[a-z]:[\\\\/]program\\s+files(?:\\s*\\(x86\\))?(?:[\\\\/][^\\r\\n"\'`;|&]{0,120})?(?=$|[\\s"\'`;|&)])',
+  '[a-z]:[\\\\/]users(?:[\\\\/](?:\\*(?:\\.\\*)?)?)?(?=$|[\\s"\'`;|&)])',
+  '%userprofile%(?:[\\\\/](?:\\*(?:\\.\\*)?)?)?(?=$|[\\s"\'`;|&)])',
+  '\\$env:userprofile(?:[\\\\/](?:\\*(?:\\.\\*)?)?)?(?=$|[\\s"\'`;|&)])',
+  '%(?:systemroot|windir)%(?:[\\\\/][^\\s"\'`;|&]{0,120})?(?=$|[\\s"\'`;|&)])',
+  '\\$env:(?:systemroot|windir)(?:[\\\\/][^\\s"\'`;|&]{0,120})?(?=$|[\\s"\'`;|&)])',
+].join('|');
+
+const WIN_PS_TARGET_SOURCE = [
+  WIN_CATASTROPHIC_TARGET_SOURCE,
+  '~(?:[\\\\/](?:\\*)?)?(?=$|[\\s"\'`;|&)])',
+  '\\/(?:\\*)?(?=$|[\\s"\'`;|&)])',
+].join('|');
+
+const WIN_CMD_RMDIR_TARGET_SOURCE = [
+  WIN_PS_TARGET_SOURCE,
+  '\\*(?:\\.\\*)?(?=$|[\\s"\'`;|&)])',
+].join('|');
+
 const DESTRUCTIVE_COMMAND_RULES: Array<{ ruleId: string; regex: RegExp; label: string }> = [
   {
     ruleId: 'cmd.git-force-push',
@@ -182,6 +204,35 @@ const DESTRUCTIVE_COMMAND_RULES: Array<{ ruleId: string; regex: RegExp; label: s
     ruleId: 'cmd.disk-format',
     regex: /\b(?:mkfs\.[a-z0-9]+|dd\s+if=.*of=\/dev\/|diskutil\s+eraseDisk)\b/i,
     label: 'Raw disk wipe / format command',
+  },
+  {
+    ruleId: 'cmd.win-ps-rm-root',
+    regex: new RegExp(
+      `\\b(?:remove-item|ri|rm|del|erase|rd|rmdir)(?:\\.exe)?\\b(?=[^\\r\\n;&|]{0,200}\\s-(?:r|re|rec|recu|recur|recurs|recurse)\\b)[^\\r\\n;&|]{0,200}(?:[\\s"'\`=]|-(?:literal)?path:)(?:${WIN_PS_TARGET_SOURCE})`,
+      'i',
+    ),
+    label: 'Destructive PowerShell recursive delete targeting drive root or system/user directory',
+  },
+  {
+    ruleId: 'cmd.win-cmd-rmdir-root',
+    regex: new RegExp(
+      `\\b(?:rmdir|rd)(?:\\.exe)?\\b(?=[^\\r\\n;&|]{0,200}(?:\\s|(?<=\\b(?:rmdir|rd)(?:\\.exe)?))(?:\\/[a-z]){0,3}\\/s(?=$|[\\s/"'\`;|&]))[^\\r\\n;&|]{0,200}[\\s"'\`](?:${WIN_CMD_RMDIR_TARGET_SOURCE})`,
+      'i',
+    ),
+    label: 'Destructive cmd rmdir /s targeting drive root, system/user directory, or wildcard',
+  },
+  {
+    ruleId: 'cmd.win-cmd-del-root',
+    regex: new RegExp(
+      `\\b(?:del|erase)(?:\\.exe)?\\b(?=[^\\r\\n;&|]{0,200}(?:\\s|(?<=\\b(?:del|erase)(?:\\.exe)?))(?:\\/[a-z]){0,3}\\/s(?=$|[\\s/"'\`;|&]))[^\\r\\n;&|]{0,200}[\\s"'\`](?:${WIN_CATASTROPHIC_TARGET_SOURCE})`,
+      'i',
+    ),
+    label: 'Destructive cmd del/erase /s targeting drive root or system/user directory',
+  },
+  {
+    ruleId: 'cmd.win-disk-wipe',
+    regex: /(?:^|[;&|(\r\n]\s*|\bcmd(?:\.exe)?\s+\/[ck]\s+["']?\s*|\b(?:powershell|pwsh)(?:\.exe)?\s+(?:-[a-z0-9_-]{1,24}\s+){0,4}["']?\s*)(?:format(?:\.com|\.exe)?\s+(?:\/[a-z0-9:_-]{1,24}\s+){0,6}[a-z]:(?=$|[\s"'`;|&)])|(?:clear-disk|diskpart(?:\.exe)?)(?=$|[\s"'`;|&)]))/i,
+    label: 'Windows disk format / wipe command (format / Clear-Disk / diskpart)',
   },
   {
     ruleId: 'cmd.chmod-777',
@@ -200,8 +251,18 @@ const SQL_DESTRUCTIVE_REGEX = /\b(?:DROP\s+(?:DATABASE|SCHEMA|TABLE)|TRUNCATE\s+
 const NETWORK_PIPE_RULES: Array<{ ruleId: string; regex: RegExp; label: string }> = [
   {
     ruleId: 'cmd.curl-pipe-shell',
-    regex: /\b(?:curl|wget)\b[^\n|]*\|\s*(?:sudo\s+)?(?:sh|bash|zsh|fish|python3?|node)\b/,
+    regex: /\b(?:curl|wget)(?:\.exe)?\b[^\r\n|]{0,300}\|\s*(?:sudo\s+)?(?:sh|bash|zsh|fish|python3?|node|powershell(?:\.exe)?|pwsh(?:\.exe)?|iex|invoke-expression)\b/i,
     label: 'Remote script piped directly into shell/interpreter',
+  },
+  {
+    ruleId: 'cmd.ps-irm-iex',
+    regex: /\b(?:irm|iwr|invoke-restmethod|invoke-webrequest)\b[^\r\n|]{0,240}\|\s*(?:iex|invoke-expression|powershell(?:\.exe)?|pwsh(?:\.exe)?|sh|bash)\b/i,
+    label: 'PowerShell remote script piped directly into Invoke-Expression',
+  },
+  {
+    ruleId: 'cmd.ps-iex-subexpr',
+    regex: /\b(?:iex|invoke-expression)\s*\([^)\r\n]{0,240}\b(?:irm|iwr|invoke-restmethod|invoke-webrequest|downloadstring)\b/i,
+    label: 'PowerShell Invoke-Expression executing remote downloaded script',
   },
 ];
 
@@ -209,11 +270,30 @@ const CATASTROPHIC_SYSTEM_ROOT_PREFIX_RE =
   /^\/(?:etc|usr|bin|sbin|lib|lib64|boot|dev|proc|sys|root|System|Library)(?:\/|$)/;
 const CATASTROPHIC_TOP_LEVEL_DIR_RE =
   /^\/(?:var|home|Users|Applications|opt)(?:\/?\*?)?$/;
+const CATASTROPHIC_WIN_TARGET_RE = new RegExp(`^(?:${WIN_CATASTROPHIC_TARGET_SOURCE})$`, 'i');
+
+function isWindowsPathBackslash(current: string, nextChar: string | undefined): boolean {
+  if (/^[A-Za-z]:/.test(current)) return true;
+  if (/^\.\.?$/.test(current) && nextChar !== undefined && !/[\s"'|&;<>]/.test(nextChar)) {
+    return true;
+  }
+  if (/^\.\.?\\/.test(current)) return true;
+  if ((current === '' && nextChar === '\\') || current === '\\' || current.startsWith('\\\\')) {
+    return true;
+  }
+  return false;
+}
+
+function normalizeShellCommandName(rawToken: string): string {
+  const base = path.posix.basename(rawToken.replace(/\\/g, '/')).toLowerCase();
+  return base.replace(/\.(?:exe|cmd|bat)$/i, '');
+}
 
 function splitShellSegments(commandLine: string): Array<{ segment: string; pipedToNext: boolean }> {
   const segments: Array<{ segment: string; pipedToNext: boolean }> = [];
   let current = '';
   let quote: '"' | "'" | null = null;
+  let quoteStartIdx = -1;
   let escaped = false;
 
   for (let i = 0; i < commandLine.length; i++) {
@@ -224,17 +304,28 @@ function splitShellSegments(commandLine: string): Array<{ segment: string; piped
       continue;
     }
     if (ch === '\\' && quote !== "'") {
+      if (quote === '"' && commandLine[i + 1] === '"' && quoteStartIdx >= 0) {
+        const inside = current.slice(quoteStartIdx);
+        if (/^(?:[A-Za-z]:|\.\.?\\|\\\\)/.test(inside)) {
+          current += ch;
+          continue;
+        }
+      }
       current += ch;
       escaped = true;
       continue;
     }
     if (quote) {
-      if (ch === quote) quote = null;
+      if (ch === quote) {
+        quote = null;
+        quoteStartIdx = -1;
+      }
       current += ch;
       continue;
     }
     if (ch === '"' || ch === "'") {
       quote = ch;
+      quoteStartIdx = current.length + 1;
       current += ch;
       continue;
     }
@@ -275,6 +366,10 @@ function tokenizeSimpleShellSegment(segment: string): string[] {
       continue;
     }
     if (ch === '\\' && quote !== "'") {
+      if (isWindowsPathBackslash(current, segment[i + 1])) {
+        current += ch;
+        continue;
+      }
       escaped = true;
       continue;
     }
@@ -304,7 +399,14 @@ function stripCommandWrappers(tokens: string[]): string[] {
   let idx = 0;
   while (idx < tokens.length) {
     const tok = tokens[idx];
-    if (tok === 'sudo' || tok === 'env' || tok === 'command' || tok === 'nohup' || tok === 'time') {
+    const normTok = normalizeShellCommandName(tok);
+    if (
+      normTok === 'sudo' ||
+      normTok === 'env' ||
+      normTok === 'command' ||
+      normTok === 'nohup' ||
+      normTok === 'time'
+    ) {
       idx++;
       while (idx < tokens.length && tokens[idx].startsWith('-')) {
         const flag = tokens[idx];
@@ -325,6 +427,9 @@ function stripCommandWrappers(tokens: string[]): string[] {
 function isCatastrophicRmTarget(rawTarget: string): boolean {
   const trimmed = rawTarget.trim();
   if (!trimmed) return false;
+  if (CATASTROPHIC_WIN_TARGET_RE.test(trimmed)) {
+    return true;
+  }
   const collapsed = trimmed.replace(/\/+/g, '/');
   const candidates = [collapsed];
   if (collapsed.startsWith('/')) {
@@ -367,7 +472,7 @@ function isCatastrophicRmCommand(commandLine: string): boolean {
   for (const { segment } of splitShellSegments(commandLine)) {
     const tokens = stripCommandWrappers(tokenizeSimpleShellSegment(segment));
     if (tokens.length < 2) continue;
-    const cmd = path.posix.basename(tokens[0].replace(/\\/g, '/'));
+    const cmd = normalizeShellCommandName(tokens[0]);
     if (cmd !== 'rm') continue;
 
     let hasRecursive = false;
@@ -433,7 +538,7 @@ function hasDangerousSqlCommand(commandLine: string): boolean {
     const tokens = stripCommandWrappers(tokenizeSimpleShellSegment(segment));
     if (tokens.length === 0) return true;
 
-    const cmd = path.posix.basename(tokens[0].replace(/\\/g, '/')).toLowerCase();
+    const cmd = normalizeShellCommandName(tokens[0]);
     const sub = (tokens[1] ?? '').toLowerCase();
 
     const hasRedirection = hasUnquotedRedirection(segment);

@@ -1,6 +1,8 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { atomicRenameSync } from './utils.js';
 import {
   countEnabledModelTools,
   isModuleDomainId,
@@ -181,9 +183,9 @@ export function saveNovConfig(rootDataDir: string, config: NovConfig): NovConfig
     // ignore
   }
   const cfgPath = getConfigPath(rootDataDir);
-  const tmpPath = `${cfgPath}.tmp.${process.pid}.${Date.now()}`;
+  const tmpPath = `${cfgPath}.tmp.${process.pid}.${Date.now()}.${crypto.randomBytes(4).toString('hex')}`;
   fs.writeFileSync(tmpPath, `${JSON.stringify(normalized, null, 2)}\n`, { mode: 0o600 });
-  fs.renameSync(tmpPath, cfgPath);
+  atomicRenameSync(tmpPath, cfgPath);
   return normalized;
 }
 
@@ -197,7 +199,7 @@ export function loadOrInitNovConfig(rootDataDir: string): NovConfig {
     return normalizeConfig(raw);
   } catch {
     try {
-      fs.renameSync(cfgPath, `${cfgPath}.corrupt.${Date.now()}`);
+      atomicRenameSync(cfgPath, `${cfgPath}.corrupt.${Date.now()}`, process.platform, false);
     } catch {
       // ignore
     }

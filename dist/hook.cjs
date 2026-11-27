@@ -37,9 +37,359 @@ var import_node_fs18 = __toESM(require("node:fs"), 1);
 var import_node_path19 = __toESM(require("node:path"), 1);
 
 // src/core/config.ts
-var import_node_fs = __toESM(require("node:fs"), 1);
+var import_node_fs2 = __toESM(require("node:fs"), 1);
 var import_node_os = __toESM(require("node:os"), 1);
+var import_node_path2 = __toESM(require("node:path"), 1);
+
+// src/core/utils.ts
+var import_node_crypto = __toESM(require("node:crypto"), 1);
+var import_node_fs = __toESM(require("node:fs"), 1);
 var import_node_path = __toESM(require("node:path"), 1);
+var RETRYABLE_WIN_RENAME_CODES = /* @__PURE__ */ new Set(["EPERM", "EBUSY", "EACCES"]);
+var WIN_RETRY_SLEEP_BUF = new Int32Array(new SharedArrayBuffer(4));
+function syncSleepMs(ms) {
+  if (ms <= 0) return;
+  try {
+    Atomics.wait(WIN_RETRY_SLEEP_BUF, 0, 0, ms);
+  } catch {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+    }
+  }
+}
+function canonicalRealpathSync(targetPath) {
+  const nativeFn = import_node_fs.default.realpathSync.native;
+  return typeof nativeFn === "function" ? nativeFn(targetPath) : import_node_fs.default.realpathSync(targetPath);
+}
+function normalizePathForCompare(p, platform = process.platform) {
+  if (!p) return "";
+  if (platform === "win32") {
+    let winPath = p.replace(/\//g, "\\");
+    if (/^\\\\\?\\UNC\\/i.test(winPath)) {
+      winPath = `\\\\${winPath.slice(8)}`;
+    } else if (/^\\\\\?\\[A-Za-z]:\\/.test(winPath)) {
+      winPath = winPath.slice(4);
+    }
+    const norm2 = import_node_path.default.win32.normalize(winPath);
+    const isDriveRoot = /^[A-Za-z]:\\$/.test(norm2);
+    const trimmed = !isDriveRoot && norm2.length > 1 && norm2.endsWith("\\") ? norm2.replace(/\\+$/, "") : norm2;
+    return trimmed.toLowerCase();
+  }
+  const norm = import_node_path.default.posix.normalize(p);
+  return norm.length > 1 && norm.endsWith("/") ? norm.replace(/\/+$/, "") : norm;
+}
+function isSamePath(a, b, platform = process.platform) {
+  return normalizePathForCompare(a, platform) === normalizePathForCompare(b, platform);
+}
+function isPathInsideDir(rootReal, targetReal, platform = process.platform) {
+  const normRoot = normalizePathForCompare(rootReal, platform);
+  const normTarget = normalizePathForCompare(targetReal, platform);
+  if (!normRoot || !normTarget) return false;
+  if (normTarget === normRoot) return true;
+  const sep = platform === "win32" ? "\\" : "/";
+  const prefix = normRoot.endsWith(sep) ? normRoot : `${normRoot}${sep}`;
+  return normTarget.startsWith(prefix);
+}
+function isPlatformSystemSymlink(segmentPath, platform = process.platform) {
+  if (platform === "darwin") {
+    return /^\/(?:var|tmp|etc)$/.test(segmentPath);
+  }
+  if (platform === "linux") {
+    return /^\/(?:home|tmp|var\/run|var\/lock|bin|sbin|lib|lib64)$/.test(segmentPath);
+  }
+  if (platform === "win32") {
+    return /^[A-Za-z]:[\\/]?$/.test(segmentPath);
+  }
+  return false;
+}
+function hasUnsafeSymlinkAncestor(targetPath, platform = process.platform) {
+  let cur = import_node_path.default.resolve(targetPath);
+  const root = import_node_path.default.parse(cur).root;
+  while (true) {
+    if (cur === root) return false;
+    if (!isPlatformSystemSymlink(cur, platform)) {
+      try {
+        const st = import_node_fs.default.lstatSync(cur);
+        if (st.isSymbolicLink()) return true;
+      } catch (err) {
+        const code = err?.code;
+        if (code !== "ENOENT") return true;
+      }
+    }
+    const parent = import_node_path.default.dirname(cur);
+    if (parent === cur) return false;
+    cur = parent;
+  }
+}
+function atomicRenameSync(tmpPath, targetPath, platform = process.platform, cleanupSourceOnError = true) {
+  const retryDelays = platform === "win32" ? [10, 20, 40, 60, 80] : [];
+  let lastErr;
+  for (let attempt = 0; attempt <= retryDelays.length; attempt += 1) {
+    try {
+      import_node_fs.default.renameSync(tmpPath, targetPath);
+      return;
+    } catch (err) {
+      lastErr = err;
+      const code = err?.code ?? "";
+      if (attempt < retryDelays.length && RETRYABLE_WIN_RENAME_CODES.has(code)) {
+        syncSleepMs(retryDelays[attempt]);
+        continue;
+      }
+      break;
+    }
+  }
+  if (cleanupSourceOnError) {
+    try {
+      if (import_node_fs.default.existsSync(tmpPath)) import_node_fs.default.unlinkSync(tmpPath);
+    } catch {
+    }
+  }
+  throw lastErr;
+}
+var NODE_JS_BIN_MAP = {
+  tsc: { pkg: "typescript", binKey: "tsc", fallbackPaths: ["bin/tsc"], allowWorkspaceLocal: true },
+  eslint: { pkg: "eslint", binKey: "eslint", fallbackPaths: ["bin/eslint.js"], allowWorkspaceLocal: true },
+  vitest: { pkg: "vitest", binKey: "vitest", fallbackPaths: ["vitest.mjs"], allowWorkspaceLocal: true },
+  jest: { pkg: "jest", binKey: "jest", fallbackPaths: ["bin/jest.js"], allowWorkspaceLocal: true },
+  pnpm: { pkg: "pnpm", binKey: "pnpm", fallbackPaths: ["bin/pnpm.cjs"], allowWorkspaceLocal: false },
+  yarn: { pkg: "yarn", binKey: "yarn", fallbackPaths: ["bin/yarn.js"], allowWorkspaceLocal: false }
+};
+function findJsBinEntryInNodeModules(baseDir, pkg, binKey, fallbackPaths, platform) {
+  let realBase;
+  try {
+    realBase = canonicalRealpathSync(baseDir);
+  } catch {
+    return null;
+  }
+  const pkgDir = import_node_path.default.join(realBase, "node_modules", pkg);
+  let realPkg;
+  try {
+    realPkg = canonicalRealpathSync(pkgDir);
+    if (!import_node_fs.default.statSync(realPkg).isDirectory()) return null;
+    if (!isPathInsideDir(realBase, realPkg, platform)) return null;
+  } catch {
+    return null;
+  }
+  const pkgJsonPath = import_node_path.default.join(realPkg, "package.json");
+  try {
+    if (import_node_fs.default.existsSync(pkgJsonPath) && import_node_fs.default.statSync(pkgJsonPath).isFile()) {
+      const parsed = JSON.parse(import_node_fs.default.readFileSync(pkgJsonPath, "utf8"));
+      const relBin = typeof parsed.bin === "string" ? parsed.bin : parsed.bin && typeof parsed.bin === "object" ? parsed.bin[binKey] : void 0;
+      if (typeof relBin === "string" && relBin.trim()) {
+        const absBin = import_node_path.default.resolve(realPkg, relBin.trim());
+        if (import_node_fs.default.existsSync(absBin)) {
+          const realBin = canonicalRealpathSync(absBin);
+          if (import_node_fs.default.statSync(realBin).isFile() && isPathInsideDir(realBase, realBin, platform) && isPathInsideDir(realPkg, realBin, platform) && /\.(?:c|m)?js$/i.test(realBin)) {
+            return realBin;
+          }
+        }
+      }
+    }
+  } catch {
+  }
+  for (const rel of fallbackPaths) {
+    const abs = import_node_path.default.resolve(realPkg, rel);
+    try {
+      if (import_node_fs.default.existsSync(abs)) {
+        const realBin = canonicalRealpathSync(abs);
+        if (import_node_fs.default.statSync(realBin).isFile() && isPathInsideDir(realBase, realBin, platform) && isPathInsideDir(realPkg, realBin, platform)) {
+          return realBin;
+        }
+      }
+    } catch {
+    }
+  }
+  return null;
+}
+function resolveSafeSpawnTarget(executable, args, opts = {}) {
+  const platform = opts.platform ?? process.platform;
+  if (platform !== "win32") {
+    return { command: executable, args: [...args] };
+  }
+  const execPath = opts.execPath ?? process.execPath;
+  const env = opts.env ?? process.env;
+  const lower = executable.toLowerCase();
+  const nodeDir = import_node_path.default.dirname(execPath);
+  const trustedGlobalRootsRaw = [nodeDir];
+  if (env.APPDATA) trustedGlobalRootsRaw.push(import_node_path.default.join(env.APPDATA, "npm"));
+  if (env.ProgramFiles) trustedGlobalRootsRaw.push(import_node_path.default.join(env.ProgramFiles, "nodejs"));
+  if (env.NVM_SYMLINK) trustedGlobalRootsRaw.push(env.NVM_SYMLINK);
+  if (env.NVM_HOME) trustedGlobalRootsRaw.push(env.NVM_HOME);
+  const trustedGlobalRealRoots = [];
+  for (const rootCand of trustedGlobalRootsRaw) {
+    try {
+      const realRoot = canonicalRealpathSync(rootCand);
+      if (import_node_fs.default.statSync(realRoot).isDirectory()) {
+        trustedGlobalRealRoots.push(realRoot);
+      }
+    } catch {
+    }
+  }
+  if (lower === "npm" || lower === "npx") {
+    const targetScript = lower === "npm" ? "npm-cli.js" : "npx-cli.js";
+    const envExec = lower === "npm" ? env.npm_execpath : void 0;
+    if (typeof envExec === "string" && envExec.trim() && /npm-cli\.js$/i.test(envExec.trim())) {
+      try {
+        const realEnvExec = canonicalRealpathSync(envExec.trim());
+        if (import_node_fs.default.statSync(realEnvExec).isFile() && trustedGlobalRealRoots.some((root) => isPathInsideDir(root, realEnvExec, platform))) {
+          return {
+            command: execPath,
+            args: [realEnvExec, ...args],
+            resolvedViaNodeJs: true
+          };
+        }
+      } catch {
+      }
+    }
+    for (const trustedRoot of trustedGlobalRealRoots) {
+      const cand = import_node_path.default.join(trustedRoot, "node_modules", "npm", "bin", targetScript);
+      try {
+        if (import_node_fs.default.existsSync(cand)) {
+          const realCand = canonicalRealpathSync(cand);
+          if (import_node_fs.default.statSync(realCand).isFile() && isPathInsideDir(trustedRoot, realCand, platform)) {
+            return {
+              command: execPath,
+              args: [realCand, ...args],
+              resolvedViaNodeJs: true
+            };
+          }
+        }
+      } catch {
+      }
+    }
+  }
+  const binSpec = NODE_JS_BIN_MAP[lower];
+  if (binSpec) {
+    const searchBases = [];
+    if (binSpec.allowWorkspaceLocal && opts.cwd) {
+      searchBases.push(import_node_path.default.resolve(opts.cwd));
+    }
+    searchBases.push(...trustedGlobalRealRoots);
+    for (const base of searchBases) {
+      const jsBin = findJsBinEntryInNodeModules(
+        base,
+        binSpec.pkg,
+        binSpec.binKey,
+        binSpec.fallbackPaths,
+        platform
+      );
+      if (jsBin) {
+        return {
+          command: execPath,
+          args: [jsBin, ...args],
+          resolvedViaNodeJs: true
+        };
+      }
+    }
+  }
+  if (lower === "python3") {
+    return { command: "python", args: [...args] };
+  }
+  return { command: executable, args: [...args] };
+}
+function parseCliFlag(argv, flag) {
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === flag && i + 1 < argv.length) {
+      return argv[i + 1];
+    }
+    if (arg.startsWith(`${flag}=`)) {
+      return arg.slice(flag.length + 1);
+    }
+  }
+  return void 0;
+}
+function ensurePrivateDir(dirPath) {
+  import_node_fs.default.mkdirSync(dirPath, { recursive: true, mode: 448 });
+  try {
+    import_node_fs.default.chmodSync(dirPath, 448);
+  } catch {
+  }
+}
+function atomicWriteJson(filePath, data) {
+  ensurePrivateDir(import_node_path.default.dirname(filePath));
+  const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}.${import_node_crypto.default.randomBytes(4).toString("hex")}`;
+  import_node_fs.default.writeFileSync(tmpPath, `${JSON.stringify(data, null, 2)}
+`, { mode: 384 });
+  atomicRenameSync(tmpPath, filePath);
+}
+function normalizeHookEvent(rawEvent, fallback) {
+  if (rawEvent === "SessionStart" || rawEvent === "PreToolUse" || rawEvent === "PostToolUse" || rawEvent === "PreInvocation" || rawEvent === "PostInvocation" || rawEvent === "Stop") {
+    return rawEvent;
+  }
+  return fallback;
+}
+function asRecord(val) {
+  if (val && typeof val === "object" && !Array.isArray(val)) {
+    return val;
+  }
+  return void 0;
+}
+function normalizeHookPayload(rawInput, fallbackEvent) {
+  const raw = asRecord(rawInput) ?? {};
+  const toolCall = asRecord(raw.toolCall) ?? asRecord(raw.tool_call);
+  const toolNameCandidate = toolCall?.name ?? raw.toolName ?? raw.tool_name ?? raw.name ?? void 0;
+  const toolName = typeof toolNameCandidate === "string" ? toolNameCandidate : void 0;
+  const toolInputRaw = toolCall?.args ?? toolCall?.arguments ?? toolCall?.input ?? raw.toolInput ?? raw.tool_input ?? raw.arguments ?? raw.input;
+  let toolInput;
+  if (typeof toolInputRaw === "string") {
+    try {
+      toolInput = asRecord(JSON.parse(toolInputRaw));
+    } catch {
+      toolInput = { raw: toolInputRaw };
+    }
+  } else {
+    toolInput = asRecord(toolInputRaw);
+  }
+  const workspacePaths = [];
+  if (Array.isArray(raw.workspacePaths)) {
+    for (const p of raw.workspacePaths) {
+      if (typeof p === "string" && p.trim()) workspacePaths.push(p);
+    }
+  }
+  if (Array.isArray(raw.workspace_paths)) {
+    for (const p of raw.workspace_paths) {
+      if (typeof p === "string" && p.trim() && !workspacePaths.includes(p)) {
+        workspacePaths.push(p);
+      }
+    }
+  }
+  const singleWorkspace = typeof raw.workspaceRoot === "string" && raw.workspaceRoot || typeof raw.workspace_root === "string" && raw.workspace_root || typeof raw.cwd === "string" && raw.cwd || workspacePaths[0];
+  if (singleWorkspace && !workspacePaths.includes(singleWorkspace)) {
+    workspacePaths.unshift(singleWorkspace);
+  }
+  const event = normalizeHookEvent(raw.hookEventName ?? raw.hook_event_name ?? raw.event, fallbackEvent);
+  const conversationId = typeof raw.conversationId === "string" && raw.conversationId || typeof raw.conversation_id === "string" && raw.conversation_id || void 0;
+  const parentConversationId = typeof raw.parentConversationId === "string" && raw.parentConversationId || typeof raw.parent_conversation_id === "string" && raw.parent_conversation_id || typeof raw.rootConversationId === "string" && raw.rootConversationId || typeof raw.root_conversation_id === "string" && raw.root_conversation_id || (typeof process.env.ANTIGRAVITY_PARENT_CONVERSATION_ID === "string" && process.env.ANTIGRAVITY_PARENT_CONVERSATION_ID.trim() ? process.env.ANTIGRAVITY_PARENT_CONVERSATION_ID.trim() : void 0);
+  const agentRole = typeof raw.agentRole === "string" && raw.agentRole || typeof raw.agent_role === "string" && raw.agent_role || typeof raw.subagentRole === "string" && raw.subagentRole || typeof raw.subagent_role === "string" && raw.subagent_role || void 0;
+  const continuationActive = typeof raw.continuationActive === "boolean" ? raw.continuationActive : typeof raw.continuation_active === "boolean" ? raw.continuation_active : void 0;
+  const transcriptPath = typeof raw.transcriptPath === "string" && raw.transcriptPath || typeof raw.transcript_path === "string" && raw.transcript_path || void 0;
+  const lastUserInput = typeof raw.lastUserInput === "string" && raw.lastUserInput || typeof raw.last_user_input === "string" && raw.last_user_input || void 0;
+  const terminationReason = typeof raw.terminationReason === "string" && raw.terminationReason || typeof raw.termination_reason === "string" && raw.termination_reason || void 0;
+  const pluginData = typeof raw.pluginData === "string" && raw.pluginData || typeof raw.plugin_data === "string" && raw.plugin_data || void 0;
+  const toolCallId = typeof toolCall?.id === "string" && toolCall.id || typeof raw.toolCallId === "string" && raw.toolCallId || void 0;
+  const stepIdx = typeof raw.stepIdx === "number" ? raw.stepIdx : typeof raw.step_idx === "number" ? raw.step_idx : void 0;
+  return {
+    event,
+    conversationId,
+    parentConversationId,
+    agentRole,
+    continuationActive,
+    workspacePaths,
+    workspaceRoot: singleWorkspace,
+    cwd: typeof raw.cwd === "string" ? raw.cwd : singleWorkspace,
+    transcriptPath,
+    lastUserInput,
+    terminationReason,
+    error: raw.error,
+    stepIdx,
+    toolCallId,
+    toolName,
+    toolInput,
+    pluginData,
+    raw
+  };
+}
 
 // src/core/catalog.ts
 var MODULE_IDS = [
@@ -525,16 +875,16 @@ function sanitizeDataDirCandidate(candidate) {
   const trimmed = candidate.trim();
   if (!trimmed) return void 0;
   if (/\$\{?[A-Za-z_][A-Za-z0-9_]*\}?/.test(trimmed)) return void 0;
-  return import_node_path.default.resolve(trimmed);
+  return import_node_path2.default.resolve(trimmed);
 }
 function resolveNovDataDir(cliDataDir) {
-  return sanitizeDataDirCandidate(cliDataDir) ?? sanitizeDataDirCandidate(process.env.AGY_NOV_DATA_DIR) ?? sanitizeDataDirCandidate(process.env.PLUGIN_DATA) ?? import_node_path.default.join(import_node_os.default.homedir(), ".agy-nov-data");
+  return sanitizeDataDirCandidate(cliDataDir) ?? sanitizeDataDirCandidate(process.env.AGY_NOV_DATA_DIR) ?? sanitizeDataDirCandidate(process.env.PLUGIN_DATA) ?? import_node_path2.default.join(import_node_os.default.homedir(), ".agy-nov-data");
 }
 function getModuleDataDir(rootDataDir, moduleId) {
-  return import_node_path.default.join(rootDataDir, "modules", moduleId);
+  return import_node_path2.default.join(rootDataDir, "modules", moduleId);
 }
 function getConfigPath(rootDataDir) {
-  return import_node_path.default.join(rootDataDir, "config.json");
+  return import_node_path2.default.join(rootDataDir, "config.json");
 }
 function createDefaultConfig() {
   return {
@@ -583,11 +933,11 @@ function normalizeConfig(raw) {
 }
 function loadNovConfigReadOnly(rootDataDir) {
   const cfgPath = getConfigPath(rootDataDir);
-  if (!import_node_fs.default.existsSync(cfgPath)) {
+  if (!import_node_fs2.default.existsSync(cfgPath)) {
     return createDefaultConfig();
   }
   try {
-    const raw = JSON.parse(import_node_fs.default.readFileSync(cfgPath, "utf8"));
+    const raw = JSON.parse(import_node_fs2.default.readFileSync(cfgPath, "utf8"));
     return normalizeConfig(raw);
   } catch {
     return createDefaultConfig();
@@ -596,10 +946,10 @@ function loadNovConfigReadOnly(rootDataDir) {
 var MAX_CONFIG_IMPORT_BYTES = 32 * 1024;
 
 // src/core/feed.ts
-var import_node_crypto = __toESM(require("node:crypto"), 1);
-var import_node_fs2 = __toESM(require("node:fs"), 1);
-var import_node_path2 = __toESM(require("node:path"), 1);
-var FEED_SNAPSHOT_VERSION = "1.0.0";
+var import_node_crypto2 = __toESM(require("node:crypto"), 1);
+var import_node_fs3 = __toESM(require("node:fs"), 1);
+var import_node_path3 = __toESM(require("node:path"), 1);
+var FEED_SNAPSHOT_VERSION = "1.0.1";
 var FEED_SNAPSHOT_FILENAME = "feed-snapshot.json";
 var MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
 var MAX_FEED_ALERTS = 6;
@@ -806,39 +1156,15 @@ function redactFeedText(input, maxLen = 180) {
   out = out.replace(/[\x00-\x1f\x7f]+/g, " ").replace(/\s+/g, " ").trim();
   return truncateUtf16Safe(out, maxLen);
 }
-function isPlatformSystemRootSymlink(segmentPath) {
-  return process.platform === "darwin" && /^\/(?:var|tmp|etc)$/.test(segmentPath);
-}
-function hasUnsafeSymlinkAncestor(targetPath) {
-  let cur = import_node_path2.default.resolve(targetPath);
-  const root = import_node_path2.default.parse(cur).root;
-  while (true) {
-    if (!isPlatformSystemRootSymlink(cur)) {
-      try {
-        const st = import_node_fs2.default.lstatSync(cur);
-        if (st.isSymbolicLink()) return true;
-      } catch (err) {
-        const code = err?.code;
-        if (code !== "ENOENT") return true;
-      }
-    }
-    if (cur === root) return false;
-    const parent = import_node_path2.default.dirname(cur);
-    if (parent === cur) return false;
-    cur = parent;
-  }
-}
 function isWithinRealBase(childReal, baseReal) {
-  if (childReal === baseReal) return true;
-  const prefix = baseReal.endsWith(import_node_path2.default.sep) ? baseReal : `${baseReal}${import_node_path2.default.sep}`;
-  return childReal.startsWith(prefix);
+  return isPathInsideDir(baseReal, childReal);
 }
 function resolveSafeRealDir(dirPath) {
   if (hasUnsafeSymlinkAncestor(dirPath)) return null;
   try {
-    const st = import_node_fs2.default.lstatSync(dirPath);
+    const st = import_node_fs3.default.lstatSync(dirPath);
     if (st.isSymbolicLink() || !st.isDirectory()) return null;
-    return import_node_fs2.default.realpathSync(dirPath);
+    return canonicalRealpathSync(dirPath);
   } catch {
     return null;
   }
@@ -846,26 +1172,26 @@ function resolveSafeRealDir(dirPath) {
 function readSafeModuleJson(rootDataDir, moduleId, fileName) {
   const realRoot = resolveSafeRealDir(rootDataDir);
   if (!realRoot) return null;
-  const modulesRoot = import_node_path2.default.join(realRoot, "modules");
+  const modulesRoot = import_node_path3.default.join(realRoot, "modules");
   const realModules = resolveSafeRealDir(modulesRoot);
   if (!realModules || !isWithinRealBase(realModules, realRoot)) return null;
-  const modDir = import_node_path2.default.join(realModules, moduleId);
+  const modDir = import_node_path3.default.join(realModules, moduleId);
   const realMod = resolveSafeRealDir(modDir);
   if (!realMod || !isWithinRealBase(realMod, realModules)) return null;
-  const targetPath = import_node_path2.default.join(realMod, fileName);
+  const targetPath = import_node_path3.default.join(realMod, fileName);
   try {
-    const st = import_node_fs2.default.lstatSync(targetPath);
+    const st = import_node_fs3.default.lstatSync(targetPath);
     if (st.isSymbolicLink() || !st.isFile()) return null;
     if (st.size > MAX_SOURCE_FILE_BYTES) return null;
-    const realTarget = import_node_fs2.default.realpathSync(targetPath);
+    const realTarget = canonicalRealpathSync(targetPath);
     if (!isWithinRealBase(realTarget, realMod)) return null;
-    const raw = import_node_fs2.default.readFileSync(realTarget, "utf8");
+    const raw = import_node_fs3.default.readFileSync(realTarget, "utf8");
     return JSON.parse(raw);
   } catch {
     return null;
   }
 }
-function asRecord(value) {
+function asRecord2(value) {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return value;
   }
@@ -884,14 +1210,14 @@ function extractGuardSummary(rootDataDir, enabled) {
     return { enabled: false, blockedCount: 0, askCount: 0 };
   }
   const raw = readSafeModuleJson(rootDataDir, "guard", "audit.json");
-  const rawObj = asRecord(raw);
+  const rawObj = asRecord2(raw);
   const eventsRaw = Array.isArray(raw) ? raw : Array.isArray(rawObj?.events) ? rawObj.events : [];
   let blockedCount = 0;
   let askCount = 0;
   let lastEvent;
   let lastEventTs = -Infinity;
   for (const item of eventsRaw) {
-    const rec = asRecord(item);
+    const rec = asRecord2(item);
     if (!rec) continue;
     const rawDecision = String(rec.decision ?? rec.action ?? rec.outcome ?? "").trim().toLowerCase();
     if (rawDecision === "deny" || rawDecision === "denied" || rawDecision === "block" || rawDecision === "blocked") {
@@ -933,21 +1259,21 @@ function extractSpecSummary(rootDataDir, enabled) {
       readyTasks: 0
     };
   }
-  const state = asRecord(readSafeModuleJson(rootDataDir, "spec", "state.json"));
+  const state = asRecord2(readSafeModuleJson(rootDataDir, "spec", "state.json"));
   const activeId = typeof state?.activeSpecId === "string" && state.activeSpecId.trim() ? state.activeSpecId.trim() : null;
   let activeDoc = null;
   if (activeId && Array.isArray(state?.specs)) {
     for (const item of state.specs) {
-      const rec = asRecord(item);
+      const rec = asRecord2(item);
       if (rec && rec.id === activeId) {
         activeDoc = rec;
         break;
       }
     }
   } else if (activeId) {
-    const specsObj = asRecord(state?.specs);
+    const specsObj = asRecord2(state?.specs);
     if (specsObj) {
-      activeDoc = asRecord(specsObj[activeId]);
+      activeDoc = asRecord2(specsObj[activeId]);
     }
   }
   if (!activeDoc) {
@@ -966,7 +1292,7 @@ function extractSpecSummary(rootDataDir, enabled) {
   const tasks = [];
   const statusById = /* @__PURE__ */ new Map();
   for (const rawTask of rawTasks) {
-    const rec = asRecord(rawTask);
+    const rec = asRecord2(rawTask);
     if (!rec || typeof rec.id !== "string") continue;
     const status2 = typeof rec.status === "string" ? rec.status : "pending";
     const dependsOn = Array.isArray(rec.dependsOn) ? rec.dependsOn.filter((d) => typeof d === "string") : [];
@@ -1003,11 +1329,11 @@ function extractVerifySummary(rootDataDir, enabled) {
       dirtyFilesCount: 0
     };
   }
-  const state = asRecord(readSafeModuleJson(rootDataDir, "verify", "state.json"));
-  const policy = asRecord(state?.policy);
+  const state = asRecord2(readSafeModuleJson(rootDataDir, "verify", "state.json"));
+  const policy = asRecord2(state?.policy);
   const enforceOnStop = typeof policy?.enforceOnStop === "boolean" ? policy.enforceOnStop : false;
   const evidenceRaw = Array.isArray(state?.evidence) ? state.evidence : [];
-  const latest = evidenceRaw.map((e) => asRecord(e)).find((e) => e !== null);
+  const latest = evidenceRaw.map((e) => asRecord2(e)).find((e) => e !== null);
   let lastStatus = "idle";
   if (latest) {
     const outcome = typeof latest.outcome === "string" ? latest.outcome : "";
@@ -1023,7 +1349,7 @@ function extractVerifySummary(rootDataDir, enabled) {
   const sessionsRaw = state?.sessions;
   const sessionList = Array.isArray(sessionsRaw) ? sessionsRaw : sessionsRaw && typeof sessionsRaw === "object" ? Object.values(sessionsRaw) : [];
   for (const session of sessionList) {
-    const rec = asRecord(session);
+    const rec = asRecord2(session);
     if (!rec || !Array.isArray(rec.dirtyFiles)) continue;
     for (const file of rec.dirtyFiles) {
       if (typeof file === "string" && file.trim()) {
@@ -1042,7 +1368,7 @@ function isMemoryRecordStale(rec) {
   if (rec.stale === true || rec.drifted === true) return true;
   if (Array.isArray(rec.anchors)) {
     for (const anchor of rec.anchors) {
-      const a = asRecord(anchor);
+      const a = asRecord2(anchor);
       if (a && (a.driftStatus === "drifted" || a.driftStatus === "missing")) {
         return true;
       }
@@ -1055,12 +1381,12 @@ function extractMemSummary(rootDataDir, enabled) {
     return { enabled: false, totalMemories: 0, staleCount: 0 };
   }
   const raw = readSafeModuleJson(rootDataDir, "mem", "memories.json");
-  const rawObj = asRecord(raw);
+  const rawObj = asRecord2(raw);
   const list = Array.isArray(raw) ? raw : Array.isArray(rawObj?.memories) ? rawObj.memories : Array.isArray(rawObj?.items) ? rawObj.items : [];
   let totalMemories = 0;
   let staleCount = 0;
   for (const item of list) {
-    const rec = asRecord(item);
+    const rec = asRecord2(item);
     if (!rec) continue;
     totalMemories += 1;
     if (isMemoryRecordStale(rec)) {
@@ -1083,8 +1409,8 @@ function extractRadarSummary(rootDataDir, enabled) {
       unreadCount: 0
     };
   }
-  const capsule = asRecord(readSafeModuleJson(rootDataDir, "radar", "status-capsule.json"));
-  const counts = asRecord(capsule?.counts);
+  const capsule = asRecord2(readSafeModuleJson(rootDataDir, "radar", "status-capsule.json"));
+  const counts = asRecord2(capsule?.counts);
   if (counts) {
     return {
       enabled: true,
@@ -1094,9 +1420,9 @@ function extractRadarSummary(rootDataDir, enabled) {
       unreadCount: toNonNegInt(counts.unread)
     };
   }
-  const board = asRecord(readSafeModuleJson(rootDataDir, "radar", "board.json"));
-  const sessionsObj = asRecord(board?.sessions);
-  const sessions = sessionsObj ? Object.values(sessionsObj).map(asRecord).filter((s) => s !== null) : [];
+  const board = asRecord2(readSafeModuleJson(rootDataDir, "radar", "board.json"));
+  const sessionsObj = asRecord2(board?.sessions);
+  const sessions = sessionsObj ? Object.values(sessionsObj).map(asRecord2).filter((s) => s !== null) : [];
   return {
     enabled: true,
     runningCount: sessions.filter((s) => s.status === "running").length,
@@ -1114,7 +1440,7 @@ function extractXraySummary(rootDataDir, enabled) {
       estimatedCostUsd: 0
     };
   }
-  const live = asRecord(readSafeModuleJson(rootDataDir, "xray", "live-state.json"));
+  const live = asRecord2(readSafeModuleJson(rootDataDir, "xray", "live-state.json"));
   const rawModel = typeof live?.activeModel === "string" && live.activeModel.trim() ? live.activeModel.trim() : typeof live?.model === "string" && live.model.trim() ? live.model.trim() : null;
   return {
     enabled: true,
@@ -1126,7 +1452,7 @@ function extractXraySummary(rootDataDir, enabled) {
 function extractRemoteRunningReadOnly(rootDataDir, enabled, overrideRunning) {
   if (!enabled) return false;
   if (typeof overrideRunning === "boolean") return overrideRunning;
-  const runtime = asRecord(readSafeModuleJson(rootDataDir, "remote", "runtime.json"));
+  const runtime = asRecord2(readSafeModuleJson(rootDataDir, "remote", "runtime.json"));
   const port = Number(runtime?.port);
   return Number.isInteger(port) && port >= 1 && port <= 65535;
 }
@@ -1315,16 +1641,16 @@ function writeFeedSnapshotIfDataDirExists(rootDataDir, config, options = {}) {
   if (!realRoot) {
     return false;
   }
-  const targetPath = import_node_path2.default.join(realRoot, FEED_SNAPSHOT_FILENAME);
-  if (import_node_path2.default.relative(realRoot, targetPath) !== FEED_SNAPSHOT_FILENAME) {
+  const targetPath = import_node_path3.default.join(realRoot, FEED_SNAPSHOT_FILENAME);
+  if (import_node_path3.default.relative(realRoot, targetPath) !== FEED_SNAPSHOT_FILENAME) {
     return false;
   }
   try {
-    const existing = import_node_fs2.default.lstatSync(targetPath);
+    const existing = import_node_fs3.default.lstatSync(targetPath);
     if (existing.isSymbolicLink() || !existing.isFile()) {
       return false;
     }
-    const realTarget = import_node_fs2.default.realpathSync(targetPath);
+    const realTarget = canonicalRealpathSync(targetPath);
     if (!isWithinRealBase(realTarget, realRoot)) {
       return false;
     }
@@ -1343,147 +1669,40 @@ function writeFeedSnapshotIfDataDirExists(rootDataDir, config, options = {}) {
   if (Buffer.byteLength(serialized, "utf8") > MAX_FEED_SNAPSHOT_BYTES) {
     return false;
   }
-  const tmpPath = import_node_path2.default.join(
+  const tmpPath = import_node_path3.default.join(
     realRoot,
-    `.${FEED_SNAPSHOT_FILENAME}.tmp.${process.pid}.${import_node_crypto.default.randomBytes(8).toString("hex")}`
+    `.${FEED_SNAPSHOT_FILENAME}.tmp.${process.pid}.${import_node_crypto2.default.randomBytes(8).toString("hex")}`
   );
   try {
-    import_node_fs2.default.writeFileSync(tmpPath, serialized, { encoding: "utf8", mode: 384, flag: "wx" });
+    import_node_fs3.default.writeFileSync(tmpPath, serialized, { encoding: "utf8", mode: 384, flag: "wx" });
     try {
-      import_node_fs2.default.chmodSync(tmpPath, 384);
+      import_node_fs3.default.chmodSync(tmpPath, 384);
     } catch {
     }
     try {
-      const postCheck = import_node_fs2.default.lstatSync(targetPath);
+      const postCheck = import_node_fs3.default.lstatSync(targetPath);
       if (postCheck.isSymbolicLink() || !postCheck.isFile()) {
-        import_node_fs2.default.unlinkSync(tmpPath);
+        import_node_fs3.default.unlinkSync(tmpPath);
         return false;
       }
     } catch (err) {
       if (err?.code !== "ENOENT") {
-        import_node_fs2.default.unlinkSync(tmpPath);
+        import_node_fs3.default.unlinkSync(tmpPath);
         return false;
       }
     }
-    import_node_fs2.default.renameSync(tmpPath, targetPath);
+    atomicRenameSync(tmpPath, targetPath);
     return true;
   } catch {
     try {
-      const tmpStat = import_node_fs2.default.lstatSync(tmpPath);
+      const tmpStat = import_node_fs3.default.lstatSync(tmpPath);
       if (!tmpStat.isSymbolicLink() && tmpStat.isFile()) {
-        import_node_fs2.default.unlinkSync(tmpPath);
+        import_node_fs3.default.unlinkSync(tmpPath);
       }
     } catch {
     }
     return false;
   }
-}
-
-// src/core/utils.ts
-var import_node_fs3 = __toESM(require("node:fs"), 1);
-var import_node_path3 = __toESM(require("node:path"), 1);
-function parseCliFlag(argv, flag) {
-  for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
-    if (arg === flag && i + 1 < argv.length) {
-      return argv[i + 1];
-    }
-    if (arg.startsWith(`${flag}=`)) {
-      return arg.slice(flag.length + 1);
-    }
-  }
-  return void 0;
-}
-function ensurePrivateDir(dirPath) {
-  import_node_fs3.default.mkdirSync(dirPath, { recursive: true, mode: 448 });
-  try {
-    import_node_fs3.default.chmodSync(dirPath, 448);
-  } catch {
-  }
-}
-function atomicWriteJson(filePath, data) {
-  ensurePrivateDir(import_node_path3.default.dirname(filePath));
-  const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}`;
-  import_node_fs3.default.writeFileSync(tmpPath, `${JSON.stringify(data, null, 2)}
-`, { mode: 384 });
-  import_node_fs3.default.renameSync(tmpPath, filePath);
-}
-function normalizeHookEvent(rawEvent, fallback) {
-  if (rawEvent === "SessionStart" || rawEvent === "PreToolUse" || rawEvent === "PostToolUse" || rawEvent === "PreInvocation" || rawEvent === "PostInvocation" || rawEvent === "Stop") {
-    return rawEvent;
-  }
-  return fallback;
-}
-function asRecord2(val) {
-  if (val && typeof val === "object" && !Array.isArray(val)) {
-    return val;
-  }
-  return void 0;
-}
-function normalizeHookPayload(rawInput, fallbackEvent) {
-  const raw = asRecord2(rawInput) ?? {};
-  const toolCall = asRecord2(raw.toolCall) ?? asRecord2(raw.tool_call);
-  const toolNameCandidate = toolCall?.name ?? raw.toolName ?? raw.tool_name ?? raw.name ?? void 0;
-  const toolName = typeof toolNameCandidate === "string" ? toolNameCandidate : void 0;
-  const toolInputRaw = toolCall?.args ?? toolCall?.arguments ?? toolCall?.input ?? raw.toolInput ?? raw.tool_input ?? raw.arguments ?? raw.input;
-  let toolInput;
-  if (typeof toolInputRaw === "string") {
-    try {
-      toolInput = asRecord2(JSON.parse(toolInputRaw));
-    } catch {
-      toolInput = { raw: toolInputRaw };
-    }
-  } else {
-    toolInput = asRecord2(toolInputRaw);
-  }
-  const workspacePaths = [];
-  if (Array.isArray(raw.workspacePaths)) {
-    for (const p of raw.workspacePaths) {
-      if (typeof p === "string" && p.trim()) workspacePaths.push(p);
-    }
-  }
-  if (Array.isArray(raw.workspace_paths)) {
-    for (const p of raw.workspace_paths) {
-      if (typeof p === "string" && p.trim() && !workspacePaths.includes(p)) {
-        workspacePaths.push(p);
-      }
-    }
-  }
-  const singleWorkspace = typeof raw.workspaceRoot === "string" && raw.workspaceRoot || typeof raw.workspace_root === "string" && raw.workspace_root || typeof raw.cwd === "string" && raw.cwd || workspacePaths[0];
-  if (singleWorkspace && !workspacePaths.includes(singleWorkspace)) {
-    workspacePaths.unshift(singleWorkspace);
-  }
-  const event = normalizeHookEvent(raw.hookEventName ?? raw.hook_event_name ?? raw.event, fallbackEvent);
-  const conversationId = typeof raw.conversationId === "string" && raw.conversationId || typeof raw.conversation_id === "string" && raw.conversation_id || void 0;
-  const parentConversationId = typeof raw.parentConversationId === "string" && raw.parentConversationId || typeof raw.parent_conversation_id === "string" && raw.parent_conversation_id || typeof raw.rootConversationId === "string" && raw.rootConversationId || typeof raw.root_conversation_id === "string" && raw.root_conversation_id || (typeof process.env.ANTIGRAVITY_PARENT_CONVERSATION_ID === "string" && process.env.ANTIGRAVITY_PARENT_CONVERSATION_ID.trim() ? process.env.ANTIGRAVITY_PARENT_CONVERSATION_ID.trim() : void 0);
-  const agentRole = typeof raw.agentRole === "string" && raw.agentRole || typeof raw.agent_role === "string" && raw.agent_role || typeof raw.subagentRole === "string" && raw.subagentRole || typeof raw.subagent_role === "string" && raw.subagent_role || void 0;
-  const continuationActive = typeof raw.continuationActive === "boolean" ? raw.continuationActive : typeof raw.continuation_active === "boolean" ? raw.continuation_active : void 0;
-  const transcriptPath = typeof raw.transcriptPath === "string" && raw.transcriptPath || typeof raw.transcript_path === "string" && raw.transcript_path || void 0;
-  const lastUserInput = typeof raw.lastUserInput === "string" && raw.lastUserInput || typeof raw.last_user_input === "string" && raw.last_user_input || void 0;
-  const terminationReason = typeof raw.terminationReason === "string" && raw.terminationReason || typeof raw.termination_reason === "string" && raw.termination_reason || void 0;
-  const pluginData = typeof raw.pluginData === "string" && raw.pluginData || typeof raw.plugin_data === "string" && raw.plugin_data || void 0;
-  const toolCallId = typeof toolCall?.id === "string" && toolCall.id || typeof raw.toolCallId === "string" && raw.toolCallId || void 0;
-  const stepIdx = typeof raw.stepIdx === "number" ? raw.stepIdx : typeof raw.step_idx === "number" ? raw.step_idx : void 0;
-  return {
-    event,
-    conversationId,
-    parentConversationId,
-    agentRole,
-    continuationActive,
-    workspacePaths,
-    workspaceRoot: singleWorkspace,
-    cwd: typeof raw.cwd === "string" ? raw.cwd : singleWorkspace,
-    transcriptPath,
-    lastUserInput,
-    terminationReason,
-    error: raw.error,
-    stepIdx,
-    toolCallId,
-    toolName,
-    toolInput,
-    pluginData,
-    raw
-  };
 }
 
 // src/modules/guard/hook.ts
@@ -1636,6 +1855,25 @@ var SENSITIVE_PATH_REGEXES = [
   { ruleId: "path.gcp-sa", regex: /service[-_]?account.*\.json$/i, label: "GCP service account JSON" },
   { ruleId: "path.gnupg", regex: /(?:^|[/\\])\.gnupg(?:[/\\]|$)/i, label: "GPG private keyring" }
 ];
+var WIN_CATASTROPHIC_TARGET_SOURCE = [
+  "[a-z]:[\\\\/](?:\\*(?:\\.\\*)?)?(?=$|[\\s\"'`;|&)])",
+  "[a-z]:[\\\\/]windows(?:[\\\\/][^\\s\"'`;|&]{0,120})?(?=$|[\\s\"'`;|&)])",
+  "[a-z]:[\\\\/]program\\s+files(?:\\s*\\(x86\\))?(?:[\\\\/][^\\r\\n\"'`;|&]{0,120})?(?=$|[\\s\"'`;|&)])",
+  "[a-z]:[\\\\/]users(?:[\\\\/](?:\\*(?:\\.\\*)?)?)?(?=$|[\\s\"'`;|&)])",
+  "%userprofile%(?:[\\\\/](?:\\*(?:\\.\\*)?)?)?(?=$|[\\s\"'`;|&)])",
+  "\\$env:userprofile(?:[\\\\/](?:\\*(?:\\.\\*)?)?)?(?=$|[\\s\"'`;|&)])",
+  "%(?:systemroot|windir)%(?:[\\\\/][^\\s\"'`;|&]{0,120})?(?=$|[\\s\"'`;|&)])",
+  "\\$env:(?:systemroot|windir)(?:[\\\\/][^\\s\"'`;|&]{0,120})?(?=$|[\\s\"'`;|&)])"
+].join("|");
+var WIN_PS_TARGET_SOURCE = [
+  WIN_CATASTROPHIC_TARGET_SOURCE,
+  "~(?:[\\\\/](?:\\*)?)?(?=$|[\\s\"'`;|&)])",
+  "\\/(?:\\*)?(?=$|[\\s\"'`;|&)])"
+].join("|");
+var WIN_CMD_RMDIR_TARGET_SOURCE = [
+  WIN_PS_TARGET_SOURCE,
+  "\\*(?:\\.\\*)?(?=$|[\\s\"'`;|&)])"
+].join("|");
 var DESTRUCTIVE_COMMAND_RULES = [
   {
     ruleId: "cmd.git-force-push",
@@ -1653,6 +1891,35 @@ var DESTRUCTIVE_COMMAND_RULES = [
     label: "Raw disk wipe / format command"
   },
   {
+    ruleId: "cmd.win-ps-rm-root",
+    regex: new RegExp(
+      `\\b(?:remove-item|ri|rm|del|erase|rd|rmdir)(?:\\.exe)?\\b(?=[^\\r\\n;&|]{0,200}\\s-(?:r|re|rec|recu|recur|recurs|recurse)\\b)[^\\r\\n;&|]{0,200}(?:[\\s"'\`=]|-(?:literal)?path:)(?:${WIN_PS_TARGET_SOURCE})`,
+      "i"
+    ),
+    label: "Destructive PowerShell recursive delete targeting drive root or system/user directory"
+  },
+  {
+    ruleId: "cmd.win-cmd-rmdir-root",
+    regex: new RegExp(
+      `\\b(?:rmdir|rd)(?:\\.exe)?\\b(?=[^\\r\\n;&|]{0,200}(?:\\s|(?<=\\b(?:rmdir|rd)(?:\\.exe)?))(?:\\/[a-z]){0,3}\\/s(?=$|[\\s/"'\`;|&]))[^\\r\\n;&|]{0,200}[\\s"'\`](?:${WIN_CMD_RMDIR_TARGET_SOURCE})`,
+      "i"
+    ),
+    label: "Destructive cmd rmdir /s targeting drive root, system/user directory, or wildcard"
+  },
+  {
+    ruleId: "cmd.win-cmd-del-root",
+    regex: new RegExp(
+      `\\b(?:del|erase)(?:\\.exe)?\\b(?=[^\\r\\n;&|]{0,200}(?:\\s|(?<=\\b(?:del|erase)(?:\\.exe)?))(?:\\/[a-z]){0,3}\\/s(?=$|[\\s/"'\`;|&]))[^\\r\\n;&|]{0,200}[\\s"'\`](?:${WIN_CATASTROPHIC_TARGET_SOURCE})`,
+      "i"
+    ),
+    label: "Destructive cmd del/erase /s targeting drive root or system/user directory"
+  },
+  {
+    ruleId: "cmd.win-disk-wipe",
+    regex: /(?:^|[;&|(\r\n]\s*|\bcmd(?:\.exe)?\s+\/[ck]\s+["']?\s*|\b(?:powershell|pwsh)(?:\.exe)?\s+(?:-[a-z0-9_-]{1,24}\s+){0,4}["']?\s*)(?:format(?:\.com|\.exe)?\s+(?:\/[a-z0-9:_-]{1,24}\s+){0,6}[a-z]:(?=$|[\s"'`;|&)])|(?:clear-disk|diskpart(?:\.exe)?)(?=$|[\s"'`;|&)]))/i,
+    label: "Windows disk format / wipe command (format / Clear-Disk / diskpart)"
+  },
+  {
     ruleId: "cmd.chmod-777",
     regex: /\bchmod\s+(?:-R\s+)?0?777\b/,
     label: "World-writable chmod 777 permission change"
@@ -1667,16 +1934,43 @@ var SQL_DESTRUCTIVE_REGEX = /\b(?:DROP\s+(?:DATABASE|SCHEMA|TABLE)|TRUNCATE\s+TA
 var NETWORK_PIPE_RULES = [
   {
     ruleId: "cmd.curl-pipe-shell",
-    regex: /\b(?:curl|wget)\b[^\n|]*\|\s*(?:sudo\s+)?(?:sh|bash|zsh|fish|python3?|node)\b/,
+    regex: /\b(?:curl|wget)(?:\.exe)?\b[^\r\n|]{0,300}\|\s*(?:sudo\s+)?(?:sh|bash|zsh|fish|python3?|node|powershell(?:\.exe)?|pwsh(?:\.exe)?|iex|invoke-expression)\b/i,
     label: "Remote script piped directly into shell/interpreter"
+  },
+  {
+    ruleId: "cmd.ps-irm-iex",
+    regex: /\b(?:irm|iwr|invoke-restmethod|invoke-webrequest)\b[^\r\n|]{0,240}\|\s*(?:iex|invoke-expression|powershell(?:\.exe)?|pwsh(?:\.exe)?|sh|bash)\b/i,
+    label: "PowerShell remote script piped directly into Invoke-Expression"
+  },
+  {
+    ruleId: "cmd.ps-iex-subexpr",
+    regex: /\b(?:iex|invoke-expression)\s*\([^)\r\n]{0,240}\b(?:irm|iwr|invoke-restmethod|invoke-webrequest|downloadstring)\b/i,
+    label: "PowerShell Invoke-Expression executing remote downloaded script"
   }
 ];
 var CATASTROPHIC_SYSTEM_ROOT_PREFIX_RE = /^\/(?:etc|usr|bin|sbin|lib|lib64|boot|dev|proc|sys|root|System|Library)(?:\/|$)/;
 var CATASTROPHIC_TOP_LEVEL_DIR_RE = /^\/(?:var|home|Users|Applications|opt)(?:\/?\*?)?$/;
+var CATASTROPHIC_WIN_TARGET_RE = new RegExp(`^(?:${WIN_CATASTROPHIC_TARGET_SOURCE})$`, "i");
+function isWindowsPathBackslash(current, nextChar) {
+  if (/^[A-Za-z]:/.test(current)) return true;
+  if (/^\.\.?$/.test(current) && nextChar !== void 0 && !/[\s"'|&;<>]/.test(nextChar)) {
+    return true;
+  }
+  if (/^\.\.?\\/.test(current)) return true;
+  if (current === "" && nextChar === "\\" || current === "\\" || current.startsWith("\\\\")) {
+    return true;
+  }
+  return false;
+}
+function normalizeShellCommandName(rawToken) {
+  const base = import_node_path4.default.posix.basename(rawToken.replace(/\\/g, "/")).toLowerCase();
+  return base.replace(/\.(?:exe|cmd|bat)$/i, "");
+}
 function splitShellSegments(commandLine) {
   const segments = [];
   let current = "";
   let quote = null;
+  let quoteStartIdx = -1;
   let escaped = false;
   for (let i = 0; i < commandLine.length; i++) {
     const ch = commandLine[i];
@@ -1686,17 +1980,28 @@ function splitShellSegments(commandLine) {
       continue;
     }
     if (ch === "\\" && quote !== "'") {
+      if (quote === '"' && commandLine[i + 1] === '"' && quoteStartIdx >= 0) {
+        const inside = current.slice(quoteStartIdx);
+        if (/^(?:[A-Za-z]:|\.\.?\\|\\\\)/.test(inside)) {
+          current += ch;
+          continue;
+        }
+      }
       current += ch;
       escaped = true;
       continue;
     }
     if (quote) {
-      if (ch === quote) quote = null;
+      if (ch === quote) {
+        quote = null;
+        quoteStartIdx = -1;
+      }
       current += ch;
       continue;
     }
     if (ch === '"' || ch === "'") {
       quote = ch;
+      quoteStartIdx = current.length + 1;
       current += ch;
       continue;
     }
@@ -1735,6 +2040,10 @@ function tokenizeSimpleShellSegment(segment) {
       continue;
     }
     if (ch === "\\" && quote !== "'") {
+      if (isWindowsPathBackslash(current, segment[i + 1])) {
+        current += ch;
+        continue;
+      }
       escaped = true;
       continue;
     }
@@ -1763,7 +2072,8 @@ function stripCommandWrappers(tokens) {
   let idx = 0;
   while (idx < tokens.length) {
     const tok = tokens[idx];
-    if (tok === "sudo" || tok === "env" || tok === "command" || tok === "nohup" || tok === "time") {
+    const normTok = normalizeShellCommandName(tok);
+    if (normTok === "sudo" || normTok === "env" || normTok === "command" || normTok === "nohup" || normTok === "time") {
       idx++;
       while (idx < tokens.length && tokens[idx].startsWith("-")) {
         const flag = tokens[idx];
@@ -1783,6 +2093,9 @@ function stripCommandWrappers(tokens) {
 function isCatastrophicRmTarget(rawTarget) {
   const trimmed = rawTarget.trim();
   if (!trimmed) return false;
+  if (CATASTROPHIC_WIN_TARGET_RE.test(trimmed)) {
+    return true;
+  }
   const collapsed = trimmed.replace(/\/+/g, "/");
   const candidates = [collapsed];
   if (collapsed.startsWith("/")) {
@@ -1802,7 +2115,7 @@ function isCatastrophicRmCommand(commandLine) {
   for (const { segment } of splitShellSegments(commandLine)) {
     const tokens = stripCommandWrappers(tokenizeSimpleShellSegment(segment));
     if (tokens.length < 2) continue;
-    const cmd = import_node_path4.default.posix.basename(tokens[0].replace(/\\/g, "/"));
+    const cmd = normalizeShellCommandName(tokens[0]);
     if (cmd !== "rm") continue;
     let hasRecursive = false;
     let endOfFlags = false;
@@ -1861,7 +2174,7 @@ function hasDangerousSqlCommand(commandLine) {
     if (!SQL_DESTRUCTIVE_REGEX.test(segment)) continue;
     const tokens = stripCommandWrappers(tokenizeSimpleShellSegment(segment));
     if (tokens.length === 0) return true;
-    const cmd = import_node_path4.default.posix.basename(tokens[0].replace(/\\/g, "/")).toLowerCase();
+    const cmd = normalizeShellCommandName(tokens[0]);
     const sub = (tokens[1] ?? "").toLowerCase();
     const hasRedirection = hasUnquotedRedirection(segment);
     if (!pipedToNext && !hasRedirection) {
@@ -2335,7 +2648,7 @@ function evaluateToolCall(toolName, args, policy, options) {
 }
 
 // src/modules/guard/store.ts
-var import_node_crypto2 = __toESM(require("node:crypto"), 1);
+var import_node_crypto3 = __toESM(require("node:crypto"), 1);
 var import_node_fs4 = __toESM(require("node:fs"), 1);
 var import_node_path5 = __toESM(require("node:path"), 1);
 
@@ -2370,14 +2683,14 @@ function ensureDir(dir) {
 }
 function writePrivateJson(filePath, data) {
   ensureDir(import_node_path5.default.dirname(filePath));
-  const tmp = `${filePath}.${process.pid}.${import_node_crypto2.default.randomBytes(4).toString("hex")}.tmp`;
+  const tmp = `${filePath}.${process.pid}.${import_node_crypto3.default.randomBytes(4).toString("hex")}.tmp`;
   import_node_fs4.default.writeFileSync(tmp, `${JSON.stringify(data, null, 2)}
 `, { encoding: "utf8", mode: 384 });
   try {
     import_node_fs4.default.chmodSync(tmp, 384);
   } catch {
   }
-  import_node_fs4.default.renameSync(tmp, filePath);
+  atomicRenameSync(tmp, filePath);
 }
 function resolveRealPathWithMissingTail(inputPath, depth = 0) {
   if (depth > MAX_SYMLINK_DEPTH) {
@@ -2388,7 +2701,7 @@ function resolveRealPathWithMissingTail(inputPath, depth = 0) {
   let current = resolved;
   while (true) {
     try {
-      const realBase = import_node_fs4.default.realpathSync(current);
+      const realBase = canonicalRealpathSync(current);
       return missingSegments.length > 0 ? import_node_path5.default.join(realBase, ...missingSegments.reverse()) : realBase;
     } catch (err) {
       const code = err?.code;
@@ -2424,8 +2737,7 @@ function assertInsideWorkspace(workspaceRoot, targetPath) {
   const realRoot = resolveRealPathWithMissingTail(workspaceRoot);
   const candidate = import_node_path5.default.isAbsolute(targetPath) ? targetPath : import_node_path5.default.resolve(workspaceRoot, targetPath);
   const realTarget = resolveRealPathWithMissingTail(candidate);
-  const rootPrefix = realRoot.endsWith(import_node_path5.default.sep) ? realRoot : `${realRoot}${import_node_path5.default.sep}`;
-  if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
+  if (!isPathInsideDir(realRoot, realTarget)) {
     throw new Error(`Path escapes workspace boundary: ${targetPath}`);
   }
   return realTarget;
@@ -2447,7 +2759,7 @@ function readJsonSafe(filePath, fallback) {
   }
 }
 function sha256Buffer(buf) {
-  return import_node_crypto2.default.createHash("sha256").update(buf).digest("hex");
+  return import_node_crypto3.default.createHash("sha256").update(buf).digest("hex");
 }
 function loadPolicy(dataDir) {
   const stored = readJsonSafe(import_node_path5.default.join(dataDir, "policy.json"), {});
@@ -2511,7 +2823,7 @@ function loadAuditLog(dataDir) {
 function appendAuditEvent(dataDir, event) {
   const existing = loadAuditLog(dataDir);
   const full = {
-    id: event.id ?? `evt_${import_node_crypto2.default.randomBytes(5).toString("hex")}`,
+    id: event.id ?? `evt_${import_node_crypto3.default.randomBytes(5).toString("hex")}`,
     timestamp: event.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
     event: event.event,
     toolName: event.toolName,
@@ -2565,7 +2877,7 @@ function capturePreEditSnapshot(params) {
   }
   const isManualCheckpoint = toolName === "guard_create_checkpoint" || toolName === "create_checkpoint";
   const all = loadSnapshots(dataDir);
-  const latestForFile = all.find((s) => s.filePath === safePath && !s.isDemo);
+  const latestForFile = all.find((s) => isSamePath(s.filePath, safePath) && !s.isDemo);
   const sameTurn = (latestForFile?.turnKey ?? void 0) === (turnKey ?? void 0);
   if (latestForFile && sameTurn && latestForFile.sha256 === sha256 && latestForFile.existed === existed && !isManualCheckpoint && !restoredFromId) {
     return latestForFile;
@@ -2579,7 +2891,7 @@ function capturePreEditSnapshot(params) {
     createdMs = newestPrevMs + 1;
   }
   const record = {
-    id: `snap_${createdMs.toString(36)}_${import_node_crypto2.default.randomBytes(3).toString("hex")}`,
+    id: `snap_${createdMs.toString(36)}_${import_node_crypto3.default.randomBytes(3).toString("hex")}`,
     filePath: safePath,
     relPath,
     toolName,
@@ -2594,8 +2906,8 @@ function capturePreEditSnapshot(params) {
     ...typeof stepIdx === "number" && Number.isFinite(stepIdx) ? { stepIdx } : {},
     ...restoredFromId ? { restoredFromId } : {}
   };
-  const sameFile = [record, ...all.filter((s) => s.filePath === safePath)].slice(0, policy.maxSnapshotsPerFile);
-  const others = all.filter((s) => s.filePath !== safePath);
+  const sameFile = [record, ...all.filter((s) => isSamePath(s.filePath, safePath))].slice(0, policy.maxSnapshotsPerFile);
+  const others = all.filter((s) => !isSamePath(s.filePath, safePath));
   const next = [...sameFile, ...others].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 300);
   saveSnapshots(dataDir, next);
   appendAuditEvent(dataDir, {
@@ -2686,9 +2998,10 @@ function handleGuardPreToolHook(payload, rootDataDir) {
 // src/modules/mem/hook.ts
 var import_node_fs6 = __toESM(require("node:fs"), 1);
 var import_node_path8 = __toESM(require("node:path"), 1);
+var import_node_url2 = require("node:url");
 
 // src/modules/mem/store.ts
-var import_node_crypto3 = __toESM(require("node:crypto"), 1);
+var import_node_crypto4 = __toESM(require("node:crypto"), 1);
 var import_node_fs5 = __toESM(require("node:fs"), 1);
 var import_node_path7 = __toESM(require("node:path"), 1);
 var import_node_url = require("node:url");
@@ -3184,14 +3497,13 @@ function isSensitiveFilePath(filePath) {
   return false;
 }
 function isRelativeInside(rootDir, targetPath) {
-  const rel = import_node_path7.default.relative(rootDir, targetPath);
-  return rel !== "" && !rel.startsWith("..") && !import_node_path7.default.isAbsolute(rel);
+  return !isSamePath(rootDir, targetPath) && isPathInsideDir(rootDir, targetPath);
 }
 function resolveExistingAncestorRealpath(absTarget) {
   let cursor = import_node_path7.default.dirname(absTarget);
   while (true) {
     try {
-      const realAncestor = import_node_fs5.default.realpathSync(cursor);
+      const realAncestor = canonicalRealpathSync(cursor);
       const tail = import_node_path7.default.relative(cursor, absTarget);
       return import_node_path7.default.join(realAncestor, tail);
     } catch {
@@ -3212,13 +3524,13 @@ function inspectAnchorFile(filePath, workspacePath, maxBytes = MAX_ANCHOR_FILE_B
   const effectiveWorkspace = workspacePath && workspacePath.trim() ? workspacePath.trim() : process.cwd();
   let realWorkspace;
   try {
-    realWorkspace = import_node_fs5.default.realpathSync(import_node_path7.default.resolve(effectiveWorkspace));
+    realWorkspace = canonicalRealpathSync(import_node_path7.default.resolve(effectiveWorkspace));
   } catch {
     return { status: "skipped", reason: "outside-workspace" };
   }
   let realFile;
   try {
-    realFile = import_node_fs5.default.realpathSync(absFile);
+    realFile = canonicalRealpathSync(absFile);
   } catch (err) {
     const code = err?.code;
     if (code === "ENOENT" || code === "ENOTDIR") {
@@ -3245,7 +3557,7 @@ function inspectAnchorFile(filePath, workspacePath, maxBytes = MAX_ANCHOR_FILE_B
     const fdStat = import_node_fs5.default.fstatSync(fd);
     if (!fdStat.isFile()) return { status: "skipped", reason: "non-file" };
     if (fdStat.size > maxBytes) return { status: "skipped", reason: "oversized" };
-    const hash = import_node_crypto3.default.createHash("sha256");
+    const hash = import_node_crypto4.default.createHash("sha256");
     const chunkSize = Math.min(64 * 1024, Math.max(1, maxBytes));
     const chunk = Buffer.alloc(chunkSize);
     let totalRead = 0;
@@ -3282,7 +3594,7 @@ function normalizeAnchor(raw) {
   const r = raw;
   if (typeof r.filePath !== "string" || !r.filePath.trim()) return null;
   const filePath = r.filePath.trim();
-  const basename = typeof r.basename === "string" && r.basename.trim() ? r.basename.trim() : import_node_path7.default.basename(filePath);
+  const basename = typeof r.basename === "string" && r.basename.trim() ? r.basename.trim() : import_node_path7.default.posix.basename(filePath.replace(/\\/g, "/"));
   const uri = typeof r.uri === "string" && r.uri.trim() ? r.uri.trim() : safePathToFileUri(filePath);
   const symbol = typeof r.symbol === "string" && r.symbol.trim() ? r.symbol.trim() : void 0;
   const sha256 = typeof r.sha256 === "string" && r.sha256.trim() ? r.sha256.trim() : void 0;
@@ -3300,7 +3612,7 @@ function normalizeMemoryItem(raw, index) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const r = raw;
   const fallbackSeed = `${index}:${String(r.title ?? "")}:${String(r.content ?? "")}`;
-  const fallbackId = `mem_rec_${import_node_crypto3.default.createHash("sha256").update(fallbackSeed).digest("hex").slice(0, 10)}`;
+  const fallbackId = `mem_rec_${import_node_crypto4.default.createHash("sha256").update(fallbackSeed).digest("hex").slice(0, 10)}`;
   const id = typeof r.id === "string" && r.id.trim() ? r.id.trim() : fallbackId;
   const kind = typeof r.kind === "string" && VALID_MEMORY_KINDS.has(r.kind) ? r.kind : "decision";
   const title = typeof r.title === "string" && r.title.trim() ? r.title.trim() : "(Untitled memory)";
@@ -3382,9 +3694,9 @@ var MemoryStore = class {
   }
   backupCorruptFile(reason) {
     const base = `${this.filePath}.corrupt.${Date.now()}`;
-    const backupPath = import_node_fs5.default.existsSync(base) ? `${base}.${import_node_crypto3.default.randomBytes(2).toString("hex")}` : base;
+    const backupPath = import_node_fs5.default.existsSync(base) ? `${base}.${import_node_crypto4.default.randomBytes(2).toString("hex")}` : base;
     try {
-      import_node_fs5.default.renameSync(this.filePath, backupPath);
+      atomicRenameSync(this.filePath, backupPath, process.platform, false);
       try {
         import_node_fs5.default.chmodSync(backupPath, 384);
       } catch {
@@ -3442,14 +3754,14 @@ var MemoryStore = class {
       return;
     }
     ensurePrivateDir2(this.dataDir);
-    const tmp = `${this.filePath}.${process.pid}.${import_node_crypto3.default.randomBytes(4).toString("hex")}.tmp`;
+    const tmp = `${this.filePath}.${process.pid}.${import_node_crypto4.default.randomBytes(4).toString("hex")}.tmp`;
     try {
       import_node_fs5.default.writeFileSync(tmp, JSON.stringify(cleanItems, null, 2), { encoding: "utf8", mode: 384 });
       try {
         import_node_fs5.default.chmodSync(tmp, 384);
       } catch {
       }
-      import_node_fs5.default.renameSync(tmp, this.filePath);
+      atomicRenameSync(tmp, this.filePath);
     } catch (err) {
       try {
         if (import_node_fs5.default.existsSync(tmp)) import_node_fs5.default.unlinkSync(tmp);
@@ -3520,7 +3832,9 @@ var MemoryStore = class {
     let items = this.readRaw().map((m) => this.evaluateDrift(m, nowMs));
     if (opts.workspacePath) {
       const target = import_node_path7.default.resolve(opts.workspacePath);
-      items = items.filter((m) => !m.workspacePath || import_node_path7.default.resolve(m.workspacePath) === target);
+      items = items.filter(
+        (m) => !m.workspacePath || isSamePath(import_node_path7.default.resolve(m.workspacePath), target)
+      );
     }
     if (opts.kind) items = items.filter((m) => m.kind === opts.kind);
     if (opts.pinnedOnly) items = items.filter((m) => m.pinned);
@@ -3642,18 +3956,18 @@ var MemoryStore = class {
       const trustedRoot = import_node_path7.default.resolve(this.defaultWorkspaceRoot);
       const realTrusted = (() => {
         try {
-          return import_node_fs5.default.realpathSync(trustedRoot);
+          return canonicalRealpathSync(trustedRoot);
         } catch {
           return trustedRoot;
         }
       })();
       let realReq;
       try {
-        realReq = import_node_fs5.default.realpathSync(requestedWorkspace);
+        realReq = canonicalRealpathSync(requestedWorkspace);
       } catch {
         realReq = resolveExistingAncestorRealpath(requestedWorkspace) ?? requestedWorkspace;
       }
-      if (realReq === realTrusted || isRelativeInside(realTrusted, realReq)) {
+      if (isPathInsideDir(realTrusted, realReq)) {
         inspectWorkspace = realReq;
         resolvedWorkspace = requestedWorkspace;
       }
@@ -3667,7 +3981,7 @@ var MemoryStore = class {
       const driftStatus = inspected.status === "ok" ? "fresh" : inspected.status === "skipped" ? "skipped" : "untracked";
       return {
         filePath: abs,
-        basename: import_node_path7.default.basename(abs),
+        basename: import_node_path7.default.posix.basename(abs.replace(/\\/g, "/")),
         uri: safePathToFileUri(abs),
         ...cleanSymbol ? { symbol: cleanSymbol } : {},
         ...inspected.sha256 ? { sha256: inspected.sha256 } : {},
@@ -3684,7 +3998,7 @@ var MemoryStore = class {
     );
     const tags = Array.from(new Set((input.tags ?? []).map((t) => sanitizeTag(t)).filter(Boolean)));
     const existingIdx = input.id ? items.findIndex((m) => m.id === input.id) : items.findIndex(
-      (m) => m.title.toLowerCase() === cleanTitle.toLowerCase() && (m.workspacePath ?? "") === (resolvedWorkspace ?? "")
+      (m) => m.title.toLowerCase() === cleanTitle.toLowerCase() && (m.workspacePath && resolvedWorkspace ? isSamePath(m.workspacePath, resolvedWorkspace) : (m.workspacePath ?? "") === (resolvedWorkspace ?? ""))
     );
     const parsedInputTtl = input.ttlDays !== void 0 ? normalizeTtlDays(input.ttlDays) ?? null : void 0;
     const sanitizedInputConfidence = input.confidence !== void 0 && VALID_MEMORY_CONFIDENCES.has(input.confidence) ? input.confidence : void 0;
@@ -3722,7 +4036,7 @@ var MemoryStore = class {
     const verifiedAt = input.verifiedAt ?? (confidence === "verified" ? now : void 0);
     const expiresAt = computeExpiresAt(verifiedAt || now, ttlDays);
     const created = {
-      id: input.id || `mem_${import_node_crypto3.default.randomBytes(5).toString("hex")}`,
+      id: input.id || `mem_${import_node_crypto4.default.randomBytes(5).toString("hex")}`,
       kind: input.kind,
       title: cleanTitle,
       content: cleanContent,
@@ -4146,10 +4460,42 @@ var MemoryStore = class {
 
 // src/modules/mem/hook.ts
 var MAX_TRANSCRIPT_TAIL_BYTES = 256 * 1024;
+var WINDOWS_ABS_PATH_RE = /^[A-Za-z]:[\\/]/;
+function safeDecodeFileUri(rawUri) {
+  try {
+    const parsed = new URL(rawUri);
+    if (parsed.protocol !== "file:") return null;
+    if (parsed.hostname && parsed.hostname.toLowerCase() !== "localhost") return null;
+    const isWindowsDriveUri = /^\/[A-Za-z](?::|%3[Aa])(?:[/%]|$)/.test(parsed.pathname);
+    let decoded = (0, import_node_url2.fileURLToPath)(parsed, { windows: isWindowsDriveUri });
+    if (isWindowsDriveUri && /^\/[A-Za-z]:[\\/]/.test(decoded)) {
+      decoded = decoded.slice(1);
+    }
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+function normalizeAbsoluteTranscriptPath(rawPath) {
+  const clean = rawPath.replace(/^["']|["']$/g, "").trim();
+  if (!clean) return null;
+  if (/^file:\/\//i.test(clean)) {
+    const decoded = safeDecodeFileUri(clean);
+    if (!decoded) return null;
+    if (decoded.startsWith("/") || WINDOWS_ABS_PATH_RE.test(decoded)) {
+      return decoded;
+    }
+    return null;
+  }
+  if (clean.startsWith("/") || WINDOWS_ABS_PATH_RE.test(clean)) {
+    return clean;
+  }
+  return null;
+}
 function isSensitiveOrSymlinkToSensitive(filePath) {
   if (isSensitiveFilePath(filePath)) return true;
   try {
-    const real = import_node_fs6.default.realpathSync(filePath);
+    const real = canonicalRealpathSync(filePath);
     if (isSensitiveFilePath(real)) return true;
   } catch {
   }
@@ -4187,9 +4533,9 @@ function extractEditedFilesFromTranscript(transcriptPath, maxTailBytes = MAX_TRA
           if (!tc.name || !/edit|write|replace/i.test(tc.name)) continue;
           const rawPath = tc.args?.Path ?? tc.args?.path ?? tc.args?.TargetFile ?? tc.args?.target_file ?? tc.args?.file_path ?? tc.args?.filePath;
           if (typeof rawPath === "string") {
-            const clean = rawPath.replace(/^["']|["']$/g, "").trim();
-            if (clean.startsWith("/") && !isSensitiveOrSymlinkToSensitive(clean)) {
-              files.add(clean);
+            const normalizedPath = normalizeAbsoluteTranscriptPath(rawPath);
+            if (normalizedPath && !isSensitiveOrSymlinkToSensitive(normalizedPath)) {
+              files.add(normalizedPath);
             }
           }
         }
@@ -4249,7 +4595,7 @@ function handleMemStopHook(payload, rootDataDir) {
       id: `mem_auto_${convId.slice(0, 12)}`,
       kind: "decision",
       title: `Session recap: ${userPrompt.slice(0, 56)}${userPrompt.length > 56 ? "\u2026" : ""}`,
-      content: `Auto-captured from conversation ${convId.slice(0, 8)}. Modified ${editedFiles.length} file(s): ${editedFiles.map((f) => import_node_path8.default.basename(f)).join(", ")}.`,
+      content: `Auto-captured from conversation ${convId.slice(0, 8)}. Modified ${editedFiles.length} file(s): ${editedFiles.map((f) => import_node_path8.default.posix.basename(f.replace(/\\/g, "/"))).join(", ")}.`,
       tags: ["auto-capture"],
       workspacePath,
       sourceConversationId: convId,
@@ -4264,7 +4610,7 @@ function handleMemStopHook(payload, rootDataDir) {
 }
 
 // src/modules/radar/hook.ts
-var import_node_crypto4 = __toESM(require("node:crypto"), 1);
+var import_node_crypto5 = __toESM(require("node:crypto"), 1);
 
 // src/modules/radar/core.ts
 var import_node_child_process = require("node:child_process");
@@ -4581,6 +4927,9 @@ function triggerRadarNotification(title, message, prefs, platform = process.plat
   if (!invocation) {
     return { dispatched: false, reason: "unsupported-platform" };
   }
+  if (platform === "linux" && invocation.command === "notify-send" && !process.env.DISPLAY?.trim() && !process.env.WAYLAND_DISPLAY?.trim()) {
+    return { dispatched: false, reason: "headless-linux" };
+  }
   try {
     const child = (0, import_node_child_process.execFile)(
       invocation.command,
@@ -4604,7 +4953,7 @@ function deriveConversationId(payload) {
   }
   const seed = payload.workspaceRoot ?? payload.workspacePaths[0] ?? payload.cwd;
   if (seed) {
-    const hash = import_node_crypto4.default.createHash("sha256").update(seed).digest("hex").slice(0, 10);
+    const hash = import_node_crypto5.default.createHash("sha256").update(seed).digest("hex").slice(0, 10);
     return `ws-${hash}`;
   }
   return "default-session";
@@ -4687,7 +5036,7 @@ var import_node_fs9 = __toESM(require("node:fs"), 1);
 var import_node_path11 = __toESM(require("node:path"), 1);
 
 // src/modules/remote/config.ts
-var import_node_crypto5 = __toESM(require("node:crypto"), 1);
+var import_node_crypto6 = __toESM(require("node:crypto"), 1);
 var import_node_fs8 = __toESM(require("node:fs"), 1);
 var import_node_path10 = __toESM(require("node:path"), 1);
 var DEFAULT_PIN_TTL_MS = 5 * 60 * 1e3;
@@ -4699,7 +5048,11 @@ var DEFAULT_RISK_PATTERNS = [
   "\\b(drop|truncate)\\s+(table|database)\\b",
   "curl\\b.*\\|\\s*(ba)?sh\\b",
   "\\bchmod\\s+777\\b",
-  "\\bmkfs\\.|\\bdd\\s+if="
+  "\\bmkfs\\.|\\bdd\\s+if=",
+  "\\bremove-item\\b[^\\r\\n;&|]{0,160}\\s-(?:r|re|rec|recu|recur|recurs|recurse)\\b",
+  "\\b(?:rmdir|rd)(?:\\.exe)?\\b[^\\r\\n;&|]{0,120}(?:\\s|(?<=\\b(?:rmdir|rd)(?:\\.exe)?))(?:\\/[a-z]){0,3}\\/s(?=$|[\\s/\"'`;|&])",
+  "(?:^|[;&|\\r\\n]\\s*)format(?:\\.com|\\.exe)?\\s+(?:\\/[a-z0-9:_-]{1,24}\\s+){0,4}[a-z]:|\\b(?:clear-disk|diskpart)\\b",
+  "\\b(?:irm|iwr|invoke-restmethod|invoke-webrequest)\\b[^\\r\\n|]{0,240}\\|\\s*(?:iex|invoke-expression)\\b"
 ];
 var DEFAULT_SENSITIVE_PATH_PATTERNS = [
   { label: "sensitive_path:.env*", regex: /(?:^|[\\/])\.env[^\\/\s"']*(?:$|[\\/\s"'])/i },
@@ -4736,10 +5089,10 @@ function redactText(text) {
   return out;
 }
 function generatePairingToken() {
-  return import_node_crypto5.default.randomBytes(24).toString("base64url");
+  return import_node_crypto6.default.randomBytes(24).toString("base64url");
 }
 function generatePairingPin() {
-  return String(import_node_crypto5.default.randomInt(1e5, 1e6));
+  return String(import_node_crypto6.default.randomInt(1e5, 1e6));
 }
 function defaultRemoteConfig(now = Date.now()) {
   return {
@@ -5389,7 +5742,7 @@ async function handleRemoteStopHook(payload, rootDataDir) {
 }
 
 // src/modules/review/hook.ts
-var import_node_crypto6 = __toESM(require("node:crypto"), 1);
+var import_node_crypto7 = __toESM(require("node:crypto"), 1);
 var import_node_fs10 = __toESM(require("node:fs"), 1);
 var import_node_path12 = __toESM(require("node:path"), 1);
 var MUTATING_TOOL_RE = /(write|edit|replace|patch|create|delete|remove|rename|move|run_command|command|bash|shell|terminal|multi_replace)/i;
@@ -5432,10 +5785,10 @@ function handleReviewHook(payload, rootDataDir) {
       workspacePaths: payload.workspacePaths.length > 0 ? payload.workspacePaths : prev.workspacePaths,
       conversationId: payload.conversationId ?? prev.conversationId
     };
-    const tmpPath = `${signalPath}.${process.pid}.${import_node_crypto6.default.randomBytes(4).toString("hex")}.tmp`;
+    const tmpPath = `${signalPath}.${process.pid}.${import_node_crypto7.default.randomBytes(4).toString("hex")}.tmp`;
     import_node_fs10.default.writeFileSync(tmpPath, `${JSON.stringify(next, null, 2)}
 `, { encoding: "utf8", mode: 384 });
-    import_node_fs10.default.renameSync(tmpPath, signalPath);
+    atomicRenameSync(tmpPath, signalPath);
   } catch {
   }
 }
@@ -5444,7 +5797,7 @@ function handleReviewHook(payload, rootDataDir) {
 var import_node_fs12 = __toESM(require("node:fs"), 1);
 
 // src/modules/spec/core.ts
-var import_node_crypto7 = __toESM(require("node:crypto"), 1);
+var import_node_crypto8 = __toESM(require("node:crypto"), 1);
 var import_node_fs11 = __toESM(require("node:fs"), 1);
 var import_node_path13 = __toESM(require("node:path"), 1);
 var SPEC_ID_RE = /^[a-zA-Z0-9._-]{1,64}$/;
@@ -5511,7 +5864,7 @@ function sanitizePlanMarkdown(input) {
 }
 function createDeltaItemId(index, existingIds) {
   for (let i = 0; i < 16; i += 1) {
-    const candidate = `delta-${index + 1}-${import_node_crypto7.default.randomBytes(2).toString("hex")}`;
+    const candidate = `delta-${index + 1}-${import_node_crypto8.default.randomBytes(2).toString("hex")}`;
     if (!existingIds.has(candidate)) return candidate;
   }
   return `delta-${index + 1}-${Date.now().toString(36)}`;
@@ -5905,7 +6258,7 @@ function normalizeAnnotationsFromDisk(raw, defaultRevision, fallbackIso) {
     if (!item || typeof item !== "object" || Array.isArray(item)) continue;
     const obj = item;
     const rawId = typeof obj.id === "string" ? obj.id.trim() : "";
-    const id = rawId && SPEC_ANNOTATION_ID_RE.test(rawId) && !seenIds.has(rawId) ? rawId : `ann_${import_node_crypto7.default.randomBytes(4).toString("hex")}`;
+    const id = rawId && SPEC_ANNOTATION_ID_RE.test(rawId) && !seenIds.has(rawId) ? rawId : `ann_${import_node_crypto8.default.randomBytes(4).toString("hex")}`;
     if (seenIds.has(id)) continue;
     const kind = typeof obj.kind === "string" && VALID_ANNOTATION_KINDS.has(obj.kind) ? obj.kind : null;
     if (!kind) continue;
@@ -6169,12 +6522,12 @@ var import_node_fs15 = __toESM(require("node:fs"), 1);
 var import_node_path16 = __toESM(require("node:path"), 1);
 
 // src/modules/turbo/auto-rtk.ts
-var import_node_crypto9 = __toESM(require("node:crypto"), 1);
+var import_node_crypto10 = __toESM(require("node:crypto"), 1);
 var import_node_fs14 = __toESM(require("node:fs"), 1);
 var import_node_path15 = __toESM(require("node:path"), 1);
 
 // src/modules/turbo/core.ts
-var import_node_crypto8 = __toESM(require("node:crypto"), 1);
+var import_node_crypto9 = __toESM(require("node:crypto"), 1);
 var import_node_fs13 = __toESM(require("node:fs"), 1);
 var import_node_path14 = __toESM(require("node:path"), 1);
 var TURBO_MAX_FILE_BYTES = 512 * 1024;
@@ -6785,7 +7138,7 @@ var CompactedChunkStore = class {
     const estimatedSummaryTokens = Math.ceil(summaryText.length / 4);
     const estimatedSavedTokens = Math.max(0, estimatedRawTokens - estimatedSummaryTokens);
     const chunkCount = Math.max(1, Math.ceil(totalLines / chunkLines));
-    const chunkId = `chk_${Date.now().toString(36)}_${import_node_crypto8.default.randomBytes(3).toString("hex")}`;
+    const chunkId = `chk_${Date.now().toString(36)}_${import_node_crypto9.default.randomBytes(3).toString("hex")}`;
     const createdAt = (/* @__PURE__ */ new Date()).toISOString();
     const meta = {
       chunkId,
@@ -6902,8 +7255,7 @@ var defaultCompactedChunkStore = new CompactedChunkStore(TURBO_MAX_COMPACTED_CHU
 var SNAPSHOT_EXPAND_DIRS = /* @__PURE__ */ new Set(["src", "app", "apps", "packages", "lib", "ui", "test", "tests", "scripts", "cmd", "pkg", "internal"]);
 function buildWorkspaceSnapshot(workspaceRoot) {
   const startedAt = Date.now();
-  const realRoot = import_node_fs13.default.realpathSync(import_node_path14.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path14.default.sep) ? realRoot : `${realRoot}${import_node_path14.default.sep}`;
+  const realRoot = canonicalRealpathSync(import_node_path14.default.resolve(workspaceRoot));
   const workspaceName = import_node_path14.default.basename(realRoot) || "workspace";
   const techStack = [];
   const scripts = [];
@@ -6912,8 +7264,8 @@ function buildWorkspaceSnapshot(workspaceRoot) {
   const hasFile = (name) => {
     try {
       const candidate = import_node_path14.default.join(realRoot, name);
-      const real = import_node_fs13.default.realpathSync(candidate);
-      return real.startsWith(rootPrefix) && import_node_fs13.default.statSync(real).isFile();
+      const real = canonicalRealpathSync(candidate);
+      return isPathInsideDir(realRoot, real) && !isSamePath(realRoot, real) && import_node_fs13.default.statSync(real).isFile();
     } catch {
       return false;
     }
@@ -6957,9 +7309,9 @@ function buildWorkspaceSnapshot(workspaceRoot) {
       if (SKIP_DIRS.has(entry.name) || isSensitiveTurboPath(entry.name)) continue;
       if (entry.isSymbolicLink()) {
         try {
-          const realEntry = import_node_fs13.default.realpathSync(import_node_path14.default.join(realRoot, entry.name));
+          const realEntry = canonicalRealpathSync(import_node_path14.default.join(realRoot, entry.name));
           const realEntryRel = import_node_path14.default.relative(realRoot, realEntry).replace(/\\/g, "/");
-          if (!realEntry.startsWith(rootPrefix) || isSensitiveTurboPath(realEntryRel)) continue;
+          if (!isPathInsideDir(realRoot, realEntry) || isSamePath(realRoot, realEntry) || isSensitiveTurboPath(realEntryRel)) continue;
         } catch {
           continue;
         }
@@ -6978,9 +7330,9 @@ function buildWorkspaceSnapshot(workspaceRoot) {
               }
               if (sub.isSymbolicLink()) {
                 try {
-                  const realSub = import_node_fs13.default.realpathSync(import_node_path14.default.join(realRoot, entry.name, sub.name));
+                  const realSub = canonicalRealpathSync(import_node_path14.default.join(realRoot, entry.name, sub.name));
                   const realSubRel = import_node_path14.default.relative(realRoot, realSub).replace(/\\/g, "/");
-                  return realSub.startsWith(rootPrefix) && !isSensitiveTurboPath(realSubRel);
+                  return isPathInsideDir(realRoot, realSub) && !isSamePath(realRoot, realSub) && !isSensitiveTurboPath(realSubRel);
                 } catch {
                   return false;
                 }
@@ -7044,10 +7396,14 @@ var MAX_COMMAND_LENGTH = 512;
 var MAX_COMMAND_ARGS = 24;
 var MAX_PAYLOAD_B64_LENGTH = 4096;
 var COMPACT_RUN_MAX_BUFFER_BYTES = 8 * 1024 * 1024;
+var SHELL_META_NO_BACKSLASH_RE = /[;&|`$><\r\n()\x00-\x1f\x7f]/;
+var WIN_EXTRA_SHELL_META_RE = /[%!^]/;
 var SHELL_META_HARD_DENY_RE = /[;&|`$><\r\n()\\\x00-\x1f\x7f]/;
+var PATH_META_HARD_DENY_RE = /[%!^"';&|`$><()\r\n\x00-\x1f\x7f]/;
 var UNQUOTED_SHELL_SYNTAX_RE = /[*?[\]{}#]/;
 var SAFE_EXECUTABLE_RE = /^[a-z][a-z0-9-]*$/;
 var SAFE_SHELL_PATH_RE = /^[A-Za-z0-9._/@:+ -]+$/;
+var SAFE_WIN_PATH_BODY_RE = /^[A-Za-z0-9._/@\\+ -]+$/;
 var SAFE_B64URL_RE = /^[A-Za-z0-9_-]+$/;
 var ENV_ASSIGN_TOKEN_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
 var FORBIDDEN_SHELL_EXECUTABLES = /* @__PURE__ */ new Set([
@@ -7335,41 +7691,14 @@ var ESTIMATED_WASTE_BY_PRESET = {
   build: 1800,
   git: 1200
 };
-function isPlatformSystemRootSymlink2(segmentPath) {
-  return process.platform === "darwin" && /^\/(?:var|tmp|etc)$/.test(segmentPath);
-}
-function hasUnsafeSymlinkAncestor2(targetPath) {
-  let cur = import_node_path15.default.resolve(targetPath);
-  const root = import_node_path15.default.parse(cur).root;
-  while (true) {
-    if (!isPlatformSystemRootSymlink2(cur)) {
-      try {
-        const st = import_node_fs14.default.lstatSync(cur);
-        if (st.isSymbolicLink()) return true;
-      } catch (err) {
-        const code = err?.code;
-        if (code !== "ENOENT") return true;
-      }
-    }
-    if (cur === root) return false;
-    const parent = import_node_path15.default.dirname(cur);
-    if (parent === cur) return false;
-    cur = parent;
-  }
-}
-function isWithinRealBase2(childReal, baseReal) {
-  if (childReal === baseReal) return true;
-  const prefix = baseReal.endsWith(import_node_path15.default.sep) ? baseReal : `${baseReal}${import_node_path15.default.sep}`;
-  return childReal.startsWith(prefix);
-}
 function resolveSafeExistingDir(dirPath) {
   if (!dirPath || typeof dirPath !== "string" || dirPath.includes("\0")) return null;
   const resolved = import_node_path15.default.resolve(dirPath);
-  if (hasUnsafeSymlinkAncestor2(resolved)) return null;
+  if (hasUnsafeSymlinkAncestor(resolved)) return null;
   try {
     const st = import_node_fs14.default.lstatSync(resolved);
     if (st.isSymbolicLink() || !st.isDirectory()) return null;
-    return import_node_fs14.default.realpathSync(resolved);
+    return canonicalRealpathSync(resolved);
   } catch {
     return null;
   }
@@ -7379,7 +7708,7 @@ function ensureSafePrivateDir(dirPath) {
     throw new Error("Invalid directory path");
   }
   const resolved = import_node_path15.default.resolve(dirPath);
-  if (hasUnsafeSymlinkAncestor2(resolved)) {
+  if (hasUnsafeSymlinkAncestor(resolved)) {
     throw new Error(`Refused symlink directory path: ${dirPath}`);
   }
   import_node_fs14.default.mkdirSync(resolved, { recursive: true, mode: 448 });
@@ -7391,7 +7720,7 @@ function ensureSafePrivateDir(dirPath) {
     import_node_fs14.default.chmodSync(resolved, 448);
   } catch {
   }
-  return import_node_fs14.default.realpathSync(resolved);
+  return canonicalRealpathSync(resolved);
 }
 function readSafeJsonFile(dirPath, fileName, maxBytes) {
   const realDir = resolveSafeExistingDir(dirPath);
@@ -7402,8 +7731,8 @@ function readSafeJsonFile(dirPath, fileName, maxBytes) {
     if (st.isSymbolicLink() || !st.isFile() || st.size > maxBytes) {
       return null;
     }
-    const realFile = import_node_fs14.default.realpathSync(filePath);
-    if (!isWithinRealBase2(realFile, realDir)) {
+    const realFile = canonicalRealpathSync(filePath);
+    if (!isPathInsideDir(realDir, realFile)) {
       return null;
     }
     return JSON.parse(import_node_fs14.default.readFileSync(realFile, "utf8"));
@@ -7424,7 +7753,7 @@ function atomicWritePrivateFile(dirPath, fileName, content) {
       throw err;
     }
   }
-  const nonce = import_node_crypto9.default.randomBytes(4).toString("hex");
+  const nonce = import_node_crypto10.default.randomBytes(4).toString("hex");
   const tmpPath = import_node_path15.default.join(realDir, `.${fileName}.tmp.${process.pid}.${Date.now()}.${nonce}`);
   try {
     import_node_fs14.default.writeFileSync(tmpPath, content, { encoding: "utf8", mode: 384, flag: "wx" });
@@ -7432,11 +7761,11 @@ function atomicWritePrivateFile(dirPath, fileName, content) {
       import_node_fs14.default.chmodSync(tmpPath, 384);
     } catch {
     }
-    import_node_fs14.default.renameSync(tmpPath, targetPath);
+    atomicRenameSync(tmpPath, targetPath);
     return targetPath;
   } catch (err) {
     try {
-      import_node_fs14.default.unlinkSync(tmpPath);
+      if (import_node_fs14.default.existsSync(tmpPath)) import_node_fs14.default.unlinkSync(tmpPath);
     } catch {
     }
     throw err;
@@ -7498,7 +7827,21 @@ function loadTurboHotspotsReadOnly(moduleDataDir) {
   }
   return sortHotspots(normalized);
 }
-function tokenizeSimpleSingleCommand(commandLine) {
+function normalizeSafeWindowsRelativePathArg(token) {
+  if (!token.includes("\\")) return token;
+  if (token.startsWith("\\") || token.startsWith("/") || token.startsWith("-") || token.includes(":") || token.includes("\\\\") || token.includes("//")) {
+    return null;
+  }
+  if (!/^[A-Za-z0-9._@+][A-Za-z0-9._@+ /\\-]*$/.test(token)) {
+    return null;
+  }
+  const normalized = token.replace(/\\/g, "/");
+  if (normalized.split("/").some((seg) => seg === "..")) {
+    return null;
+  }
+  return normalized;
+}
+function tokenizeSimpleSingleCommand(commandLine, platform = process.platform) {
   if (typeof commandLine !== "string") {
     return { ok: false, reason: "non-string command" };
   }
@@ -7509,7 +7852,11 @@ function tokenizeSimpleSingleCommand(commandLine) {
   if (trimmed.length > MAX_COMMAND_LENGTH) {
     return { ok: false, reason: "command exceeds max length" };
   }
-  if (SHELL_META_HARD_DENY_RE.test(trimmed)) {
+  if (platform === "win32") {
+    if (SHELL_META_NO_BACKSLASH_RE.test(trimmed) || WIN_EXTRA_SHELL_META_RE.test(trimmed)) {
+      return { ok: false, reason: "disallowed shell metacharacter" };
+    }
+  } else if (SHELL_META_HARD_DENY_RE.test(trimmed)) {
     return { ok: false, reason: "disallowed shell metacharacter" };
   }
   const tokens = [];
@@ -7561,6 +7908,20 @@ function tokenizeSimpleSingleCommand(commandLine) {
   }
   if (tokens.length - 1 > MAX_COMMAND_ARGS) {
     return { ok: false, reason: "too many arguments" };
+  }
+  if (platform === "win32") {
+    if (tokens[0].includes("\\")) {
+      return { ok: false, reason: "disallowed backslash in executable" };
+    }
+    for (let i = 1; i < tokens.length; i += 1) {
+      if (tokens[i].includes("\\")) {
+        const normalized = normalizeSafeWindowsRelativePathArg(tokens[i]);
+        if (normalized === null) {
+          return { ok: false, reason: "disallowed backslash argument" };
+        }
+        tokens[i] = normalized;
+      }
+    }
   }
   return { ok: true, tokens };
 }
@@ -7874,8 +8235,8 @@ function validateSafeTokens(executable, args) {
   }
   return { ok: false, reason: "command not in Auto-RTK whitelist" };
 }
-function parseSafeAutoRtkCommand(commandLine) {
-  const tokenized = tokenizeSimpleSingleCommand(commandLine);
+function parseSafeAutoRtkCommand(commandLine, platform = process.platform) {
+  const tokenized = tokenizeSimpleSingleCommand(commandLine, platform);
   if (!tokenized.ok) {
     return { ok: false, reason: tokenized.reason };
   }
@@ -7885,15 +8246,38 @@ function parseSafeAutoRtkCommand(commandLine) {
   }
   return validateSafeTokens(executable, args);
 }
-function isSafePathForShellArg(candidate) {
+function isSafeAbsolutePathArg(candidate, platform = process.platform) {
   if (typeof candidate !== "string") return false;
   if (!candidate || candidate.length > 512) return false;
   if (candidate !== candidate.trim() || /[\x00-\x1f\x7f]/.test(candidate)) return false;
+  if (PATH_META_HARD_DENY_RE.test(candidate)) return false;
+  if (platform === "win32") {
+    if (candidate.startsWith("\\\\") || candidate.startsWith("//")) return false;
+    if (!/^[A-Za-z]:[\\/]/.test(candidate)) {
+      return false;
+    }
+    const rest = candidate.slice(2);
+    if (rest.includes(":")) return false;
+    return SAFE_WIN_PATH_BODY_RE.test(rest);
+  }
+  if (!candidate.startsWith("/")) return false;
   if (SHELL_META_HARD_DENY_RE.test(candidate)) return false;
-  if (candidate.includes("'") || candidate.includes('"')) return false;
   return SAFE_SHELL_PATH_RE.test(candidate);
 }
-function quoteSafePosixArg(value) {
+function resolvePathForPlatform(rawPath, platform) {
+  if (platform === "win32") {
+    return import_node_path15.default.win32.resolve(rawPath);
+  }
+  if (platform === process.platform) {
+    return import_node_path15.default.resolve(rawPath);
+  }
+  return import_node_path15.default.posix.resolve(rawPath);
+}
+function quoteSafeShellPathArg(value, platform) {
+  if (platform === "win32") {
+    const posixSlashPath = value.replace(/\\/g, "/");
+    return `"${posixSlashPath}"`;
+  }
   return `'${value}'`;
 }
 function resolveDefaultCliEntryPath() {
@@ -7914,12 +8298,12 @@ function resolveDefaultCliEntryPath() {
   }
   return import_node_path15.default.resolve(process.cwd(), "dist/cli.cjs");
 }
-function buildAutoRtkOverwriteCommand(cliEntryPath, parsed, rootDataDir) {
-  if (!isSafePathForShellArg(cliEntryPath)) {
+function buildAutoRtkOverwriteCommand(cliEntryPath, parsed, rootDataDir, platform = process.platform) {
+  if (!isSafeAbsolutePathArg(cliEntryPath, platform)) {
     return null;
   }
-  const resolvedCli = import_node_path15.default.resolve(cliEntryPath);
-  if (!isSafePathForShellArg(resolvedCli)) {
+  const resolvedCli = resolvePathForPlatform(cliEntryPath, platform);
+  if (!isSafeAbsolutePathArg(resolvedCli, platform)) {
     return null;
   }
   const rechecked = validateSafeTokens(parsed.executable, parsed.args);
@@ -7938,19 +8322,19 @@ function buildAutoRtkOverwriteCommand(cliEntryPath, parsed, rootDataDir) {
   }
   const parts = [
     "node",
-    quoteSafePosixArg(resolvedCli),
+    quoteSafeShellPathArg(resolvedCli, platform),
     "compact-run",
     `--payload=${payloadB64}`
   ];
   if (rootDataDir !== void 0 && rootDataDir !== "") {
-    if (!isSafePathForShellArg(rootDataDir)) {
+    if (!isSafeAbsolutePathArg(rootDataDir, platform)) {
       return null;
     }
-    const resolvedDataDir = import_node_path15.default.resolve(rootDataDir);
-    if (!isSafePathForShellArg(resolvedDataDir)) {
+    const resolvedDataDir = resolvePathForPlatform(rootDataDir, platform);
+    if (!isSafeAbsolutePathArg(resolvedDataDir, platform)) {
       return null;
     }
-    parts.push(`--data-dir=${quoteSafePosixArg(resolvedDataDir)}`);
+    parts.push(`--data-dir=${quoteSafeShellPathArg(resolvedDataDir, platform)}`);
   }
   return parts.join(" ");
 }
@@ -8099,11 +8483,11 @@ function handleTurboPostToolHook(payload, rootDataDir) {
 }
 
 // src/modules/verify/hook.ts
-var import_node_crypto11 = __toESM(require("node:crypto"), 1);
+var import_node_crypto12 = __toESM(require("node:crypto"), 1);
 
 // src/modules/verify/core.ts
 var import_node_child_process2 = require("node:child_process");
-var import_node_crypto10 = __toESM(require("node:crypto"), 1);
+var import_node_crypto11 = __toESM(require("node:crypto"), 1);
 var import_node_fs16 = __toESM(require("node:fs"), 1);
 var import_node_path17 = __toESM(require("node:path"), 1);
 var ALLOWED_VERIFY_EXECUTABLES = /* @__PURE__ */ new Set([
@@ -8117,6 +8501,7 @@ var ALLOWED_VERIFY_EXECUTABLES = /* @__PURE__ */ new Set([
   "jest",
   "pytest",
   "python3",
+  "python",
   "cargo",
   "go",
   "ruff",
@@ -8609,34 +8994,34 @@ function validateNodeArgs(id, args) {
   }
   return null;
 }
-function validatePythonArgs(id, args) {
+function validatePythonArgs(id, args, executable = "python3") {
   if (args.length === 0) {
-    return `Command "${id}" python3 requires explicit arguments (--version, -V, or -m <allowed_module>).`;
+    return `Command "${id}" ${executable} requires explicit arguments (--version, -V, or -m <allowed_module>).`;
   }
   const first = args[0];
   if (first === "--version" || first === "-V") {
     if (args.length !== 1) {
-      return `Command "${id}" python3 ${first} does not accept additional arguments.`;
+      return `Command "${id}" ${executable} ${first} does not accept additional arguments.`;
     }
     return null;
   }
   if (first !== "-m") {
-    return `Command "${id}" python3 only permits "--version", "-V", or "-m <module>" (disallowed leading arg "${first}").`;
+    return `Command "${id}" ${executable} only permits "--version", "-V", or "-m <module>" (disallowed leading arg "${first}").`;
   }
   const modName = args[1];
   if (!modName || !ALLOWED_PYTHON_MODULES.has(modName)) {
-    return `Command "${id}" python3 module "${modName ?? ""}" is not in the allowlist (${[...ALLOWED_PYTHON_MODULES].join(", ")}).`;
+    return `Command "${id}" ${executable} module "${modName ?? ""}" is not in the allowlist (${[...ALLOWED_PYTHON_MODULES].join(", ")}).`;
   }
   for (const arg of args.slice(2)) {
     const lower = arg.toLowerCase();
     if (arg === "-" || arg === "-i" || isForbiddenInterpreterArg(arg)) {
-      return `Command "${id}" uses forbidden python3 argument "${arg}".`;
+      return `Command "${id}" uses forbidden ${executable} argument "${arg}".`;
     }
     if (lower === "--eval" || lower.startsWith("--eval=")) {
-      return `Command "${id}" uses forbidden python3 option "${arg}".`;
+      return `Command "${id}" uses forbidden ${executable} option "${arg}".`;
     }
     if (hasPathTraversalOrAbsolute(arg, true)) {
-      return `Command "${id}" python3 argument "${arg}" contains a disallowed absolute or parent-traversal path.`;
+      return `Command "${id}" ${executable} argument "${arg}" contains a disallowed absolute or parent-traversal path.`;
     }
   }
   return null;
@@ -8780,8 +9165,8 @@ function validateVerifyCommand(raw) {
     toolError = validatePackageManagerArgs(id, executable, args);
   } else if (executable === "node") {
     toolError = validateNodeArgs(id, args);
-  } else if (executable === "python3") {
-    toolError = validatePythonArgs(id, args);
+  } else if (executable === "python3" || executable === "python") {
+    toolError = validatePythonArgs(id, args, executable);
   } else if (executable === "go") {
     toolError = validateGoArgs(id, args);
   } else if (executable === "cargo") {
@@ -8995,7 +9380,7 @@ function resolveRealPathWithMissingTail2(inputPath, depth = 0) {
   let current = resolved;
   while (true) {
     try {
-      const realBase = import_node_fs16.default.realpathSync(current);
+      const realBase = canonicalRealpathSync(current);
       return missingSegments.length > 0 ? import_node_path17.default.join(realBase, ...missingSegments.reverse()) : realBase;
     } catch (err) {
       const code = err?.code;
@@ -9029,11 +9414,7 @@ function inspectWorkspaceFile(workspaceRoot, targetPath) {
     const realRoot = resolveRealPathWithMissingTail2(workspaceRoot);
     const candidate = import_node_path17.default.isAbsolute(targetPath) ? targetPath : import_node_path17.default.resolve(workspaceRoot, targetPath);
     const realTarget = resolveRealPathWithMissingTail2(candidate);
-    const rootPrefix = realRoot.endsWith(import_node_path17.default.sep) ? realRoot : `${realRoot}${import_node_path17.default.sep}`;
-    if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
-      return { inside: false };
-    }
-    if (realTarget === realRoot) {
+    if (!isPathInsideDir(realRoot, realTarget) || isSamePath(realRoot, realTarget)) {
       return { inside: false };
     }
     const relPath = import_node_path17.default.relative(realRoot, realTarget).split(import_node_path17.default.sep).join("/");
@@ -9126,7 +9507,7 @@ function executeVerifyCommand(command, workspaceRoot, options = {}) {
   );
   let resolvedCwd;
   try {
-    resolvedCwd = import_node_fs16.default.realpathSync(import_node_path17.default.resolve(workspaceRoot));
+    resolvedCwd = canonicalRealpathSync(import_node_path17.default.resolve(workspaceRoot));
     if (!import_node_fs16.default.statSync(resolvedCwd).isDirectory()) {
       throw new Error("Workspace root is not a directory.");
     }
@@ -9198,7 +9579,10 @@ function executeVerifyCommand(command, workspaceRoot, options = {}) {
     };
     let child;
     try {
-      child = (0, import_node_child_process2.spawn)(safeCmd.executable, safeCmd.args, {
+      const resolvedSpawn = resolveSafeSpawnTarget(safeCmd.executable, safeCmd.args, {
+        cwd: resolvedCwd
+      });
+      child = (0, import_node_child_process2.spawn)(resolvedSpawn.command, resolvedSpawn.args, {
         cwd: resolvedCwd,
         shell: false,
         windowsHide: true,
@@ -9222,12 +9606,37 @@ function executeVerifyCommand(command, workspaceRoot, options = {}) {
       return;
     }
     const killProcessTree = (signal) => {
-      if (isPosix && typeof child.pid === "number" && child.pid > 0) {
+      const pid = child.pid;
+      if (isPosix && typeof pid === "number" && Number.isInteger(pid) && pid > 0) {
         try {
-          process.kill(-child.pid, signal);
+          process.kill(-pid, signal);
           return;
         } catch {
         }
+      } else if (!isPosix && typeof pid === "number" && Number.isInteger(pid) && pid > 0) {
+        if (child.exitCode !== null || child.signalCode !== null) {
+          return;
+        }
+        try {
+          (0, import_node_child_process2.execFile)(
+            "taskkill",
+            ["/pid", String(pid), "/T", "/F"],
+            { windowsHide: true, shell: false },
+            (err) => {
+              if (err && child.exitCode === null && child.signalCode === null) {
+                try {
+                  child.kill(signal);
+                } catch {
+                }
+              }
+            }
+          );
+          return;
+        } catch {
+        }
+      }
+      if (child.exitCode !== null || child.signalCode !== null) {
+        return;
       }
       try {
         child.kill(signal);
@@ -9371,7 +9780,7 @@ async function runVerifyCommands(commands, workspaceRoot, options = {}) {
   };
 }
 function createEvidenceId(prefix = "ver") {
-  return `${prefix}-${Date.now().toString(36)}-${import_node_crypto10.default.randomBytes(3).toString("hex")}`;
+  return `${prefix}-${Date.now().toString(36)}-${import_node_crypto11.default.randomBytes(3).toString("hex")}`;
 }
 function formatFailureTailSnippet(outputTail, maxLines = 4, maxChars = 280) {
   const lines = redactVerifyOutput(outputTail).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
@@ -9430,7 +9839,7 @@ function deriveVerifyConversationId(payload) {
   }
   const seed = payload.workspaceRoot ?? payload.workspacePaths[0] ?? payload.cwd;
   if (seed) {
-    const hash = import_node_crypto11.default.createHash("sha256").update(seed).digest("hex").slice(0, 10);
+    const hash = import_node_crypto12.default.createHash("sha256").update(seed).digest("hex").slice(0, 10);
     return `ws-${hash}`;
   }
   return "default-session";
@@ -9785,7 +10194,7 @@ async function handleVerifyStopHook(payload, rootDataDir) {
 }
 
 // src/modules/xray/hook.ts
-var import_node_crypto12 = __toESM(require("node:crypto"), 1);
+var import_node_crypto13 = __toESM(require("node:crypto"), 1);
 var import_node_fs17 = __toESM(require("node:fs"), 1);
 var import_node_path18 = __toESM(require("node:path"), 1);
 function formatErrorValue2(err) {
@@ -9834,10 +10243,10 @@ function handleXrayHook(payload, rootDataDir) {
     if (state.recentEvents.length > 50) {
       state.recentEvents = state.recentEvents.slice(-50);
     }
-    const tmpPath = `${statePath}.${process.pid}.${import_node_crypto12.default.randomBytes(4).toString("hex")}.tmp`;
+    const tmpPath = `${statePath}.${process.pid}.${import_node_crypto13.default.randomBytes(4).toString("hex")}.tmp`;
     import_node_fs17.default.writeFileSync(tmpPath, `${JSON.stringify(state, null, 2)}
 `, { encoding: "utf8", mode: 384 });
-    import_node_fs17.default.renameSync(tmpPath, statePath);
+    atomicRenameSync(tmpPath, statePath);
   } catch {
   }
 }
@@ -10190,19 +10599,57 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir, overrides) {
   }
   return {};
 }
-function readStdinText() {
-  try {
-    return import_node_fs18.default.readFileSync(0, "utf8");
-  } catch {
-    return "";
+var MAX_HOOK_STDIN_BYTES = 4 * 1024 * 1024;
+var HOOK_STDIN_READ_TIMEOUT_MS = 1500;
+function readStdinTextAsync() {
+  if (process.stdin.isTTY) {
+    return Promise.resolve("");
   }
+  return new Promise((resolve) => {
+    const chunks = [];
+    let totalBytes = 0;
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      process.stdin.removeListener("data", onData);
+      process.stdin.removeListener("end", onEnd);
+      process.stdin.removeListener("error", onError);
+      try {
+        process.stdin.pause();
+      } catch {
+      }
+      resolve(Buffer.concat(chunks).toString("utf8"));
+    };
+    const onData = (chunk) => {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, "utf8");
+      if (totalBytes + buf.length > MAX_HOOK_STDIN_BYTES) {
+        const remaining = Math.max(0, MAX_HOOK_STDIN_BYTES - totalBytes);
+        if (remaining > 0) chunks.push(buf.subarray(0, remaining));
+        totalBytes = MAX_HOOK_STDIN_BYTES;
+        finish();
+        return;
+      }
+      chunks.push(buf);
+      totalBytes += buf.length;
+    };
+    const onEnd = () => finish();
+    const onError = () => finish();
+    const timer = setTimeout(finish, HOOK_STDIN_READ_TIMEOUT_MS);
+    timer.unref?.();
+    process.stdin.on("data", onData);
+    process.stdin.on("end", onEnd);
+    process.stdin.on("error", onError);
+    process.stdin.resume();
+  });
 }
 async function main() {
   const argv = process.argv.slice(2);
   const event = normalizeHookEvent(parseCliFlag(argv, "--event"), "PostToolUse");
   const cliDataDir = parseCliFlag(argv, "--data-dir");
   let rawInput = {};
-  const text = readStdinText().trim();
+  const text = (await readStdinTextAsync()).trim();
   if (text) {
     try {
       rawInput = JSON.parse(text);
@@ -10220,7 +10667,7 @@ async function main() {
 `);
   }
 }
-var isMain = typeof require !== "undefined" && typeof module !== "undefined" && require.main === module || typeof process.argv[1] === "string" && (process.argv[1].endsWith("hook.cjs") || process.argv[1].endsWith("dispatcher.ts"));
+var isMain = typeof require !== "undefined" && typeof module !== "undefined" && require.main === module || typeof process.argv[1] === "string" && (/(?:^|[/\\])hook\.cjs$/i.test(process.argv[1]) || /(?:^|[/\\])dispatcher\.ts$/i.test(process.argv[1]));
 if (isMain) {
   void main();
 }

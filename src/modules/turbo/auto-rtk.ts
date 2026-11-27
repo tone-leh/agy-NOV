@@ -3,6 +3,13 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { redactFeedText } from '../../core/feed.js';
+import {
+  atomicRenameSync,
+  canonicalRealpathSync,
+  hasUnsafeSymlinkAncestor,
+  isPathInsideDir,
+  resolveSafeSpawnTarget,
+} from '../../core/utils.js';
 import { CompactedChunkStore } from './core.js';
 
 export interface TurboPrefs {
@@ -65,10 +72,14 @@ const COMPACT_RUN_MAX_BUFFER_BYTES = 8 * 1024 * 1024;
 const FAILURE_TAIL_MIN_LINES = 60;
 
 // Hard-deny any Shell control / metacharacters or control bytes (including \r, \n, \0, backticks, pipes, redirects, subshells, escapes)
+const SHELL_META_NO_BACKSLASH_RE = /[;&|`$><\r\n()\x00-\x1f\x7f]/;
+const WIN_EXTRA_SHELL_META_RE = /[%!^]/;
 const SHELL_META_HARD_DENY_RE = /[;&|`$><\r\n()\\\x00-\x1f\x7f]/;
+const PATH_META_HARD_DENY_RE = /[%!^"';&|`$><()\r\n\x00-\x1f\x7f]/;
 const UNQUOTED_SHELL_SYNTAX_RE = /[*?[\]{}#]/;
 const SAFE_EXECUTABLE_RE = /^[a-z][a-z0-9-]*$/;
 const SAFE_SHELL_PATH_RE = /^[A-Za-z0-9._/@:+ -]+$/;
+const SAFE_WIN_PATH_BODY_RE = /^[A-Za-z0-9._/@\\+ -]+$/;
 const SAFE_B64URL_RE = /^[A-Za-z0-9_-]+$/;
 const ENV_ASSIGN_TOKEN_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
 
@@ -381,36 +392,6 @@ const ESTIMATED_WASTE_BY_PRESET: Record<AutoRtkPreset, number> = {
 // Symlink-safe private file helpers (zero writes on read, 0700/0600 on write)
 // ---------------------------------------------------------------------------
 
-function isPlatformSystemRootSymlink(segmentPath: string): boolean {
-  return process.platform === 'darwin' && /^\/(?:var|tmp|etc)$/.test(segmentPath);
-}
-
-function hasUnsafeSymlinkAncestor(targetPath: string): boolean {
-  let cur = path.resolve(targetPath);
-  const root = path.parse(cur).root;
-  while (true) {
-    if (!isPlatformSystemRootSymlink(cur)) {
-      try {
-        const st = fs.lstatSync(cur);
-        if (st.isSymbolicLink()) return true;
-      } catch (err) {
-        const code = (err as NodeJS.ErrnoException)?.code;
-        if (code !== 'ENOENT') return true;
-      }
-    }
-    if (cur === root) return false;
-    const parent = path.dirname(cur);
-    if (parent === cur) return false;
-    cur = parent;
-  }
-}
-
-function isWithinRealBase(childReal: string, baseReal: string): boolean {
-  if (childReal === baseReal) return true;
-  const prefix = baseReal.endsWith(path.sep) ? baseReal : `${baseReal}${path.sep}`;
-  return childReal.startsWith(prefix);
-}
-
 function resolveSafeExistingDir(dirPath: string): string | null {
   if (!dirPath || typeof dirPath !== 'string' || dirPath.includes('\0')) return null;
   const resolved = path.resolve(dirPath);
@@ -418,7 +399,7 @@ function resolveSafeExistingDir(dirPath: string): string | null {
   try {
     const st = fs.lstatSync(resolved);
     if (st.isSymbolicLink() || !st.isDirectory()) return null;
-    return fs.realpathSync(resolved);
+    return canonicalRealpathSync(resolved);
   } catch {
     return null;
   }
@@ -442,7 +423,7 @@ function ensureSafePrivateDir(dirPath: string): string {
   } catch {
     // ignore on platforms without POSIX mode bits
   }
-  return fs.realpathSync(resolved);
+  return canonicalRealpathSync(resolved);
 }
 
 function readSafeJsonFile(dirPath: string, fileName: string, maxBytes: number): unknown | null {
@@ -454,8 +435,8 @@ function readSafeJsonFile(dirPath: string, fileName: string, maxBytes: number): 
     if (st.isSymbolicLink() || !st.isFile() || st.size > maxBytes) {
       return null;
     }
-    const realFile = fs.realpathSync(filePath);
-    if (!isWithinRealBase(realFile, realDir)) {
+    const realFile = canonicalRealpathSync(filePath);
+    if (!isPathInsideDir(realDir, realFile)) {
       return null;
     }
     return JSON.parse(fs.readFileSync(realFile, 'utf8')) as unknown;
@@ -488,11 +469,11 @@ function atomicWritePrivateFile(dirPath: string, fileName: string, content: stri
     } catch {
       // ignore on platforms without POSIX mode bits
     }
-    fs.renameSync(tmpPath, targetPath);
+    atomicRenameSync(tmpPath, targetPath);
     return targetPath;
   } catch (err) {
     try {
-      fs.unlinkSync(tmpPath);
+      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
     } catch {
       // ignore cleanup failure
     }
@@ -592,7 +573,32 @@ export function loadTurboHotspotsReadOnly(moduleDataDir: string): TurboHotspotRe
 // Strict Whitelist Single-Command Parser & Validator
 // ---------------------------------------------------------------------------
 
-function tokenizeSimpleSingleCommand(commandLine: string): { ok: true; tokens: string[] } | { ok: false; reason: string } {
+function normalizeSafeWindowsRelativePathArg(token: string): string | null {
+  if (!token.includes('\\')) return token;
+  if (
+    token.startsWith('\\') ||
+    token.startsWith('/') ||
+    token.startsWith('-') ||
+    token.includes(':') ||
+    token.includes('\\\\') ||
+    token.includes('//')
+  ) {
+    return null;
+  }
+  if (!/^[A-Za-z0-9._@+][A-Za-z0-9._@+ /\\-]*$/.test(token)) {
+    return null;
+  }
+  const normalized = token.replace(/\\/g, '/');
+  if (normalized.split('/').some((seg) => seg === '..')) {
+    return null;
+  }
+  return normalized;
+}
+
+export function tokenizeSimpleSingleCommand(
+  commandLine: string,
+  platform: NodeJS.Platform = process.platform,
+): { ok: true; tokens: string[] } | { ok: false; reason: string } {
   if (typeof commandLine !== 'string') {
     return { ok: false, reason: 'non-string command' };
   }
@@ -603,7 +609,11 @@ function tokenizeSimpleSingleCommand(commandLine: string): { ok: true; tokens: s
   if (trimmed.length > MAX_COMMAND_LENGTH) {
     return { ok: false, reason: 'command exceeds max length' };
   }
-  if (SHELL_META_HARD_DENY_RE.test(trimmed)) {
+  if (platform === 'win32') {
+    if (SHELL_META_NO_BACKSLASH_RE.test(trimmed) || WIN_EXTRA_SHELL_META_RE.test(trimmed)) {
+      return { ok: false, reason: 'disallowed shell metacharacter' };
+    }
+  } else if (SHELL_META_HARD_DENY_RE.test(trimmed)) {
     return { ok: false, reason: 'disallowed shell metacharacter' };
   }
 
@@ -664,6 +674,22 @@ function tokenizeSimpleSingleCommand(commandLine: string): { ok: true; tokens: s
   if (tokens.length - 1 > MAX_COMMAND_ARGS) {
     return { ok: false, reason: 'too many arguments' };
   }
+
+  if (platform === 'win32') {
+    if (tokens[0].includes('\\')) {
+      return { ok: false, reason: 'disallowed backslash in executable' };
+    }
+    for (let i = 1; i < tokens.length; i += 1) {
+      if (tokens[i].includes('\\')) {
+        const normalized = normalizeSafeWindowsRelativePathArg(tokens[i]);
+        if (normalized === null) {
+          return { ok: false, reason: 'disallowed backslash argument' };
+        }
+        tokens[i] = normalized;
+      }
+    }
+  }
+
   return { ok: true, tokens };
 }
 
@@ -1011,8 +1037,11 @@ function validateSafeTokens(executable: string, args: string[]): ParsedSafeAutoR
   return { ok: false, reason: 'command not in Auto-RTK whitelist' };
 }
 
-export function parseSafeAutoRtkCommand(commandLine: string): ParsedSafeAutoRtkCommand {
-  const tokenized = tokenizeSimpleSingleCommand(commandLine);
+export function parseSafeAutoRtkCommand(
+  commandLine: string,
+  platform: NodeJS.Platform = process.platform,
+): ParsedSafeAutoRtkCommand {
+  const tokenized = tokenizeSimpleSingleCommand(commandLine, platform);
   if (!tokenized.ok) {
     return { ok: false, reason: tokenized.reason };
   }
@@ -1027,17 +1056,49 @@ export function parseSafeAutoRtkCommand(commandLine: string): ParsedSafeAutoRtkC
 // Safe PreToolUse.overwrite Command Builder
 // ---------------------------------------------------------------------------
 
-function isSafePathForShellArg(candidate: string): boolean {
+export function isSafeAbsolutePathArg(
+  candidate: string,
+  platform: NodeJS.Platform = process.platform,
+): boolean {
   if (typeof candidate !== 'string') return false;
   if (!candidate || candidate.length > 512) return false;
   // Reject leading/trailing whitespace or any control characters (\r, \n, \t, \0, etc.) without trimming
   if (candidate !== candidate.trim() || /[\x00-\x1f\x7f]/.test(candidate)) return false;
+  // Hard-deny all Windows and POSIX shell metacharacters
+  if (PATH_META_HARD_DENY_RE.test(candidate)) return false;
+
+  if (platform === 'win32') {
+    // Reject UNC paths (`\\server\share` / `//server/share`) and require drive-letter absolute path
+    if (candidate.startsWith('\\\\') || candidate.startsWith('//')) return false;
+    if (!/^[A-Za-z]:[\\/]/.test(candidate)) {
+      return false;
+    }
+    const rest = candidate.slice(2);
+    if (rest.includes(':')) return false;
+    return SAFE_WIN_PATH_BODY_RE.test(rest);
+  }
+
+  if (!candidate.startsWith('/')) return false;
   if (SHELL_META_HARD_DENY_RE.test(candidate)) return false;
-  if (candidate.includes("'") || candidate.includes('"')) return false;
   return SAFE_SHELL_PATH_RE.test(candidate);
 }
 
-function quoteSafePosixArg(value: string): string {
+function resolvePathForPlatform(rawPath: string, platform: NodeJS.Platform): string {
+  if (platform === 'win32') {
+    return path.win32.resolve(rawPath);
+  }
+  if (platform === process.platform) {
+    return path.resolve(rawPath);
+  }
+  return path.posix.resolve(rawPath);
+}
+
+function quoteSafeShellPathArg(value: string, platform: NodeJS.Platform): string {
+  if (platform === 'win32') {
+    // Forward slashes inside double quotes are accepted cleanly by cmd.exe, PowerShell, Git Bash, and Node.js
+    const posixSlashPath = value.replace(/\\/g, '/');
+    return `"${posixSlashPath}"`;
+  }
   return `'${value}'`;
 }
 
@@ -1066,12 +1127,13 @@ export function buildAutoRtkOverwriteCommand(
   cliEntryPath: string,
   parsed: Extract<ParsedSafeAutoRtkCommand, { ok: true }>,
   rootDataDir?: string,
+  platform: NodeJS.Platform = process.platform,
 ): string | null {
-  if (!isSafePathForShellArg(cliEntryPath)) {
+  if (!isSafeAbsolutePathArg(cliEntryPath, platform)) {
     return null;
   }
-  const resolvedCli = path.resolve(cliEntryPath);
-  if (!isSafePathForShellArg(resolvedCli)) {
+  const resolvedCli = resolvePathForPlatform(cliEntryPath, platform);
+  if (!isSafeAbsolutePathArg(resolvedCli, platform)) {
     return null;
   }
 
@@ -1094,20 +1156,20 @@ export function buildAutoRtkOverwriteCommand(
 
   const parts = [
     'node',
-    quoteSafePosixArg(resolvedCli),
+    quoteSafeShellPathArg(resolvedCli, platform),
     'compact-run',
     `--payload=${payloadB64}`,
   ];
 
   if (rootDataDir !== undefined && rootDataDir !== '') {
-    if (!isSafePathForShellArg(rootDataDir)) {
+    if (!isSafeAbsolutePathArg(rootDataDir, platform)) {
       return null;
     }
-    const resolvedDataDir = path.resolve(rootDataDir);
-    if (!isSafePathForShellArg(resolvedDataDir)) {
+    const resolvedDataDir = resolvePathForPlatform(rootDataDir, platform);
+    if (!isSafeAbsolutePathArg(resolvedDataDir, platform)) {
       return null;
     }
-    parts.push(`--data-dir=${quoteSafePosixArg(resolvedDataDir)}`);
+    parts.push(`--data-dir=${quoteSafeShellPathArg(resolvedDataDir, platform)}`);
   }
 
   return parts.join(' ');
@@ -1338,9 +1400,14 @@ export function executeSafeCompactRun(input: SafeCompactRunInput): SafeCompactRu
     typeof input.cwd === 'string' && input.cwd.trim() ? path.resolve(input.cwd) : process.cwd();
   const cmdLabel = [validated.executable, ...validated.args].join(' ').slice(0, 80);
 
-  const child = spawnSync(validated.executable, validated.args, {
+  const resolvedSpawn = resolveSafeSpawnTarget(validated.executable, validated.args, {
+    cwd: execCwd,
+  });
+
+  const child = spawnSync(resolvedSpawn.command, resolvedSpawn.args, {
     cwd: execCwd,
     shell: false,
+    windowsHide: true,
     timeout: COMPACT_RUN_TIMEOUT_MS,
     maxBuffer: COMPACT_RUN_MAX_BUFFER_BYTES,
     encoding: 'utf8',

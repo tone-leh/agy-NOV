@@ -37,14 +37,288 @@ __export(cli_exports, {
   parseStatusLineSegments: () => parseStatusLineSegments
 });
 module.exports = __toCommonJS(cli_exports);
-var import_node_crypto3 = __toESM(require("node:crypto"), 1);
+var import_node_crypto5 = __toESM(require("node:crypto"), 1);
 var import_node_fs5 = __toESM(require("node:fs"), 1);
 var import_node_path7 = __toESM(require("node:path"), 1);
 
 // src/core/config.ts
-var import_node_fs2 = __toESM(require("node:fs"), 1);
+var import_node_crypto2 = __toESM(require("node:crypto"), 1);
+var import_node_fs3 = __toESM(require("node:fs"), 1);
 var import_node_os = __toESM(require("node:os"), 1);
-var import_node_path2 = __toESM(require("node:path"), 1);
+var import_node_path3 = __toESM(require("node:path"), 1);
+
+// src/core/utils.ts
+var import_node_crypto = __toESM(require("node:crypto"), 1);
+var import_node_fs = __toESM(require("node:fs"), 1);
+var import_node_path = __toESM(require("node:path"), 1);
+var RETRYABLE_WIN_RENAME_CODES = /* @__PURE__ */ new Set(["EPERM", "EBUSY", "EACCES"]);
+var WIN_RETRY_SLEEP_BUF = new Int32Array(new SharedArrayBuffer(4));
+function syncSleepMs(ms) {
+  if (ms <= 0) return;
+  try {
+    Atomics.wait(WIN_RETRY_SLEEP_BUF, 0, 0, ms);
+  } catch {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+    }
+  }
+}
+function canonicalRealpathSync(targetPath) {
+  const nativeFn = import_node_fs.default.realpathSync.native;
+  return typeof nativeFn === "function" ? nativeFn(targetPath) : import_node_fs.default.realpathSync(targetPath);
+}
+function normalizePathForCompare(p, platform = process.platform) {
+  if (!p) return "";
+  if (platform === "win32") {
+    let winPath = p.replace(/\//g, "\\");
+    if (/^\\\\\?\\UNC\\/i.test(winPath)) {
+      winPath = `\\\\${winPath.slice(8)}`;
+    } else if (/^\\\\\?\\[A-Za-z]:\\/.test(winPath)) {
+      winPath = winPath.slice(4);
+    }
+    const norm2 = import_node_path.default.win32.normalize(winPath);
+    const isDriveRoot = /^[A-Za-z]:\\$/.test(norm2);
+    const trimmed = !isDriveRoot && norm2.length > 1 && norm2.endsWith("\\") ? norm2.replace(/\\+$/, "") : norm2;
+    return trimmed.toLowerCase();
+  }
+  const norm = import_node_path.default.posix.normalize(p);
+  return norm.length > 1 && norm.endsWith("/") ? norm.replace(/\/+$/, "") : norm;
+}
+function isPathInsideDir(rootReal, targetReal, platform = process.platform) {
+  const normRoot = normalizePathForCompare(rootReal, platform);
+  const normTarget = normalizePathForCompare(targetReal, platform);
+  if (!normRoot || !normTarget) return false;
+  if (normTarget === normRoot) return true;
+  const sep = platform === "win32" ? "\\" : "/";
+  const prefix = normRoot.endsWith(sep) ? normRoot : `${normRoot}${sep}`;
+  return normTarget.startsWith(prefix);
+}
+function isPlatformSystemSymlink(segmentPath, platform = process.platform) {
+  if (platform === "darwin") {
+    return /^\/(?:var|tmp|etc)$/.test(segmentPath);
+  }
+  if (platform === "linux") {
+    return /^\/(?:home|tmp|var\/run|var\/lock|bin|sbin|lib|lib64)$/.test(segmentPath);
+  }
+  if (platform === "win32") {
+    return /^[A-Za-z]:[\\/]?$/.test(segmentPath);
+  }
+  return false;
+}
+function hasUnsafeSymlinkAncestor(targetPath, platform = process.platform) {
+  let cur = import_node_path.default.resolve(targetPath);
+  const root = import_node_path.default.parse(cur).root;
+  while (true) {
+    if (cur === root) return false;
+    if (!isPlatformSystemSymlink(cur, platform)) {
+      try {
+        const st = import_node_fs.default.lstatSync(cur);
+        if (st.isSymbolicLink()) return true;
+      } catch (err) {
+        const code = err?.code;
+        if (code !== "ENOENT") return true;
+      }
+    }
+    const parent = import_node_path.default.dirname(cur);
+    if (parent === cur) return false;
+    cur = parent;
+  }
+}
+function atomicRenameSync(tmpPath, targetPath, platform = process.platform, cleanupSourceOnError = true) {
+  const retryDelays = platform === "win32" ? [10, 20, 40, 60, 80] : [];
+  let lastErr;
+  for (let attempt = 0; attempt <= retryDelays.length; attempt += 1) {
+    try {
+      import_node_fs.default.renameSync(tmpPath, targetPath);
+      return;
+    } catch (err) {
+      lastErr = err;
+      const code = err?.code ?? "";
+      if (attempt < retryDelays.length && RETRYABLE_WIN_RENAME_CODES.has(code)) {
+        syncSleepMs(retryDelays[attempt]);
+        continue;
+      }
+      break;
+    }
+  }
+  if (cleanupSourceOnError) {
+    try {
+      if (import_node_fs.default.existsSync(tmpPath)) import_node_fs.default.unlinkSync(tmpPath);
+    } catch {
+    }
+  }
+  throw lastErr;
+}
+var NODE_JS_BIN_MAP = {
+  tsc: { pkg: "typescript", binKey: "tsc", fallbackPaths: ["bin/tsc"], allowWorkspaceLocal: true },
+  eslint: { pkg: "eslint", binKey: "eslint", fallbackPaths: ["bin/eslint.js"], allowWorkspaceLocal: true },
+  vitest: { pkg: "vitest", binKey: "vitest", fallbackPaths: ["vitest.mjs"], allowWorkspaceLocal: true },
+  jest: { pkg: "jest", binKey: "jest", fallbackPaths: ["bin/jest.js"], allowWorkspaceLocal: true },
+  pnpm: { pkg: "pnpm", binKey: "pnpm", fallbackPaths: ["bin/pnpm.cjs"], allowWorkspaceLocal: false },
+  yarn: { pkg: "yarn", binKey: "yarn", fallbackPaths: ["bin/yarn.js"], allowWorkspaceLocal: false }
+};
+function findJsBinEntryInNodeModules(baseDir, pkg, binKey, fallbackPaths, platform) {
+  let realBase;
+  try {
+    realBase = canonicalRealpathSync(baseDir);
+  } catch {
+    return null;
+  }
+  const pkgDir = import_node_path.default.join(realBase, "node_modules", pkg);
+  let realPkg;
+  try {
+    realPkg = canonicalRealpathSync(pkgDir);
+    if (!import_node_fs.default.statSync(realPkg).isDirectory()) return null;
+    if (!isPathInsideDir(realBase, realPkg, platform)) return null;
+  } catch {
+    return null;
+  }
+  const pkgJsonPath = import_node_path.default.join(realPkg, "package.json");
+  try {
+    if (import_node_fs.default.existsSync(pkgJsonPath) && import_node_fs.default.statSync(pkgJsonPath).isFile()) {
+      const parsed = JSON.parse(import_node_fs.default.readFileSync(pkgJsonPath, "utf8"));
+      const relBin = typeof parsed.bin === "string" ? parsed.bin : parsed.bin && typeof parsed.bin === "object" ? parsed.bin[binKey] : void 0;
+      if (typeof relBin === "string" && relBin.trim()) {
+        const absBin = import_node_path.default.resolve(realPkg, relBin.trim());
+        if (import_node_fs.default.existsSync(absBin)) {
+          const realBin = canonicalRealpathSync(absBin);
+          if (import_node_fs.default.statSync(realBin).isFile() && isPathInsideDir(realBase, realBin, platform) && isPathInsideDir(realPkg, realBin, platform) && /\.(?:c|m)?js$/i.test(realBin)) {
+            return realBin;
+          }
+        }
+      }
+    }
+  } catch {
+  }
+  for (const rel of fallbackPaths) {
+    const abs = import_node_path.default.resolve(realPkg, rel);
+    try {
+      if (import_node_fs.default.existsSync(abs)) {
+        const realBin = canonicalRealpathSync(abs);
+        if (import_node_fs.default.statSync(realBin).isFile() && isPathInsideDir(realBase, realBin, platform) && isPathInsideDir(realPkg, realBin, platform)) {
+          return realBin;
+        }
+      }
+    } catch {
+    }
+  }
+  return null;
+}
+function resolveSafeSpawnTarget(executable, args, opts = {}) {
+  const platform = opts.platform ?? process.platform;
+  if (platform !== "win32") {
+    return { command: executable, args: [...args] };
+  }
+  const execPath = opts.execPath ?? process.execPath;
+  const env = opts.env ?? process.env;
+  const lower = executable.toLowerCase();
+  const nodeDir = import_node_path.default.dirname(execPath);
+  const trustedGlobalRootsRaw = [nodeDir];
+  if (env.APPDATA) trustedGlobalRootsRaw.push(import_node_path.default.join(env.APPDATA, "npm"));
+  if (env.ProgramFiles) trustedGlobalRootsRaw.push(import_node_path.default.join(env.ProgramFiles, "nodejs"));
+  if (env.NVM_SYMLINK) trustedGlobalRootsRaw.push(env.NVM_SYMLINK);
+  if (env.NVM_HOME) trustedGlobalRootsRaw.push(env.NVM_HOME);
+  const trustedGlobalRealRoots = [];
+  for (const rootCand of trustedGlobalRootsRaw) {
+    try {
+      const realRoot = canonicalRealpathSync(rootCand);
+      if (import_node_fs.default.statSync(realRoot).isDirectory()) {
+        trustedGlobalRealRoots.push(realRoot);
+      }
+    } catch {
+    }
+  }
+  if (lower === "npm" || lower === "npx") {
+    const targetScript = lower === "npm" ? "npm-cli.js" : "npx-cli.js";
+    const envExec = lower === "npm" ? env.npm_execpath : void 0;
+    if (typeof envExec === "string" && envExec.trim() && /npm-cli\.js$/i.test(envExec.trim())) {
+      try {
+        const realEnvExec = canonicalRealpathSync(envExec.trim());
+        if (import_node_fs.default.statSync(realEnvExec).isFile() && trustedGlobalRealRoots.some((root) => isPathInsideDir(root, realEnvExec, platform))) {
+          return {
+            command: execPath,
+            args: [realEnvExec, ...args],
+            resolvedViaNodeJs: true
+          };
+        }
+      } catch {
+      }
+    }
+    for (const trustedRoot of trustedGlobalRealRoots) {
+      const cand = import_node_path.default.join(trustedRoot, "node_modules", "npm", "bin", targetScript);
+      try {
+        if (import_node_fs.default.existsSync(cand)) {
+          const realCand = canonicalRealpathSync(cand);
+          if (import_node_fs.default.statSync(realCand).isFile() && isPathInsideDir(trustedRoot, realCand, platform)) {
+            return {
+              command: execPath,
+              args: [realCand, ...args],
+              resolvedViaNodeJs: true
+            };
+          }
+        }
+      } catch {
+      }
+    }
+  }
+  const binSpec = NODE_JS_BIN_MAP[lower];
+  if (binSpec) {
+    const searchBases = [];
+    if (binSpec.allowWorkspaceLocal && opts.cwd) {
+      searchBases.push(import_node_path.default.resolve(opts.cwd));
+    }
+    searchBases.push(...trustedGlobalRealRoots);
+    for (const base of searchBases) {
+      const jsBin = findJsBinEntryInNodeModules(
+        base,
+        binSpec.pkg,
+        binSpec.binKey,
+        binSpec.fallbackPaths,
+        platform
+      );
+      if (jsBin) {
+        return {
+          command: execPath,
+          args: [jsBin, ...args],
+          resolvedViaNodeJs: true
+        };
+      }
+    }
+  }
+  if (lower === "python3") {
+    return { command: "python", args: [...args] };
+  }
+  return { command: executable, args: [...args] };
+}
+function parseCliFlag(argv, flag) {
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === flag && i + 1 < argv.length) {
+      return argv[i + 1];
+    }
+    if (arg.startsWith(`${flag}=`)) {
+      return arg.slice(flag.length + 1);
+    }
+  }
+  return void 0;
+}
+function hasCliFlag(argv, flag) {
+  return argv.includes(flag);
+}
+function ensurePrivateDir(dirPath) {
+  import_node_fs.default.mkdirSync(dirPath, { recursive: true, mode: 448 });
+  try {
+    import_node_fs.default.chmodSync(dirPath, 448);
+  } catch {
+  }
+}
+function atomicWriteJson(filePath, data) {
+  ensurePrivateDir(import_node_path.default.dirname(filePath));
+  const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}.${import_node_crypto.default.randomBytes(4).toString("hex")}`;
+  import_node_fs.default.writeFileSync(tmpPath, `${JSON.stringify(data, null, 2)}
+`, { mode: 384 });
+  atomicRenameSync(tmpPath, filePath);
+}
 
 // src/core/catalog.ts
 var MODULE_IDS = [
@@ -467,8 +741,8 @@ function countEnabledModelTools(modules) {
 }
 
 // src/core/team-config.ts
-var import_node_fs = __toESM(require("node:fs"), 1);
-var import_node_path = __toESM(require("node:path"), 1);
+var import_node_fs2 = __toESM(require("node:fs"), 1);
+var import_node_path2 = __toESM(require("node:path"), 1);
 var TEAM_CONFIG_FILENAME = ".agy-nov.json";
 var MAX_TEAM_CONFIG_BYTES = 64 * 1024;
 var MAX_TEAM_VERIFY_COMMANDS = 20;
@@ -1355,20 +1629,19 @@ function isSensitiveRelativeTarget(relPath) {
   if (base.startsWith("id_rsa.") || base.startsWith("id_ed25519.") || base.startsWith("id_ecdsa.") || base.startsWith("id_dsa.")) {
     return true;
   }
-  return SENSITIVE_TARGET_EXTS.has(import_node_path.default.posix.extname(base));
+  return SENSITIVE_TARGET_EXTS.has(import_node_path2.default.posix.extname(base));
 }
 function loadTeamPresetReadOnly(workspaceRoot) {
   let realRoot;
   try {
-    realRoot = import_node_fs.default.realpathSync(import_node_path.default.resolve(workspaceRoot));
+    realRoot = canonicalRealpathSync(import_node_path2.default.resolve(workspaceRoot));
   } catch {
     return emptyNotFoundResult();
   }
-  const rootPrefix = realRoot.endsWith(import_node_path.default.sep) ? realRoot : `${realRoot}${import_node_path.default.sep}`;
-  const candidatePath = import_node_path.default.join(realRoot, TEAM_CONFIG_FILENAME);
+  const candidatePath = import_node_path2.default.join(realRoot, TEAM_CONFIG_FILENAME);
   let lstat;
   try {
-    lstat = import_node_fs.default.lstatSync(candidatePath);
+    lstat = import_node_fs2.default.lstatSync(candidatePath);
   } catch (err) {
     const code = err?.code;
     if (code === "ENOENT" || code === "ENOTDIR") {
@@ -1387,7 +1660,7 @@ function loadTeamPresetReadOnly(workspaceRoot) {
   }
   let realFile;
   try {
-    realFile = import_node_fs.default.realpathSync(candidatePath);
+    realFile = canonicalRealpathSync(candidatePath);
   } catch {
     return {
       found: true,
@@ -1402,7 +1675,7 @@ function loadTeamPresetReadOnly(workspaceRoot) {
       ]
     };
   }
-  if (realFile !== realRoot && !realFile.startsWith(rootPrefix)) {
+  if (!isPathInsideDir(realRoot, realFile)) {
     return {
       found: true,
       filePath: TEAM_CONFIG_FILENAME,
@@ -1414,7 +1687,7 @@ function loadTeamPresetReadOnly(workspaceRoot) {
       errors: [`Refused to read ${TEAM_CONFIG_FILENAME}: symlink escapes workspace boundary.`]
     };
   }
-  const realRel = import_node_path.default.relative(realRoot, realFile).replace(/\\/g, "/");
+  const realRel = import_node_path2.default.relative(realRoot, realFile).replace(/\\/g, "/");
   if (lstat.isSymbolicLink() && isSensitiveRelativeTarget(realRel)) {
     return {
       found: true,
@@ -1429,7 +1702,7 @@ function loadTeamPresetReadOnly(workspaceRoot) {
   }
   let stat;
   try {
-    stat = lstat.isSymbolicLink() ? import_node_fs.default.statSync(realFile) : lstat;
+    stat = lstat.isSymbolicLink() ? import_node_fs2.default.statSync(realFile) : lstat;
   } catch {
     return {
       found: true,
@@ -1470,7 +1743,7 @@ function loadTeamPresetReadOnly(workspaceRoot) {
   }
   let rawText;
   try {
-    rawText = import_node_fs.default.readFileSync(realFile, "utf8");
+    rawText = import_node_fs2.default.readFileSync(realFile, "utf8");
   } catch {
     return {
       found: true,
@@ -1649,16 +1922,16 @@ function sanitizeDataDirCandidate(candidate) {
   const trimmed = candidate.trim();
   if (!trimmed) return void 0;
   if (/\$\{?[A-Za-z_][A-Za-z0-9_]*\}?/.test(trimmed)) return void 0;
-  return import_node_path2.default.resolve(trimmed);
+  return import_node_path3.default.resolve(trimmed);
 }
 function resolveNovDataDir(cliDataDir) {
-  return sanitizeDataDirCandidate(cliDataDir) ?? sanitizeDataDirCandidate(process.env.AGY_NOV_DATA_DIR) ?? sanitizeDataDirCandidate(process.env.PLUGIN_DATA) ?? import_node_path2.default.join(import_node_os.default.homedir(), ".agy-nov-data");
+  return sanitizeDataDirCandidate(cliDataDir) ?? sanitizeDataDirCandidate(process.env.AGY_NOV_DATA_DIR) ?? sanitizeDataDirCandidate(process.env.PLUGIN_DATA) ?? import_node_path3.default.join(import_node_os.default.homedir(), ".agy-nov-data");
 }
 function getModuleDataDir(rootDataDir, moduleId) {
-  return import_node_path2.default.join(rootDataDir, "modules", moduleId);
+  return import_node_path3.default.join(rootDataDir, "modules", moduleId);
 }
 function getConfigPath(rootDataDir) {
-  return import_node_path2.default.join(rootDataDir, "config.json");
+  return import_node_path3.default.join(rootDataDir, "config.json");
 }
 function createDefaultConfig() {
   return {
@@ -1707,11 +1980,11 @@ function normalizeConfig(raw) {
 }
 function loadNovConfigReadOnly(rootDataDir) {
   const cfgPath = getConfigPath(rootDataDir);
-  if (!import_node_fs2.default.existsSync(cfgPath)) {
+  if (!import_node_fs3.default.existsSync(cfgPath)) {
     return createDefaultConfig();
   }
   try {
-    const raw = JSON.parse(import_node_fs2.default.readFileSync(cfgPath, "utf8"));
+    const raw = JSON.parse(import_node_fs3.default.readFileSync(cfgPath, "utf8"));
     return normalizeConfig(raw);
   } catch {
     return createDefaultConfig();
@@ -1722,29 +1995,29 @@ function saveNovConfig(rootDataDir, config) {
     ...config,
     updatedAt: (/* @__PURE__ */ new Date()).toISOString()
   });
-  import_node_fs2.default.mkdirSync(rootDataDir, { recursive: true, mode: 448 });
+  import_node_fs3.default.mkdirSync(rootDataDir, { recursive: true, mode: 448 });
   try {
-    import_node_fs2.default.chmodSync(rootDataDir, 448);
+    import_node_fs3.default.chmodSync(rootDataDir, 448);
   } catch {
   }
   const cfgPath = getConfigPath(rootDataDir);
-  const tmpPath = `${cfgPath}.tmp.${process.pid}.${Date.now()}`;
-  import_node_fs2.default.writeFileSync(tmpPath, `${JSON.stringify(normalized, null, 2)}
+  const tmpPath = `${cfgPath}.tmp.${process.pid}.${Date.now()}.${import_node_crypto2.default.randomBytes(4).toString("hex")}`;
+  import_node_fs3.default.writeFileSync(tmpPath, `${JSON.stringify(normalized, null, 2)}
 `, { mode: 384 });
-  import_node_fs2.default.renameSync(tmpPath, cfgPath);
+  atomicRenameSync(tmpPath, cfgPath);
   return normalized;
 }
 function loadOrInitNovConfig(rootDataDir) {
   const cfgPath = getConfigPath(rootDataDir);
-  if (!import_node_fs2.default.existsSync(cfgPath)) {
+  if (!import_node_fs3.default.existsSync(cfgPath)) {
     return createDefaultConfig();
   }
   try {
-    const raw = JSON.parse(import_node_fs2.default.readFileSync(cfgPath, "utf8"));
+    const raw = JSON.parse(import_node_fs3.default.readFileSync(cfgPath, "utf8"));
     return normalizeConfig(raw);
   } catch {
     try {
-      import_node_fs2.default.renameSync(cfgPath, `${cfgPath}.corrupt.${Date.now()}`);
+      atomicRenameSync(cfgPath, `${cfgPath}.corrupt.${Date.now()}`, process.platform, false);
     } catch {
     }
     return saveNovConfig(rootDataDir, createDefaultConfig());
@@ -1782,12 +2055,12 @@ function setNovLocale(rootDataDir, locale) {
 var MAX_CONFIG_IMPORT_BYTES = 32 * 1024;
 
 // src/core/feed.ts
-var import_node_path3 = __toESM(require("node:path"), 1);
+var import_node_path4 = __toESM(require("node:path"), 1);
 var FEED_SNAPSHOT_FILENAME = "feed-snapshot.json";
 var MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
 var MAX_SOURCE_FILE_BYTES = 2 * 1024 * 1024;
 function getFeedSnapshotPath(rootDataDir) {
-  return import_node_path3.default.join(rootDataDir, FEED_SNAPSHOT_FILENAME);
+  return import_node_path4.default.join(rootDataDir, FEED_SNAPSHOT_FILENAME);
 }
 function isAsciiSpace(code) {
   return code === 32 || code === 9 || code === 13 || code === 10;
@@ -1978,47 +2251,14 @@ function redactFeedText(input, maxLen = 180) {
   return truncateUtf16Safe(out, maxLen);
 }
 
-// src/core/utils.ts
-var import_node_fs3 = __toESM(require("node:fs"), 1);
-var import_node_path4 = __toESM(require("node:path"), 1);
-function parseCliFlag(argv, flag) {
-  for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
-    if (arg === flag && i + 1 < argv.length) {
-      return argv[i + 1];
-    }
-    if (arg.startsWith(`${flag}=`)) {
-      return arg.slice(flag.length + 1);
-    }
-  }
-  return void 0;
-}
-function hasCliFlag(argv, flag) {
-  return argv.includes(flag);
-}
-function ensurePrivateDir(dirPath) {
-  import_node_fs3.default.mkdirSync(dirPath, { recursive: true, mode: 448 });
-  try {
-    import_node_fs3.default.chmodSync(dirPath, 448);
-  } catch {
-  }
-}
-function atomicWriteJson(filePath, data) {
-  ensurePrivateDir(import_node_path4.default.dirname(filePath));
-  const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}`;
-  import_node_fs3.default.writeFileSync(tmpPath, `${JSON.stringify(data, null, 2)}
-`, { mode: 384 });
-  import_node_fs3.default.renameSync(tmpPath, filePath);
-}
-
 // src/modules/turbo/auto-rtk.ts
 var import_node_child_process = require("node:child_process");
-var import_node_crypto2 = __toESM(require("node:crypto"), 1);
+var import_node_crypto4 = __toESM(require("node:crypto"), 1);
 var import_node_fs4 = __toESM(require("node:fs"), 1);
 var import_node_path6 = __toESM(require("node:path"), 1);
 
 // src/modules/turbo/core.ts
-var import_node_crypto = __toESM(require("node:crypto"), 1);
+var import_node_crypto3 = __toESM(require("node:crypto"), 1);
 var import_node_path5 = __toESM(require("node:path"), 1);
 var TURBO_MAX_FILE_BYTES = 512 * 1024;
 var TURBO_MAX_OUTLINE_FILE_BYTES = 1024 * 1024;
@@ -2570,7 +2810,7 @@ var CompactedChunkStore = class {
     const estimatedSummaryTokens = Math.ceil(summaryText.length / 4);
     const estimatedSavedTokens = Math.max(0, estimatedRawTokens - estimatedSummaryTokens);
     const chunkCount = Math.max(1, Math.ceil(totalLines / chunkLines));
-    const chunkId = `chk_${Date.now().toString(36)}_${import_node_crypto.default.randomBytes(3).toString("hex")}`;
+    const chunkId = `chk_${Date.now().toString(36)}_${import_node_crypto3.default.randomBytes(3).toString("hex")}`;
     const createdAt = (/* @__PURE__ */ new Date()).toISOString();
     const meta = {
       chunkId,
@@ -2981,33 +3221,6 @@ var PASSTHROUGH_ALL_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
   "--import",
   "--loader"
 ]);
-function isPlatformSystemRootSymlink(segmentPath) {
-  return process.platform === "darwin" && /^\/(?:var|tmp|etc)$/.test(segmentPath);
-}
-function hasUnsafeSymlinkAncestor(targetPath) {
-  let cur = import_node_path6.default.resolve(targetPath);
-  const root = import_node_path6.default.parse(cur).root;
-  while (true) {
-    if (!isPlatformSystemRootSymlink(cur)) {
-      try {
-        const st = import_node_fs4.default.lstatSync(cur);
-        if (st.isSymbolicLink()) return true;
-      } catch (err) {
-        const code = err?.code;
-        if (code !== "ENOENT") return true;
-      }
-    }
-    if (cur === root) return false;
-    const parent = import_node_path6.default.dirname(cur);
-    if (parent === cur) return false;
-    cur = parent;
-  }
-}
-function isWithinRealBase(childReal, baseReal) {
-  if (childReal === baseReal) return true;
-  const prefix = baseReal.endsWith(import_node_path6.default.sep) ? baseReal : `${baseReal}${import_node_path6.default.sep}`;
-  return childReal.startsWith(prefix);
-}
 function resolveSafeExistingDir(dirPath) {
   if (!dirPath || typeof dirPath !== "string" || dirPath.includes("\0")) return null;
   const resolved = import_node_path6.default.resolve(dirPath);
@@ -3015,7 +3228,7 @@ function resolveSafeExistingDir(dirPath) {
   try {
     const st = import_node_fs4.default.lstatSync(resolved);
     if (st.isSymbolicLink() || !st.isDirectory()) return null;
-    return import_node_fs4.default.realpathSync(resolved);
+    return canonicalRealpathSync(resolved);
   } catch {
     return null;
   }
@@ -3037,7 +3250,7 @@ function ensureSafePrivateDir(dirPath) {
     import_node_fs4.default.chmodSync(resolved, 448);
   } catch {
   }
-  return import_node_fs4.default.realpathSync(resolved);
+  return canonicalRealpathSync(resolved);
 }
 function readSafeJsonFile(dirPath, fileName, maxBytes) {
   const realDir = resolveSafeExistingDir(dirPath);
@@ -3048,8 +3261,8 @@ function readSafeJsonFile(dirPath, fileName, maxBytes) {
     if (st.isSymbolicLink() || !st.isFile() || st.size > maxBytes) {
       return null;
     }
-    const realFile = import_node_fs4.default.realpathSync(filePath);
-    if (!isWithinRealBase(realFile, realDir)) {
+    const realFile = canonicalRealpathSync(filePath);
+    if (!isPathInsideDir(realDir, realFile)) {
       return null;
     }
     return JSON.parse(import_node_fs4.default.readFileSync(realFile, "utf8"));
@@ -3070,7 +3283,7 @@ function atomicWritePrivateFile(dirPath, fileName, content) {
       throw err;
     }
   }
-  const nonce = import_node_crypto2.default.randomBytes(4).toString("hex");
+  const nonce = import_node_crypto4.default.randomBytes(4).toString("hex");
   const tmpPath = import_node_path6.default.join(realDir, `.${fileName}.tmp.${process.pid}.${Date.now()}.${nonce}`);
   try {
     import_node_fs4.default.writeFileSync(tmpPath, content, { encoding: "utf8", mode: 384, flag: "wx" });
@@ -3078,11 +3291,11 @@ function atomicWritePrivateFile(dirPath, fileName, content) {
       import_node_fs4.default.chmodSync(tmpPath, 384);
     } catch {
     }
-    import_node_fs4.default.renameSync(tmpPath, targetPath);
+    atomicRenameSync(tmpPath, targetPath);
     return targetPath;
   } catch (err) {
     try {
-      import_node_fs4.default.unlinkSync(tmpPath);
+      if (import_node_fs4.default.existsSync(tmpPath)) import_node_fs4.default.unlinkSync(tmpPath);
     } catch {
     }
     throw err;
@@ -3602,9 +3815,13 @@ function executeSafeCompactRun(input) {
   }
   const execCwd = typeof input.cwd === "string" && input.cwd.trim() ? import_node_path6.default.resolve(input.cwd) : process.cwd();
   const cmdLabel = [validated.executable, ...validated.args].join(" ").slice(0, 80);
-  const child = (0, import_node_child_process.spawnSync)(validated.executable, validated.args, {
+  const resolvedSpawn = resolveSafeSpawnTarget(validated.executable, validated.args, {
+    cwd: execCwd
+  });
+  const child = (0, import_node_child_process.spawnSync)(resolvedSpawn.command, resolvedSpawn.args, {
     cwd: execCwd,
     shell: false,
+    windowsHide: true,
     timeout: COMPACT_RUN_TIMEOUT_MS,
     maxBuffer: COMPACT_RUN_MAX_BUFFER_BYTES,
     encoding: "utf8"
@@ -3683,7 +3900,7 @@ ${footerLine}`;
 }
 
 // src/server/cli.ts
-var CLI_VERSION = "1.0.0";
+var CLI_VERSION = "1.0.1";
 var MAX_READ_JSON_BYTES = 2 * 1024 * 1024;
 var DEFAULT_CONTEXT_WINDOW_TOKENS = 2e5;
 var STATUSLINE_SEGMENTS = [
@@ -4161,7 +4378,7 @@ function buildWorkspaceRecommendation(workspaceRoot) {
   const resolvedRoot = import_node_path7.default.resolve(workspaceRoot);
   let realRoot = resolvedRoot;
   try {
-    realRoot = import_node_fs5.default.realpathSync(resolvedRoot);
+    realRoot = canonicalRealpathSync(resolvedRoot);
   } catch {
   }
   const exists = (rel) => {
@@ -4304,15 +4521,14 @@ function buildWorkspaceRecommendation(workspaceRoot) {
   };
 }
 function isWithinRealDir(targetReal, rootReal) {
-  const prefix = rootReal.endsWith(import_node_path7.default.sep) ? rootReal : `${rootReal}${import_node_path7.default.sep}`;
-  return targetReal === rootReal || targetReal.startsWith(prefix);
+  return isPathInsideDir(rootReal, targetReal);
 }
 function hasSafeRegularFileInWorkspace(realRoot, relPath) {
   try {
     const candidate = import_node_path7.default.join(realRoot, relPath);
     const st = import_node_fs5.default.lstatSync(candidate);
     if (st.isSymbolicLink() || !st.isFile()) return false;
-    const realTarget = import_node_fs5.default.realpathSync(candidate);
+    const realTarget = canonicalRealpathSync(candidate);
     return isWithinRealDir(realTarget, realRoot);
   } catch {
     return false;
@@ -4393,7 +4609,7 @@ function buildTeamPresetDraft(rec, workspaceRoot) {
   }
   let verifyCommands = [];
   try {
-    const realRoot = import_node_fs5.default.realpathSync(import_node_path7.default.resolve(workspaceRoot));
+    const realRoot = canonicalRealpathSync(import_node_path7.default.resolve(workspaceRoot));
     if (import_node_fs5.default.statSync(realRoot).isDirectory()) {
       verifyCommands = detectSafeVerifyCommandsReadOnly(realRoot, rec.signals.isGitRepo);
     }
@@ -4412,7 +4628,7 @@ function writeTeamPresetDraft(workspaceRoot, draft, force) {
   const fallbackTarget = import_node_path7.default.join(resolvedRoot, TEAM_CONFIG_FILENAME);
   let realRoot;
   try {
-    realRoot = import_node_fs5.default.realpathSync(resolvedRoot);
+    realRoot = canonicalRealpathSync(resolvedRoot);
     if (!import_node_fs5.default.statSync(realRoot).isDirectory()) {
       return {
         ok: false,
@@ -4467,7 +4683,7 @@ function writeTeamPresetDraft(workspaceRoot, draft, force) {
         error: `${TEAM_CONFIG_FILENAME} already exists at ${targetPath}. Re-run with --export-preset --confirm --force to overwrite.`
       };
     }
-    const realExisting = import_node_fs5.default.realpathSync(targetPath);
+    const realExisting = canonicalRealpathSync(targetPath);
     if (!isWithinRealDir(realExisting, realRoot)) {
       return {
         ok: false,
@@ -4489,7 +4705,7 @@ function writeTeamPresetDraft(workspaceRoot, draft, force) {
 `;
   const tmpPath = import_node_path7.default.join(
     realRoot,
-    `.${TEAM_CONFIG_FILENAME}.tmp.${process.pid}.${import_node_crypto3.default.randomBytes(6).toString("hex")}`
+    `.${TEAM_CONFIG_FILENAME}.tmp.${process.pid}.${import_node_crypto5.default.randomBytes(6).toString("hex")}`
   );
   try {
     import_node_fs5.default.writeFileSync(tmpPath, serialized, {
@@ -4514,12 +4730,12 @@ function writeTeamPresetDraft(workspaceRoot, draft, force) {
         throw err;
       }
     }
-    import_node_fs5.default.renameSync(tmpPath, targetPath);
+    atomicRenameSync(tmpPath, targetPath);
     try {
       import_node_fs5.default.chmodSync(targetPath, 420);
     } catch {
     }
-    const realWritten = import_node_fs5.default.realpathSync(targetPath);
+    const realWritten = canonicalRealpathSync(targetPath);
     if (!isWithinRealDir(realWritten, realRoot)) {
       return {
         ok: false,
@@ -4846,7 +5062,7 @@ function isCliEntrypoint() {
     if (base === "cli.ts" || base === "cli.cjs" || base === "cli.js" || base === "agy-nov-cli" || base === "agy-nov") {
       return true;
     }
-    const realBase = import_node_path7.default.basename(import_node_fs5.default.realpathSync(argv1)).toLowerCase();
+    const realBase = import_node_path7.default.basename(canonicalRealpathSync(argv1)).toLowerCase();
     return realBase === "cli.ts" || realBase === "cli.cjs" || realBase === "cli.js" || realBase === "agy-nov-cli";
   } catch {
     return false;

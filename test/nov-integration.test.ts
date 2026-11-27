@@ -23,6 +23,7 @@ import { loadRadarBoardReadOnly } from '../src/modules/radar/core.js';
 import { saveSpec, setSpecStatus } from '../src/modules/spec/core.js';
 import { createNovServer } from '../src/server/index.js';
 import { DICTIONARIES, EN_DICT, resolveUiLocale } from '../ui/src/i18n/index.js';
+import { createDirSymlink } from './helpers/cross-platform.js';
 
 function createTempDir(prefix: string): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -631,7 +632,7 @@ test('isolation regressions: lazy storage (M-4), disabled app_* tool blocking (M
 
     // R-1: Directory symlink inside workspace pointing outside must not bypass workspaceRoot boundary
     const escapeLink = path.join(ws, 'escape-dir');
-    fs.symlinkSync(outside, escapeLink);
+    createDirSymlink(outside, escapeLink);
     await client.request('tools/call', {
       name: 'mem_remember',
       arguments: {

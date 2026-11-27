@@ -1,6 +1,12 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  atomicRenameSync,
+  canonicalRealpathSync,
+  isPathInsideDir,
+  isSamePath,
+} from '../../core/utils.js';
 import { computeLineDiff } from './diff.js';
 import { isSensitivePath, normalizePermissionMode, redactCommand } from './policy.js';
 import {
@@ -42,7 +48,43 @@ function writePrivateJson(filePath: string, data: unknown): void {
   } catch {
     // Ignore on platforms where chmod is unsupported
   }
-  fs.renameSync(tmp, filePath);
+  atomicRenameSync(tmp, filePath);
+}
+
+function writeFileWithWinReadonlyFallback(targetPath: string, content: string): void {
+  try {
+    fs.writeFileSync(targetPath, content, 'utf8');
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (process.platform === 'win32' && (code === 'EPERM' || code === 'EACCES')) {
+      try {
+        fs.chmodSync(targetPath, 0o666);
+      } catch {
+        // Ignore chmod failure and let retry surface original error if still unwritable
+      }
+      fs.writeFileSync(targetPath, content, 'utf8');
+      return;
+    }
+    throw err;
+  }
+}
+
+function unlinkWithWinReadonlyFallback(targetPath: string): void {
+  try {
+    fs.unlinkSync(targetPath);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (process.platform === 'win32' && (code === 'EPERM' || code === 'EACCES')) {
+      try {
+        fs.chmodSync(targetPath, 0o666);
+      } catch {
+        // Ignore chmod failure and let retry surface original error if still unremovable
+      }
+      fs.unlinkSync(targetPath);
+      return;
+    }
+    throw err;
+  }
 }
 
 export function resolveRealPathWithMissingTail(inputPath: string, depth = 0): string {
@@ -55,7 +97,7 @@ export function resolveRealPathWithMissingTail(inputPath: string, depth = 0): st
 
   while (true) {
     try {
-      const realBase = fs.realpathSync(current);
+      const realBase = canonicalRealpathSync(current);
       return missingSegments.length > 0
         ? path.join(realBase, ...missingSegments.reverse())
         : realBase;
@@ -102,8 +144,7 @@ export function assertInsideWorkspace(workspaceRoot: string, targetPath: string)
   const candidate = path.isAbsolute(targetPath) ? targetPath : path.resolve(workspaceRoot, targetPath);
   const realTarget = resolveRealPathWithMissingTail(candidate);
 
-  const rootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
-  if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
+  if (!isPathInsideDir(realRoot, realTarget)) {
     throw new Error(`Path escapes workspace boundary: ${targetPath}`);
   }
 
@@ -331,7 +372,7 @@ export function capturePreEditSnapshot(params: {
 
   const isManualCheckpoint = toolName === 'guard_create_checkpoint' || toolName === 'create_checkpoint';
   const all = loadSnapshots(dataDir);
-  const latestForFile = all.find((s) => s.filePath === safePath && !s.isDemo);
+  const latestForFile = all.find((s) => isSamePath(s.filePath, safePath) && !s.isDemo);
   const sameTurn = (latestForFile?.turnKey ?? undefined) === (turnKey ?? undefined);
   if (
     latestForFile &&
@@ -371,8 +412,8 @@ export function capturePreEditSnapshot(params: {
     ...(restoredFromId ? { restoredFromId } : {}),
   };
 
-  const sameFile = [record, ...all.filter((s) => s.filePath === safePath)].slice(0, policy.maxSnapshotsPerFile);
-  const others = all.filter((s) => s.filePath !== safePath);
+  const sameFile = [record, ...all.filter((s) => isSamePath(s.filePath, safePath))].slice(0, policy.maxSnapshotsPerFile);
+  const others = all.filter((s) => !isSamePath(s.filePath, safePath));
   const next = [...sameFile, ...others]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 300);
@@ -634,9 +675,9 @@ function assertSafeRewindTarget(
 
   // Reject if any intermediate directory segment inside workspaceRoot is a symlink
   const baseForWalk =
-    candidate === realRoot || candidate.startsWith(`${realRoot}${path.sep}`)
+    isPathInsideDir(realRoot, candidate)
       ? realRoot
-      : candidate === absRoot || candidate.startsWith(`${absRoot}${path.sep}`)
+      : isPathInsideDir(absRoot, candidate)
         ? absRoot
         : null;
   if (baseForWalk) {
@@ -758,14 +799,14 @@ export function restoreTurnCheckpoint(
           throw new Error(`Refused to delete non-regular file during turn rewind: ${record.relPath}`);
         }
         assertInsideWorkspace(workspaceRoot, safePath);
-        fs.unlinkSync(safePath);
+        unlinkWithWinReadonlyFallback(safePath);
         deletedNewFiles.push(record.relPath);
       }
       continue;
     }
 
     fs.mkdirSync(path.dirname(safePath), { recursive: true });
-    fs.writeFileSync(safePath, contentToRestore!, 'utf8');
+    writeFileWithWinReadonlyFallback(safePath, contentToRestore!);
     restoredFiles.push(record.relPath);
   }
 
@@ -853,7 +894,7 @@ export function restoreSnapshot(params: {
 
   if (!record.existed) {
     if (fs.existsSync(safePath)) {
-      fs.unlinkSync(safePath);
+      unlinkWithWinReadonlyFallback(safePath);
     }
     appendAuditEvent(dataDir, {
       event: 'Restore',
@@ -873,7 +914,7 @@ export function restoreSnapshot(params: {
   }
 
   fs.mkdirSync(path.dirname(safePath), { recursive: true });
-  fs.writeFileSync(safePath, contentToRestore!, 'utf8');
+  writeFileWithWinReadonlyFallback(safePath, contentToRestore!);
 
   appendAuditEvent(dataDir, {
     event: 'Restore',

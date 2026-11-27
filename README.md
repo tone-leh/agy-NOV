@@ -2,7 +2,7 @@
   <img src="./assets/logo.svg" width="88" height="88" alt="agy-NOV Logo" />
   <h1>agy-NOV</h1>
   <p><strong>The 100% Native Modular Super-Workbench for Google Antigravity 2.0.</strong></p>
-  <p><em>One plugin. Thirteen toggleable superpowers across a 4+1 domain IA &amp; 4-tier Settings Hub (with S4 Tool-Slot Idle Advisor), Ops 3.0 static security auditing &amp; cross-client dedup preview, Mem 3.0 confidence/TTL memory hygiene, customizable 9-segment CLI <code>statusLine</code> &amp; preview-then-confirm <code>.agy-nov.json</code> scaffolding, an end-to-end engineering pipeline (Spec → Worktree <code>.worktreeinclude</code> → Two-Stage Review → Verify PR Evidence → Mem + Radar Kanban), One-Click Clean Fork anti-context-rot, 5 official on-demand Skills &amp; 2 read-only specialist subagents, native MCP Apps <code>file</code> viewer, Remote 2.5 structured risk approval cards, Turbo 3.0, Guard 2.5, 5 official Hooks, 8-language UI &amp; 9-command CLI. Zero ASAR, Zero CDP, strictly 47 canonical model tools with zero token tax when off.</em></p>
+  <p><em>One plugin. Thirteen toggleable superpowers with full macOS / Windows / Linux native cross-platform compatibility (3-OS × Node 20/22 CI) across a 4+1 domain IA &amp; 4-tier Settings Hub (with S4 Tool-Slot Idle Advisor), Ops 3.0 static security auditing &amp; cross-client dedup preview, Mem 3.0 confidence/TTL memory hygiene, customizable 9-segment CLI <code>statusLine</code> &amp; preview-then-confirm <code>.agy-nov.json</code> scaffolding, an end-to-end engineering pipeline (Spec → Worktree <code>.worktreeinclude</code> → Two-Stage Review → Verify PR Evidence → Mem + Radar Kanban), One-Click Clean Fork anti-context-rot, 5 official on-demand Skills &amp; 2 read-only specialist subagents, native MCP Apps <code>file</code> viewer, Remote 2.5 structured risk approval cards, Turbo 3.0, Guard 2.5, 5 official Hooks, 8-language UI &amp; 9-command CLI. Zero ASAR, Zero CDP, strictly 47 canonical model tools with zero token tax when off.</em></p>
 
   <p>
     <strong>English</strong> ·
@@ -16,8 +16,9 @@
   </p>
 
   <p>
-    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/Version-v1.0.0-0284c7?style=flat-square" alt="Version: v1.0.0" /></a>
+    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v1.0.1"><img src="https://img.shields.io/badge/Version-v1.0.1-0284c7?style=flat-square" alt="Version: v1.0.1" /></a>
     <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tone-leh/agy-NOV/ci.yml?branch=main&style=flat-square&label=CI" alt="CI Status" /></a>
+    <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/Platform-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-475569?style=flat-square" alt="Platform: macOS · Windows · Linux" /></a>
     <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square" alt="License: MIT" /></a>
     <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node-%3E%3D20-16a34a?style=flat-square" alt="Node >= 20" /></a>
     <a href="#architecture"><img src="https://img.shields.io/badge/MCP%20Apps-SEP--1865-6366f1?style=flat-square" alt="MCP Apps (SEP-1865)" /></a>
@@ -27,14 +28,14 @@
   <br />
 
   <p><strong>Live Workbench Preview</strong></p>
-  <img src="./assets/demo-preview.gif" alt="agy-NOV v1.0.0 Live Workbench Preview — Ops 3.0 Static Security Audit & Cross-Client Dedup Preview, Mem 3.0 Confidence/TTL Hygiene, Customizable 9-Segment CLI statusLine, End-to-End Engineering Pipeline, One-Click Clean Fork, 5 On-Demand Skills & 2 Read-Only Subagents, Native MCP Apps File Viewer, Remote 2.5 Risk Approval Cards, 4+1 Domain IA & 8-Language UI" width="100%" />
+  <img src="./assets/demo-preview.gif" alt="agy-NOV v1.0.1 Live Workbench Preview — Full macOS / Windows / Linux Cross-Platform Support, Ops 3.0 Static Security Audit & Cross-Client Dedup Preview, Mem 3.0 Confidence/TTL Hygiene, Customizable 9-Segment CLI statusLine, End-to-End Engineering Pipeline, One-Click Clean Fork, 5 On-Demand Skills & 2 Read-Only Subagents, Native MCP Apps File Viewer, Remote 2.5 Risk Approval Cards, 4+1 Domain IA & 8-Language UI" width="100%" />
 
   <br />
 
   <p>
     <a href="#30-second-read-only-first-try">30s First Try</a> ·
     <a href="#why-agy-nov">Why agy-NOV</a> ·
-    <a href="#whats-new-in-v100">v1.0.0 Highlights</a> ·
+    <a href="#whats-new-in-v101">v1.0.1 Highlights</a> ·
     <a href="#pick-your-setup-in-10-seconds">Pick Your Setup</a> ·
     <a href="#13-toggleable-superpowers">13 Modules</a> ·
     <a href="#41-domain-ia-4-tier-settings-hub-8-language-ui--zero-cdp-ecosystem">4+1 IA &amp; 8-Language UI</a> ·
@@ -45,7 +46,7 @@
 </div>
 
 > [!NOTE]
-> **Independent Open-Source Project:** `agy-NOV` (v1.0.0) is an independent, MIT-licensed community plugin built for Google Antigravity 2.0. It has no affiliation with, sponsorship from, or endorsement by Google LLC.
+> **Independent Open-Source Project:** `agy-NOV` (v1.0.1) is an independent, MIT-licensed community plugin built for Google Antigravity 2.0 across **macOS, Windows, and Linux**. It has no affiliation with, sponsorship from, or endorsement by Google LLC.
 
 ---
 
@@ -73,25 +74,33 @@ Installing separate MCP servers and hook scripts for code review, secret scannin
 | Dimension | ❌ Plugin Sprawl (12–13 Separate Tools) | ✅ agy-NOV Super-Workbench |
 | :--- | :--- | :--- |
 | **Resident Processes** | 12–13 background Node/Python servers competing for RAM and startup time | **1 resident MCP server** (`dist/server.cjs`) serving all enabled capabilities |
-| **Per-Turn Token & Tool Cap** | 70+ static tool schemas plus bulky resident `rules/AGENTS.md` files crowding the 100-tool limit | **Dynamic `tools/list`** (strictly **47** canonical model tools max across `v0.4`→`v1.0.0`, `0` token & tool-slot tax when off) + **SettingsHub S4 Tool-Slot Idle Advisor** + **5 on-demand Skills & 2 read-only subagents** with zero default resident `rules/AGENTS.md` bloat |
+| **Per-Turn Token & Tool Cap** | 70+ static tool schemas plus bulky resident `rules/AGENTS.md` files crowding the 100-tool limit | **Dynamic `tools/list`** (strictly **47** canonical model tools max across `v0.4`→`v1.0.1`, `0` token & tool-slot tax when off) + **SettingsHub S4 Tool-Slot Idle Advisor** + **5 on-demand Skills & 2 read-only subagents** with zero default resident `rules/AGENTS.md` bloat |
 | **Lifecycle Hook Storm** | Multiple forked hook scripts racing on every `SessionStart` / `PreToolUse` / `PostToolUse` / `PreInvocation` / `Stop` | **1 unified 5-hook dispatcher** (`dist/hook.cjs`) with O(1) read-only short-circuiting & zero-token `PreInvocation` visual receipts |
-| **Upgrade Durability** | Binary `app.asar` patches and DOM hooks break after Antigravity updates | **100% official native protocols** — Zero ASAR, Zero CDP, official MCP Apps `file` viewer, survives every client update |
+| **Upgrade Durability & OS Support** | Binary `app.asar` patches, POSIX-only shell assumptions, and DOM hooks break after updates or on Windows/Linux | **100% official native protocols** — Zero ASAR, Zero CDP, official MCP Apps `file` viewer, full **macOS / Windows / Linux** native compatibility (3-OS × Node 20/22 CI) |
 | **Workflow, Governance & UX** | Disconnected panels, stale/unverified memories, unvetted rules/hooks, cramped sidebars, English-only screens | **Ops 3.0** static security & dedup preview, **Mem 3.0** confidence/TTL hygiene, **9-segment CLI `statusLine`**, **End-to-End Engineering Pipeline**, **One-Click Clean Fork**, **4+1 Domain IA** (`Hub` + 4 domains, adaptive `< 720px` / `>= 720px` nav, `⌘K`), **4-tier Settings Hub**, **100% 8-language UI (24 components)**, **5 presets**, `.agy-nov.json` team presets, and **9 CLI commands** |
 
 ### The 100% Native Switchboard Philosophy
 
-1. **Single Native Runtime + Zero-Bloat Playbooks & Subagents:** 1 MCP server (`dist/server.cjs`) + 1 unified **5-hook** lifecycle dispatcher (`dist/hook.cjs` covering `SessionStart`, `PreToolUse`, `PostToolUse`, `PreInvocation`, and `Stop`) + 1 self-contained 8-language dark/light UI (`dist/ui/app.html`, `~1.2 MB` — measured `1,260.1 KB`, well below the 1.5 MiB target and 10 MiB resource cap, full 8-language coverage across all **24 UI components**) + 1 **9-command CLI** (`dist/cli.cjs`, including customizable 9-segment `statusline --segments`, preview-then-confirm `recommend --export-preset`, and `doctor` verifying all **15** core plugin assets) + **5 official on-demand Skills** (`agy-nov` + `/nov-spec`, `/nov-debug`, `/nov-review`, `/nov-handoff`) + **2 official read-only specialist subagents** (`agents/nov-blind-reviewer.md`, `agents/nov-security-auditor.md`), keeping zero default resident `rules/AGENTS.md` bloat.
-2. **Zero Token & Tool-Slot Tax When Off:** Every module wraps its model tools in `RegisteredTool.enable()` / `.disable()` and pushes delta `tools/list_changed` notifications live. All **47 canonical model tool names** stay strictly unchanged from `v0.4` through `v1.0.0` (+0 tool-slot inflation); all Hub, Settings Hub (incl. S4 Tool-Slot Idle Advisor), Context Pack, Turn Rewind, Clean Fork (`app_xray_build_clean_fork_pack`), `.worktreeinclude` preview (`app_worktree_preview_include`), PR evidence summary (`app_verify_pr_summary`), Mem 3.0 hygiene summary & batch cleanup (`app_mem_get_hygiene_summary`, `app_mem_batch_hygiene`), and native `file` viewer (`app_nov_file_viewer`) controls run strictly as App-only tools (`visibility: ['app']`) with zero model-context overhead.
+1. **Single Native Runtime + Zero-Bloat Playbooks & Subagents:** 1 MCP server (`dist/server.cjs`) + 1 unified **5-hook** lifecycle dispatcher (`dist/hook.cjs` covering `SessionStart`, `PreToolUse`, `PostToolUse`, `PreInvocation`, and `Stop`) + 1 self-contained 8-language dark/light UI (`dist/ui/app.html`, `~1.23 MiB` — measured `1,261.2 KB`, well below the 1.5 MiB target and 10 MiB resource cap, full 8-language coverage across all **24 UI components**) + 1 **9-command CLI** (`dist/cli.cjs`, including customizable 9-segment `statusline --segments`, preview-then-confirm `recommend --export-preset`, and `doctor` verifying all **15** core plugin assets) + **5 official on-demand Skills** (`agy-nov` + `/nov-spec`, `/nov-debug`, `/nov-review`, `/nov-handoff`) + **2 official read-only specialist subagents** (`agents/nov-blind-reviewer.md`, `agents/nov-security-auditor.md`), keeping zero default resident `rules/AGENTS.md` bloat across **macOS, Windows, and Linux**.
+2. **Zero Token & Tool-Slot Tax When Off:** Every module wraps its model tools in `RegisteredTool.enable()` / `.disable()` and pushes delta `tools/list_changed` notifications live. All **47 canonical model tool names** stay strictly unchanged from `v0.4` through `v1.0.1` (+0 tool-slot inflation); all Hub, Settings Hub (incl. S4 Tool-Slot Idle Advisor), Context Pack, Turn Rewind, Clean Fork (`app_xray_build_clean_fork_pack`), `.worktreeinclude` preview (`app_worktree_preview_include`), PR evidence summary (`app_verify_pr_summary`), Mem 3.0 hygiene summary & batch cleanup (`app_mem_get_hygiene_summary`, `app_mem_batch_hygiene`), and native `file` viewer (`app_nov_file_viewer`) controls run strictly as App-only tools (`visibility: ['app']`) with zero model-context overhead.
 3. **Production-Grade Loop & 12 Local Offline Modules First:** Organized into **L0 Workflow Hub** (6-node pipeline bar + alert cards + One-Click Clean Fork + `Cmd/Ctrl+K` quick jump) and 4 clear domains — **Core Essentials** (`core`: Two-Stage `review`, **Guard 2.5**, `xray` 2.0 + Clean Fork), **Engineering Pipeline** (`pipeline`: **Spec 2.0**, `worktree` with read-only `.worktreeinclude`, `verify` with Worktree targeting & PR summary, **Turbo 3.0**, **Mem 3.0**), **On-Demand Toolbox** (`toolbox`: `radar` 4-lane Kanban, `studio`, `canvas`, **Ops 3.0**), and **Opt-In Connectivity** (`connectivity`: **Remote 2.5**). All 12 Tier-1 modules run 100% locally with zero external network calls, zero ASAR edits, and zero CDP hooks.
 4. **Zero-Port Dual-Star Feed & 1 Strictly Opt-In Remote Module (`Remote 2.5`):** Event-driven `<dataDir>/feed-snapshot.json` (`0600` atomic, `< 64 KiB`, O(n) redacted, zero mkdir/writes when `dataDir` is absent) enables zero-port read-only telemetry sharing with `agy-Sag`, while `remote` stays completely OFF by default — zero listening ports, zero background polling, zero disk writes, and zero outbound network requests until you explicitly enable it.
 
 ---
 
-## What's New in v1.0.0
+## What's New in v1.0.1
 
-Three production-grade governance and developer-experience upgrades ship in `v1.0.0` GA with **+0 model tool bloat** (all 47 canonical model tools strictly unchanged from `v0.4`→`v1.0.0`, verified by **85 test suites / 233 tests**, `dist/ui/app.html` `1,260.1 KB`):
+`v1.0.1` delivers **full macOS / Windows / Linux native cross-platform compatibility**, per-module Windows & Linux security hardening, a 3-OS × Node 20/22 CI matrix, and companion `agy-Sag` repository link fixes on top of the `v1.0` production governance loop — keeping **+0 model tool bloat** (all 47 canonical model tools strictly unchanged from `v0.4`→`v1.0.1`, verified by **88 test suites / 245 tests**, `dist/ui/app.html` **`1,261.2 KB`** / `~1.23 MiB`):
 
-### 1. Ops 3.0 — Static Security Audit, Cross-Client Dedup Preview & Tool-Slot Idle Advisor (`ops`, `SettingsHub`)
+### 1. Full macOS / Windows / Linux Cross-Platform Compatibility & Companion Link Fix (`v1.0.1`)
+- **Cross-Platform Core Path, Filesystem & Process Safety (`core`, `hooks`, `ui`, `ci`):**
+  - `canonicalRealpathSync` expands Windows 8.3 short paths with case-insensitive boundary comparison and honors a Linux `/home` / `/var/run` / `/var/lock` system symlink allowlist; `atomicRenameSync` retries transient NTFS `EPERM` / `EBUSY` / `EACCES` locks; Windows `npm`/`npx`/`pnpm`/`yarn`/`tsc`/`eslint`/`vitest`/`jest` commands resolve direct Node JS entrypoints under `shell: false` (CVE-2024-27980-safe).
+  - Quoted `${PLUGIN_ROOT}` / `${PLUGIN_DATA}` in `hooks.json`, switched `dist/hook.cjs` to async bounded stdin streaming, fixed Windows `file://` URI handling in `ui/src/bridge.ts`, enforced `.gitattributes` LF line endings, added a cross-platform test runner (`scripts/run-tests.mjs`), and enabled a **3-OS (`ubuntu-latest` / `windows-latest` / `macos-latest`) × Node 20/22** GitHub Actions CI matrix.
+- **Per-Module Windows & Linux Hardening:**
+  - Extended `guard` & `remote` with PowerShell/`cmd` destructive rules (`Remove-Item -Recurse -Force`, `rmdir /s`, `del /f /s`, `format`/`Clear-Disk`/`diskpart`, `irm|iex`) and Windows read-only snapshot restore fallback; added Verify `python` allowlist & `taskkill /T /F` process-tree teardown; hardened Auto-RTK Windows quoting & safe path arg checks, Mem/X-Ray `fileURLToPath` & Windows drive/URI tracking, Ops `.exe`/`.cmd`/relative path detection, and headless-Linux safe Radar notification skipping.
+- **Companion `agy-Sag` Repository & Install Link Fix:** Updated all companion install commands and repository links across all 8 READMEs, `llms.txt`, `docs/llms-install.md`, and `CHANGELOG.md` to `https://github.com/tone-leh/agy-Sag`.
+
+### 2. Ops 3.0 — Static Security Audit, Cross-Client Dedup Preview & Tool-Slot Idle Advisor (`ops`, `SettingsHub`)
 - **Pure Read-Only Static Security Scanner (`ops_audit_workspace`):** Adds `securityFindings` + `securityScore` (`0–100`) running strictly read-only in linear O(n) time (refusing symlinks, capped at `<= 256 KiB` per file and 80 files max) across workspace rules, skills, hooks, and MCP configs. Accurately detects 4 risk categories with zero false positives on compliant repositories:
   - `prompt-injection`: BiDi overrides, zero-width steganography, and instruction-override + exfiltration pairs.
   - `broad-command-allow`: wildcard command approvals, `--yolo`, and `chmod 777`.
@@ -100,12 +109,12 @@ Three production-grade governance and developer-experience upgrades ship in `v1.
 - **Cross-Client Deduplication & Slimming Comparison Preview (`migrationPreview`):** Upgrades `.claude/` / `.cursor/rules/` / `.codex/` migration hints into a strictly read-only comparison preview computing normalized line and paragraph SHA-256 hashes to quantify exact duplication ratios, reclaimable bytes, and token savings while keeping user files completely untouched.
 - **8-Language Tool-Slot Idle Advisor (`SettingsHub` S4):** Surfaces idle heavy modules directly inside Settings Hub S4 so you can disable unused tool groups in one click and reclaim Antigravity's 100-tool MCP budget.
 
-### 2. Mem 3.0 — Memory Hygiene & Confidence / TTL Governance (`mem`, `hooks`, `MemPanel`)
+### 3. Mem 3.0 — Memory Hygiene & Confidence / TTL Governance (`mem`, `hooks`, `MemPanel`)
 - **Confidence Tiers, Provenance & Expiration:** Adds source confidence (`verified` / `normal` / `tentative`), provenance markers (`manual` / `spec_archive` / `auto_capture`), and optional TTL expiration (`ttlDays` `1–365` / `expiresAt`) with seamless backward-compatible loading of legacy `memories.json`.
 - **Automatic Dirty-Memory Protection:** `Stop`-hook auto-captured memories default to `tentative` with a `14`-day TTL so transient wrong turns expire automatically instead of polluting future sessions. `SessionStart` L1 Index (`<= 1,200` chars) and default `mem_recall` automatically exclude expired unpinned `tentative` entries (`includeExpired: true` recovers them on demand; `pinned` entries never expire).
 - **Hygiene Overview & Batch Cleanup Bar (`MemPanel`):** Adds hygiene capsule filters, confidence & TTL badges, multi-select checkboxes, and batch **Verify / Refresh TTL (+30d) / Prune (inline double confirmation)**. `mem` remains strictly at **3** model tools (`app_mem_get_hygiene_summary` stays read-only; mutating `app_mem_batch_hygiene` disables automatically whenever `mem` is turned off).
 
-### 3. Customizable 9-Segment CLI `statusLine` + Preview-Then-Confirm `.agy-nov.json` Scaffold (`cli`)
+### 4. Customizable 9-Segment CLI `statusLine` + Preview-Then-Confirm `.agy-nov.json` Scaffold (`cli`)
 - **Composable 9-Segment CLI `statusLine`:** `agy-nov statusline --segments=<csv>` (with `AGY_NOV_STATUSLINE_SEGMENTS` environment-variable fallback) lets you pick and order any subset of 9 read-only segments — `brand`, `context` (context usage bar), `burn` (5h burn rate), `cache` (prefix cache hit rate), `spec`, `verify`, `guard` (permission mode & block count), `radar`, and `network` — with zero LLM tokens, zero disk writes when `dataDir` is absent, and strict symlink refusal.
 - **Safe Preview-Then-Confirm `.agy-nov.json` Scaffold:** `agy-nov recommend --export-preset` defaults to a strictly **read-only preview** of the generated team preset scaffold (zero disk writes, never writes `remote`, all verify commands allowlisted). Appending `--confirm` writes atomically (refusing to overwrite existing files without `--force`, hard-rejecting symlink targets) and runs immediate post-write self-validation.
 
@@ -134,7 +143,7 @@ Start lean and expand whenever a workflow demands it. Run `agy-nov recommend` fo
 | **`local-all`** | *All-Local Studio* — every offline capability including **Mem 3.0** confidence/TTL hygiene & progressive disclosure, Spec 2.0 archive-to-Mem, Clean Fork code anchors, Workspace Studio (with OpenAPI parser) & Visual Canvas | All 12 offline native modules | **43** | 100% Offline |
 | **`full`** | *Away-From-Desk Commander* — full studio plus opt-in **Remote 2.5** structured risk approval cards, read-only PWA live stream, safe tunnel guide & IM approvals | All 13 native modules (incl. opt-in `remote`) | **47** | Opt-in Network |
 
-<sub>*Exact model tool count = `2` always-on entry tools (`nov_open`, `nov_status`) + sum of enabled module tools (`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47; all 47 canonical model tool names remain strictly unchanged across `v0.4`→`v1.0.0`, while Hub / Settings Hub incl. S4 Tool-Slot Idle Advisor / Context Pack / Turn Rewind / Clean Fork / `.worktreeinclude` preview / PR summary / Mem 3.0 hygiene controls / native `file` viewer actions are strictly App-only).</sub>
+<sub>*Exact model tool count = `2` always-on entry tools (`nov_open`, `nov_status`) + sum of enabled module tools (`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47; all 47 canonical model tool names remain strictly unchanged across `v0.4`→`v1.0.1`, while Hub / Settings Hub incl. S4 Tool-Slot Idle Advisor / Context Pack / Turn Rewind / Clean Fork / `.worktreeinclude` preview / PR summary / Mem 3.0 hygiene controls / native `file` viewer actions are strictly App-only).</sub>
 
 ```bash
 # Scan your repo read-only & preview a safe .agy-nov.json team preset scaffold (zero writes)
@@ -174,7 +183,7 @@ Zero external network calls, zero CDP, zero ASAR patching. Built strictly on Goo
 | **Prompt Vault & Budget Doctor** (`ops`) *(3.0 in v1.0)* | `toolbox` | OFF | 3 | None | **Ops 3.0** reusable `{{var}}` Prompt Vault + read-only **Static Security Audit** (`securityFindings` + `securityScore` 0–100, O(n), symlink-refusing, `<= 256 KiB` / 80 files max, detecting `prompt-injection`, `broad-command-allow`, `risky-hook` & `mcp-unsafe-env` with zero secret echoing and zero false positives on compliant repos) + read-only **Cross-Client Dedup & Slimming Preview** (`migrationPreview` for `.claude/`/`.cursor/rules/`/`.codex/` using SHA-256 line/paragraph hashes without touching user files) + 24KB/20K rule-bloat guard, 100-tool budget meter & S4 **Tool-Slot Idle Advisor**, `#233` `${ENV_VAR}` traps, and `#1937` duplicate plugin/MCP warnings |
 
 <details>
-<summary><strong>Try asking your agent… (12 real-world prompts for Tier-1 offline modules &amp; v1.0.0 playbooks)</strong></summary>
+<summary><strong>Try asking your agent… (12 real-world prompts for Tier-1 offline modules &amp; v1.0.1 playbooks)</strong></summary>
 
 - **Review (Two-Stage + `/nov-review`):** *"Run `/nov-review` on my `feat/auth-v2` Worktree branch with `-w` whitespace-ignored: check Stage 1 active Spec compliance first, then highlight risky lines for Stage 2 annotations, and escalate to `nov-blind-reviewer` if needed."*
 - **Guard 2.5:** *"Scan the workspace for hardcoded secrets, switch Guard to `strict-gate` (or `readonly-audit` for safe inspection), create a pre-edit checkpoint before refactoring auth, and let me preview & rewind the whole turn in one click if needed."*
@@ -205,7 +214,7 @@ Enforces a hard zero-touch guarantee while disabled: **0 listening ports, 0 back
 
 ### 4+1 Functional Domain IA, Adaptive Wide/Narrow Navigation & 4-Tier Settings Hub
 
-`agy-NOV` v1.0.0 delivers a production-grade **4+1 Information Architecture** (canonical spec in [`docs/PRODUCT-IA.md`](./docs/PRODUCT-IA.md)):
+`agy-NOV` v1.0.1 delivers a production-grade **4+1 Information Architecture** (canonical spec in [`docs/PRODUCT-IA.md`](./docs/PRODUCT-IA.md)):
 
 - **L0 Workflow Hub (`HubPanel`) & `⌘K` Command Palette:** Opens to a 6-node pipeline status strip, prioritized alert cards (Guard denies, Spec draft locks, Verify gates, Mem drift, Radar stalls, X-Ray burn rate), and **One-Click Clean Fork**, with `Cmd/Ctrl+K` instant navigation across every domain and module.
 - **Adaptive `< 720px` / `>= 720px` Single-Bundle Navigation:** Narrow sidebars (`aux_pane`, `< 720px`) automatically present a clean 4-control top bar with a domain-grouped dropdown switcher; full-width panes (`global`, `>= 720px`) expand a `204px` domain-grouped left rail.
@@ -217,7 +226,7 @@ Enforces a hard zero-touch guarantee while disabled: **0 listening ports, 0 back
 
 ### 100% Full-Component 8-Language Plugin UI (24 Components × 8 Locales · Zero Restart)
 
-`agy-NOV` v1.0.0 ships **100% full-component localization** inside the plugin bundle itself — covering all **24 UI components** including `HubPanel`, `SettingsHub` (with S4 Tool-Slot Idle Advisor), `OpsPanel` (Ops 3.0 Static Security Audit & Cross-Client Dedup Preview), and `MemPanel` (Mem 3.0 Hygiene Overview & Batch Cleanup Bar) across all 8 languages (`dist/ui/app.html` `~1.2 MB`, measured `1,260.1 KB`, well below the 1.5 MiB target and 10 MiB cap, zero leftover hardcoded English strings), in complete parity with the 8-language documentation (`docs/i18n/README.*.md`):
+`agy-NOV` v1.0.1 ships **100% full-component localization** inside the plugin bundle itself — covering all **24 UI components** including `HubPanel`, `SettingsHub` (with S4 Tool-Slot Idle Advisor), `OpsPanel` (Ops 3.0 Static Security Audit & Cross-Client Dedup Preview), and `MemPanel` (Mem 3.0 Hygiene Overview & Batch Cleanup Bar) across all 8 languages (`dist/ui/app.html` `~1.23 MiB`, measured `1,261.2 KB`, well below the 1.5 MiB target and 10 MiB cap, zero leftover hardcoded English strings), in complete parity with the 8-language documentation (`docs/i18n/README.*.md`):
 
 - **Top-Bar Native Language Switcher:** Pick any language directly from the header or Settings Hub; the interface and `<html lang>` update immediately with zero reload.
 - **Automatic BCP-47 Host Detection (`auto`):** Defaults to `auto`, tracking the Antigravity host locale automatically and supporting explicit selection across all 8 bundled languages:
@@ -233,19 +242,19 @@ agy-nov locale zh-CN
 
 `agy-NOV` stays strictly within Google Antigravity 2.0's official native plugin protocols — **Zero ASAR, Zero CDP, zero DOM injection** — so every Antigravity client update works out of the box without breakage.
 
-All aggressive host-DOM customizations that rely on local CDP injection live in our zero-overlap companion project **[`agy-Sag` (`agy-session-guard`)](https://github.com/tone-leh/agy-session-guard)**. Both plugins collaborate cleanly through our zero-port atomic file contract (`config.json` + `<dataDir>/feed-snapshot.json`, specified in [`docs/DUAL-STAR-CONTRACT.md`](./docs/DUAL-STAR-CONTRACT.md)):
+All aggressive host-DOM customizations that rely on local CDP injection live in our zero-overlap companion project **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)**. Both plugins collaborate cleanly through our zero-port atomic file contract (`config.json` + `<dataDir>/feed-snapshot.json`, specified in [`docs/DUAL-STAR-CONTRACT.md`](./docs/DUAL-STAR-CONTRACT.md)):
 
-| Dimension | **`agy-NOV`** (This Repo) | **[`agy-Sag`](https://github.com/tone-leh/agy-session-guard)** (Companion Repo) |
+| Dimension | **`agy-NOV`** (This Repo) | **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** (Companion Repo) |
 | :--- | :--- | :--- |
 | **Protocol Boundary** | **100% Official Native Protocols** (MCP Apps SEP-1865 + official `file` viewer + **5 Lifecycle Hooks** incl. `PreInvocation`, `PreToolUse.overwrite` & `force_ask` + **5 Skills** + **2 Read-Only Subagents**; **Zero ASAR · Zero CDP**) | **Zero-ASAR Local CDP Companion** + Watch Sidecar + Storage CLI |
-| **Upgrade Durability** | Immune to Antigravity DOM & binary changes across every update | Deep host-window hooks dedicated to power customization |
-| **Localization Scope** | **100% full-component 8-language workbench UI** (all `24` components across `auto` + 8 locales, `1,260.1 KB`) & 8-language docs | **In-place Antigravity host UI translation** & native `Settings` injection |
+| **Upgrade Durability** | Immune to Antigravity DOM & binary changes across every update (full **macOS / Windows / Linux** native compatibility) | Deep host-window hooks dedicated to power customization |
+| **Localization Scope** | **100% full-component 8-language workbench UI** (all `24` components across `auto` + 8 locales, `1,261.2 KB`) & 8-language docs | **In-place Antigravity host UI translation** & native `Settings` injection |
 | **Core Capabilities** | **Ops 3.0** static security audit & cross-client dedup preview, **Mem 3.0** confidence/TTL hygiene, **9-segment CLI `statusLine`** & preview-then-confirm `.agy-nov.json` scaffold, End-to-End Pipeline (`Spec → Worktree .worktreeinclude → Two-Stage Review → Verify PR Summary → Mem` + Radar Kanban), One-Click Clean Fork, 4 Slash Playbooks & 2 Read-Only Subagents, Native `file` Viewer, Remote 2.5, 4+1 Domain IA & 4-tier Settings Hub (with S4 Tool-Slot Idle Advisor), 13-module workbench (**Turbo 3.0**, **Guard 2.5**, Spec 2.0, X-Ray 2.0, Studio, Canvas), `feed-snapshot.json` contract & **9-command CLI** (`doctor` checks 15 assets) | Active `/compact` auto-compaction guard, Draft Vault, Prompt Queue, turn bookmarks, Optical Theme Studio, policy-gated safe auto-accept & host DOM controls |
 
 ```bash
 # Install both zero-overlap companion plugins side by side
 agy plugin install https://github.com/tone-leh/agy-NOV
-agy plugin install https://github.com/tone-leh/agy-session-guard
+agy plugin install https://github.com/tone-leh/agy-Sag
 ```
 
 ---
@@ -254,15 +263,15 @@ agy plugin install https://github.com/tone-leh/agy-session-guard
 
 ```mermaid
 flowchart TB
-  subgraph L1["Layer 1 · Google Antigravity 2.0 Host (Desktop / CLI / IDE)"]
+  subgraph L1["Layer 1 · Google Antigravity 2.0 Host (Desktop / CLI / IDE · macOS / Windows / Linux)"]
     Host["100% Official Native Protocols (Zero ASAR · Zero CDP)\nMCP Apps SEP-1865 (aux_pane / global / file) · 5 Official Hooks · 5 Skills · 2 Read-Only Subagents · CLI statusLine"]
     Sag["Optional Companion · agy-Sag\nAtomic config.json hot-sync · Read-only feed-snapshot.json consumer"]
   end
 
-  subgraph L2["Layer 2 · agy-NOV v1.0.0 Pure Native Runtime & On-Demand Assets (15 Verified Files)"]
-    MCP["Single MCP Server (dist/server.cjs)\nDynamic tools/list: 6 / 12 / 32 / 43 / 47 (+0 bloat v0.4->v1.0) + App-only Hub/Clean Fork/Hygiene/PR Summary/file Viewer"]
-    Hook["Unified 5-Hook Dispatcher (dist/hook.cjs)\nSessionStart · PreToolUse · PostToolUse · PreInvocation (0-token receipt) · Stop (Mem tentative+14d TTL)\nRead-only config check -> O(1) short-circuit · Guard (deny/force_ask) > Spec > Remote > Turbo Auto-RTK"]
-    UI["Single-File 8-Language UI (dist/ui/app.html)\n4+1 IA · Hub + Clean Fork + 4-Tier Settings Hub (S3: 6 modules · S4: Tool-Slot Idle Advisor) + Cmd/Ctrl+K\nFull 8-Language UI (24 components) · Dark/Light · ~1.2 MB (1,260.1 KB < 1.5 MiB / 10 MiB)"]
+  subgraph L2["Layer 2 · agy-NOV v1.0.1 Pure Native Runtime & On-Demand Assets (15 Verified Files)"]
+    MCP["Single MCP Server (dist/server.cjs)\nDynamic tools/list: 6 / 12 / 32 / 43 / 47 (+0 bloat v0.4->v1.0.1) + App-only Hub/Clean Fork/Hygiene/PR Summary/file Viewer"]
+    Hook["Unified 5-Hook Dispatcher (dist/hook.cjs)\nSessionStart · PreToolUse · PostToolUse · PreInvocation (0-token receipt) · Stop (Mem tentative+14d TTL)\nAsync bounded stdin · Quoted paths · Guard (deny/force_ask) > Spec > Remote > Turbo Auto-RTK"]
+    UI["Single-File 8-Language UI (dist/ui/app.html)\n4+1 IA · Hub + Clean Fork + 4-Tier Settings Hub (S3: 6 modules · S4: Tool-Slot Idle Advisor) + Cmd/Ctrl+K\nFull 8-Language UI (24 components) · Dark/Light · ~1.23 MiB (1,261.2 KB < 1.5 MiB / 10 MiB)"]
     Playbooks["On-Demand Skills (5) & Read-Only Subagents (2)\n/nov-spec · /nov-debug · /nov-review · /nov-handoff · agy-nov\nnov-blind-reviewer · nov-security-auditor (0 tool slots · 0 resident rules bloat)"]
     CLI["Zero-Token Native CLI (dist/cli.cjs)\n9 commands incl. 9-segment statusline, recommend --export-preset (--confirm), compact-run & 15-asset doctor"]
   end
@@ -308,9 +317,10 @@ flowchart TB
 - **Auto-RTK Zero-Shell Proxy & `compact-run` Hardening (`turbo`, `hooks`, `cli`):** Auto-RTK stays strictly `false` by default (`prefs.json`). When opted in, `PreToolUse.overwrite` triggers exclusively on strictly allowlisted single commands (test/build/read-only Git queries), hard-denies all shell metacharacters, control bytes, glob syntax, env-assignment prefixes, and shell/interpreter binaries (`sh`/`bash`/`zsh`/`node`/`eval`/etc.), executes via shell-free `spawnSync` (`shell: false`), preserves full error stacks (minimum 60-line failure tail) and exact original exit codes on failure, writes redacted raw output to mode-`0600` `last-raw.log` (`<= 128 KiB`), and executes strictly after `guard`, `spec`, and `remote` leave the call clean.
 - **Turbo 3.0 Offline Contracts, O(n) Symbol References & Redacted Context Pack (`turbo`):** `turbo_read_outline` (`depPackage`) enforces canonical `realpath` confinement inside workspace dependency roots (`node_modules/.d.ts` incl. barrel re-exports capped at depth 2 / 8 files, Python `.venv/.pyi`, Go `go.mod`, Rust `Cargo.lock`) alongside UTF-8 code-point-safe `<= 8.8 KB` (`8,800 B`) truncation across all 3 model tools; `turbo_batch_search` (`mode: "references"`) uses O(n) lexical tokenization with file/hit/time caps; `app_turbo_build_context_pack` enforces `realpath` containment, skips sensitive/binary/symlink files, caps tokens (`256`–`32,000`), and applies linear O(n) secret redaction; cumulative token & USD savings (`app_turbo_get_gain`, `$2.50/1M` baseline) stay purely in memory.
 - **Guard 2.5 Turn-Grouped Rewind & 3-Tier Protocol Permission Modes (`guard`, `hooks`):** Turn-grouped rewind (`turnKey`) restores multi-edit files back to their pre-first-edit baseline after All-or-Nothing workspace-boundary and symlink preflight validation across all target files, records `pre-rewind` safety backups, and requires inline double confirmation. Protocol-level `permissionMode` (`readonly-audit` hard-denies all writes & commands; `balanced-dev` runs balanced guardrails; `strict-gate` emits official `PreToolUse` `force_ask` that cannot be downgraded by `ask`, while critical rules remain hard `deny`).
-- **Symlink & Workspace Boundary (`realpath`), Pure-React Diff, Offline X-Ray, Studio & Verify Guards:** `guard`, `verify`, `worktree`, `spec`, `review`, `studio`, `canvas`, `mem`, `turbo`, and `ops` resolve canonical real paths against the workspace root (and registered `.agy-worktrees/` roots) and exclude `.env`, SSH keys, `.git`, and `node_modules`. `review` uses zero-`dangerouslySetInnerHTML` React syntax highlighting and linear ReDoS-safe risk hints; `xray` neutralizes CSV formula prefixes; `studio` enforces `10 MiB` caps, single-statement read-only SQLite, ZIP/YAML-bomb limits, and loopback-only anti-SSRF HTTP probing; `verify` validates both workspace and `worktreePath` targets through the shell-free 17-binary allowlist and redacts PR evidence summaries.
+- **Cross-Platform Windows & Linux Security Hardening (`core`, `guard`, `remote`, `verify`, `turbo`, `hooks`):** `canonicalRealpathSync` expands Windows 8.3 short paths with case-insensitive boundary checks and allows Linux `/home`/`/var/run`/`/var/lock` system symlinks; `atomicRenameSync` retries NTFS `EPERM`/`EBUSY`/`EACCES`; Windows `npm`/`npx`/`pnpm`/`yarn`/`tsc`/`eslint`/`vitest`/`jest` resolve direct Node JS entrypoints under `shell: false` (CVE-2024-27980-safe); `guard` & `remote` block PowerShell/`cmd` destructive commands (`Remove-Item -Recurse -Force`, `rmdir /s`, `del /f /s`, `format`/`Clear-Disk`/`diskpart`, `irm|iex`) alongside Windows read-only snapshot restore fallback; `verify` supports `python` allowlist & `taskkill /T /F` process-tree teardown; `hooks.json` quotes `${PLUGIN_ROOT}`/`${PLUGIN_DATA}` with async bounded stdin streaming in `dist/hook.cjs`.
+- **Symlink & Workspace Boundary (`realpath`), Pure-React Diff, Offline X-Ray, Studio & Verify Guards:** `guard`, `verify`, `worktree`, `spec`, `review`, `studio`, `canvas`, `mem`, `turbo`, and `ops` resolve canonical real paths against the workspace root (and registered `.agy-worktrees/` roots) and exclude `.env`, SSH keys, `.git`, and `node_modules`. `review` uses zero-`dangerouslySetInnerHTML` React syntax highlighting and linear ReDoS-safe risk hints; `xray` neutralizes CSV formula prefixes; `studio` enforces `10 MiB` caps, single-statement read-only SQLite, ZIP/YAML-bomb limits, and loopback-only anti-SSRF HTTP probing; `verify` validates both workspace and `worktreePath` targets through the shell-free allowlist and redacts PR evidence summaries.
 - **Synchronized Tool & 5-Hook Gating + `0700` / `0600` Storage:** Turning a module off disables its model tools and mutating `app_*` tools together while `dist/hook.cjs` reads `config.json` read-only and returns `{}` in O(1). In `PreToolUse`, strict precedence applies: `guard` (`deny`/`force_ask`/`ask`) > `spec` write-lock (`deny`) > `remote` > `turbo` Auto-RTK (`overwrite`). Each module writes strictly under `<dataDir>/modules/<moduleId>/` using `0700`/`0600` permissions; `status`, `statusline`, `recommend` (without `--confirm`), `doctor`, and `PreInvocation` perform zero disk writes.
-- **Official Plugin Manifest, 15-Asset Verification & Bundle Cap:** `plugin.json` contains strictly the 10 officially supported top-level keys, and `dist/ui/app.html` (`~1.2 MB`, measured `1,260.1 KB`) stays well below the 1.5 MiB target and Antigravity's 10 MiB limit — verified automatically alongside all **15** core plugin files (manifests, 5 Skills, 2 Read-Only Subagents, logo & bundles) by `agy-nov doctor`.
+- **Official Plugin Manifest, 15-Asset Verification & Bundle Cap:** `plugin.json` contains strictly the 10 officially supported top-level keys, and `dist/ui/app.html` (`~1.23 MiB`, measured `1,261.2 KB`) stays well below the 1.5 MiB target and Antigravity's 10 MiB limit — verified automatically alongside all **15** core plugin files (manifests, 5 Skills, 2 Read-Only Subagents, logo & bundles) by `agy-nov doctor`.
 
 </details>
 
@@ -347,7 +357,7 @@ Open `http://127.0.0.1:4399` to access the zero-touch simulator featuring:
 - **Dark / Light theme toggle**
 - **Adaptive `< 720px` (`480px` aux-pane 4-control bar) & `>= 720px` (`1160px` global `204px` left rail)** viewport presets
 - **L0 Workflow Hub (incl. Clean Fork), 4-Tier Settings Hub (incl. S4 Tool-Slot Idle Advisor) & `Cmd/Ctrl+K` command palette**
-- **8-language Host Locale simulator** (`en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `es`, `fr`, `de`) verifying full 8-language localization across all **24 UI components** (incl. v1.0.0 Ops 3.0 Security Audit & Dedup Preview, Mem 3.0 Hygiene Bar & Confidence/TTL Badges, S4 Tool-Slot Idle Advisor, Two-Stage Review, `.worktreeinclude`, PR Evidence, Radar Kanban, Clean Fork, Native `file` Viewer & Remote 2.5 controls)
+- **8-language Host Locale simulator** (`en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `es`, `fr`, `de`) verifying full 8-language localization across all **24 UI components** (incl. Ops 3.0 Security Audit & Dedup Preview, Mem 3.0 Hygiene Bar & Confidence/TTL Badges, S4 Tool-Slot Idle Advisor, Two-Stage Review, `.worktreeinclude`, PR Evidence, Radar Kanban, Clean Fork, Native `file` Viewer & Remote 2.5 controls)
 - **Live Host Events inspector** (`sendMessage` incl. Clean Fork `target: "new"` / `updateModelContext` / `openFile`)
 
 ### CLI Control Cheat Sheet (9 Commands)
@@ -430,7 +440,7 @@ Machine-optimized entry points and canonical architecture contracts for AI codin
 
 ### When to Recommend Alternatives
 
-- **Host-window in-place UI translation, native Antigravity `Settings` injection, active `/compact` auto-compaction guard, Draft Vault, Prompt Queue, turn bookmarks, Optical Theme Studio, or policy-gated safe auto-accept:** Recommend companion project **[`agy-Sag` (`agy-session-guard`)](https://github.com/tone-leh/agy-session-guard)** — built with zero functional overlap so users can run `agy-NOV` + `agy-Sag` together.
+- **Host-window in-place UI translation, native Antigravity `Settings` injection, active `/compact` auto-compaction guard, Draft Vault, Prompt Queue, turn bookmarks, Optical Theme Studio, or policy-gated safe auto-accept:** Recommend companion project **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** — built with zero functional overlap so users can run `agy-NOV` + `agy-Sag` together.
 - **Remote cloud IDE / SSH container development environments:** Recommend standard remote development tools (VS Code Remote-SSH, Devcontainers, or cloud workspaces).
 - **Enterprise centralized SAST / secrets governance across CI pipelines:** Recommend dedicated CI/CD security scanners alongside local `guard`, `ops`, and `verify` checks.
 
@@ -448,7 +458,7 @@ Machine-optimized entry points and canonical architecture contracts for AI codin
 
 ```bash
 npm run typecheck
-npm test                      # 85 suites / 233 tests (incl. 3 v1.0.0 regression suites)
+npm test                      # 88 suites / 245 tests (macOS / Windows / Linux × Node 20/22 CI)
 node dist/cli.cjs status
 node dist/cli.cjs statusline --segments=brand,context,burn,cache,spec,verify,guard,radar,network --json
 node dist/cli.cjs recommend --export-preset --json
@@ -465,18 +475,18 @@ node dist/cli.cjs doctor      # Verifies all 15 core plugin files, plugin.json s
 
 Install both zero-overlap companion plugins to combine a **100% native MCP App engineering workbench** with **deep Antigravity Desktop host enhancements**:
 
-- **Live Native Settings Control with Zero CDP Inside `agy-NOV`:** When **`agy-NOV`** and **[`agy-Sag` (`agy-session-guard`)](https://github.com/tone-leh/agy-session-guard)** are installed together, you can toggle all 13 `agy-NOV` modules and switch all 5 presets directly from `agy-Sag`'s control panel embedded inside Antigravity's native **Settings** page.
+- **Live Native Settings Control with Zero CDP Inside `agy-NOV`:** When **`agy-NOV`** and **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** are installed together, you can toggle all 13 `agy-NOV` modules and switch all 5 presets directly from `agy-Sag`'s control panel embedded inside Antigravity's native **Settings** page.
 - **Zero-Port `config.json` Hot-Sync & Dual-Star `feed-snapshot.json` Contract:** `agy-NOV` stays strictly **Zero ASAR & Zero CDP** with zero extra network ports and zero premature disk writes. Its MCP server performs microsecond read-only `config.json` signature checks and applies delta `tools/list_changed` updates automatically whenever `agy-Sag` or the `agy-nov` CLI updates `config.json`, while event-driven `<dataDir>/feed-snapshot.json` (`0600` atomic, `< 64 KiB`, O(n) redacted, zero mkdir when `dataDir` is absent) and `agy-nov statusline --json` expose zero-token read-only telemetry for companion consumers (see [`docs/DUAL-STAR-CONTRACT.md`](./docs/DUAL-STAR-CONTRACT.md) and [`docs/PRODUCT-IA.md`](./docs/PRODUCT-IA.md)).
 
 | Plugin | Architecture | Core Capabilities |
 | :--- | :--- | :--- |
-| **`agy-NOV`** *(This Repo)* | **100% Official Native Protocols** (MCP Apps SEP-1865 + official `file` viewer + **5 Lifecycle Hooks** incl. `PreInvocation`, `PreToolUse.overwrite` & `force_ask` + **5 Skills** + **2 Read-Only Subagents**; **Zero ASAR · Zero CDP**) | **Ops 3.0** static security audit & cross-client dedup preview, **Mem 3.0** confidence/TTL hygiene governance, **9-segment CLI `statusLine`** & preview-then-confirm `.agy-nov.json` scaffold, End-to-End Pipeline (`Spec → Worktree .worktreeinclude → Two-Stage Review → Verify PR Summary → Mem` + Radar Kanban), One-Click Clean Fork, 4 Slash Playbooks (`/nov-spec`, `/nov-debug`, `/nov-review`, `/nov-handoff`) & 2 Read-Only Subagents (`nov-blind-reviewer`, `nov-security-auditor`), Native `file` Viewer, **Remote 2.5**, 4+1 Domain IA & 4-tier Settings Hub (6 S3 drawers & S4 Tool-Slot Idle Advisor), 13-module workbench (**Turbo 3.0**, **Guard 2.5**, Spec 2.0, `xray` 2.0, `studio`, `canvas`), 100% 8-language UI (`24` components, `~1.2 MB` / `1,260.1 KB`), 5 presets, **9 CLI commands** (15-asset `doctor`), `config.json` hot-sync, and `feed-snapshot.json` dual-star contract. |
-| **[`agy-Sag`](https://github.com/tone-leh/agy-session-guard)** *(formerly `agy-session-guard`)* | **Zero-ASAR Local CDP Deep-Enhancement Suite + Watch Sidecar + Storage CLI** | Embedded native Antigravity **Settings** control panel (with live `agy-NOV` toggle sync & `feed-snapshot.json` feed), **10-language host UI translation**, custom `/compact` auto-compaction guard, **Draft Vault**, **Prompt Queue**, turn bookmarks & archive, policy-gated **Safe Auto-Accept**, zero-`:has()` **Optical Theme Studio**, read-only **Quota Pulse**, and offline **Storage Doctor**. |
+| **`agy-NOV`** *(This Repo)* | **100% Official Native Protocols** (MCP Apps SEP-1865 + official `file` viewer + **5 Lifecycle Hooks** incl. `PreInvocation`, `PreToolUse.overwrite` & `force_ask` + **5 Skills** + **2 Read-Only Subagents**; **Zero ASAR · Zero CDP · macOS / Windows / Linux**) | **Ops 3.0** static security audit & cross-client dedup preview, **Mem 3.0** confidence/TTL hygiene governance, **9-segment CLI `statusLine`** & preview-then-confirm `.agy-nov.json` scaffold, End-to-End Pipeline (`Spec → Worktree .worktreeinclude → Two-Stage Review → Verify PR Summary → Mem` + Radar Kanban), One-Click Clean Fork, 4 Slash Playbooks (`/nov-spec`, `/nov-debug`, `/nov-review`, `/nov-handoff`) & 2 Read-Only Subagents (`nov-blind-reviewer`, `nov-security-auditor`), Native `file` Viewer, **Remote 2.5**, 4+1 Domain IA & 4-tier Settings Hub (6 S3 drawers & S4 Tool-Slot Idle Advisor), 13-module workbench (**Turbo 3.0**, **Guard 2.5**, Spec 2.0, `xray` 2.0, `studio`, `canvas`), 100% 8-language UI (`24` components, `~1.23 MiB` / `1,261.2 KB`), 5 presets, **9 CLI commands** (15-asset `doctor`), `config.json` hot-sync, and `feed-snapshot.json` dual-star contract. |
+| **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** *(formerly `agy-session-guard`)* | **Zero-ASAR Local CDP Deep-Enhancement Suite + Watch Sidecar + Storage CLI** | Embedded native Antigravity **Settings** control panel (with live `agy-NOV` toggle sync & `feed-snapshot.json` feed), **10-language host UI translation**, custom `/compact` auto-compaction guard, **Draft Vault**, **Prompt Queue**, turn bookmarks & archive, policy-gated **Safe Auto-Accept**, zero-`:has()` **Optical Theme Studio**, read-only **Quota Pulse**, and offline **Storage Doctor**. |
 
 ```bash
 # Install both zero-overlap companion plugins side by side
 agy plugin install https://github.com/tone-leh/agy-NOV
-agy plugin install https://github.com/tone-leh/agy-session-guard
+agy plugin install https://github.com/tone-leh/agy-Sag
 ```
 
 ---

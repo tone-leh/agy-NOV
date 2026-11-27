@@ -1,9 +1,15 @@
-import { execFileSync, spawn } from 'node:child_process';
+import { execFile, execFileSync, spawn } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { getModuleDataDir } from '../../core/config.js';
-import { atomicWriteJson } from '../../core/utils.js';
+import {
+  atomicWriteJson,
+  canonicalRealpathSync,
+  isPathInsideDir,
+  isSamePath,
+  resolveSafeSpawnTarget,
+} from '../../core/utils.js';
 
 export const ALLOWED_VERIFY_EXECUTABLES: ReadonlySet<string> = new Set([
   'npm',
@@ -16,6 +22,7 @@ export const ALLOWED_VERIFY_EXECUTABLES: ReadonlySet<string> = new Set([
   'jest',
   'pytest',
   'python3',
+  'python',
   'cargo',
   'go',
   'ruff',
@@ -708,38 +715,38 @@ function validateNodeArgs(id: string, args: string[]): string | null {
   return null;
 }
 
-function validatePythonArgs(id: string, args: string[]): string | null {
+function validatePythonArgs(id: string, args: string[], executable = 'python3'): string | null {
   if (args.length === 0) {
-    return `Command "${id}" python3 requires explicit arguments (--version, -V, or -m <allowed_module>).`;
+    return `Command "${id}" ${executable} requires explicit arguments (--version, -V, or -m <allowed_module>).`;
   }
 
   const first = args[0];
   if (first === '--version' || first === '-V') {
     if (args.length !== 1) {
-      return `Command "${id}" python3 ${first} does not accept additional arguments.`;
+      return `Command "${id}" ${executable} ${first} does not accept additional arguments.`;
     }
     return null;
   }
 
   if (first !== '-m') {
-    return `Command "${id}" python3 only permits "--version", "-V", or "-m <module>" (disallowed leading arg "${first}").`;
+    return `Command "${id}" ${executable} only permits "--version", "-V", or "-m <module>" (disallowed leading arg "${first}").`;
   }
 
   const modName = args[1];
   if (!modName || !ALLOWED_PYTHON_MODULES.has(modName)) {
-    return `Command "${id}" python3 module "${modName ?? ''}" is not in the allowlist (${[...ALLOWED_PYTHON_MODULES].join(', ')}).`;
+    return `Command "${id}" ${executable} module "${modName ?? ''}" is not in the allowlist (${[...ALLOWED_PYTHON_MODULES].join(', ')}).`;
   }
 
   for (const arg of args.slice(2)) {
     const lower = arg.toLowerCase();
     if (arg === '-' || arg === '-i' || isForbiddenInterpreterArg(arg)) {
-      return `Command "${id}" uses forbidden python3 argument "${arg}".`;
+      return `Command "${id}" uses forbidden ${executable} argument "${arg}".`;
     }
     if (lower === '--eval' || lower.startsWith('--eval=')) {
-      return `Command "${id}" uses forbidden python3 option "${arg}".`;
+      return `Command "${id}" uses forbidden ${executable} option "${arg}".`;
     }
     if (hasPathTraversalOrAbsolute(arg, true)) {
-      return `Command "${id}" python3 argument "${arg}" contains a disallowed absolute or parent-traversal path.`;
+      return `Command "${id}" ${executable} argument "${arg}" contains a disallowed absolute or parent-traversal path.`;
     }
   }
 
@@ -948,8 +955,8 @@ export function validateVerifyCommand(raw: unknown): VerifyCommandValidationResu
     toolError = validatePackageManagerArgs(id, executable, args);
   } else if (executable === 'node') {
     toolError = validateNodeArgs(id, args);
-  } else if (executable === 'python3') {
-    toolError = validatePythonArgs(id, args);
+  } else if (executable === 'python3' || executable === 'python') {
+    toolError = validatePythonArgs(id, args, executable);
   } else if (executable === 'go') {
     toolError = validateGoArgs(id, args);
   } else if (executable === 'cargo') {
@@ -1334,7 +1341,7 @@ export function resolveRealPathWithMissingTail(inputPath: string, depth = 0): st
 
   while (true) {
     try {
-      const realBase = fs.realpathSync(current);
+      const realBase = canonicalRealpathSync(current);
       return missingSegments.length > 0
         ? path.join(realBase, ...missingSegments.reverse())
         : realBase;
@@ -1397,11 +1404,7 @@ export function inspectWorkspaceFile(
       : path.resolve(workspaceRoot, targetPath);
     const realTarget = resolveRealPathWithMissingTail(candidate);
 
-    const rootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
-    if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
-      return { inside: false };
-    }
-    if (realTarget === realRoot) {
+    if (!isPathInsideDir(realRoot, realTarget) || isSamePath(realRoot, realTarget)) {
       return { inside: false };
     }
 
@@ -1524,7 +1527,7 @@ export function executeVerifyCommand(
 
   let resolvedCwd: string;
   try {
-    resolvedCwd = fs.realpathSync(path.resolve(workspaceRoot));
+    resolvedCwd = canonicalRealpathSync(path.resolve(workspaceRoot));
     if (!fs.statSync(resolvedCwd).isDirectory()) {
       throw new Error('Workspace root is not a directory.');
     }
@@ -1603,7 +1606,10 @@ export function executeVerifyCommand(
 
     let child: ReturnType<typeof spawn>;
     try {
-      child = spawn(safeCmd.executable, safeCmd.args, {
+      const resolvedSpawn = resolveSafeSpawnTarget(safeCmd.executable, safeCmd.args, {
+        cwd: resolvedCwd,
+      });
+      child = spawn(resolvedSpawn.command, resolvedSpawn.args, {
         cwd: resolvedCwd,
         shell: false,
         windowsHide: true,
@@ -1628,13 +1634,40 @@ export function executeVerifyCommand(
     }
 
     const killProcessTree = (signal: NodeJS.Signals) => {
-      if (isPosix && typeof child.pid === 'number' && child.pid > 0) {
+      const pid = child.pid;
+      if (isPosix && typeof pid === 'number' && Number.isInteger(pid) && pid > 0) {
         try {
-          process.kill(-child.pid, signal);
+          process.kill(-pid, signal);
           return;
         } catch {
           // Process group may not exist or already exited; fall back to direct child kill
         }
+      } else if (!isPosix && typeof pid === 'number' && Number.isInteger(pid) && pid > 0) {
+        if (child.exitCode !== null || child.signalCode !== null) {
+          return;
+        }
+        try {
+          execFile(
+            'taskkill',
+            ['/pid', String(pid), '/T', '/F'],
+            { windowsHide: true, shell: false },
+            (err) => {
+              if (err && child.exitCode === null && child.signalCode === null) {
+                try {
+                  child.kill(signal);
+                } catch {
+                  // ignore
+                }
+              }
+            },
+          );
+          return;
+        } catch {
+          // fall through to direct child kill fallback
+        }
+      }
+      if (child.exitCode !== null || child.signalCode !== null) {
+        return;
       }
       try {
         child.kill(signal);
@@ -1892,6 +1925,8 @@ function runReadOnlyGitForVerify(cwd: string, args: string[]): { ok: boolean; st
     const stdout = execFileSync('git', ['-c', 'core.quotepath=false', ...args], {
       cwd,
       encoding: 'utf8',
+      shell: false,
+      windowsHide: true,
       timeout: 5_000,
       maxBuffer: 2 * 1024 * 1024,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -1955,7 +1990,7 @@ export function listVerifyWorktreesReadOnly(mainWorkspaceRoot: string): VerifyWo
   }
   let mainReal: string;
   try {
-    mainReal = fs.realpathSync(path.resolve(mainWorkspaceRoot));
+    mainReal = canonicalRealpathSync(path.resolve(mainWorkspaceRoot));
     if (!fs.statSync(mainReal).isDirectory()) return [];
   } catch {
     return [];
@@ -1966,7 +2001,7 @@ export function listVerifyWorktreesReadOnly(mainWorkspaceRoot: string): VerifyWo
 
   let topReal: string;
   try {
-    topReal = fs.realpathSync(path.resolve(topRes.stdout.trim()));
+    topReal = canonicalRealpathSync(path.resolve(topRes.stdout.trim()));
   } catch {
     return [];
   }
@@ -1981,7 +2016,7 @@ export function listVerifyWorktreesReadOnly(mainWorkspaceRoot: string): VerifyWo
     try {
       const resolved = path.resolve(item.rawPath);
       if (!fs.statSync(resolved).isDirectory()) continue;
-      const realPath = fs.realpathSync(resolved);
+      const realPath = canonicalRealpathSync(resolved);
       out.push({
         path: realPath,
         branch: item.branch,
@@ -2023,7 +2058,7 @@ export function resolveAllowedVerifyTargetRoot(
 
   let mainRealRoot: string;
   try {
-    mainRealRoot = fs.realpathSync(path.resolve(mainWorkspaceRoot));
+    mainRealRoot = canonicalRealpathSync(path.resolve(mainWorkspaceRoot));
     if (!fs.statSync(mainRealRoot).isDirectory()) {
       throw new Error('Workspace root is not a directory.');
     }
@@ -2061,11 +2096,11 @@ export function resolveAllowedVerifyTargetRoot(
     throw new Error(`Refused: verify target worktree "${trimmed}" is not a directory.`);
   }
 
-  const realCandidate = fs.realpathSync(resolvedCandidate);
+  const realCandidate = canonicalRealpathSync(resolvedCandidate);
   const worktrees = listVerifyWorktreesReadOnly(mainRealRoot);
 
-  if (realCandidate === mainRealRoot) {
-    const matchedMain = worktrees.find((w) => w.path === mainRealRoot);
+  if (isSamePath(realCandidate, mainRealRoot)) {
+    const matchedMain = worktrees.find((w) => isSamePath(w.path, mainRealRoot));
     const branch = matchedMain?.branch ?? detectGitBranchReadOnly(mainRealRoot);
     return {
       targetRoot: mainRealRoot,
@@ -2075,7 +2110,7 @@ export function resolveAllowedVerifyTargetRoot(
     };
   }
 
-  const matched = worktrees.find((w) => w.path === realCandidate);
+  const matched = worktrees.find((w) => isSamePath(w.path, realCandidate));
   if (!matched) {
     throw new Error(
       `Refused: "${trimmed}" is not the workspace root or a registered Git worktree for this repository.`,
@@ -2159,7 +2194,7 @@ export async function runVerifyChecksLive(
         targetSessions.push(s);
       } else {
         try {
-          if (resolveRealPathWithMissingTail(s.workspaceRoot) === realWorkspace) {
+          if (isSamePath(resolveRealPathWithMissingTail(s.workspaceRoot), realWorkspace)) {
             targetSessions.push(s);
           }
         } catch {
@@ -2416,7 +2451,6 @@ const COMMON_NODE_VERIFY_SCRIPTS: ReadonlyArray<{
 
 function resolveTopLevelWorkspaceFile(
   realRoot: string,
-  rootPrefix: string,
   fileName: string,
 ): { realTarget: string; size: number } | null {
   if (
@@ -2431,8 +2465,8 @@ function resolveTopLevelWorkspaceFile(
   const candidate = path.join(realRoot, fileName);
   try {
     fs.lstatSync(candidate);
-    const realTarget = fs.realpathSync(candidate);
-    if (!realTarget.startsWith(rootPrefix)) {
+    const realTarget = canonicalRealpathSync(candidate);
+    if (!isPathInsideDir(realRoot, realTarget) || isSamePath(realRoot, realTarget)) {
       return null;
     }
     const stat = fs.statSync(realTarget);
@@ -2447,11 +2481,10 @@ function resolveTopLevelWorkspaceFile(
 
 function readTopLevelWorkspaceFile(
   realRoot: string,
-  rootPrefix: string,
   fileName: string,
   maxBytes = MAX_DETECT_FILE_BYTES,
 ): string | null {
-  const resolved = resolveTopLevelWorkspaceFile(realRoot, rootPrefix, fileName);
+  const resolved = resolveTopLevelWorkspaceFile(realRoot, fileName);
   if (!resolved) return null;
   const readLen = Math.min(resolved.size, maxBytes);
   const buf = Buffer.alloc(readLen);
@@ -2477,6 +2510,7 @@ function readTopLevelWorkspaceFile(
  */
 export function detectWorkspaceVerifyCommands(
   workspaceRoot: string,
+  platform: NodeJS.Platform = process.platform,
 ): DetectedWorkspaceVerifyResult {
   if (!workspaceRoot || typeof workspaceRoot !== 'string' || workspaceRoot.includes('\0')) {
     return { detectedStacks: [], recommendations: [] };
@@ -2484,7 +2518,7 @@ export function detectWorkspaceVerifyCommands(
 
   let realRoot: string;
   try {
-    realRoot = fs.realpathSync(path.resolve(workspaceRoot));
+    realRoot = canonicalRealpathSync(path.resolve(workspaceRoot));
     if (!fs.statSync(realRoot).isDirectory()) {
       return { detectedStacks: [], recommendations: [] };
     }
@@ -2492,7 +2526,6 @@ export function detectWorkspaceVerifyCommands(
     return { detectedStacks: [], recommendations: [] };
   }
 
-  const rootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
   const stacks: string[] = [];
   const stackSet = new Set<string>();
   const recommendations: DetectedVerifyCommand[] = [];
@@ -2528,22 +2561,22 @@ export function detectWorkspaceVerifyCommands(
   };
 
   // 1. Node / TypeScript (package.json)
-  const pkgRaw = readTopLevelWorkspaceFile(realRoot, rootPrefix, 'package.json');
+  const pkgRaw = readTopLevelWorkspaceFile(realRoot, 'package.json');
   if (pkgRaw !== null) {
     addStack('node');
     let pm: 'pnpm' | 'yarn' | 'bun' | 'npm' = 'npm';
-    if (resolveTopLevelWorkspaceFile(realRoot, rootPrefix, 'pnpm-lock.yaml')) {
+    if (resolveTopLevelWorkspaceFile(realRoot, 'pnpm-lock.yaml')) {
       pm = 'pnpm';
-    } else if (resolveTopLevelWorkspaceFile(realRoot, rootPrefix, 'yarn.lock')) {
+    } else if (resolveTopLevelWorkspaceFile(realRoot, 'yarn.lock')) {
       pm = 'yarn';
     } else if (
-      resolveTopLevelWorkspaceFile(realRoot, rootPrefix, 'bun.lock') ||
-      resolveTopLevelWorkspaceFile(realRoot, rootPrefix, 'bun.lockb')
+      resolveTopLevelWorkspaceFile(realRoot, 'bun.lock') ||
+      resolveTopLevelWorkspaceFile(realRoot, 'bun.lockb')
     ) {
       pm = 'bun';
     }
 
-    const hasTsConfig = Boolean(resolveTopLevelWorkspaceFile(realRoot, rootPrefix, 'tsconfig.json'));
+    const hasTsConfig = Boolean(resolveTopLevelWorkspaceFile(realRoot, 'tsconfig.json'));
     if (hasTsConfig) {
       addStack('typescript');
     }
@@ -2586,14 +2619,14 @@ export function detectWorkspaceVerifyCommands(
   }
 
   // 2. Python (pyproject.toml / pytest.ini)
-  const pyprojectRaw = readTopLevelWorkspaceFile(realRoot, rootPrefix, 'pyproject.toml');
-  const hasPytestIni = Boolean(resolveTopLevelWorkspaceFile(realRoot, rootPrefix, 'pytest.ini'));
+  const pyprojectRaw = readTopLevelWorkspaceFile(realRoot, 'pyproject.toml');
+  const hasPytestIni = Boolean(resolveTopLevelWorkspaceFile(realRoot, 'pytest.ini'));
   if (pyprojectRaw !== null || hasPytestIni) {
     addStack('python');
     pushValidated({
       id: 'python-pytest',
       label: 'Python Pytest',
-      executable: 'python3',
+      executable: platform === 'win32' ? 'python' : 'python3',
       args: ['-m', 'pytest'],
       timeoutMs: 30_000,
       reason: pyprojectRaw !== null ? 'Detected pyproject.toml' : 'Detected pytest.ini',
@@ -2601,8 +2634,8 @@ export function detectWorkspaceVerifyCommands(
 
     const hasRuff =
       (pyprojectRaw !== null && /\bruff\b/i.test(pyprojectRaw)) ||
-      Boolean(resolveTopLevelWorkspaceFile(realRoot, rootPrefix, 'ruff.toml')) ||
-      Boolean(resolveTopLevelWorkspaceFile(realRoot, rootPrefix, '.ruff.toml'));
+      Boolean(resolveTopLevelWorkspaceFile(realRoot, 'ruff.toml')) ||
+      Boolean(resolveTopLevelWorkspaceFile(realRoot, '.ruff.toml'));
     if (hasRuff) {
       pushValidated({
         id: 'python-ruff',
@@ -2616,7 +2649,7 @@ export function detectWorkspaceVerifyCommands(
   }
 
   // 3. Rust (Cargo.toml)
-  if (resolveTopLevelWorkspaceFile(realRoot, rootPrefix, 'Cargo.toml')) {
+  if (resolveTopLevelWorkspaceFile(realRoot, 'Cargo.toml')) {
     addStack('rust');
     pushValidated({
       id: 'rust-check',
@@ -2637,7 +2670,7 @@ export function detectWorkspaceVerifyCommands(
   }
 
   // 4. Go (go.mod)
-  if (resolveTopLevelWorkspaceFile(realRoot, rootPrefix, 'go.mod')) {
+  if (resolveTopLevelWorkspaceFile(realRoot, 'go.mod')) {
     addStack('go');
     pushValidated({
       id: 'go-vet',
@@ -2859,7 +2892,7 @@ function formatSafeWorktreeLabel(
     try {
       const realRoot = resolveRealPathWithMissingTail(workspaceRoot);
       const realWt = resolveRealPathWithMissingTail(worktreePath);
-      if (realWt === realRoot) return 'workspace root';
+      if (isSamePath(realWt, realRoot)) return 'workspace root';
       const rel = path.relative(realRoot, realWt).split(path.sep).join('/');
       if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) {
         return rel;
@@ -2901,9 +2934,9 @@ export function buildPrDeliverySummary(
     chosen = evidenceList.find((e) => {
       if (!e.targetWorktree) return false;
       try {
-        return resolveRealPathWithMissingTail(e.targetWorktree) === normalizedWanted;
+        return isSamePath(resolveRealPathWithMissingTail(e.targetWorktree), normalizedWanted);
       } catch {
-        return e.targetWorktree === normalizedWanted;
+        return isSamePath(e.targetWorktree, normalizedWanted);
       }
     });
   }

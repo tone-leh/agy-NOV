@@ -1,7 +1,12 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { atomicWriteJson } from '../../core/utils.js';
+import {
+  atomicWriteJson,
+  canonicalRealpathSync,
+  isPathInsideDir,
+  isSamePath,
+} from '../../core/utils.js';
 
 export const TURBO_MAX_QUERIES = 8;
 export const TURBO_MAX_QUERY_LENGTH = 128;
@@ -535,25 +540,24 @@ export function resolveInsideWorkspaceReal(
     throw new Error('Invalid target path');
   }
 
-  const realRoot = fs.realpathSync(path.resolve(workspaceRoot));
+  const realRoot = canonicalRealpathSync(path.resolve(workspaceRoot));
   const candidate = path.isAbsolute(targetPath)
     ? path.resolve(targetPath)
     : path.resolve(realRoot, targetPath);
 
   let realTarget: string;
   try {
-    realTarget = fs.realpathSync(candidate);
+    realTarget = canonicalRealpathSync(candidate);
   } catch {
     throw new Error(`Target path does not exist or cannot be resolved: ${targetPath}`);
   }
 
-  const prefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
-  if (realTarget !== realRoot && !realTarget.startsWith(prefix)) {
+  if (!isPathInsideDir(realRoot, realTarget)) {
     throw new Error(`Path escapes workspace boundary: ${targetPath}`);
   }
 
   const relPath =
-    realTarget === realRoot ? '.' : path.relative(realRoot, realTarget).replace(/\\/g, '/');
+    isSamePath(realTarget, realRoot) ? '.' : path.relative(realRoot, realTarget).replace(/\\/g, '/');
   return { realRoot, realTarget, relPath };
 }
 
@@ -671,8 +675,7 @@ export function batchSearchWorkspace(
     throw new Error('At least one non-empty query is required');
   }
 
-  const realRoot = fs.realpathSync(path.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
+  const realRoot = canonicalRealpathSync(path.resolve(workspaceRoot));
 
   let searchRoot = realRoot;
   let scope = '.';
@@ -718,7 +721,7 @@ export function batchSearchWorkspace(
   const stack: string[] = [searchRoot];
 
   const isInsideRealRoot = (realCandidate: string): boolean =>
-    realCandidate === realRoot || realCandidate.startsWith(rootPrefix);
+    isPathInsideDir(realRoot, realCandidate);
 
   while (stack.length > 0) {
     const currentDir = stack.pop()!;
@@ -749,7 +752,7 @@ export function batchSearchWorkspace(
           continue;
         }
         try {
-          const realSub = fs.realpathSync(fullPath);
+          const realSub = canonicalRealpathSync(fullPath);
           if (!isInsideRealRoot(realSub)) {
             skippedSymlinks += 1;
             continue;
@@ -771,7 +774,7 @@ export function batchSearchWorkspace(
 
       if (entry.isSymbolicLink()) {
         try {
-          realFilePath = fs.realpathSync(fullPath);
+          realFilePath = canonicalRealpathSync(fullPath);
           if (!isInsideRealRoot(realFilePath)) {
             skippedSymlinks += 1;
             continue;
@@ -796,7 +799,7 @@ export function batchSearchWorkspace(
       if (!isFile) continue;
 
       try {
-        realFilePath = fs.realpathSync(realFilePath);
+        realFilePath = canonicalRealpathSync(realFilePath);
       } catch {
         skippedSymlinks += 1;
         continue;
@@ -3204,8 +3207,7 @@ const SNAPSHOT_EXPAND_DIRS = new Set(['src', 'app', 'apps', 'packages', 'lib', '
 
 export function buildWorkspaceSnapshot(workspaceRoot: string): WorkspaceSnapshot {
   const startedAt = Date.now();
-  const realRoot = fs.realpathSync(path.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
+  const realRoot = canonicalRealpathSync(path.resolve(workspaceRoot));
   const workspaceName = path.basename(realRoot) || 'workspace';
 
   const techStack: string[] = [];
@@ -3216,8 +3218,8 @@ export function buildWorkspaceSnapshot(workspaceRoot: string): WorkspaceSnapshot
   const hasFile = (name: string): boolean => {
     try {
       const candidate = path.join(realRoot, name);
-      const real = fs.realpathSync(candidate);
-      return real.startsWith(rootPrefix) && fs.statSync(real).isFile();
+      const real = canonicalRealpathSync(candidate);
+      return isPathInsideDir(realRoot, real) && !isSamePath(realRoot, real) && fs.statSync(real).isFile();
     } catch {
       return false;
     }
@@ -3274,9 +3276,9 @@ export function buildWorkspaceSnapshot(workspaceRoot: string): WorkspaceSnapshot
       if (SKIP_DIRS.has(entry.name) || isSensitiveTurboPath(entry.name)) continue;
       if (entry.isSymbolicLink()) {
         try {
-          const realEntry = fs.realpathSync(path.join(realRoot, entry.name));
+          const realEntry = canonicalRealpathSync(path.join(realRoot, entry.name));
           const realEntryRel = path.relative(realRoot, realEntry).replace(/\\/g, '/');
-          if (!realEntry.startsWith(rootPrefix) || isSensitiveTurboPath(realEntryRel)) continue;
+          if (!isPathInsideDir(realRoot, realEntry) || isSamePath(realRoot, realEntry) || isSensitiveTurboPath(realEntryRel)) continue;
         } catch {
           continue;
         }
@@ -3299,9 +3301,9 @@ export function buildWorkspaceSnapshot(workspaceRoot: string): WorkspaceSnapshot
                 }
                 if (sub.isSymbolicLink()) {
                   try {
-                    const realSub = fs.realpathSync(path.join(realRoot, entry.name, sub.name));
+                    const realSub = canonicalRealpathSync(path.join(realRoot, entry.name, sub.name));
                     const realSubRel = path.relative(realRoot, realSub).replace(/\\/g, '/');
-                    return realSub.startsWith(rootPrefix) && !isSensitiveTurboPath(realSubRel);
+                    return isPathInsideDir(realRoot, realSub) && !isSamePath(realRoot, realSub) && !isSensitiveTurboPath(realSubRel);
                   } catch {
                     return false;
                   }

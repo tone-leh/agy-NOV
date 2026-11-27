@@ -3,6 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { getModuleDataDir, resolveNovDataDir, sanitizeDataDirCandidate } from '../../core/config.js';
+import {
+  atomicRenameSync,
+  canonicalRealpathSync,
+  isPathInsideDir,
+  isSamePath,
+} from '../../core/utils.js';
 import type {
   AnnotationTag,
   ArtifactKind,
@@ -45,15 +51,8 @@ function chmodSafe(targetPath: string, mode: number): void {
   }
 }
 
-function realpathNative(targetPath: string): string {
-  return typeof fs.realpathSync.native === 'function'
-    ? fs.realpathSync.native(targetPath)
-    : fs.realpathSync(targetPath);
-}
-
 function isPathInsideRoot(rootReal: string, targetReal: string): boolean {
-  const rel = path.relative(rootReal, targetReal);
-  return rel !== '' && rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel);
+  return !isSamePath(rootReal, targetReal) && isPathInsideDir(rootReal, targetReal);
 }
 
 function assertSafeRelativeSegments(relPath: string): void {
@@ -118,7 +117,7 @@ export function loadLocalFileContent(
   const rootResolved = path.resolve(workspaceRoot);
   let rootReal: string;
   try {
-    rootReal = realpathNative(rootResolved);
+    rootReal = canonicalRealpathSync(rootResolved);
   } catch {
     throw new Error('Workspace root directory does not exist.');
   }
@@ -136,7 +135,7 @@ export function loadLocalFileContent(
 
   let targetReal: string;
   try {
-    targetReal = realpathNative(candidate);
+    targetReal = canonicalRealpathSync(candidate);
   } catch {
     throw new Error(`File not found or inaccessible: ${filePath}`);
   }
@@ -269,7 +268,7 @@ export class CanvasStore {
       return null;
     }
     const p = path.join(this.boardsDir, `${boardId.toLowerCase()}.json`);
-    if (path.dirname(p) !== this.boardsDir || !fs.existsSync(p)) {
+    if (!isSamePath(path.dirname(p), this.boardsDir) || !fs.existsSync(p)) {
       return null;
     }
     try {
@@ -287,7 +286,7 @@ export class CanvasStore {
     const tmp = `${file}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
     fs.writeFileSync(tmp, JSON.stringify(board, null, 2), { encoding: 'utf8', mode: 0o600 });
     chmodSafe(tmp, 0o600);
-    fs.renameSync(tmp, file);
+    atomicRenameSync(tmp, file);
     chmodSafe(file, 0o600);
   }
 

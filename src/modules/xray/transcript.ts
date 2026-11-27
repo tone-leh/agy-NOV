@@ -1,6 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import {
+  canonicalRealpathSync,
+  isPathInsideDir,
+  normalizePathForCompare,
+} from '../../core/utils.js';
 import {
   estimateTokenCostUsd,
   formatUsd,
@@ -131,14 +136,82 @@ function classifyToolFileOp(toolName: string): FileOp | null {
   return null;
 }
 
+const WINDOWS_ABS_PATH_RE = /^[A-Za-z]:[\\/]/;
+
+function safeFileUriToPath(rawUri: string): string | null {
+  try {
+    const parsed = new URL(rawUri);
+    if (parsed.protocol !== 'file:') return null;
+    if (parsed.hostname && parsed.hostname.toLowerCase() !== 'localhost') return null;
+    const isWinDriveUri = /^\/[A-Za-z](?::|%3[Aa])(?:[/%]|$)/.test(parsed.pathname);
+    let decoded = fileURLToPath(parsed, { windows: isWinDriveUri });
+    if (isWinDriveUri && /^\/[A-Za-z]:[\\/]/.test(decoded)) {
+      decoded = decoded.slice(1);
+    }
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeTranscriptFilePath(fp: string): {
+  key: string;
+  normalized: string;
+  basename: string;
+  dir: string;
+  uri: string;
+} {
+  if (WINDOWS_ABS_PATH_RE.test(fp)) {
+    const normalized = path.win32.normalize(fp);
+    let uri: string;
+    try {
+      uri = pathToFileURL(normalized, { windows: true }).href;
+    } catch {
+      uri = `file:///${encodeURI(normalized.replace(/\\/g, '/'))}`;
+    }
+    return {
+      key: normalizePathForCompare(normalized, 'win32'),
+      normalized,
+      basename: path.win32.basename(normalized),
+      dir: path.win32.dirname(normalized),
+      uri,
+    };
+  }
+  const isPosixAbs = fp.startsWith('/');
+  const normalized = isPosixAbs ? path.posix.normalize(fp) : path.resolve(fp);
+  let uri: string;
+  try {
+    uri = isPosixAbs
+      ? pathToFileURL(normalized, { windows: false }).href
+      : pathToFileURL(normalized).href;
+  } catch {
+    uri = toSafeFileUri(normalized);
+  }
+  return {
+    key: isPosixAbs
+      ? normalizePathForCompare(normalized, 'linux')
+      : normalizePathForCompare(normalized),
+    normalized,
+    basename: isPosixAbs ? path.posix.basename(normalized) : path.basename(normalized),
+    dir: isPosixAbs ? path.posix.dirname(normalized) : path.dirname(normalized),
+    uri,
+  };
+}
+
 function extractFilePathsFromArgs(args: Record<string, unknown> | undefined): string[] {
   if (!args) return [];
   const results: string[] = [];
   for (const key of FILE_ARG_KEYS) {
     if (key in args && args[key] != null) {
       const val = unwrapArgString(args[key]);
-      if (val && (val.startsWith('/') || /^[A-Za-z]:\\/.test(val) || val.startsWith('file://'))) {
-        results.push(val.replace(/^file:\/\//, ''));
+      if (!val) continue;
+      if (/^file:\/\//i.test(val)) {
+        const decoded = safeFileUriToPath(val);
+        if (decoded && (decoded.startsWith('/') || WINDOWS_ABS_PATH_RE.test(decoded))) {
+          results.push(decoded);
+        }
+      } else if (val.startsWith('/') || WINDOWS_ABS_PATH_RE.test(val)) {
+        results.push(val);
       }
     }
   }
@@ -374,7 +447,7 @@ function resolveChildTranscriptPath(siblingBrainRoot: string, childId: string): 
   if (!siblingBrainRoot || !fs.existsSync(siblingBrainRoot)) return null;
   let realRoot: string;
   try {
-    realRoot = fs.realpathSync(siblingBrainRoot);
+    realRoot = canonicalRealpathSync(siblingBrainRoot);
   } catch {
     return null;
   }
@@ -387,8 +460,8 @@ function resolveChildTranscriptPath(siblingBrainRoot: string, childId: string): 
   for (const candidate of candidates) {
     if (!fs.existsSync(candidate)) continue;
     try {
-      const realCandidate = fs.realpathSync(candidate);
-      if (realCandidate !== realRoot && !realCandidate.startsWith(`${realRoot}${path.sep}`)) {
+      const realCandidate = canonicalRealpathSync(candidate);
+      if (!isPathInsideDir(realRoot, realCandidate)) {
         continue;
       }
       const stat = fs.statSync(realCandidate);
@@ -752,12 +825,12 @@ export function parseTranscriptLines(
         const op = classifyToolFileOp(name);
         if (op) {
           for (const fp of extractFilePathsFromArgs(tc.args)) {
-            const normalized = path.resolve(fp);
-            const cur = fileMap.get(normalized) ?? {
-              path: normalized,
-              basename: path.basename(normalized),
-              dir: path.dirname(normalized),
-              uri: toSafeFileUri(normalized),
+            const info = normalizeTranscriptFilePath(fp);
+            const cur = fileMap.get(info.key) ?? {
+              path: info.normalized,
+              basename: info.basename,
+              dir: info.dir,
+              uri: info.uri,
               ops: [],
               readCount: 0,
               editCount: 0,
@@ -773,7 +846,7 @@ export function parseTranscriptLines(
             cur.totalTouches += 1;
             cur.lastStepIndex = stepIndex;
             cur.lastTimestamp = timestamp;
-            fileMap.set(normalized, cur);
+            fileMap.set(info.key, cur);
           }
         }
       }

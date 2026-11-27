@@ -28,10 +28,16 @@ import {
   type TeamVerifyCommand,
 } from '../core/config.js';
 import { getFeedSnapshotPath, MAX_FEED_SNAPSHOT_BYTES } from '../core/feed.js';
-import { hasCliFlag, parseCliFlag } from '../core/utils.js';
+import {
+  atomicRenameSync,
+  canonicalRealpathSync,
+  hasCliFlag,
+  isPathInsideDir,
+  parseCliFlag,
+} from '../core/utils.js';
 import { executeSafeCompactRun, loadTurboPrefsReadOnly } from '../modules/turbo/auto-rtk.js';
 
-const CLI_VERSION = '1.0.0';
+const CLI_VERSION = '1.0.1';
 const MAX_READ_JSON_BYTES = 2 * 1024 * 1024; // 2 MiB hard cap for silent read-only JSON loading
 const DEFAULT_CONTEXT_WINDOW_TOKENS = 200_000;
 
@@ -707,7 +713,7 @@ export function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRe
   const resolvedRoot = path.resolve(workspaceRoot);
   let realRoot = resolvedRoot;
   try {
-    realRoot = fs.realpathSync(resolvedRoot);
+    realRoot = canonicalRealpathSync(resolvedRoot);
   } catch {
     // keep resolvedRoot when directory does not exist
   }
@@ -878,8 +884,7 @@ export function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRe
 }
 
 function isWithinRealDir(targetReal: string, rootReal: string): boolean {
-  const prefix = rootReal.endsWith(path.sep) ? rootReal : `${rootReal}${path.sep}`;
-  return targetReal === rootReal || targetReal.startsWith(prefix);
+  return isPathInsideDir(rootReal, targetReal);
 }
 
 function hasSafeRegularFileInWorkspace(realRoot: string, relPath: string): boolean {
@@ -887,7 +892,7 @@ function hasSafeRegularFileInWorkspace(realRoot: string, relPath: string): boole
     const candidate = path.join(realRoot, relPath);
     const st = fs.lstatSync(candidate);
     if (st.isSymbolicLink() || !st.isFile()) return false;
-    const realTarget = fs.realpathSync(candidate);
+    const realTarget = canonicalRealpathSync(candidate);
     return isWithinRealDir(realTarget, realRoot);
   } catch {
     return false;
@@ -1015,7 +1020,7 @@ export function buildTeamPresetDraft(
 
   let verifyCommands: TeamVerifyCommand[] = [];
   try {
-    const realRoot = fs.realpathSync(path.resolve(workspaceRoot));
+    const realRoot = canonicalRealpathSync(path.resolve(workspaceRoot));
     if (fs.statSync(realRoot).isDirectory()) {
       verifyCommands = detectSafeVerifyCommandsReadOnly(realRoot, rec.signals.isGitRepo);
     }
@@ -1058,7 +1063,7 @@ function writeTeamPresetDraft(
 
   let realRoot: string;
   try {
-    realRoot = fs.realpathSync(resolvedRoot);
+    realRoot = canonicalRealpathSync(resolvedRoot);
     if (!fs.statSync(realRoot).isDirectory()) {
       return {
         ok: false,
@@ -1116,7 +1121,7 @@ function writeTeamPresetDraft(
         error: `${TEAM_CONFIG_FILENAME} already exists at ${targetPath}. Re-run with --export-preset --confirm --force to overwrite.`,
       };
     }
-    const realExisting = fs.realpathSync(targetPath);
+    const realExisting = canonicalRealpathSync(targetPath);
     if (!isWithinRealDir(realExisting, realRoot)) {
       return {
         ok: false,
@@ -1167,14 +1172,14 @@ function writeTeamPresetDraft(
       }
     }
 
-    fs.renameSync(tmpPath, targetPath);
+    atomicRenameSync(tmpPath, targetPath);
     try {
       fs.chmodSync(targetPath, 0o644);
     } catch {
       // ignore chmod failures on filesystems without POSIX modes
     }
 
-    const realWritten = fs.realpathSync(targetPath);
+    const realWritten = canonicalRealpathSync(targetPath);
     if (!isWithinRealDir(realWritten, realRoot)) {
       return {
         ok: false,
@@ -1540,7 +1545,7 @@ function isCliEntrypoint(): boolean {
     ) {
       return true;
     }
-    const realBase = path.basename(fs.realpathSync(argv1)).toLowerCase();
+    const realBase = path.basename(canonicalRealpathSync(argv1)).toLowerCase();
     return (
       realBase === 'cli.ts' ||
       realBase === 'cli.cjs' ||

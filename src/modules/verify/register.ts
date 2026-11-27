@@ -7,6 +7,7 @@ import type {
   ModuleToolHandle,
   NovRuntimeOptions,
 } from '../../core/types.js';
+import { isSamePath } from '../../core/utils.js';
 import {
   ALLOWED_VERIFY_EXECUTABLES,
   appendEvidenceToState,
@@ -98,7 +99,7 @@ function resolveDemoWorktreeTarget(
     return { ok: true, branch: demoWorktrees[0]?.branch ?? 'main' };
   }
   const normalized = path.resolve(worktreePath.trim());
-  const matched = demoWorktrees.find((w) => path.resolve(w.path) === normalized);
+  const matched = demoWorktrees.find((w) => isSamePath(path.resolve(w.path), normalized));
   if (!matched) {
     return {
       ok: false,

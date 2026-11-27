@@ -478,12 +478,57 @@ export async function dispatchNovHook(
   return {};
 }
 
-function readStdinText(): string {
-  try {
-    return fs.readFileSync(0, 'utf8');
-  } catch {
-    return '';
+const MAX_HOOK_STDIN_BYTES = 4 * 1024 * 1024;
+const HOOK_STDIN_READ_TIMEOUT_MS = 1500;
+
+function readStdinTextAsync(): Promise<string> {
+  if (process.stdin.isTTY) {
+    return Promise.resolve('');
   }
+  return new Promise((resolve) => {
+    const chunks: Buffer[] = [];
+    let totalBytes = 0;
+    let settled = false;
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      process.stdin.removeListener('data', onData);
+      process.stdin.removeListener('end', onEnd);
+      process.stdin.removeListener('error', onError);
+      try {
+        process.stdin.pause();
+      } catch {
+        // ignore
+      }
+      resolve(Buffer.concat(chunks).toString('utf8'));
+    };
+
+    const onData = (chunk: Buffer | string) => {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, 'utf8');
+      if (totalBytes + buf.length > MAX_HOOK_STDIN_BYTES) {
+        const remaining = Math.max(0, MAX_HOOK_STDIN_BYTES - totalBytes);
+        if (remaining > 0) chunks.push(buf.subarray(0, remaining));
+        totalBytes = MAX_HOOK_STDIN_BYTES;
+        finish();
+        return;
+      }
+      chunks.push(buf);
+      totalBytes += buf.length;
+    };
+
+    const onEnd = () => finish();
+    const onError = () => finish();
+
+    const timer = setTimeout(finish, HOOK_STDIN_READ_TIMEOUT_MS);
+    timer.unref?.();
+
+    process.stdin.on('data', onData);
+    process.stdin.on('end', onEnd);
+    process.stdin.on('error', onError);
+    process.stdin.resume();
+  });
 }
 
 async function main(): Promise<void> {
@@ -492,7 +537,7 @@ async function main(): Promise<void> {
   const cliDataDir = parseCliFlag(argv, '--data-dir');
 
   let rawInput: unknown = {};
-  const text = readStdinText().trim();
+  const text = (await readStdinTextAsync()).trim();
   if (text) {
     try {
       rawInput = JSON.parse(text);
@@ -513,7 +558,8 @@ async function main(): Promise<void> {
 const isMain =
   (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) ||
   (typeof process.argv[1] === 'string' &&
-    (process.argv[1].endsWith('hook.cjs') || process.argv[1].endsWith('dispatcher.ts')));
+    (/(?:^|[/\\])hook\.cjs$/i.test(process.argv[1]) ||
+      /(?:^|[/\\])dispatcher\.ts$/i.test(process.argv[1])));
 
 if (isMain) {
   void main();

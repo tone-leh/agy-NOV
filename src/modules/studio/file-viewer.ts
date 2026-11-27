@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isPathInsideDir, isSamePath } from '../../core/utils.js';
 import {
   createDemoOpenApiSpec,
   inspectStudioData,
@@ -390,8 +391,7 @@ export async function openNativeFileViewer(
     if (path.isAbsolute(localCandidate)) {
       const normalizedRoot = path.resolve(opts.workspaceRoot);
       const normalizedTarget = path.resolve(localCandidate);
-      const prefix = normalizedRoot.endsWith(path.sep) ? normalizedRoot : `${normalizedRoot}${path.sep}`;
-      if (!normalizedTarget.startsWith(prefix)) {
+      if (isSamePath(normalizedRoot, normalizedTarget) || !isPathInsideDir(normalizedRoot, normalizedTarget)) {
         throw new Error(`Path escapes workspace boundary: ${localCandidate}`);
       }
     }

@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { getModuleDataDir, resolveNovDataDir } from '../../core/config.js';
 import type { NormalizedHookPayload } from '../../core/types.js';
+import { canonicalRealpathSync } from '../../core/utils.js';
 import {
   DEFAULT_AUTO_CAPTURE_TTL_DAYS,
   isSensitiveFilePath,
@@ -11,10 +13,45 @@ import {
 
 export const MAX_TRANSCRIPT_TAIL_BYTES = 256 * 1024; // 256 KiB
 
+const WINDOWS_ABS_PATH_RE = /^[A-Za-z]:[\\/]/;
+
+function safeDecodeFileUri(rawUri: string): string | null {
+  try {
+    const parsed = new URL(rawUri);
+    if (parsed.protocol !== 'file:') return null;
+    if (parsed.hostname && parsed.hostname.toLowerCase() !== 'localhost') return null;
+    const isWindowsDriveUri = /^\/[A-Za-z](?::|%3[Aa])(?:[/%]|$)/.test(parsed.pathname);
+    let decoded = fileURLToPath(parsed, { windows: isWindowsDriveUri });
+    if (isWindowsDriveUri && /^\/[A-Za-z]:[\\/]/.test(decoded)) {
+      decoded = decoded.slice(1);
+    }
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeAbsoluteTranscriptPath(rawPath: string): string | null {
+  const clean = rawPath.replace(/^["']|["']$/g, '').trim();
+  if (!clean) return null;
+  if (/^file:\/\//i.test(clean)) {
+    const decoded = safeDecodeFileUri(clean);
+    if (!decoded) return null;
+    if (decoded.startsWith('/') || WINDOWS_ABS_PATH_RE.test(decoded)) {
+      return decoded;
+    }
+    return null;
+  }
+  if (clean.startsWith('/') || WINDOWS_ABS_PATH_RE.test(clean)) {
+    return clean;
+  }
+  return null;
+}
+
 function isSensitiveOrSymlinkToSensitive(filePath: string): boolean {
   if (isSensitiveFilePath(filePath)) return true;
   try {
-    const real = fs.realpathSync(filePath);
+    const real = canonicalRealpathSync(filePath);
     if (isSensitiveFilePath(real)) return true;
   } catch {
     // Missing or unreadable target falls back to lexical sensitivity check
@@ -70,9 +107,9 @@ export function extractEditedFilesFromTranscript(
             tc.args?.file_path ??
             tc.args?.filePath;
           if (typeof rawPath === 'string') {
-            const clean = rawPath.replace(/^["']|["']$/g, '').trim();
-            if (clean.startsWith('/') && !isSensitiveOrSymlinkToSensitive(clean)) {
-              files.add(clean);
+            const normalizedPath = normalizeAbsoluteTranscriptPath(rawPath);
+            if (normalizedPath && !isSensitiveOrSymlinkToSensitive(normalizedPath)) {
+              files.add(normalizedPath);
             }
           }
         }
@@ -148,7 +185,7 @@ export function handleMemStopHook(
       id: `mem_auto_${convId.slice(0, 12)}`,
       kind: 'decision',
       title: `Session recap: ${userPrompt.slice(0, 56)}${userPrompt.length > 56 ? '…' : ''}`,
-      content: `Auto-captured from conversation ${convId.slice(0, 8)}. Modified ${editedFiles.length} file(s): ${editedFiles.map((f) => path.basename(f)).join(', ')}.`,
+      content: `Auto-captured from conversation ${convId.slice(0, 8)}. Modified ${editedFiles.length} file(s): ${editedFiles.map((f) => path.posix.basename(f.replace(/\\/g, '/'))).join(', ')}.`,
       tags: ['auto-capture'],
       workspacePath,
       sourceConversationId: convId,

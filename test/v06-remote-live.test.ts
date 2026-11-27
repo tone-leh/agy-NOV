@@ -24,6 +24,7 @@ import {
 } from '../src/modules/remote/live-stream.js';
 import { renderMobilePwaHtml } from '../src/modules/remote/mobile-pwa.js';
 import { registerRemoteModule } from '../src/modules/remote/register.js';
+import { createDirSymlink } from './helpers/cross-platform.js';
 
 const UI_RESOURCE_URI = 'ui://agy-nov/app.html';
 
@@ -374,7 +375,7 @@ describe('Remote 2.0 — Read-Only Conversation Live Stream & Safe Tunnel Guide'
         JSON.stringify({ step_index: 1, source: 'USER', content: 'OUTSIDE_DIR_ESCAPE' }) + '\n',
         'utf8',
       );
-      fs.symlinkSync(outsideConvDir, path.join(brainDir, 'conv-symlink-dir'));
+      createDirSymlink(outsideConvDir, path.join(brainDir, 'conv-symlink-dir'));
 
       const dirEscapeRes = readConversationLiveStream('conv-symlink-dir', {
         brainDirs: [brainDir],

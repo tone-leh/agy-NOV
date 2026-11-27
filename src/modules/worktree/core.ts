@@ -1,6 +1,11 @@
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  canonicalRealpathSync,
+  isPathInsideDir,
+  isSamePath,
+} from '../../core/utils.js';
 
 export const WORKTREE_MANAGED_DIR = '.agy-worktrees';
 export const WORKTREE_INCLUDE_FILE = '.worktreeinclude';
@@ -259,14 +264,13 @@ export function deriveSafeWorktreeSlug(branch: string): string {
  * Check whether `childReal` is strictly nested inside `parentReal`.
  */
 export function isPathInside(parentReal: string, childReal: string): boolean {
-  const rel = path.relative(parentReal, childReal);
-  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
+  return isPathInsideDir(parentReal, childReal) && !isSamePath(parentReal, childReal);
 }
 
 /**
- * Canonicalize a filesystem path via `fs.realpathSync`.
+ * Canonicalize a filesystem path via `canonicalRealpathSync`.
  * If the leaf no longer exists (e.g. an orphaned/prunable worktree directory),
- * resolve the deepest existing ancestor via `realpathSync` and re-attach remaining segments.
+ * resolve the deepest existing ancestor via `canonicalRealpathSync` and re-attach remaining segments.
  */
 export function canonicalizePath(inputPath: string): string {
   if (typeof inputPath !== 'string' || inputPath.length === 0 || inputPath.includes('\0')) {
@@ -274,7 +278,7 @@ export function canonicalizePath(inputPath: string): string {
   }
   const resolved = path.resolve(inputPath);
   try {
-    return fs.realpathSync(resolved);
+    return canonicalRealpathSync(resolved);
   } catch {
     const missingSegments: string[] = [];
     let cursor = resolved;
@@ -286,7 +290,7 @@ export function canonicalizePath(inputPath: string): string {
       missingSegments.unshift(path.basename(cursor));
       cursor = parent;
       try {
-        const realAncestor = fs.realpathSync(cursor);
+        const realAncestor = canonicalRealpathSync(cursor);
         return path.join(realAncestor, ...missingSegments);
       } catch {
         // Walk up until an existing ancestor is found
@@ -307,6 +311,7 @@ function runGit(cwd: string, args: string[], stdinText?: string): Promise<GitExe
       {
         cwd,
         shell: false,
+        windowsHide: true,
         timeout: GIT_TIMEOUT_MS,
         maxBuffer: GIT_MAX_BUFFER_BYTES,
         encoding: 'utf8',
@@ -596,7 +601,7 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot: string): Promise<voi
 
     const commonStat = fs.lstatSync(commonDir);
     if (commonStat.isSymbolicLink() || !commonStat.isDirectory()) return;
-    const realCommonDir = fs.realpathSync(commonDir);
+    const realCommonDir = canonicalRealpathSync(commonDir);
     if (!fs.statSync(realCommonDir).isDirectory()) return;
 
     const infoDir = path.join(realCommonDir, 'info');
@@ -617,7 +622,7 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot: string): Promise<voi
       if (createdInfoStat.isSymbolicLink() || !createdInfoStat.isDirectory()) return;
     }
 
-    const realInfoDir = fs.realpathSync(infoDir);
+    const realInfoDir = canonicalRealpathSync(infoDir);
     if (!isPathInside(realCommonDir, realInfoDir)) return;
 
     const excludeFile = path.join(realInfoDir, 'exclude');
@@ -630,7 +635,7 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot: string): Promise<voi
     try {
       const excludeStat = fs.lstatSync(excludeFile);
       if (excludeStat.isSymbolicLink() || !excludeStat.isFile()) return;
-      realExcludeFile = fs.realpathSync(excludeFile);
+      realExcludeFile = canonicalRealpathSync(excludeFile);
       if (
         !isPathInside(realCommonDir, realExcludeFile) ||
         !isPathInside(realInfoDir, realExcludeFile)
@@ -709,7 +714,7 @@ export async function inspectWorktrees(workspaceRoot: string): Promise<WorktreeI
   const repoRoot = ctx.mainRootReal;
   const mainEntry = ctx.rawEntries[0];
   const currentEntry =
-    ctx.rawEntries.find((e) => e.path === ctx.toplevelReal) ?? mainEntry;
+    ctx.rawEntries.find((e) => isSamePath(e.path, ctx.toplevelReal)) ?? mainEntry;
 
   const [configRes, baseBranch] = await Promise.all([
     runGit(repoRoot, ['config', '--get', 'extensions.worktreeConfig']),
@@ -989,7 +994,7 @@ export function previewWorktreeInclude(repoRoot: string): WorktreeIncludePreview
 
   let repoRealRoot: string;
   try {
-    repoRealRoot = fs.realpathSync(path.resolve(repoRoot));
+    repoRealRoot = canonicalRealpathSync(path.resolve(repoRoot));
     if (!fs.statSync(repoRealRoot).isDirectory()) {
       return {
         mode: 'live',
@@ -1207,7 +1212,7 @@ export function previewWorktreeInclude(repoRoot: string): WorktreeIncludePreview
 
     let realCandidate: string;
     try {
-      realCandidate = fs.realpathSync(cursor);
+      realCandidate = canonicalRealpathSync(cursor);
     } catch {
       skippedInvalid.push({ entry: relPath, reason: 'Unable to resolve realpath inside repository.' });
       continue;
@@ -1283,7 +1288,7 @@ function ensureSafeDestSubdir(targetRealRoot: string, dirSegments: readonly stri
       if (st.isSymbolicLink() || !st.isDirectory()) {
         return null;
       }
-      const realDir = fs.realpathSync(cursor);
+      const realDir = canonicalRealpathSync(cursor);
       if (!isPathInside(targetRealRoot, realDir)) {
         return null;
       }
@@ -1297,7 +1302,7 @@ function ensureSafeDestSubdir(targetRealRoot: string, dirSegments: readonly stri
       if (createdSt.isSymbolicLink() || !createdSt.isDirectory()) {
         return null;
       }
-      const realCreated = fs.realpathSync(cursor);
+      const realCreated = canonicalRealpathSync(cursor);
       if (!isPathInside(targetRealRoot, realCreated)) {
         return null;
       }
@@ -1338,8 +1343,8 @@ function applyWorktreeIncludeFiles(
     };
   }
 
-  const targetRealRoot = fs.realpathSync(targetWorktreePath);
-  if (targetRealRoot === repoRealRoot) {
+  const targetRealRoot = canonicalRealpathSync(targetWorktreePath);
+  if (isSamePath(targetRealRoot, repoRealRoot)) {
     return {
       includedFiles,
       skippedSensitive,
@@ -1358,7 +1363,7 @@ function applyWorktreeIncludeFiles(
     const fileName = segments[segments.length - 1];
 
     try {
-      const realSrc = fs.realpathSync(srcPath);
+      const realSrc = canonicalRealpathSync(srcPath);
       if (!isPathInside(repoRealRoot, realSrc)) {
         skippedInvalid.push(item.path);
         continue;
@@ -1427,6 +1432,21 @@ function applyWorktreeIncludeFiles(
         fs.closeSync(destFd);
       }
 
+      // Post-write containment verification (critical on Windows where O_NOFOLLOW is 0)
+      const destPostStat = fs.lstatSync(destPath);
+      const realDest = canonicalRealpathSync(destPath);
+      if (destPostStat.isSymbolicLink() || !isPathInside(targetRealRoot, realDest)) {
+        try {
+          if (!destPostStat.isSymbolicLink() && isPathInside(targetRealRoot, destPath)) {
+            fs.unlinkSync(destPath);
+          }
+        } catch {
+          // best-effort cleanup
+        }
+        skippedInvalid.push(item.path);
+        continue;
+      }
+
       copiedBytes += fileBuf.length;
       includedFiles.push(item.path);
     } catch {
@@ -1461,7 +1481,7 @@ export async function createWorktree(
       ? validateWorktreeDirName(opts.dirName)
       : deriveSafeWorktreeSlug(branch);
 
-  const repoRealRoot = fs.realpathSync(ctx.mainRootReal);
+  const repoRealRoot = canonicalRealpathSync(ctx.mainRootReal);
 
   // Refuse if branch is already checked out in any active worktree
   const alreadyCheckedOut = ctx.rawEntries.find((w) => w.branch === branch);
@@ -1484,7 +1504,7 @@ export async function createWorktree(
         `Controlled worktree root "${managedRootCandidate}" must be a real directory (not a symlink or file).`,
       );
     }
-    const realManaged = fs.realpathSync(managedRootCandidate);
+    const realManaged = canonicalRealpathSync(managedRootCandidate);
     if (!isPathInside(repoRealRoot, realManaged)) {
       throw new Error('Controlled worktree root symlink escapes repository boundary.');
     }
@@ -1522,13 +1542,16 @@ export async function createWorktree(
 
   // Create controlled parent directory only after all validations pass
   fs.mkdirSync(managedRootCandidate, { recursive: true });
-  const realManagedRoot = fs.realpathSync(managedRootCandidate);
+  const realManagedRoot = canonicalRealpathSync(managedRootCandidate);
   if (!isPathInside(repoRealRoot, realManagedRoot)) {
     throw new Error('Controlled worktree root escapes repository boundary after creation.');
   }
 
   const targetPath = path.join(realManagedRoot, safeSlug);
-  if (path.dirname(targetPath) !== realManagedRoot || !isPathInside(realManagedRoot, targetPath)) {
+  if (
+    !isSamePath(path.dirname(targetPath), realManagedRoot) ||
+    !isPathInside(realManagedRoot, targetPath)
+  ) {
     throw new Error('Resolved target worktree path escapes controlled worktree root.');
   }
 
@@ -1608,7 +1631,7 @@ export async function createWorktree(
 
   const state = await inspectWorktrees(workspaceRoot);
   const canonicalTarget = canonicalizePath(targetPath);
-  const created = state.worktrees.find((w) => w.path === canonicalTarget);
+  const created = state.worktrees.find((w) => isSamePath(w.path, canonicalTarget));
   if (!created) {
     throw new Error(`Worktree was added at ${canonicalTarget} but could not be verified in worktree list.`);
   }
@@ -1639,12 +1662,12 @@ export async function getWorktreeDiffSummary(
 
   let normalizedInput: string;
   try {
-    normalizedInput = fs.realpathSync(path.resolve(worktreePath));
+    normalizedInput = canonicalRealpathSync(path.resolve(worktreePath));
   } catch {
     throw new Error(`Worktree path does not exist or is not accessible: ${worktreePath}`);
   }
 
-  const matched = ctx.rawEntries.find((w) => w.path === normalizedInput);
+  const matched = ctx.rawEntries.find((w) => isSamePath(w.path, normalizedInput));
   if (!matched) {
     throw new Error(
       `Refused: "${worktreePath}" is not in the active git worktree list for this repository.`,
@@ -1763,7 +1786,7 @@ export async function cleanupWorktree(
   const currentState = await inspectWorktrees(workspaceRoot);
   const normalizedTarget = canonicalizePath(opts.worktreePath);
 
-  const target = currentState.worktrees.find((w) => w.path === normalizedTarget);
+  const target = currentState.worktrees.find((w) => isSamePath(w.path, normalizedTarget));
   if (!target) {
     throw new Error(
       `Refused: "${opts.worktreePath}" is not in the active git worktree list for this repository.`,
@@ -1983,7 +2006,7 @@ export function createDemoWorktreeStore(workspaceRoot: string): DemoWorktreeStor
       if (entries.some((e) => e.branch === branch)) {
         throw new Error(`Branch "${branch}" is already checked out in a demo worktree.`);
       }
-      if (entries.some((e) => e.path === targetPath)) {
+      if (entries.some((e) => isSamePath(e.path, targetPath))) {
         throw new Error(`Target worktree directory already exists: ${targetPath}`);
       }
 
@@ -2030,7 +2053,7 @@ export function createDemoWorktreeStore(workspaceRoot: string): DemoWorktreeStor
       const resolvedBaseRef =
         baseRef !== undefined && baseRef !== '' ? validateGitRef(baseRef) : 'main';
       const normalized = path.resolve(worktreePath);
-      const entry = entries.find((e) => e.path === normalized);
+      const entry = entries.find((e) => isSamePath(e.path, normalized));
       if (!entry) {
         throw new Error(
           `Refused: "${worktreePath}" is not in the active demo worktree list.`,
@@ -2070,7 +2093,7 @@ export function createDemoWorktreeStore(workspaceRoot: string): DemoWorktreeStor
         throw new Error('Either worktreePath or pruneOnly: true must be provided.');
       }
       const normalized = path.resolve(opts.worktreePath);
-      const idx = entries.findIndex((e) => e.path === normalized);
+      const idx = entries.findIndex((e) => isSamePath(e.path, normalized));
       if (idx < 0) {
         throw new Error(
           `Refused: "${opts.worktreePath}" is not in the active demo worktree list.`,

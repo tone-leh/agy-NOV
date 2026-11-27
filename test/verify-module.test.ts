@@ -684,24 +684,24 @@ describe('Verify Gate — real command execution, secret redaction & evidence pe
           const parsed = Number(fs.readFileSync(pidFile, 'utf8').trim());
           if (Number.isInteger(parsed) && parsed > 0) {
             grandchildPid = parsed;
-            if (process.platform !== 'win32') {
-              // Confirm grandchild was terminated by process-group SIGKILL
-              let alive = true;
-              for (let attempt = 0; attempt < 10; attempt += 1) {
-                try {
-                  process.kill(grandchildPid, 0);
-                  await new Promise((r) => setTimeout(r, 30));
-                } catch {
-                  alive = false;
-                  break;
-                }
+            // Confirm grandchild was terminated by process-group SIGKILL (POSIX) or taskkill /T /F (Windows)
+            let alive = true;
+            const maxAttempts = process.platform === 'win32' ? 25 : 10;
+            const waitMs = process.platform === 'win32' ? 50 : 30;
+            for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+              try {
+                process.kill(grandchildPid, 0);
+                await new Promise((r) => setTimeout(r, waitMs));
+              } catch {
+                alive = false;
+                break;
               }
-              assert.equal(alive, false, `Grandchild pid ${grandchildPid} should have been killed`);
             }
+            assert.equal(alive, false, `Grandchild pid ${grandchildPid} should have been killed`);
           }
         }
       } finally {
-        if (grandchildPid && process.platform !== 'win32') {
+        if (grandchildPid) {
           try {
             process.kill(grandchildPid, 'SIGKILL');
           } catch {

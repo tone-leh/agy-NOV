@@ -14,6 +14,7 @@ import { inspectLockedDepContract } from '../src/modules/turbo/dep-contract.js';
 import { findSymbolReferences } from '../src/modules/turbo/references.js';
 import { registerTurboModule } from '../src/modules/turbo/register.js';
 import { createNovServer } from '../src/server/index.js';
+import { createDirSymlink } from './helpers/cross-platform.js';
 
 function withTempDir<T>(prefix: string, fn: (dir: string) => Promise<T> | T): Promise<T> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -72,7 +73,7 @@ describe('v0.8.0 Turbo 3.0 — Offline Dep-Contract Inspector', () => {
       fs.writeFileSync(path.join(outside, 'index.d.ts'), 'export function leakSecret(): string;\n', 'utf8');
 
       // Symlink package directory escaping workspace
-      fs.symlinkSync(outside, path.join(workspace, 'node_modules', 'evil-pkg'));
+      createDirSymlink(outside, path.join(workspace, 'node_modules', 'evil-pkg'));
 
       // Package inside workspace whose index.d.ts symlinks outside
       const innerPkg = path.join(workspace, 'node_modules', 'tricky-pkg');

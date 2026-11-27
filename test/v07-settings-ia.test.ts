@@ -253,7 +253,7 @@ describe('v0.7.0 config export/import, startupView, and reset governance', () =>
   it('exportSanitizedConfig exports strictly whitelisted fields and strips extra/secret properties', () => {
     const base = createDefaultConfig();
     const syntheticSecret = ['sk', 'live', 'do-not-export'].join('-');
-    const syntheticPath = path.join('/tmp', 'synthetic-private-nov-data');
+    const syntheticPath = path.join(os.tmpdir(), 'synthetic-private-nov-data');
     const pollutedInput = {
       ...base,
       startupView: 'last' as const,
@@ -284,6 +284,7 @@ describe('v0.7.0 config export/import, startupView, and reset governance', () =>
     assert.equal(serialized.includes('top-secret-token'), false);
     assert.equal(serialized.includes('hooks.example.com'), false);
     assert.equal(serialized.includes(syntheticPath), false);
+    assert.equal(serialized.includes('synthetic-private-nov-data'), false);
   });
 
   it('parseAndValidateConfigImport accepts wrapped, bare, and preset-only JSON and enforces remote=false', () => {

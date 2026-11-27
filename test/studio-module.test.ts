@@ -27,6 +27,7 @@ import {
   type StudioSourcesResult,
 } from '../src/modules/studio/core.js';
 import { registerStudioModule } from '../src/modules/studio/register.js';
+import { createDirSymlink } from './helpers/cross-platform.js';
 
 function withTempDir<T>(prefix: string, fn: (dir: string) => Promise<T> | T): Promise<T> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -208,7 +209,7 @@ describe('v0.4.0 Workspace Studio module', () => {
       const outsideCsv = path.join(outside, 'leak.csv');
       fs.writeFileSync(outsideCsv, 'secret\n1\n', 'utf8');
       fs.symlinkSync(outsideCsv, path.join(ws, 'data', 'escape-link.csv'));
-      fs.symlinkSync(outside, path.join(ws, 'outside-dir-link'));
+      createDirSymlink(outside, path.join(ws, 'outside-dir-link'));
       fs.symlinkSync(path.join(ws, '.env'), path.join(ws, 'docs', 'innocent.txt'));
 
       const allRes = listStudioSources(ws);
@@ -1069,30 +1070,33 @@ describe('v0.4.0 Workspace Studio module', () => {
       }
 
       // Verify -safe flag is passed first and gracefully falls back on legacy sqlite3 "unknown option: -safe"
-      const argsLogPath = path.join(outside, 'sqlite-args.log');
-      const legacyStubPath = path.join(outside, 'legacy-sqlite3.sh');
-      fs.writeFileSync(
-        legacyStubPath,
-        [
-          '#!/bin/sh',
-          `printf '%s\\n' "$*" >> "${argsLogPath}"`,
-          'if [ "$1" = "-safe" ]; then',
-          '  echo "sqlite3: Error: unknown option: -safe" >&2',
-          '  exit 1',
-          'fi',
-          'printf \'[{"ok":1}]\\n\'',
-        ].join('\n') + '\n',
-        { mode: 0o755 },
-      );
-      const fallbackSafeRes = await inspectStudioData(ws, {
-        filePath: 'target.sqlite',
-        query: 'SELECT 1 AS ok',
-        sqliteBin: legacyStubPath,
-      });
-      assert.equal(fallbackSafeRes.rows[0]?.ok, 1);
-      const loggedCalls = fs.readFileSync(argsLogPath, 'utf8').trim().split('\n');
-      assert.ok(loggedCalls.some((line) => line.startsWith('-safe -readonly ')));
-      assert.ok(loggedCalls.some((line) => line.startsWith('-readonly ')));
+      // POSIX #!/bin/sh stub requires a POSIX shell loader under execFile(..., { shell: false }); keep full execution on Linux/macOS.
+      if (process.platform !== 'win32') {
+        const argsLogPath = path.join(outside, 'sqlite-args.log');
+        const legacyStubPath = path.join(outside, 'legacy-sqlite3.sh');
+        fs.writeFileSync(
+          legacyStubPath,
+          [
+            '#!/bin/sh',
+            `printf '%s\\n' "$*" >> "${argsLogPath}"`,
+            'if [ "$1" = "-safe" ]; then',
+            '  echo "sqlite3: Error: unknown option: -safe" >&2',
+            '  exit 1',
+            'fi',
+            'printf \'[{"ok":1}]\\n\'',
+          ].join('\n') + '\n',
+          { mode: 0o755 },
+        );
+        const fallbackSafeRes = await inspectStudioData(ws, {
+          filePath: 'target.sqlite',
+          query: 'SELECT 1 AS ok',
+          sqliteBin: legacyStubPath,
+        });
+        assert.equal(fallbackSafeRes.rows[0]?.ok, 1);
+        const loggedCalls = fs.readFileSync(argsLogPath, 'utf8').trim().split('\n');
+        assert.ok(loggedCalls.some((line) => line.startsWith('-safe -readonly ')));
+        assert.ok(loggedCalls.some((line) => line.startsWith('-readonly ')));
+      }
     });
 
     // 6b. Obfuscated IP / multi-slash / backslash / #@ confusion URL rejection

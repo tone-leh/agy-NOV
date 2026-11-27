@@ -1,5 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  canonicalRealpathSync,
+  isPathInsideDir,
+  isSamePath,
+} from '../../core/utils.js';
 import { isSensitiveTurboPath, TURBO_MAX_TOOL_TEXT_BYTES } from './core.js';
 
 export type DepEcosystem = 'node' | 'python' | 'go' | 'rust' | 'unknown';
@@ -176,11 +181,10 @@ function normalizeSymbolFilter(rawFilter?: string): string | null {
 
 function checkWorkspacePathSafe(
   realRoot: string,
-  rootPrefix: string,
   candidateAbs: string,
 ): SafePathCheck {
   const normalizedCandidate = path.resolve(candidateAbs);
-  if (normalizedCandidate !== realRoot && !normalizedCandidate.startsWith(rootPrefix)) {
+  if (!isPathInsideDir(realRoot, normalizedCandidate)) {
     return { status: 'escaped', reason: 'Lexical path escapes workspace boundary' };
   }
 
@@ -197,7 +201,7 @@ function checkWorkspacePathSafe(
 
   let realTarget: string;
   try {
-    realTarget = fs.realpathSync(normalizedCandidate);
+    realTarget = canonicalRealpathSync(normalizedCandidate);
   } catch {
     if (lstat.isSymbolicLink()) {
       return { status: 'escaped', reason: 'Dangling or unreadable symlink rejected' };
@@ -205,7 +209,7 @@ function checkWorkspacePathSafe(
     return { status: 'missing' };
   }
 
-  if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
+  if (!isPathInsideDir(realRoot, realTarget)) {
     return {
       status: 'escaped',
       reason: `Symlink target escapes workspace boundary (${path.relative(realRoot, normalizedCandidate)})`,
@@ -220,7 +224,7 @@ function checkWorkspacePathSafe(
   }
 
   const relPath =
-    realTarget === realRoot ? '.' : path.relative(realRoot, realTarget).replace(/\\/g, '/');
+    isSamePath(realTarget, realRoot) ? '.' : path.relative(realRoot, realTarget).replace(/\\/g, '/');
 
   return {
     status: 'ok',
@@ -239,20 +243,17 @@ function assertNotEscaped(check: SafePathCheck, label: string): void {
 }
 
 function isWithinRealDir(realTarget: string, realDir: string): boolean {
-  if (realTarget === realDir) return true;
-  const prefix = realDir.endsWith(path.sep) ? realDir : `${realDir}${path.sep}`;
-  return realTarget.startsWith(prefix);
+  return isPathInsideDir(realDir, realTarget);
 }
 
 function readWorkspaceFileSafe(
   realRoot: string,
-  rootPrefix: string,
   candidateAbs: string,
   label: string,
   allowNodeModules = false,
   requiredDirReal?: string,
 ): { content: string; relPath: string; realPath: string } | null {
-  const check = checkWorkspacePathSafe(realRoot, rootPrefix, candidateAbs);
+  const check = checkWorkspacePathSafe(realRoot, candidateAbs);
   assertNotEscaped(check, label);
   if (check.status !== 'ok' || !check.isFile || !check.realPath || !check.relPath) {
     return null;
@@ -541,7 +542,6 @@ function buildFormattedSnippet(params: {
 
 function inspectNodeDep(
   realRoot: string,
-  rootPrefix: string,
   packageName: string,
   symbolFilter: string | null,
   maxBytes: number,
@@ -553,18 +553,16 @@ function inspectNodeDep(
   }
 
   const pkgDirCandidate = path.join(realRoot, 'node_modules', ...segments);
-  const pkgDirCheck = checkWorkspacePathSafe(realRoot, rootPrefix, pkgDirCandidate);
+  const pkgDirCheck = checkWorkspacePathSafe(realRoot, pkgDirCandidate);
   assertNotEscaped(pkgDirCheck, `node_modules/${packageName}`);
   if (pkgDirCheck.status !== 'ok' || !pkgDirCheck.isDirectory || !pkgDirCheck.realPath) {
     return null;
   }
 
   const pkgRealDir = pkgDirCheck.realPath;
-  const pkgPrefix = pkgRealDir.endsWith(path.sep) ? pkgRealDir : `${pkgRealDir}${path.sep}`;
   const pkgJsonPath = path.join(pkgRealDir, 'package.json');
   const pkgJsonFile = readWorkspaceFileSafe(
     realRoot,
-    rootPrefix,
     pkgJsonPath,
     `${packageName}/package.json`,
     true,
@@ -620,7 +618,7 @@ function inspectNodeDep(
   // Fallback to @types/<pkg>/index.d.ts
   const typesPkgName = isScoped ? `${segments[0].slice(1)}__${segments[1]}` : segments[0];
   const atTypesDirAbs = path.join(realRoot, 'node_modules', '@types', typesPkgName);
-  const atTypesCheck = checkWorkspacePathSafe(realRoot, rootPrefix, atTypesDirAbs);
+  const atTypesCheck = checkWorkspacePathSafe(realRoot, atTypesDirAbs);
   const atTypesRealDir = atTypesCheck.status === 'ok' && atTypesCheck.isDirectory ? atTypesCheck.realPath : undefined;
   const atTypesIndex = path.join(atTypesRealDir ?? atTypesDirAbs, 'index.d.ts');
   dtsCandidates.push(atTypesIndex);
@@ -630,11 +628,11 @@ function inspectNodeDep(
   for (const cand of Array.from(new Set(dtsCandidates))) {
     const isAtTypes = cand === atTypesIndex;
     if (isAtTypes && !atTypesRealDir) continue;
-    if (!isAtTypes && cand !== pkgRealDir && !cand.startsWith(pkgPrefix)) {
+    if (!isAtTypes && !isPathInsideDir(pkgRealDir, cand)) {
       throw new Error(`Package declaration path escapes package directory: ${packageName}`);
     }
     const boundaryDir = isAtTypes ? atTypesRealDir! : pkgRealDir;
-    const read = readWorkspaceFileSafe(realRoot, rootPrefix, cand, `${packageName} types`, true, boundaryDir);
+    const read = readWorkspaceFileSafe(realRoot, cand, `${packageName} types`, true, boundaryDir);
     if (read) {
       primaryDts = read;
       primaryAllowedDir = boundaryDir;
@@ -672,7 +670,6 @@ function inspectNodeDep(
           if (visited.has(nextAbs)) break;
           const nextRead = readWorkspaceFileSafe(
             realRoot,
-            rootPrefix,
             nextAbs,
             `${packageName} reexport`,
             true,
@@ -775,23 +772,23 @@ function normalizePyName(name: string): string {
   return name.toLowerCase().replace(/[-_.]+/g, '_');
 }
 
-function findPythonSitePackagesDirs(realRoot: string, rootPrefix: string): string[] {
+function findPythonSitePackagesDirs(realRoot: string): string[] {
   const dirs: string[] = [];
   for (const venvName of ['.venv', 'venv']) {
     const venvAbs = path.join(realRoot, venvName);
-    const venvCheck = checkWorkspacePathSafe(realRoot, rootPrefix, venvAbs);
+    const venvCheck = checkWorkspacePathSafe(realRoot, venvAbs);
     assertNotEscaped(venvCheck, venvName);
     if (venvCheck.status !== 'ok' || !venvCheck.isDirectory || !venvCheck.realPath) continue;
 
     const winSite = path.join(venvCheck.realPath, 'Lib', 'site-packages');
-    const winCheck = checkWorkspacePathSafe(realRoot, rootPrefix, winSite);
+    const winCheck = checkWorkspacePathSafe(realRoot, winSite);
     assertNotEscaped(winCheck, `${venvName}/Lib/site-packages`);
     if (winCheck.status === 'ok' && winCheck.isDirectory && winCheck.realPath) {
       dirs.push(winCheck.realPath);
     }
 
     const unixLib = path.join(venvCheck.realPath, 'lib');
-    const unixLibCheck = checkWorkspacePathSafe(realRoot, rootPrefix, unixLib);
+    const unixLibCheck = checkWorkspacePathSafe(realRoot, unixLib);
     assertNotEscaped(unixLibCheck, `${venvName}/lib`);
     if (unixLibCheck.status === 'ok' && unixLibCheck.isDirectory && unixLibCheck.realPath) {
       try {
@@ -799,7 +796,7 @@ function findPythonSitePackagesDirs(realRoot: string, rootPrefix: string): strin
         for (const sub of subEntries) {
           if (!sub.name.startsWith('python')) continue;
           const sp = path.join(unixLibCheck.realPath, sub.name, 'site-packages');
-          const spCheck = checkWorkspacePathSafe(realRoot, rootPrefix, sp);
+          const spCheck = checkWorkspacePathSafe(realRoot, sp);
           assertNotEscaped(spCheck, `${venvName}/lib/${sub.name}/site-packages`);
           if (spCheck.status === 'ok' && spCheck.isDirectory && spCheck.realPath) {
             dirs.push(spCheck.realPath);
@@ -815,7 +812,6 @@ function findPythonSitePackagesDirs(realRoot: string, rootPrefix: string): strin
 
 function inspectPythonDep(
   realRoot: string,
-  rootPrefix: string,
   packageName: string,
   symbolFilter: string | null,
   maxBytes: number,
@@ -829,7 +825,7 @@ function inspectPythonDep(
   const signatures: DepContractSignature[] = [];
   let foundInVenv = false;
 
-  const siteDirs = findPythonSitePackagesDirs(realRoot, rootPrefix);
+  const siteDirs = findPythonSitePackagesDirs(realRoot);
   for (const spDir of siteDirs) {
     // Check dist-info metadata for exact locked version
     try {
@@ -843,7 +839,7 @@ function inspectPythonDep(
         if (distPkg !== normTarget) continue;
 
         const metaPath = path.join(spDir, entry.name, 'METADATA');
-        const metaRead = readWorkspaceFileSafe(realRoot, rootPrefix, metaPath, `${packageName} METADATA`, true, spDir);
+        const metaRead = readWorkspaceFileSafe(realRoot, metaPath, `${packageName} METADATA`, true, spDir);
         if (metaRead) {
           foundInVenv = true;
           for (const line of metaRead.content.split(/\r?\n/)) {
@@ -869,7 +865,7 @@ function inspectPythonDep(
     ];
 
     for (const cand of Array.from(new Set(candidates))) {
-      const read = readWorkspaceFileSafe(realRoot, rootPrefix, cand, `${packageName} python stub`, true, spDir);
+      const read = readWorkspaceFileSafe(realRoot, cand, `${packageName} python stub`, true, spDir);
       if (read) {
         foundInVenv = true;
         entryFile = read.relPath;
@@ -884,7 +880,7 @@ function inspectPythonDep(
   // Check requirements.txt & pyproject.toml for version declaration
   let manifestSource: string | null = null;
   if (!version) {
-    const reqFile = readWorkspaceFileSafe(realRoot, rootPrefix, path.join(realRoot, 'requirements.txt'), 'requirements.txt');
+    const reqFile = readWorkspaceFileSafe(realRoot, path.join(realRoot, 'requirements.txt'), 'requirements.txt');
     if (reqFile) {
       const lines = reqFile.content.split(/\r?\n/);
       for (let i = 0; i < lines.length; i += 1) {
@@ -910,7 +906,7 @@ function inspectPythonDep(
   }
 
   if (!version) {
-    const pyproj = readWorkspaceFileSafe(realRoot, rootPrefix, path.join(realRoot, 'pyproject.toml'), 'pyproject.toml');
+    const pyproj = readWorkspaceFileSafe(realRoot, path.join(realRoot, 'pyproject.toml'), 'pyproject.toml');
     if (pyproj) {
       const lines = pyproj.content.split(/\r?\n/);
       for (let i = 0; i < lines.length; i += 1) {
@@ -989,12 +985,11 @@ function inspectPythonDep(
 
 function inspectGoDep(
   realRoot: string,
-  rootPrefix: string,
   packageName: string,
   symbolFilter: string | null,
   maxBytes: number,
 ): DepContractResult | null {
-  const goMod = readWorkspaceFileSafe(realRoot, rootPrefix, path.join(realRoot, 'go.mod'), 'go.mod');
+  const goMod = readWorkspaceFileSafe(realRoot, path.join(realRoot, 'go.mod'), 'go.mod');
   if (!goMod) return null;
 
   const lines = goMod.content.split(/\r?\n/);
@@ -1099,7 +1094,6 @@ function inspectGoDep(
 
 function inspectRustDep(
   realRoot: string,
-  rootPrefix: string,
   packageName: string,
   symbolFilter: string | null,
   maxBytes: number,
@@ -1107,7 +1101,7 @@ function inspectRustDep(
   if (packageName.includes('/') || packageName.startsWith('@')) return null;
 
   const normTarget = normalizePyName(packageName);
-  const cargoLock = readWorkspaceFileSafe(realRoot, rootPrefix, path.join(realRoot, 'Cargo.lock'), 'Cargo.lock');
+  const cargoLock = readWorkspaceFileSafe(realRoot, path.join(realRoot, 'Cargo.lock'), 'Cargo.lock');
 
   if (cargoLock) {
     const lines = cargoLock.content.split(/\r?\n/);
@@ -1220,7 +1214,7 @@ function inspectRustDep(
   }
 
   // Fallback to Cargo.toml dependency entry
-  const cargoToml = readWorkspaceFileSafe(realRoot, rootPrefix, path.join(realRoot, 'Cargo.toml'), 'Cargo.toml');
+  const cargoToml = readWorkspaceFileSafe(realRoot, path.join(realRoot, 'Cargo.toml'), 'Cargo.toml');
   if (cargoToml) {
     const lines = cargoToml.content.split(/\r?\n/);
     let inDeps = false;
@@ -1297,22 +1291,21 @@ export function inspectLockedDepContract(
     ),
   );
 
-  const realRoot = fs.realpathSync(path.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
+  const realRoot = canonicalRealpathSync(path.resolve(workspaceRoot));
 
   // 1. Node / TypeScript (priority)
-  const nodeResult = inspectNodeDep(realRoot, rootPrefix, cleanPkg, symbolFilter, maxBytes);
+  const nodeResult = inspectNodeDep(realRoot, cleanPkg, symbolFilter, maxBytes);
   if (nodeResult) return nodeResult;
 
   // 2. Python
-  const pythonResult = inspectPythonDep(realRoot, rootPrefix, cleanPkg, symbolFilter, maxBytes);
+  const pythonResult = inspectPythonDep(realRoot, cleanPkg, symbolFilter, maxBytes);
   if (pythonResult) return pythonResult;
 
   // 3. Go / Rust
-  const goResult = inspectGoDep(realRoot, rootPrefix, cleanPkg, symbolFilter, maxBytes);
+  const goResult = inspectGoDep(realRoot, cleanPkg, symbolFilter, maxBytes);
   if (goResult) return goResult;
 
-  const rustResult = inspectRustDep(realRoot, rootPrefix, cleanPkg, symbolFilter, maxBytes);
+  const rustResult = inspectRustDep(realRoot, cleanPkg, symbolFilter, maxBytes);
   if (rustResult) return rustResult;
 
   const notFoundNote = `Package "${cleanPkg}" was not found in local node_modules, Python .venv/manifest, go.mod, or Cargo.lock.`;

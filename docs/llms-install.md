@@ -1,6 +1,6 @@
 # agy-NOV — AI Agent Zero-Risk Install & Verification Guide
 
-This guide specifies exact, reproducible, zero-risk procedures for AI coding agents installing, previewing, configuring, or verifying **agy-NOV (v1.0.0)** on behalf of a user.
+This guide specifies exact, reproducible, zero-risk procedures for AI coding agents installing, previewing, configuring, or verifying **agy-NOV (v1.0.1)** on behalf of a user.
 
 ## 1. Prerequisites
 
@@ -11,10 +11,10 @@ node -v   # Required: Node.js >= 20.0.0
 git --version
 ```
 
-- **Target Host:** Google Antigravity 2.0 (Desktop, CLI, or IDE).
+- **Target Host & Platforms:** Google Antigravity 2.0 (Desktop, CLI, or IDE) across **macOS, Windows, and Linux** (full native cross-platform compatibility, verified via GitHub Actions 3-OS `ubuntu-latest` / `windows-latest` / `macos-latest` × Node 20/22 CI matrix).
 - **Architecture:** 100% official native protocols (MCP Apps SEP-1865 + official `com.google.antigravity/ui` `file` entrypoint `app_nov_file_viewer` + **5 official Lifecycle Hooks** incl. zero-token `PreInvocation` visual receipts, `PreToolUse.overwrite` & `force_ask` + **5 official on-demand Skills** `agy-nov` / `/nov-spec` / `/nov-debug` / `/nov-review` / `/nov-handoff` + **2 read-only specialist subagents** `nov-blind-reviewer` & `nov-security-auditor` with zero default resident `rules/AGENTS.md` bloat + dual-star read-only `feed-snapshot.json` contract + optional `.agy-nov.json` team presets & `.worktreeinclude` allowlists + **9-command CLI** incl. customizable 9-segment `statusline --segments`, preview-then-confirm `recommend --export-preset`, `compact-run` & 15-asset `doctor`; Zero ASAR, Zero CDP).
-- **4+1 Domain IA & Module Catalog:** 13 toggleable native modules grouped across 4 domains — Core Essentials (`core`: Two-Stage `review`, **Guard 2.5**, `xray` 2.0 with One-Click Clean Fork), Engineering Pipeline (`pipeline`: **Spec 2.0**, `worktree` with `.worktreeinclude`, `verify` with Worktree targeting & PR summary, **Turbo 3.0**, **Mem 3.0** with confidence/TTL hygiene governance), On-Demand Toolbox (`toolbox`: `radar` 4-lane approval-first Kanban, `studio`, `canvas`, **Ops 3.0** with static security audit & cross-client dedup preview), and Opt-In Connectivity (`connectivity`: **Remote 2.5**, OFF by default) — fronted by the **+1 Workflow Hub** (`HubPanel`) and 4-tier **Settings Hub** (`SettingsHub`, S3 covering 6 configurable strategy modules: `guard`, `turbo`, `verify`, `spec`, `radar`, `remote`, plus S4 8-language **Tool-Slot Idle Advisor**). All **47 canonical model tool names** remain strictly unchanged from `v0.4` through `v1.0.0` (+0 tool-slot inflation).
-- **Default Footprint:** `core` preset (`review`, `guard`, `xray`) — `12` model tools, 100% local offline, `locale=auto` (full 8-language UI covering all **24 UI components**, `dist/ui/app.html` `~1.2 MB`, measured `1,260.1 KB`, well below the 1.5 MiB target and 10 MiB cap).
+- **4+1 Domain IA & Module Catalog:** 13 toggleable native modules grouped across 4 domains — Core Essentials (`core`: Two-Stage `review`, **Guard 2.5**, `xray` 2.0 with One-Click Clean Fork), Engineering Pipeline (`pipeline`: **Spec 2.0**, `worktree` with `.worktreeinclude`, `verify` with Worktree targeting & PR summary, **Turbo 3.0**, **Mem 3.0** with confidence/TTL hygiene governance), On-Demand Toolbox (`toolbox`: `radar` 4-lane approval-first Kanban, `studio`, `canvas`, **Ops 3.0** with static security audit & cross-client dedup preview), and Opt-In Connectivity (`connectivity`: **Remote 2.5**, OFF by default) — fronted by the **+1 Workflow Hub** (`HubPanel`) and 4-tier **Settings Hub** (`SettingsHub`, S3 covering 6 configurable strategy modules: `guard`, `turbo`, `verify`, `spec`, `radar`, `remote`, plus S4 8-language **Tool-Slot Idle Advisor**). All **47 canonical model tool names** remain strictly unchanged from `v0.4` through `v1.0.1` (+0 tool-slot inflation).
+- **Default Footprint:** `core` preset (`review`, `guard`, `xray`) — `12` model tools, 100% local offline, `locale=auto` (full 8-language UI covering all **24 UI components**, `dist/ui/app.html` `~1.23 MiB`, measured `1,261.2 KB`, well below the 1.5 MiB target and 10 MiB cap).
 
 ## 2. Hard Safety Rules for AI Agents
 
@@ -46,7 +46,7 @@ Follow these boundaries strictly across every session:
    - Config exports in Settings Hub S4 contain allowlisted fields only (zero secrets, zero local host paths); config imports enforce allowlist validation, block prototype pollution, and refuse silent `remote` enablement; resetting defaults requires explicit inline double confirmation.
    - Treat existing workspace `.agy-nov.json` files as strictly read-only (`<= 64 KiB`, `realpath`-bounded, prototype-pollution-safe). Never auto-create clutter directories inside user repositories, never auto-execute `verifyCommands` entries from `.agy-nov.json` (only statically validated against the 23-executable allowlist), and never allow a team preset to silently enable `remote`.
 9. **Offline Modules & Spec 2.0 Human-Approval Integrity (`turbo`, `spec`, `studio`, `verify`, `worktree`):** All 12 Tier-1 modules run 100% locally offline with zero external network traffic. Leverage **Turbo 3.0**'s offline locked dependency contracts (`turbo_read_outline` `depPackage`), O(n) cross-file symbol references (`turbo_batch_search` `mode: "references"`), redacted Context Pack (`app_turbo_build_context_pack`), and in-memory `gain` telemetry (`app_turbo_get_gain`). When `spec` has `requireUiApproval` enabled, `spec_approve` rejects model-side calls — prompt the user to inspect the `full` or Brownfield `delta` spec in the Spec 2.0 Plannotator review bench and approve in UI before editing files.
-10. **Read-Only First Diagnostics, Zero-Token `PreInvocation`, Dual-Star `feed-snapshot.json` & Zero ASAR/CDP Boundary:** Use `node dist/cli.cjs recommend --workspace=<dir> --json`, `node dist/cli.cjs statusline --segments=brand,context,burn,cache,spec,verify,guard,radar,network --json`, `ops_audit_workspace`, and `verify` stack auto-detection with zero disk writes before editing configuration. `PreInvocation` emits non-blocking zero-token visual receipts (`systemMessage: ""` + `metadata.user_markdown`) with O(1) short-circuiting; `<dataDir>/feed-snapshot.json` (`0600`, `< 64 KiB`, O(n) redacted) stays strictly zero-write when `dataDir` does not yet exist (see [`docs/DUAL-STAR-CONTRACT.md`](./DUAL-STAR-CONTRACT.md) and [`docs/PRODUCT-IA.md`](./PRODUCT-IA.md)). Never modify Antigravity binaries or attach CDP sessions through `agy-NOV` (recommend companion **`agy-Sag` (`https://github.com/tone-leh/agy-session-guard`)** for host-DOM enhancements). Never print, log, or commit webhook tokens, pairing secrets, or `.env` contents.
+10. **Read-Only First Diagnostics, Zero-Token `PreInvocation`, Dual-Star `feed-snapshot.json` & Zero ASAR/CDP Boundary:** Use `node dist/cli.cjs recommend --workspace=<dir> --json`, `node dist/cli.cjs statusline --segments=brand,context,burn,cache,spec,verify,guard,radar,network --json`, `ops_audit_workspace`, and `verify` stack auto-detection with zero disk writes before editing configuration. `PreInvocation` emits non-blocking zero-token visual receipts (`systemMessage: ""` + `metadata.user_markdown`) with O(1) short-circuiting; `<dataDir>/feed-snapshot.json` (`0600`, `< 64 KiB`, O(n) redacted) stays strictly zero-write when `dataDir` does not yet exist (see [`docs/DUAL-STAR-CONTRACT.md`](./DUAL-STAR-CONTRACT.md) and [`docs/PRODUCT-IA.md`](./PRODUCT-IA.md)). Never modify Antigravity binaries or attach CDP sessions through `agy-NOV` (recommend companion **`agy-Sag` (`https://github.com/tone-leh/agy-Sag`)** for host-DOM enhancements). Never print, log, or commit webhook tokens, pairing secrets, or `.env` contents.
 
 ---
 
@@ -96,7 +96,7 @@ npm run build
 *(Optional Companion)* If the user also requests host-DOM localization, native Settings injection, active `/compact` compaction guard, or theme customization, install the companion repository separately after confirming with the user:
 
 ```bash
-agy plugin install https://github.com/tone-leh/agy-session-guard
+agy plugin install https://github.com/tone-leh/agy-Sag
 ```
 
 ---
@@ -121,15 +121,15 @@ Confirm every check prints `OK` and exits with code `0`:
    - Official Skills (5): `skills/agy-nov/SKILL.md`, `skills/nov-spec/SKILL.md`, `skills/nov-debug/SKILL.md`, `skills/nov-review/SKILL.md`, `skills/nov-handoff/SKILL.md`
    - Read-only specialist subagents (2): `agents/nov-blind-reviewer.md`, `agents/nov-security-auditor.md`
    - Visual & runtime bundles (5): `assets/logo.svg`, `dist/server.cjs`, `dist/hook.cjs`, `dist/cli.cjs`, `dist/ui/app.html`
-2. `plugin.json schema clean` — strictly within the 10 officially supported top-level manifest keys (`name`, `displayName`, `description`, `version`, `logo`, `suggestedPrompts`, `author`, `homepage`, `repository`, `disabled`), reporting `version=1.0.0`.
-3. `dist/ui/app.html well below 10 MiB cap` (`~1.2 MB`, measured `1,260.1 KB`, well below the 1.5 MiB target and 10 MiB cap).
+2. `plugin.json schema clean` — strictly within the 10 officially supported top-level manifest keys (`name`, `displayName`, `description`, `version`, `logo`, `suggestedPrompts`, `author`, `homepage`, `repository`, `disabled`), reporting `version=1.0.1`.
+3. `dist/ui/app.html well below 10 MiB cap` (`~1.23 MiB`, measured `1,261.2 KB`, well below the 1.5 MiB target and 10 MiB cap).
 4. `config readable` showing expected defaults (`preset=core, locale=auto, remote=OFF`) unless the user requested another preset or locale.
 
 ### Full Developer Verification (Inside Source Checkout Only)
 
 ```bash
 npm run typecheck
-npm test              # 85 suites / 233 tests (incl. 3 v1.0.0 regression suites)
+npm test              # 88 suites / 245 tests (cross-platform macOS / Windows / Linux × Node 20/22 CI)
 node dist/cli.cjs doctor
 node dist/cli.cjs statusline --segments=brand,context,burn,cache,spec,verify,guard,radar,network
 node dist/cli.cjs recommend --export-preset --json

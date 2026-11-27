@@ -2,7 +2,11 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ensurePrivateDir } from '../../core/utils.js';
+import {
+  atomicRenameSync,
+  ensurePrivateDir,
+  isPathInsideDir,
+} from '../../core/utils.js';
 import type {
   AnnotationCategory,
   AnnotationSide,
@@ -135,8 +139,7 @@ export class AnnotationStore {
   private resolveStorePath(repoKey: string): string {
     const safeKey = sanitizeRepoKey(repoKey);
     const target = path.resolve(this.sessionsDir, `${safeKey}.json`);
-    const rel = path.relative(this.sessionsDir, target);
-    if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    if (!isPathInsideDir(this.sessionsDir, target)) {
       throw new Error('Blocked path traversal attempt in AnnotationStore.');
     }
     return target;
@@ -198,7 +201,7 @@ export class AnnotationStore {
     ensurePrivateDir(this.sessionsDir);
     const tmpPath = `${filePath}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
     fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), { encoding: 'utf8', mode: 0o600 });
-    fs.renameSync(tmpPath, filePath);
+    atomicRenameSync(tmpPath, filePath);
   }
 
   private ensureScope(data: RepoStoreFile, scope: ReviewScope): ScopeState {
@@ -404,7 +407,7 @@ export function evaluateAnnotationStaleness(
 
     if (ann.codeSnippet && ann.fileFingerprint && ann.fileFingerprint !== file.fingerprint) {
       const firstSnippetLine = ann.codeSnippet
-        .split('\n')[0]
+        .split(/\r?\n/)[0]
         ?.replace(/^\d+\s*\|\s*[+\-\s]?/, '')
         .trim();
       const targetText = currentLines.get(ann.startLine);

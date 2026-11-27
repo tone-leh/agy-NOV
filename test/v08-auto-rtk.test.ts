@@ -292,8 +292,16 @@ describe('v0.8.0 PreToolUse.overwrite & Guard/Spec/Remote precedence invariants'
       assert.equal(res1.decision, 'allow');
       assert.ok(res1.overwrite && typeof res1.overwrite.CommandLine === 'string');
       const rewritten1 = res1.overwrite.CommandLine as string;
-      assert.ok(rewritten1.startsWith(`node '${fakeCli}' compact-run --payload=`));
-      assert.ok(rewritten1.includes(`--data-dir='${dataDir}'`));
+      const expectedCliArg =
+        process.platform === 'win32'
+          ? `"${path.resolve(fakeCli).replace(/\\/g, '/')}"`
+          : `'${path.resolve(fakeCli)}'`;
+      const expectedDataDirArg =
+        process.platform === 'win32'
+          ? `"${path.resolve(dataDir).replace(/\\/g, '/')}"`
+          : `'${path.resolve(dataDir)}'`;
+      assert.ok(rewritten1.startsWith(`node ${expectedCliArg} compact-run --payload=`));
+      assert.ok(rewritten1.includes(`--data-dir=${expectedDataDirArg}`));
       // Must NOT splice raw command text verbatim into the rewritten shell string
       assert.equal(rewritten1.includes('git status'), false);
 

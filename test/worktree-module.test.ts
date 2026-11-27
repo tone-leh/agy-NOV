@@ -8,6 +8,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MODULE_CATALOG } from '../src/core/catalog.js';
+import { canonicalRealpathSync } from '../src/core/utils.js';
 import {
   cleanupWorktree,
   createWorktree,
@@ -22,9 +23,10 @@ import {
   type WorktreeInspectResult,
 } from '../src/modules/worktree/core.js';
 import { registerWorktreeModule } from '../src/modules/worktree/register.js';
+import { createDirSymlink } from './helpers/cross-platform.js';
 
 function withTempDir<T>(prefix: string, fn: (dir: string) => Promise<T> | T): Promise<T> {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  const dir = canonicalRealpathSync(fs.mkdtempSync(path.join(os.tmpdir(), prefix)));
   return Promise.resolve()
     .then(() => fn(dir))
     .finally(() => {
@@ -60,7 +62,7 @@ function initTempGitRepo(repoDir: string): string {
   gitSync(repoDir, ['add', '.']);
   gitSync(repoDir, ['commit', '-m', 'chore: initial commit']);
 
-  return fs.realpathSync(repoDir);
+  return canonicalRealpathSync(repoDir);
 }
 
 describe('v0.3.0 Worktree Orchestrator module', () => {
@@ -311,7 +313,7 @@ describe('v0.3.0 Worktree Orchestrator module', () => {
       );
 
       const badSymlink = path.join(tmpDir, 'link-to-outside');
-      fs.symlinkSync(outsideDir, badSymlink);
+      createDirSymlink(outsideDir, badSymlink);
       await assert.rejects(
         () => getWorktreeDiffSummary(repoRoot, badSymlink),
         /not in the active git worktree list/i,
@@ -392,7 +394,7 @@ describe('v0.3.0 Worktree Orchestrator module', () => {
       // Symlink escape on `.agy-worktrees` itself must be blocked
       const outsideEscape = path.join(tmpDir, 'outside-escape');
       fs.mkdirSync(outsideEscape, { recursive: true });
-      fs.symlinkSync(outsideEscape, path.join(repoRoot, WORKTREE_MANAGED_DIR));
+      createDirSymlink(outsideEscape, path.join(repoRoot, WORKTREE_MANAGED_DIR));
 
       await assert.rejects(
         () => createWorktree(repoRoot, { branch: 'feat/symlink-escape' }),
@@ -427,7 +429,7 @@ describe('v0.3.0 Worktree Orchestrator module', () => {
       fs.mkdirSync(outsideInfoDir, { recursive: true });
       const infoDirPath = path.join(repoInfoDirSym, '.git', 'info');
       fs.rmSync(infoDirPath, { recursive: true, force: true });
-      fs.symlinkSync(outsideInfoDir, infoDirPath);
+      createDirSymlink(outsideInfoDir, infoDirPath);
 
       const res3 = await createWorktree(repoInfoDirSym, { branch: 'feat/info-dir-sym' });
       assert.equal(fs.existsSync(res3.created.path), true);

@@ -1,7 +1,13 @@
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  canonicalRealpathSync,
+  getDefaultAntigravityBrainDirs,
+  isPathInsideDir,
+  isSamePath,
+} from '../../core/utils.js';
 import { matchSensitivePath, redactText } from './config.js';
 
 export const MAX_LIVE_STREAM_TAIL_BYTES = 256 * 1024; // 256 KiB hard cap
@@ -318,17 +324,8 @@ function finalizeSummary(raw: string): { summary: string; truncated: boolean } {
   return { summary: `${capped}…`, truncated: true };
 }
 
-function getDefaultBrainDirs(): string[] {
-  const home = os.homedir();
-  return [
-    path.join(home, '.gemini', 'antigravity', 'brain'),
-    path.join(home, '.gemini', 'brain'),
-  ];
-}
-
 function isPathStrictlyInside(targetRealPath: string, rootRealDir: string): boolean {
-  const rel = path.relative(rootRealDir, targetRealPath);
-  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
+  return !isSamePath(rootRealDir, targetRealPath) && isPathInsideDir(rootRealDir, targetRealPath);
 }
 
 function resolveSafeTranscriptPath(conversationId: string, brainDirs: string[]): string | null {
@@ -336,7 +333,7 @@ function resolveSafeTranscriptPath(conversationId: string, brainDirs: string[]):
     if (!rawRoot || typeof rawRoot !== 'string') continue;
     let realRoot: string;
     try {
-      realRoot = fs.realpathSync(rawRoot);
+      realRoot = canonicalRealpathSync(rawRoot);
       if (!fs.statSync(realRoot).isDirectory()) continue;
     } catch {
       continue;
@@ -348,11 +345,11 @@ function resolveSafeTranscriptPath(conversationId: string, brainDirs: string[]):
     let realConvDir: string;
     let realTarget: string;
     try {
-      realConvDir = fs.realpathSync(convDir);
+      realConvDir = canonicalRealpathSync(convDir);
       if (!isPathStrictlyInside(realConvDir, realRoot)) continue;
       if (!fs.statSync(realConvDir).isDirectory()) continue;
 
-      realTarget = fs.realpathSync(candidatePath);
+      realTarget = canonicalRealpathSync(candidatePath);
       if (!isPathStrictlyInside(realTarget, realRoot)) continue;
       if (!isPathStrictlyInside(realTarget, realConvDir)) continue;
       if (!fs.statSync(realTarget).isFile()) continue;
@@ -448,6 +445,22 @@ function isSensitiveBasenameOrPath(rawPath: string, base: string): boolean {
   return false;
 }
 
+function decodeFileUriSafe(rawUri: string): string | null {
+  try {
+    const parsed = new URL(rawUri);
+    if (parsed.protocol !== 'file:') return null;
+    if (parsed.hostname && parsed.hostname.toLowerCase() !== 'localhost') return null;
+    const isWinDrive = /^\/[A-Za-z](?::|%3[Aa])(?:[/%]|$)/.test(parsed.pathname);
+    let decoded = fileURLToPath(parsed, { windows: isWinDrive });
+    if (isWinDrive && /^\/[A-Za-z]:[\\/]/.test(decoded)) {
+      decoded = decoded.slice(1);
+    }
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
 function extractSafeBasenamesFromArgs(args: unknown): string[] {
   if (!args || typeof args !== 'object' || Array.isArray(args)) return [];
   const rec = args as Record<string, unknown>;
@@ -455,7 +468,11 @@ function extractSafeBasenamesFromArgs(args: unknown): string[] {
   for (const key of FILE_ARG_KEYS) {
     const rawVal = rec[key];
     if (typeof rawVal !== 'string') continue;
-    const cleaned = rawVal.replace(/^["']|["']$/g, '').replace(/^file:\/\//i, '').trim();
+    const stripped = rawVal.replace(/^["']|["']$/g, '').trim();
+    if (!stripped) continue;
+    const cleaned = /^file:\/\//i.test(stripped)
+      ? decodeFileUriSafe(stripped) ?? stripped.replace(/^file:\/\//i, '').trim()
+      : stripped;
     if (!cleaned) continue;
     const normalized = cleaned.replace(/\\/g, '/');
     const base = path.posix.basename(normalized);
@@ -762,7 +779,7 @@ export function readConversationLiveStream(
     return buildDemoLiveStream(safeId, limit);
   }
 
-  const brainDirs = opts.brainDirs ?? getDefaultBrainDirs();
+  const brainDirs = opts.brainDirs ?? getDefaultAntigravityBrainDirs();
   const transcriptPath = resolveSafeTranscriptPath(safeId, brainDirs);
   if (!transcriptPath) {
     return {

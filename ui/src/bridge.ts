@@ -26,6 +26,88 @@ export interface HostCapabilitiesSummary {
   isWorkbench: boolean;
 }
 
+/**
+ * Convert a local absolute filesystem path or local `file://` URI into a safe,
+ * canonical local `file://` URI. Rejects remote UNC shares, non-localhost `file://`
+ * hosts (SMB/NTLM leak protection), relative paths, control characters, and `..` segments.
+ */
+export function toSafeLocalFileUri(filePath: string): string | null {
+  if (typeof filePath !== 'string') return null;
+  if (/[\x00-\x1f\x7f]/.test(filePath)) return null;
+  const trimmed = filePath.trim();
+  if (!trimmed) return null;
+
+  if (/^file:\/\//i.test(trimmed)) {
+    // Reject traversal segments (`..` or percent-encoded `%2e%2e`) before URL normalization collapses them
+    const rawAfterScheme = trimmed.slice('file://'.length);
+    let rawDecodedAfterScheme: string;
+    try {
+      rawDecodedAfterScheme = decodeURIComponent(rawAfterScheme);
+    } catch {
+      return null;
+    }
+    if (
+      /[\x00-\x1f\x7f\\]/.test(rawDecodedAfterScheme) ||
+      rawDecodedAfterScheme.split('/').some((seg) => seg === '..')
+    ) {
+      return null;
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(trimmed);
+    } catch {
+      return null;
+    }
+    if (parsed.protocol !== 'file:') return null;
+    const host = parsed.hostname.toLowerCase();
+    if (host !== '' && host !== 'localhost') return null;
+    if (parsed.search || parsed.hash) return null;
+
+    let decodedPath: string;
+    try {
+      decodedPath = decodeURIComponent(parsed.pathname);
+    } catch {
+      return null;
+    }
+    if (!decodedPath || /[\x00-\x1f\x7f\\]/.test(decodedPath)) return null;
+    const rawSegs = decodedPath.replace(/^\/+/, '').split('/');
+    if (rawSegs.some((s) => s === '..')) return null;
+
+    const encoded = rawSegs
+      .map((seg, idx) => (idx === 0 && /^[A-Za-z]:$/.test(seg) ? seg : encodeURIComponent(seg)))
+      .join('/');
+    return `file:///${encoded}`;
+  }
+
+  // Reject Windows/POSIX UNC network shares (including extended-length `\\?\UNC\...`)
+  if (/^(?:\\\\\?\\UNC\\|\\\\(?!\?\\[A-Za-z]:[\\/])|\/\/)/i.test(trimmed)) {
+    return null;
+  }
+
+  // Strip local Windows extended-length prefix (`\\?\C:\...`)
+  const stripped = /^\\\\\?\\[A-Za-z]:[\\/]/.test(trimmed) ? trimmed.slice(4) : trimmed;
+  const normalized = stripped.replace(/\\/g, '/');
+
+  const isWinAbs = /^[A-Za-z]:\//.test(normalized);
+  const isPosixAbs = normalized.startsWith('/');
+  if (!isWinAbs && !isPosixAbs) {
+    return null;
+  }
+
+  const rawSegments = (isPosixAbs ? normalized.replace(/^\/+/, '') : normalized).split('/');
+  if (rawSegments.some((seg) => seg === '..')) {
+    return null;
+  }
+
+  const encoded = rawSegments
+    .map((seg, idx) =>
+      idx === 0 && isWinAbs && /^[A-Za-z]:$/.test(seg) ? seg : encodeURIComponent(seg),
+    )
+    .join('/');
+  return `file:///${encoded}`;
+}
+
 export interface ToolResultEvent {
   toolName?: string;
   structuredContent: Record<string, unknown>;
@@ -292,7 +374,7 @@ export class NovBridge {
       return;
     }
 
-    const app = new McpApp({ name: 'agy-NOV', version: '1.0.0' }, {});
+    const app = new McpApp({ name: 'agy-NOV', version: '1.0.1' }, {});
     this.app = app;
 
     app.ontoolresult = (result) => {
@@ -631,9 +713,10 @@ export class NovBridge {
 
   async openFile(filePath: string): Promise<boolean> {
     await this.readyPromise;
-    const uri = filePath.startsWith('file://')
-      ? filePath
-      : `file://${filePath.startsWith('/') ? '' : '/'}${encodeURI(filePath)}`;
+    const uri = toSafeLocalFileUri(filePath);
+    if (!uri) {
+      return false;
+    }
 
     if (this.isWorkbenchMode || !this.app) {
       this.notifyWorkbenchHost('openFile', { uri, filePath });

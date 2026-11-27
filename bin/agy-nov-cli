@@ -8,4 +8,4 @@ const cliPath = path.resolve(__dirname, '../dist/cli.cjs');
 const res = spawnSync(process.execPath, [cliPath, ...process.argv.slice(2)], {
   stdio: 'inherit',
 });
-process.exit(res.status ?? 0);
+process.exit(res.status ?? 1);

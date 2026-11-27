@@ -12,8 +12,14 @@ import {
   type NovStartupView,
   type PresetId,
 } from './config.js';
+import {
+  atomicRenameSync,
+  canonicalRealpathSync,
+  hasUnsafeSymlinkAncestor,
+  isPathInsideDir,
+} from './utils.js';
 
-export const FEED_SNAPSHOT_VERSION = '1.0.0' as const;
+export const FEED_SNAPSHOT_VERSION = '1.0.1' as const;
 export const FEED_SNAPSHOT_FILENAME = 'feed-snapshot.json' as const;
 export const MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
 export const MAX_FEED_ALERTS = 6;
@@ -376,34 +382,8 @@ export function redactFeedText(input: string, maxLen = 180): string {
 // Safe strictly-read-only JSON file reader (zero writes, zero symlink follow)
 // ---------------------------------------------------------------------------
 
-function isPlatformSystemRootSymlink(segmentPath: string): boolean {
-  return process.platform === 'darwin' && /^\/(?:var|tmp|etc)$/.test(segmentPath);
-}
-
-function hasUnsafeSymlinkAncestor(targetPath: string): boolean {
-  let cur = path.resolve(targetPath);
-  const root = path.parse(cur).root;
-  while (true) {
-    if (!isPlatformSystemRootSymlink(cur)) {
-      try {
-        const st = fs.lstatSync(cur);
-        if (st.isSymbolicLink()) return true;
-      } catch (err) {
-        const code = (err as NodeJS.ErrnoException)?.code;
-        if (code !== 'ENOENT') return true;
-      }
-    }
-    if (cur === root) return false;
-    const parent = path.dirname(cur);
-    if (parent === cur) return false;
-    cur = parent;
-  }
-}
-
 function isWithinRealBase(childReal: string, baseReal: string): boolean {
-  if (childReal === baseReal) return true;
-  const prefix = baseReal.endsWith(path.sep) ? baseReal : `${baseReal}${path.sep}`;
-  return childReal.startsWith(prefix);
+  return isPathInsideDir(baseReal, childReal);
 }
 
 function resolveSafeRealDir(dirPath: string): string | null {
@@ -411,7 +391,7 @@ function resolveSafeRealDir(dirPath: string): string | null {
   try {
     const st = fs.lstatSync(dirPath);
     if (st.isSymbolicLink() || !st.isDirectory()) return null;
-    return fs.realpathSync(dirPath);
+    return canonicalRealpathSync(dirPath);
   } catch {
     return null;
   }
@@ -440,7 +420,7 @@ function readSafeModuleJson(
     const st = fs.lstatSync(targetPath);
     if (st.isSymbolicLink() || !st.isFile()) return null;
     if (st.size > MAX_SOURCE_FILE_BYTES) return null;
-    const realTarget = fs.realpathSync(targetPath);
+    const realTarget = canonicalRealpathSync(targetPath);
     if (!isWithinRealBase(realTarget, realMod)) return null;
     const raw = fs.readFileSync(realTarget, 'utf8');
     return JSON.parse(raw) as unknown;
@@ -1141,7 +1121,7 @@ export function writeFeedSnapshotIfDataDirExists(
     if (existing.isSymbolicLink() || !existing.isFile()) {
       return false;
     }
-    const realTarget = fs.realpathSync(targetPath);
+    const realTarget = canonicalRealpathSync(targetPath);
     if (!isWithinRealBase(realTarget, realRoot)) {
       return false;
     }
@@ -1185,7 +1165,7 @@ export function writeFeedSnapshotIfDataDirExists(
         return false;
       }
     }
-    fs.renameSync(tmpPath, targetPath);
+    atomicRenameSync(tmpPath, targetPath);
     return true;
   } catch {
     try {

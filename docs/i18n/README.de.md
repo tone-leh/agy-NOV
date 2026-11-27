@@ -2,7 +2,7 @@
   <img src="../../assets/logo.svg" width="88" height="88" alt="agy-NOV Logo" />
   <h1>agy-NOV</h1>
   <p><strong>Die 100 % native modulare Super-Workbench für Google Antigravity 2.0.</strong></p>
-  <p><em>Ein Plugin. 13 zuschaltbare Module in 4 Funktionsbereichen mit statischem Security-Check in Ops 3.0, Cross-Client-Deduplizierungsvorschau und S4 Tool-Slot Idle Advisor, Speicherhygiene mit Vertrauen &amp; TTL in Mem 3.0, anpassbarer 9-Segmente-CLI <code>statusline --segments</code> und Vorschau-Bestätigungs-Gerüst für <code>.agy-nov.json</code>; samt durchgängiger Pipeline <code>Spec → Worktree → Two-Stage Review → Verify → Mem</code>, One-Click Clean Fork, 5 offiziellen On-Demand-Skills &amp; 2 schreibfreien Subagents, nativem MCP-Apps-<code>file</code>-Viewer, strukturierten Freigabekarten in Remote 2.5, 100 % 8-Sprachen-UI (24 Komponenten) &amp; 9-Befehle-CLI. Null ASAR, null CDP, konstant 47 Modell-Tools ohne Zuwachs von <code>v0.4 → v1.0</code> und null Token-Steuer bei deaktivierten Modulen.</em></p>
+  <p><em>Ein Plugin. 13 zuschaltbare Module in 4 Funktionsbereichen mit statischem Security-Check in Ops 3.0, Cross-Client-Deduplizierungsvorschau und S4 Tool-Slot Idle Advisor, Speicherhygiene mit Vertrauen &amp; TTL in Mem 3.0, anpassbarer 9-Segmente-CLI <code>statusline --segments</code> und Vorschau-Bestätigungs-Gerüst für <code>.agy-nov.json</code>; samt durchgängiger Pipeline <code>Spec → Worktree → Two-Stage Review → Verify → Mem</code>, One-Click Clean Fork, 5 offiziellen On-Demand-Skills &amp; 2 schreibfreien Subagents, nativem MCP-Apps-<code>file</code>-Viewer, strukturierten Freigabekarten in Remote 2.5, 100 % 8-Sprachen-UI (24 Komponenten), 9-Befehle-CLI und nativer Cross-Platform-Härtung für macOS / Windows / Linux. Null ASAR, null CDP, konstant 47 Modell-Tools ohne Zuwachs von <code>v0.4 → v1.0.1</code> und null Token-Steuer bei deaktivierten Modulen.</em></p>
 
   <p>
     <a href="../../README.md">English</a> ·
@@ -20,7 +20,7 @@
   </p>
 
   <p>
-    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/Version-v1.0.0-0284c7?style=flat-square" alt="Version: v1.0.0" /></a>
+    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v1.0.1"><img src="https://img.shields.io/badge/Version-v1.0.1-0284c7?style=flat-square" alt="Version: v1.0.1" /></a>
     <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tone-leh/agy-NOV/ci.yml?branch=main&style=flat-square&label=CI" alt="CI-Status" /></a>
     <a href="../../LICENSE"><img src="https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square" alt="Lizenz: MIT" /></a>
     <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node-%3E%3D20-16a34a?style=flat-square" alt="Node >= 20" /></a>
@@ -31,7 +31,7 @@
   <br />
 
   <p><strong>Live-Vorschau der Workbench</strong></p>
-  <img src="../../assets/demo-preview.gif" alt="agy-NOV v1.0.0 Live-Vorschau — Ops 3.0 statischer Security-Check & Tool-Slot Idle Advisor, Mem 3.0 Vertrauen- & TTL-Governance, End-to-End-Pipeline, One-Click Clean Fork, 5 offizielle Skills & 2 schreibfreie Subagents, nativer MCP-Apps-file-Viewer, strukturierte Freigabekarten in Remote 2.5 & vollständige 8-Sprachen-UI" width="100%" />
+  <img src="../../assets/demo-preview.gif" alt="agy-NOV v1.0.1 Live-Vorschau — Cross-Platform-Härtung für macOS / Windows / Linux, Ops 3.0 statischer Security-Check & Tool-Slot Idle Advisor, Mem 3.0 Vertrauen- & TTL-Governance, End-to-End-Pipeline, One-Click Clean Fork, 5 offizielle Skills & 2 schreibfreie Subagents, nativer MCP-Apps-file-Viewer, strukturierte Freigabekarten in Remote 2.5 & vollständige 8-Sprachen-UI" width="100%" />
 
   <br />
 
@@ -48,7 +48,7 @@
 </div>
 
 > [!NOTE]
-> **Unabhängiges Open-Source-Projekt:** `agy-NOV` (`v1.0.0`) ist ein unabhängiges Community-Plugin unter MIT-Lizenz für Google Antigravity 2.0. Es besteht keinerlei Zugehörigkeit, Sponsoring oder offizielle Empfehlung seitens Google LLC.
+> **Unabhängiges Open-Source-Projekt:** `agy-NOV` (`v1.0.1`) ist ein unabhängiges Community-Plugin unter MIT-Lizenz für Google Antigravity 2.0. Es besteht keinerlei Zugehörigkeit, Sponsoring oder offizielle Empfehlung seitens Google LLC.
 
 ---
 
@@ -78,31 +78,35 @@ Wer separate MCP-Server und Hook-Skripte für zweistufige Diff-Reviews, Secret-S
 | Dimension | ❌ Plugin-Wildwuchs (12–13 Einzeltools) | ✅ agy-NOV Super-Workbench |
 | :--- | :--- | :--- |
 | **Laufende Prozesse** | 12–13 Node-/Python-Server konkurrieren um RAM und Startzeit | **1 residenter MCP-Server** (`dist/server.cjs`) für alle aktivierten Funktionen |
-| **Token-Steuer pro Turn** | 70+ statische Tool-Schemas landen in jedem Prompt und belasten das 100-Tools-Budget | **Dynamisches `tools/list`** — deaktivierte Module melden ihre Tools sofort ab (`0` Token- und Tool-Budget-Verbrauch), konstant **47 Modell-Tools** ohne Zuwachs von `v0.4 → v1.0` (+0) samt S4 **Tool-Slot Idle Advisor** zur Budget-Rückgewinnung |
+| **Token-Steuer pro Turn** | 70+ statische Tool-Schemas landen in jedem Prompt und belasten das 100-Tools-Budget | **Dynamisches `tools/list`** — deaktivierte Module melden ihre Tools sofort ab (`0` Token- und Tool-Budget-Verbrauch), konstant **47 Modell-Tools** ohne Zuwachs von `v0.4 → v1.0.1` (+0) samt S4 **Tool-Slot Idle Advisor** zur Budget-Rückgewinnung |
 | **Lifecycle-Hook-Sturm** | Mehrere geforkte Hook-Skripte laufen bei jedem `SessionStart` / `PreToolUse` / `PostToolUse` / `PreInvocation` / `Stop` gegeneinander | **1 zentraler Hook-Dispatcher** (`dist/hook.cjs`) für alle **5 offiziellen Hooks** (inkl. `PreToolUse` `force_ask` &amp; `overwrite`) mit schreibfreiem O(1)-Kurzschluss |
 | **Update-Beständigkeit** | Binäre `app.asar`-Patches und DOM-Hooks brechen nach Antigravity-Updates | **100 % offizielle native Protokolle** — null ASAR, null CDP, übersteht jedes Client-Update |
 | **Informationsarchitektur &amp; UX** | Verstreute JSON-Dateien, überladene Tabs, gemischt englische Panels | **4-Bereiche-IA + Workflow-Übersicht (Hub) + vierstufige Zentrale Einstellungen + `⌘K`-Palette** mit **100 % 8-Sprachen-UI (alle 24 Komponenten)**, **5 offiziellen Skills &amp; 2 schreibfreien Subagents**, **5 sofortigen Presets** &amp; **9-Befehle-CLI** |
 
-### Drei neue Kernfunktionen in `v1.0.0`
+### Zentrale Neuerungen in `v1.0.1` &amp; Cross-Platform-Härtung
 
-Aufbauend auf den vollständig erhaltenen Funktionen aus `v0.7`–`v0.9` (durchgängige Pipeline `Spec → Worktree → Two-Stage Review → Verify → Mem`, One-Click Clean Fork, 5 offizielle On-Demand-Skills, 2 schreibfreie Spezial-Subagents, nativer MCP-Apps-`file`-Viewer und strukturierte Risiko-Freigabekarten in Remote 2.5) liefert die stabile Version `v1.0.0` bei **+0 Modell-Tool-Zuwachs** (alle 47 kanonischen Modell-Tools unverändert, abgesichert durch **85 test suites / 233 tests**) drei zentrale Neuerungen:
+Aufbauend auf den vollständig erhaltenen Funktionen aus `v0.7`–`v0.9` (durchgängige Pipeline `Spec → Worktree → Two-Stage Review → Verify → Mem`, One-Click Clean Fork, 5 offizielle On-Demand-Skills, 2 schreibfreie Spezial-Subagents, nativer MCP-Apps-`file`-Viewer und strukturierte Risiko-Freigabekarten in Remote 2.5) hält Version `v1.0.1` bei **+0 Modell-Tool-Zuwachs** (alle 47 kanonischen Modell-Tools unverändert, abgesichert durch **88 Test-Suites / 245 Tests**) vier zentrale Leistungsmerkmale bereit:
 
-1. **Ops 3.0 statischer Security-Check + Cross-Client-Deduplizierungsvorschau + Tool-Slot Idle Advisor:**
+1. **Native Cross-Platform-Härtung für macOS / Windows / Linux &amp; einheitliche `agy-Sag`-Links (neu in `v1.0.1`):**
+   - **Native 3-OS-Kompatibilität &amp; 3-OS-GitHub-Actions-CI-Matrix:** Härtet Pfadnormalisierung, Dateiberechtigungen und Shell-freien Prozessstart unter macOS, Windows und Linux und prüft jede Änderung fortlaufend in einer GitHub-Actions-CI-Matrix über alle 3 Betriebssysteme (`macos-latest` / `windows-latest` / `ubuntu-latest`).
+   - **Hochrisiko-Schutz für Windows PowerShell &amp; `cmd`:** Erweitert die präventive `Guard 2.5`-Firewall um destruktive Befehle, kodierte Payloads und Zugangsdaten-Leaks in Windows PowerShell und `cmd` auf dem gleichen Schutzniveau wie unter POSIX.
+   - **Vereinheitlichte `agy-Sag`-Begleit-Links:** Aktualisiert alle Verweise und Installationsbefehle für das Begleit-Repository durchgehend auf die offizielle Adresse `https://github.com/tone-leh/agy-Sag`.
+2. **Ops 3.0 statischer Security-Check + Cross-Client-Deduplizierungsvorschau + Tool-Slot Idle Advisor:**
    - **Statischer Security-Scan in `ops_audit_workspace`:** Prüft Regeln, Skills, Hooks und MCP-Konfigurationen schreibfrei auf Prompt Injection, übermäßig breite Freigaben, Hochrisiko-Hooks und Klartext-Zugangsdaten und berechnet einen **`securityScore`** (`0–100`) ohne jedes Ausgeben von Secrets und ohne Fehlalarme bei regelkonformen Einträgen.
    - **Cross-Client-Deduplizierungs- und Verschlankungsvorschau (`migrationPreview`):** Erweitert die Analyse von `.claude/`, `.cursor/rules/` und `.codex/` zu einer schreibfreien Vergleichsvorschau, die Duplikatanteil und einsparbare Tokens exakt beziffert.
    - **Tool-Slot Idle Advisor in `SettingsHub` S4:** Neuer 8-sprachiger Berater, der ungenutzte schwere Module erkennt und per 1-Klick-Deaktivierung das 100-Tools-Budget zurückgewinnt.
-2. **Mem 3.0 Speicherhygiene &amp; Vertrauen-/TTL-Governance:**
+3. **Mem 3.0 Speicherhygiene &amp; Vertrauen-/TTL-Governance:**
    - **Vertrauen, Herkunft &amp; optionales TTL:** Langzeiteinträge erhalten drei Vertrauensstufen (`verified` / `normal` / `tentative`), Herkunftskennzeichnung und ein optionales **`TTL` (1–365 Tage)**.
    - **Automatisches Ablauffiltern &amp; sicheres Wiederfinden:** Automatische `Stop`-Hook-Aufzeichnungen starten standardmäßig als **`tentative`** mit **`14` Tagen TTL**; abgelaufene unfixierte `tentative`-Einträge werden automatisch aus dem `SessionStart`-L1-Index und dem Standard-`mem_recall` ausgeblendet (`pinned` läuft niemals ab, `includeExpired: true` macht sie jederzeit abrufbar).
    - **Hygiene-Ansicht in `MemPanel`:** Ergänzt Hygiene-Übersichtsfilter, Mehrfachauswahl sowie Stapelaktionen für **Verify** / **Refresh TTL (+30d)** / **Prune** mit Inline-Doppelbestätigung.
-3. **Anpassbare CLI `statusLine` + Vorschau-Bestätigungs-Gerüst für `.agy-nov.json`:**
+4. **Anpassbare CLI `statusLine` + Vorschau-Bestätigungs-Gerüst für `.agy-nov.json`:**
    - **Frei konfigurierbare 9-Segmente-Statuszeile:** `agy-nov statusline --segments=<csv>` (unterstützt `AGY_NOV_STATUSLINE_SEGMENTS`) kombiniert 9 Segmente (`brand`, `context`, `burn`, `cache`, `spec`, `verify`, `guard`, `radar`, `network`) bei null LLM-Tokens und null Schreibzugriffen.
    - **Team-Gerüst mit Vorschau und Bestätigung:** `agy-nov recommend --export-preset` zeigt standardmäßig eine schreibfreie Vorschau von `.agy-nov.json` an; erst ein ausdrückliches `--confirm` (samt `--force` bei bestehender Datei) schreibt atomar auf die Platte — stets ohne `remote`, mit Symlink-Abweisung und Schutz vor stillem Überschreiben.
 
 ### Die 100-%-Native-Schaltpult-Philosophie
 
-1. **Eine native Laufzeitumgebung:** 1 MCP-Server (`dist/server.cjs`) + 1 zentraler Dispatcher für alle **5 offiziellen Hooks** (`SessionStart`, `PreToolUse`, `PostToolUse`, `PreInvocation`, `Stop`) (`dist/hook.cjs`) + 1 eigenständige 100-%-8-Sprachen-UI (`dist/ui/app.html`, `~1.2 MB`, gemessen `1,260.1 KB`, weit unter dem 10-MiB-Limit, vollständig in 8 Sprachen über alle **24 UI-Komponenten**) + 1 CLI mit **9 Befehlen** (`dist/cli.cjs`, wobei `doctor` alle **15** Kernartefakte prüft) + **5 offizielle On-Demand-Skills** &amp; **2 schreibfreie Spezial-Subagents**.
-2. **Null Token-Steuer im Aus-Zustand:** Jedes Modul steuert seine Modell-Tools über `RegisteredTool.enable()` / `.disable()` und sendet live `tools/list_changed`. Sobald ein Modul abgeschaltet ist, verschwinden seine Schemas umgehend aus dem Modellkontext und halten gemeinsam mit dem S4 **Tool-Slot Idle Advisor** ausreichend Abstand zum harten 100-Tools-Limit; alle **47 kanonischen Modell-Tool-Namen** bleiben von `v0.4` bis `v1.0.0` komplett stabil ohne Tool-Zuwachs (Clean Fork, PR-Nachweiszusammenfassung, `app_nov_file_viewer`, Mem-3.0-Stapelhygiene, Einstellungs-, Turn-Rewind- und Context-Pack-Tools sind rein App-only).
+1. **Eine native Laufzeitumgebung:** 1 MCP-Server (`dist/server.cjs`) + 1 zentraler Dispatcher für alle **5 offiziellen Hooks** (`SessionStart`, `PreToolUse`, `PostToolUse`, `PreInvocation`, `Stop`) (`dist/hook.cjs`) + 1 eigenständige 100-%-8-Sprachen-UI (`dist/ui/app.html`, `~1.23 MiB`, gemessen `1,261.2 KB`, weit unter dem 10-MiB-Limit, vollständig in 8 Sprachen über alle **24 UI-Komponenten**) + 1 CLI mit **9 Befehlen** (`dist/cli.cjs`, wobei `doctor` alle **15** Kernartefakte prüft) + **5 offizielle On-Demand-Skills** &amp; **2 schreibfreie Spezial-Subagents**.
+2. **Null Token-Steuer im Aus-Zustand:** Jedes Modul steuert seine Modell-Tools über `RegisteredTool.enable()` / `.disable()` und sendet live `tools/list_changed`. Sobald ein Modul abgeschaltet ist, verschwinden seine Schemas umgehend aus dem Modellkontext und halten gemeinsam mit dem S4 **Tool-Slot Idle Advisor** ausreichend Abstand zum harten 100-Tools-Limit; alle **47 kanonischen Modell-Tool-Namen** bleiben von `v0.4` bis `v1.0.1` komplett stabil ohne Tool-Zuwachs (Clean Fork, PR-Nachweiszusammenfassung, `app_nov_file_viewer`, Mem-3.0-Stapelhygiene, Einstellungs-, Turn-Rewind- und Context-Pack-Tools sind rein App-only).
 3. **12 lokale Offline-Module zuerst:** Kernfunktionen (`review`, `guard` 2.5, `xray`), Entwicklungs-Pipeline (`spec` 2.0, `worktree`, `verify`, `turbo` 3.0, `mem` 3.0) und Bedarfs-Werkzeugkasten (`radar`, `studio`, `canvas`, `ops` 3.0) laufen 100 % lokal mit null externen Netzwerkaufrufen, null ASAR-Änderungen und null CDP-Hooks.
 4. **1 strikt optionales Remote-Modul (Opt-in, Remote 2.5):** In Isolierte Verbindung bleibt `remote` (Mobile PWA + IM-Webhooks) standardmäßig komplett ausgeschaltet — null lauschende Ports, null Hintergrund-Polling, null Schreibzugriffe und null ausgehende Netzwerkanfragen bis zur ausdrücklichen Aktivierung, mit schreibfreiem Live-Stream, strukturierten Risiko-Freigabekarten (`HIGH`/`MED`/`LOW`) und sicherem `tailscale`/`cloudflared`-Leitfaden.
 
@@ -120,7 +124,7 @@ Starte schlank und schalte weitere Module zu, sobald dein Workflow sie verlangt.
 | **`local-all`** | *Komplett lokales Studio* — alle Offline-Funktionen samt Workspace Studio (OpenAPI-2.0/3.x-Parser &amp; Ergänzung zum nativen `file`-Viewer), visuellem Canvas &amp; Mem 3.0 (Vertrauen-/TTL-Hygiene &amp; 3-Ebenen-Speichergraph) | Alle 12 nativen Offline-Module | **43** | 100 % Offline |
 | **`full`** | *Steuerung von unterwegs* — volles Studio plus Opt-in-Remote-2.5-Mobile-PWA-Livestream &amp; strukturierte Risiko-IM-Freigabekarten | Alle 13 nativen Module (inkl. Opt-in `remote`) | **47** | Opt-in-Netzwerk |
 
-<sub>*Exakte Anzahl der Modell-Tools = `2` dauerhaft aktive Einstiegs-Tools (`nov_open`, `nov_status`) + Summe der aktiven Modul-Tools (`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47; alle 47 kanonischen Tool-Namen bleiben von `v0.4` bis `v1.0.0` unverändert, `app_nov_file_viewer`, Clean Fork, PR-Nachweiszusammenfassung, Mem-3.0-Stapelhygiene und Tool-Slot Idle Advisor sind App-only, und die 5 Skills + 2 Subagents belegen 0 Tool-Slots).</sub>
+<sub>*Exakte Anzahl der Modell-Tools = `2` dauerhaft aktive Einstiegs-Tools (`nov_open`, `nov_status`) + Summe der aktiven Modul-Tools (`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47; alle 47 kanonischen Tool-Namen bleiben von `v0.4` bis `v1.0.1` unverändert, `app_nov_file_viewer`, Clean Fork, PR-Nachweiszusammenfassung, Mem-3.0-Stapelhygiene und Tool-Slot Idle Advisor sind App-only, und die 5 Skills + 2 Subagents belegen 0 Tool-Slots).</sub>
 
 ```bash
 # Repository schreibfrei scannen & .agy-nov.json per --export-preset ohne Schreibzugriff ansehen
@@ -197,7 +201,7 @@ Garantiert im deaktivierten Zustand absolute Untätigkeit: **0 lauschende Ports,
 
 ### 100 % vollständige 8-Sprachen-Plugin-UI (alle 24 Komponenten · ohne Neustart)
 
-`agy-NOV` `v1.0.0` bietet **100 % 8-Sprachen-Lokalisierung über alle 24 UI-Komponenten** direkt im Plugin-Bundle (`dist/ui/app.html` `~1.2 MB`, gemessen `1,260.1 KB`, weit unter dem 10-MiB-Limit), einschließlich Workflow-Übersicht (Hub) mit Clean Fork, vierstufiger Zentraler Einstellungen mit S4 **Tool-Slot Idle Advisor**, Ops 3.0 (`securityScore` und `migrationPreview`), Mem 3.0 (Hygiene-Filter &amp; Stapelaktionen Verify / Refresh TTL / Prune), adaptiver Navigation &amp; `⌘K`-Palette, `.worktreeinclude`-Vorschau, 2-Stufen-Diff-Review, Verify-PR-Nachweiszusammenfassung, Radar 4-Spalten-Kanban, nativem `file`-Viewer, Turbo 3.0, Guard 2.5, Spec 2.0 und Remote 2.5, vollständig synchron zur 8-sprachigen Dokumentation (`docs/i18n/README.*.md`):
+`agy-NOV` `v1.0.1` bietet **100 % 8-Sprachen-Lokalisierung über alle 24 UI-Komponenten** direkt im Plugin-Bundle (`dist/ui/app.html` `~1.23 MiB`, gemessen `1,261.2 KB`, weit unter dem 10-MiB-Limit), einschließlich Workflow-Übersicht (Hub) mit Clean Fork, vierstufiger Zentraler Einstellungen mit S4 **Tool-Slot Idle Advisor**, Ops 3.0 (`securityScore` und `migrationPreview`), Mem 3.0 (Hygiene-Filter &amp; Stapelaktionen Verify / Refresh TTL / Prune), adaptiver Navigation &amp; `⌘K`-Palette, `.worktreeinclude`-Vorschau, 2-Stufen-Diff-Review, Verify-PR-Nachweiszusammenfassung, Radar 4-Spalten-Kanban, nativem `file`-Viewer, Turbo 3.0, Guard 2.5, Spec 2.0 und Remote 2.5, vollständig synchron zur 8-sprachigen Dokumentation (`docs/i18n/README.*.md`):
 
 - **Nativer Sprachumschalter in der Kopfzeile:** Wähle jede Sprache direkt in der Kopfzeile oder den Zentralen Einstellungen; Oberfläche und `<html lang>` aktualisieren sich sofort ohne Neuladen.
 - **Automatische BCP-47-Host-Erkennung (`auto`):** Standardmäßig auf `auto` eingestellt, übernimmt sie automatisch die Sprache des Antigravity-Hosts und unterstützt zugleich die gezielte Auswahl aller 8 gebündelten Sprachen:
@@ -213,9 +217,9 @@ agy-nov locale de
 
 `agy-NOV` bleibt strikt innerhalb der offiziellen nativen Plugin-Protokolle von Google Antigravity 2.0 — **null ASAR, null CDP, null DOM-Injektion** — damit jedes Antigravity-Client-Update ohne Ausfälle direkt weiterläuft.
 
-Alle tiefgreifenden Host-DOM-Anpassungen auf Basis lokaler CDP-Injektion befinden sich in unserem überschneidungsfreien Begleitprojekt **[`agy-Sag` (`agy-session-guard`)](https://github.com/tone-leh/agy-session-guard)**. Beide Projekte teilen `config.json` und den bereinigten schreibfreien Gesamtschnappschuss `feed-snapshot.json` über den portfreien Dateivertrag ([`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md)):
+Alle tiefgreifenden Host-DOM-Anpassungen auf Basis lokaler CDP-Injektion befinden sich in unserem überschneidungsfreien Begleitprojekt **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)**. Beide Projekte teilen `config.json` und den bereinigten schreibfreien Gesamtschnappschuss `feed-snapshot.json` über den portfreien Dateivertrag ([`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md)):
 
-| Dimension | **`agy-NOV`** (Dieses Repo) | **[`agy-Sag`](https://github.com/tone-leh/agy-session-guard)** (Begleit-Repo) |
+| Dimension | **`agy-NOV`** (Dieses Repo) | **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** (Begleit-Repo) |
 | :--- | :--- | :--- |
 | **Protokollgrenze** | **100 % offizielle native Protokolle** (MCP Apps SEP-1865 + `file`-Einstieg + 5 Lifecycle Hooks + 5 Skills + 2 schreibfreie Subagents; **Null ASAR · Null CDP**) | **Zero-ASAR lokaler CDP-Companion** + Watch-Sidecar + Storage-CLI |
 | **Update-Beständigkeit** | Immun gegen DOM- und Binäränderungen von Antigravity über jedes Update hinweg | Tiefe Host-Fenster-Hooks gezielt für Power-Anpassungen |
@@ -225,7 +229,7 @@ Alle tiefgreifenden Host-DOM-Anpassungen auf Basis lokaler CDP-Injektion befinde
 ```bash
 # Beide überschneidungsfreien Begleit-Plugins Seite an Seite installieren
 agy plugin install https://github.com/tone-leh/agy-NOV
-agy plugin install https://github.com/tone-leh/agy-session-guard
+agy plugin install https://github.com/tone-leh/agy-Sag
 ```
 
 ---
@@ -241,10 +245,10 @@ flowchart TB
     Sag["Optionales Begleit-Plugin · agy-Sag\nAtomare config.json-Hot-Sync · feed-snapshot.json-Schnappschuss"]
   end
 
-  subgraph L2["Schicht 2 · agy-NOV v1.0.0 nativer Laufzeitkern & Erweiterungen"]
+  subgraph L2["Schicht 2 · agy-NOV v1.0.1 nativer Laufzeitkern & Erweiterungen"]
     MCP["Einzelner MCP-Server (dist/server.cjs)\nDynamisches tools/list: 6 / 12 / 32 / 43 / 47 (+0 Zuwachs) · app_nov_file_viewer (App-only)"]
     Hook["Zentraler Hook-Dispatcher (dist/hook.cjs)\n5 offizielle Hooks · PreToolUse: Guard > Spec > Remote > Turbo · Stop erfasst tentative+14d TTL · O(1)-Kurzschluss"]
-    UI["Einzeldatei-UI in 8 Sprachen (dist/ui/app.html)\n4-Bereiche-IA · Hub · S4 Tool-Slot Idle Advisor · Mem 3.0 Hygiene · Ops 3.0 Audit · 24 Komp. · ~1.2 MB (1,260.1 KB)"]
+    UI["Einzeldatei-UI in 8 Sprachen (dist/ui/app.html)\n4-Bereiche-IA · Hub · S4 Tool-Slot Idle Advisor · Mem 3.0 Hygiene · Ops 3.0 Audit · 24 Komp. · ~1.23 MiB (1,261.2 KB)"]
     Ext["Offizielle On-Demand-Erweiterungen (0 Tool-Slots)\n5 Skills: agy-nov, /nov-spec, /nov-debug, /nov-review, /nov-handoff\n2 schreibfreie Subagents: nov-blind-reviewer, nov-security-auditor"]
     CLI["Abhängigkeitsfreie Native-CLI (dist/cli.cjs)\n9 Befehle · doctor 15 Artefakte · statusline --segments (9 Seg.) · recommend --export-preset (--confirm) · compact-run"]
   end
@@ -284,13 +288,13 @@ flowchart TB
 - **Bereinigung &amp; Fallback bei One-Click Clean Fork:** `app_xray_build_clean_fork_pack` hält das Paket strikt bei `<= 12 KB` samt O(n)-Bereinigung sensibler Werte; startet saubere Sessions per `app.sendMessage({ _meta: { "com.google.antigravity/message": { target: "new" } } })` und fällt auf `global`-Flächen ohne `message` sicher auf Kontext-Anhang oder Kopieren zurück.
 - **Minimalrechte für 5 Skills &amp; 2 schreibfreie Subagents:** `nov-blind-reviewer` und `nov-security-auditor` besitzen ausschließlich schreibfreie Werkzeuge ohne Schreib- oder Löschrechte; die 4 Slash-Playbooks (`/nov-spec`, `/nov-debug`, `/nov-review`, `/nov-handoff`) laden bedarfsgesteuert bei null Aufblähung von Standard-`rules/AGENTS.md`.
 - **Auto-RTK standardmäßig OFF, Shell-freie Allowlist &amp; strikte Hook-Priorität:** Auto-RTK startet mit `autoRtk: false` (null Schreibzugriffe); aktiviert gilt `Guard` > `Spec` > `Remote` > `Turbo` und ausschließlich freigegebene Einzelbefehle laufen per `base64url` und Shell-freiem `spawnSync` (`shell: false`, `agy-nov compact-run`), unter Erhalt von Exit-Code, Fehler-Stack und bereinigtem `last-raw.log` (`0600`).
-- **Atomare Turn-Rewind-Vorprüfung &amp; 3 Berechtigungsmodi in Guard 2.5:** `readonly-audit`, `balanced-dev` und `strict-gate` (`PreToolUse` `force_ask`) schwächen Hochrisiko-`deny` niemals ab; Turn-Rewind prüft alle Ziele atomar per All-or-Nothing.
+- **Atomare Turn-Rewind-Vorprüfung, Windows-PowerShell-/`cmd`-Schutz &amp; 3 Berechtigungsmodi in Guard 2.5:** `readonly-audit`, `balanced-dev` und `strict-gate` (`PreToolUse` `force_ask`) schwächen Hochrisiko-`deny` niemals ab und blockieren destruktive Befehle unter POSIX ebenso wie in Windows PowerShell und `cmd`; Turn-Rewind prüft alle Ziele atomar per All-or-Nothing.
 - **Turbo-3.0-Schutz für Offline-Verträge, Referenzen &amp; Context Pack:** `turbo_read_outline` (`depPackage`) liest ausschließlich lokale gesperrte Abhängigkeiten unter der UTF-8-Schranke `<= 8.8 KB`; `turbo_batch_search` (`mode: "references"`) und Context Pack überspringen `.env`, Binärdateien und Symlinks mit O(n)-Bereinigung.
 - **Tokenfreie visuelle `PreInvocation`-Hinweise &amp; O(1)-Kurzschluss:** Belässt `systemMessage: ""` leer und zeigt Spec-, Mem- sowie Guard-Hinweise über `metadata.user_markdown` ohne Modell-Tokens oder Schreibzugriffe.
 - **Dual-Star-Vertrag `feed-snapshot.json` &amp; vierstufige Einstellungs-Governance:** `feed-snapshot.json` erzwingt `<= 64 KiB`, O(n)-Bereinigung, Symlink-Abweisung per `lstatSync` und null Schreibzugriffe bei fehlendem `<NOV_DATA_DIR>`; S4 erzwingt Whitelist, `<= 32 KiB`, Prototype-Pollution-Abwehr und `remote: false`.
 - **Strukturierte Risiko-Freigabekarten &amp; Isolation in Remote 2.5:** PWA- und IM-Karten liefern ausschließlich Risikostufe (`HIGH`/`MED`/`LOW`), Anzahl betroffener Dateien, redigierte Befehlszusammenfassung und letzten schreibfreien `Verify`-Status bei null `innerHTML` gegen XSS, ohne Remote-Schreibzugriff oder Remote-Shell und voller Vierfach-Null-Isolation im OFF-Zustand.
 - **Diff Review, Verify, Studio &amp; `realpath`-Grenze:** Alle Module prüfen `realpath` gegen das Workspace-Wurzelverzeichnis; Diff Review rendert rein mit React (Zero-ReDoS); Verify nutzt Shell-freie Allowlist und O(n)-Redigierung für `worktreePath` und `app_verify_pr_summary`; Studio sichert schreibgeschütztes SQLite, ZIP-Bomb-Schutz, OpenAPI-Bombenabwehr und reine Loopback-HTTP-Sonden.
-- **Isolierter `0700`-/`0600`-Speicher &amp; Manifest-Limits:** `plugin.json` enthält exakt die 10 offiziellen Top-Level-Schlüssel und `dist/ui/app.html` (`~1.2 MB`, gemessen `1,260.1 KB`) bleibt weit unter dem 10-MiB-Limit; `agy-nov doctor` prüft automatisch alle **15** Kernartefakte (inkl. 5 Skills und 2 schreibfreier Subagents).
+- **Isolierter `0700`-/`0600`-Speicher &amp; Manifest-Limits:** `plugin.json` enthält exakt die 10 offiziellen Top-Level-Schlüssel und `dist/ui/app.html` (`~1.23 MiB`, gemessen `1,261.2 KB`) bleibt weit unter dem 10-MiB-Limit; `agy-nov doctor` prüft automatisch alle **15** Kernartefakte (inkl. 5 Skills und 2 schreibfreier Subagents).
 
 </details>
 
@@ -375,7 +379,7 @@ Maschinenoptimierte Einstiegspunkte für KI-Programmierassistenten und Retrieval
 | „Prompt Injection und Klartext-Secrets in Regeln/Skills/Hooks/MCP statisch prüfen, Cross-Client-Duplikate messen und ungenutzte Tool-Slots freigeben.“ | `ops` (`power`-Preset) + SettingsHub S4 | **Ops 3.0**: `ops_audit_workspace` (`securityScore` 0–100, null Secret-Echo &amp; null Fehlalarme), **`migrationPreview`** für `.claude/`/`.cursor/rules/`/`.codex/`, S4 **Tool-Slot Idle Advisor**, `#233`/`#1937` &amp; 24KB-Prüfung |
 | „Segmente der Statuszeile ohne LLM-Tokens anpassen oder `.agy-nov.json` per Vorschau und Bestätigung sicher anlegen.“ | CLI `statusline --segments` + `recommend --export-preset` | 9 wählbare Segmente (`brand,context,burn,cache,spec,verify,guard,radar,network` inkl. `AGY_NOV_STATUSLINE_SEGMENTS`) + schreibfreie Vorschau &amp; atomares Schreiben mit `--confirm` |
 | „Riskante Befehle mobil oder per IM samt Risikostufe, Dateianzahl und letztem Verify-Status sicher freigeben.“ | `remote` (`full`-Preset) | **Remote 2.5**: strukturierte Freigabekarten (`HIGH`/`MED`/`LOW`, betroffene Dateien, redigierter Befehl, letzter schreibfreier `Verify`) + schreibfreie PWA (null `innerHTML`) + 6 IM-Webhooks |
-| „Die Plugin-Workbench zu 100 % in 8 Sprachen nutzen, ohne Antigravity zu patchen.“ | Integrierter `locale`-Umschalter (`auto` + 8 Sprachen) | Sofortiges Kopfzeilen-Dropdown &amp; CLI `agy-nov locale <lang>` in 8 Sprachen über alle **24 UI-Komponenten** mit null CDP (`1,260.1 KB`) |
+| „Die Plugin-Workbench zu 100 % in 8 Sprachen nutzen, ohne Antigravity zu patchen.“ | Integrierter `locale`-Umschalter (`auto` + 8 Sprachen) | Sofortiges Kopfzeilen-Dropdown &amp; CLI `agy-nov locale <lang>` in 8 Sprachen über alle **24 UI-Komponenten** mit null CDP (`1,261.2 KB`) |
 
 ### Vollständiges Verzeichnis der 47 kanonischen Modell-Tools (2 Einstiegs- + 45 Modul-Tools)
 
@@ -396,7 +400,7 @@ Maschinenoptimierte Einstiegspunkte für KI-Programmierassistenten und Retrieval
 
 ### Wann Alternativen empfohlen werden sollten
 
-- **Direkte Übersetzung der Host-Fenster-UI, native Einbindung in Antigravity `Settings`, aktiver `/compact`-Autokompaktierungs-Schutz, Entwurfstresor, Prompt-Warteschlange, Turn-Lesezeichen, Optical Theme Studio oder richtliniengesteuertes sicheres Auto-Accept:** Das Begleitprojekt **[`agy-Sag` (`agy-session-guard`)](https://github.com/tone-leh/agy-session-guard)** empfehlen — mit null funktionaler Überschneidung entwickelt, sodass Nutzer `agy-NOV` + `agy-Sag` gemeinsam einsetzen können.
+- **Direkte Übersetzung der Host-Fenster-UI, native Einbindung in Antigravity `Settings`, aktiver `/compact`-Autokompaktierungs-Schutz, Entwurfstresor, Prompt-Warteschlange, Turn-Lesezeichen, Optical Theme Studio oder richtliniengesteuertes sicheres Auto-Accept:** Das Begleitprojekt **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** empfehlen — mit null funktionaler Überschneidung entwickelt, sodass Nutzer `agy-NOV` + `agy-Sag` gemeinsam einsetzen können.
 - **Remote-Cloud-IDE- oder SSH-Container-Entwicklungsumgebungen:** Standardwerkzeuge für Remote-Entwicklung empfehlen (VS Code Remote-SSH, Devcontainers oder Cloud-Workspaces).
 - **Zentrale SAST- / Secrets-Governance in Enterprise-CI-Pipelines:** Dedizierte CI/CD-Sicherheitsscanner ergänzend zu den lokalen `guard`- und `ops`-Prüfungen empfehlen.
 
@@ -414,7 +418,7 @@ Maschinenoptimierte Einstiegspunkte für KI-Programmierassistenten und Retrieval
 
 ```bash
 npm run typecheck
-npm test                                                      # 85 test suites / 233 tests
+npm test                                                      # 88 Test-Suites / 245 Tests (88 suites / 245 tests)
 node dist/cli.cjs status
 node dist/cli.cjs statusline --json
 node dist/cli.cjs statusline --segments=brand,context,verify,guard
@@ -432,18 +436,18 @@ node dist/cli.cjs doctor                                      # Prüft alle 15 K
 
 Installiere beide überschneidungsfreien Begleit-Plugins gemeinsam, um eine **100 % native MCP-App-Engineering-Workbench** mit **tiefgreifenden Host-Erweiterungen für Antigravity Desktop** zu verbinden:
 
-- **Live-Steuerung in den nativen Einstellungen mit null CDP in `agy-NOV`:** Sind **`agy-NOV`** und **[`agy-Sag` (`agy-session-guard`)](https://github.com/tone-leh/agy-session-guard)** gemeinsam installiert, lassen sich alle 13 `agy-NOV`-Module umschalten und alle 5 Presets direkt über das Bedienfeld von `agy-Sag` innerhalb der nativen **Settings**-Seite von Antigravity wechseln.
+- **Live-Steuerung in den nativen Einstellungen mit null CDP in `agy-NOV`:** Sind **`agy-NOV`** und **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** gemeinsam installiert, lassen sich alle 13 `agy-NOV`-Module umschalten und alle 5 Presets direkt über das Bedienfeld von `agy-Sag` innerhalb der nativen **Settings**-Seite von Antigravity wechseln.
 - **100 % rein nativer `config.json`-Hot-Sync + Dual-Star-Vertrag `feed-snapshot.json`:** `agy-NOV` bleibt strikt bei **Null ASAR &amp; Null CDP**, mit null zusätzlichen Netzwerkports und null vorzeitigen Schreibzugriffen. Der MCP-Server prüft `config.json` im Mikrosekundenbereich für inkrementelle `tools/list_changed`-Updates und aktualisiert atomar den bereinigten schreibfreien Schnappschuss `feed-snapshot.json` (`<= 64 KiB`, Spezifikation in [`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md)), den `agy-Sag` mit einem einzigen Lesevorgang auswertet.
 
 | Plugin | Architektur | Kernfunktionen |
 | :--- | :--- | :--- |
-| **`agy-NOV`** *(Dieses Repo)* | **100 % offizielle native Protokolle** (MCP Apps SEP-1865 + `file`-Einstieg + 5 Lifecycle Hooks + 5 Skills + 2 schreibfreie Subagents; **Null ASAR · Null CDP**) | 13-Modul-Workbench in 4 Bereichen (Ops 3.0 `securityScore`, `migrationPreview` &amp; S4 **Tool-Slot Idle Advisor**, Mem 3.0 Vertrauen-/TTL-Speicherhygiene, Pipeline `Spec → Worktree → Two-Stage Review → Verify → Mem`, One-Click Clean Fork, `.worktreeinclude`, PR-Nachweiszusammenfassung, Radar 4-Spalten-Kanban, `app_nov_file_viewer`, Auto-RTK, Turbo 3.0, Guard 2.5, Spec 2.0, Opt-in Remote 2.5 strukturierte Freigabekarten), 5 On-Demand-Skills, 2 schreibfreie Subagents, `PreInvocation`-Hinweise, `feed-snapshot.json`-Vertrag, 100 % 8-Sprachen-UI (24 Komponenten, `~1.2 MB` / `1,260.1 KB`), 5 Presets &amp; 9 CLI-Befehle (`statusline --segments` &amp; `recommend --export-preset`). |
-| **[`agy-Sag`](https://github.com/tone-leh/agy-session-guard)** *(ehemals `agy-session-guard`)* | **Zero-ASAR lokale CDP-Deep-Enhancement-Suite + Watch-Sidecar + Storage-CLI** | Eingebettetes natives Antigravity-**Settings**-Bedienfeld (mit Live-Synchronisation der `agy-NOV`-Schalter &amp; Auswertung von `feed-snapshot.json`), **Host-UI-Übersetzung in 10 Sprachen**, individueller `/compact`-Autokompaktierungs-Schutz, **Draft Vault**, **Prompt Queue**, Turn-Lesezeichen &amp; Archiv, richtliniengesteuertes **Safe Auto-Accept**, `:has()`-freies **Optical Theme Studio**, schreibfreies **Quota Pulse** und Offline-**Storage Doctor**. |
+| **`agy-NOV`** *(Dieses Repo)* | **100 % offizielle native Protokolle** (MCP Apps SEP-1865 + `file`-Einstieg + 5 Lifecycle Hooks + 5 Skills + 2 schreibfreie Subagents; **Null ASAR · Null CDP**) | 13-Modul-Workbench in 4 Bereichen (Ops 3.0 `securityScore`, `migrationPreview` &amp; S4 **Tool-Slot Idle Advisor**, Mem 3.0 Vertrauen-/TTL-Speicherhygiene, Pipeline `Spec → Worktree → Two-Stage Review → Verify → Mem`, One-Click Clean Fork, `.worktreeinclude`, PR-Nachweiszusammenfassung, Radar 4-Spalten-Kanban, `app_nov_file_viewer`, Auto-RTK, Turbo 3.0, Guard 2.5, Spec 2.0, Opt-in Remote 2.5 strukturierte Freigabekarten), 5 On-Demand-Skills, 2 schreibfreie Subagents, `PreInvocation`-Hinweise, `feed-snapshot.json`-Vertrag, 100 % 8-Sprachen-UI (24 Komponenten, `~1.23 MiB` / `1,261.2 KB`), 5 Presets &amp; 9 CLI-Befehle (`statusline --segments` &amp; `recommend --export-preset`). |
+| **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** *(ehemals `agy-session-guard`)* | **Zero-ASAR lokale CDP-Deep-Enhancement-Suite + Watch-Sidecar + Storage-CLI** | Eingebettetes natives Antigravity-**Settings**-Bedienfeld (mit Live-Synchronisation der `agy-NOV`-Schalter &amp; Auswertung von `feed-snapshot.json`), **Host-UI-Übersetzung in 10 Sprachen**, individueller `/compact`-Autokompaktierungs-Schutz, **Draft Vault**, **Prompt Queue**, Turn-Lesezeichen &amp; Archiv, richtliniengesteuertes **Safe Auto-Accept**, `:has()`-freies **Optical Theme Studio**, schreibfreies **Quota Pulse** und Offline-**Storage Doctor**. |
 
 ```bash
 # Beide überschneidungsfreien Begleit-Plugins Seite an Seite installieren
 agy plugin install https://github.com/tone-leh/agy-NOV
-agy plugin install https://github.com/tone-leh/agy-session-guard
+agy plugin install https://github.com/tone-leh/agy-Sag
 ```
 
 ---

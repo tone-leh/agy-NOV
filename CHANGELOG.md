@@ -2,6 +2,29 @@
 
 All notable changes to **agy-NOV** will be documented in this file.
 
+## [1.0.1] - 2026-11-27
+
+### Added
+- **Windows & Linux Full Cross-Platform Compatibility (`core`, `hooks`, `ui`, `ci`, `test`):**
+  - Added cross-platform core path, filesystem, and process utilities: `canonicalRealpathSync` with Windows 8.3 short-path expansion, case-insensitive path boundary comparison on Windows, a Linux `/home` / `/var/run` / `/var/lock` system symlink allowlist, NTFS `EPERM` / `EBUSY` / `EACCES` retry handling in `atomicRenameSync`, and `shell: false` CVE-2024-27980-safe Node JS entry resolution for `npm`, `npx`, `pnpm`, `yarn`, `tsc`, `eslint`, `vitest`, and `jest` on Windows.
+  - Added a cross-platform test runner (`scripts/run-tests.mjs`), `.gitattributes` LF line-ending enforcement, and a full **3-OS (`ubuntu-latest` / `windows-latest` / `macos-latest`) × Node 20/22** GitHub Actions CI matrix.
+  - Added dedicated cross-platform regression coverage (`test/v101-cross-platform.test.ts`), raising total automated verification to **88 test suites / 245 tests**.
+
+### Changed
+- **Runtime, Hook & UI Cross-Platform Hardening (`hooks`, `ui`, `modules`):**
+  - Quoted `${PLUGIN_ROOT}` and `${PLUGIN_DATA}` in `hooks.json` for whitespace-safe paths across platforms, switched `dist/hook.cjs` to async bounded stdin streaming, and fixed Windows `file://` URI handling in `ui/src/bridge.ts`.
+  - Hardened per-module Windows & Linux runtime behavior: Windows read-only snapshot restore fallback in `guard`, `python` allowlist entry and `taskkill /T /F` process-tree teardown in `verify`, Windows quoting & safe path argument validation in Turbo Auto-RTK, `fileURLToPath` & Windows drive/URI tracking in `mem` and `xray`, `.exe` / `.cmd` / relative path detection in `ops`, and headless-Linux safe notification skipping in `radar`.
+- **Preserved 13-Module Architecture & 47 Canonical Model Tools (`v1.0.1`):** All 13 toggleable native modules, 5 presets, 9 CLI commands, 5 official Skills, 2 read-only specialist subagents, 5 official Hooks, and all **47 canonical model tool names** remain strictly unchanged (`dist/ui/app.html` measured `1,261.2 KB` / `~1.23 MiB`, well below the 1.5 MiB target and 10 MiB cap).
+
+### Fixed
+- **Documentation & Companion Link Fix:** Updated all companion installation commands (`agy plugin install https://github.com/tone-leh/agy-Sag`) and repository links across all 8 READMEs (`README.md` and `docs/i18n/README.*.md`), `llms.txt`, `docs/llms-install.md`, and `CHANGELOG.md` to `https://github.com/tone-leh/agy-Sag`.
+
+### Security
+- **Windows & Linux Destructive Command & Process Hardening (`guard`, `remote`, `verify`, `turbo`, `core`):**
+  - Extended `guard` and `remote` destructive command detection with Windows PowerShell and `cmd` rules (`Remove-Item -Recurse -Force`, `rmdir /s`, `del /f /s`, `format`, `Clear-Disk`, `diskpart`, `irm|iex`).
+  - Eliminated Windows `.cmd` shell-injection exposure (CVE-2024-27980) by resolving Node JS entrypoints directly under `shell: false`, while preserving canonical workspace boundary checks across Windows case-insensitive drive paths, 8.3 short paths, and Linux system symlinks.
+  - Preserved 100% Zero ASAR / Zero CDP boundaries, four-zero OFF-state isolation for `remote`, and 15-asset `agy-nov doctor` verification across macOS, Windows, and Linux.
+
 ## [1.0.0] - 2026-11-27
 
 ### Added
@@ -259,7 +282,7 @@ All notable changes to **agy-NOV** will be documented in this file.
 - **Expanded Automated Tests:** Added `test/modules-v02.test.ts` and expanded `test/nov-integration.test.ts` covering all 9 modules, 5 presets, exact model tool counts (`6`/`12`/`20`/`27`/`31`), 8-language locale handling, live external `config.json` hot-sync with delta `tools/list_changed` notifications, zero-write poller invariants, and isolation checks.
 
 ### Changed
-- **100% Native Zero-CDP Architecture Boundary:** Established a strict official-protocol boundary for `agy-NOV` (Zero ASAR, Zero CDP, immune to Antigravity client updates), keeping host-DOM CDP customizations cleanly separated in companion repository `agy-Sag` (`https://github.com/tone-leh/agy-session-guard`).
+- **100% Native Zero-CDP Architecture Boundary:** Established a strict official-protocol boundary for `agy-NOV` (Zero ASAR, Zero CDP, immune to Antigravity client updates), keeping host-DOM CDP customizations cleanly separated in companion repository `agy-Sag` (`https://github.com/tone-leh/agy-Sag`).
 - Upgraded `src/core/catalog.ts` with 5 module categories (`core-dev`, `safety`, `observability`, `workspace`, `connectivity`), 2 explicit isolation tiers (`offline`, `opt-in-network`), 8 UI locale definitions (`UI_LOCALE_IDS`, `LOCALE_IDS`, `LOCALE_NATIVE_LABELS`), and exact model tool accounting (`countEnabledModelTools`).
 - Hardened `src/server/index.ts` with automatic app-tool tracking so disabling any module synchronously disables both model-visible tools and mutating `app_*` tools while keeping lightweight read-only offline status snapshots accessible.
 - Streamlined `src/server/cli.ts` to 6 clean commands (`status`, `enable`, `disable`, `preset`, `locale`, `doctor`) with 9-file bundle verification, `plugin.json` 10-key schema validation, and `< 10 MiB` UI bundle enforcement.

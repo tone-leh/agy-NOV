@@ -180,7 +180,7 @@ export function buildReviewPrompt(options: PromptBuildOptions): BuiltReviewPromp
         extractCodeSnippet(diffFile, ann.startLine, ann.endLine, ann.side);
       if (snippet) {
         lines.push('   ```diff');
-        for (const snippetLine of snippet.split('\n')) {
+        for (const snippetLine of snippet.split(/\r?\n/)) {
           lines.push(`   ${snippetLine}`);
         }
         lines.push('   ```');

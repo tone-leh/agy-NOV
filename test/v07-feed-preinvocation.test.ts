@@ -26,6 +26,7 @@ import {
 } from '../src/core/feed.js';
 import { dispatchNovHook } from '../src/hooks/dispatcher.js';
 import { createNovServer } from '../src/server/index.js';
+import { createDirSymlink } from './helpers/cross-platform.js';
 
 function createTempDir(prefix: string): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -91,7 +92,7 @@ test('feed snapshot: missing dataDir stays 100% read-only with zero dir/file cre
 
     // Reject symlink rootDataDir
     fs.mkdirSync(realDir, { recursive: true });
-    fs.symlinkSync(realDir, linkDir);
+    createDirSymlink(realDir, linkDir);
     assert.equal(writeFeedSnapshotIfDataDirExists(linkDir, cfg), false);
     assert.equal(fs.existsSync(getFeedSnapshotPath(realDir)), false);
 
@@ -708,7 +709,7 @@ test('red-team regressions: O(n) webhook ReDoS immunity, PGP/pairing/Authorizati
     const realData = path.join(realParent, 'data');
     fs.mkdirSync(realData, { recursive: true });
     const symlinkParent = path.join(base, 'symlink-parent');
-    fs.symlinkSync(realParent, symlinkParent);
+    createDirSymlink(realParent, symlinkParent);
     const wroteThroughSymlink = writeFeedSnapshotIfDataDirExists(
       path.join(symlinkParent, 'data'),
       createDefaultConfig(),

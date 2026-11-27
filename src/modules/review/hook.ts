@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getModuleDataDir } from '../../core/config.js';
 import type { NormalizedHookPayload } from '../../core/types.js';
-import { ensurePrivateDir } from '../../core/utils.js';
+import { atomicRenameSync, ensurePrivateDir } from '../../core/utils.js';
 import type { ReviewSignal } from './types.js';
 
 const MUTATING_TOOL_RE =
@@ -61,7 +61,7 @@ export function handleReviewHook(payload: NormalizedHookPayload, rootDataDir: st
 
     const tmpPath = `${signalPath}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
     fs.writeFileSync(tmpPath, `${JSON.stringify(next, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
-    fs.renameSync(tmpPath, signalPath);
+    atomicRenameSync(tmpPath, signalPath);
   } catch {
     // Fail-open on filesystem permissions or transient I/O errors
   }

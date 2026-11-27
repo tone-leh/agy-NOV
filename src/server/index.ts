@@ -59,7 +59,7 @@ import { registerWorktreeModule } from '../modules/worktree/register.js';
 import { registerXrayModule } from '../modules/xray/register.js';
 
 export const UI_RESOURCE_URI = 'ui://agy-nov/app.html';
-export const NOV_VERSION = '1.0.0';
+export const NOV_VERSION = '1.0.1';
 
 const UI_ENTRYPOINT_META = {
   ui: { resourceUri: UI_RESOURCE_URI },
@@ -839,7 +839,8 @@ async function main(): Promise<void> {
 const isMain =
   (typeof require !== 'undefined' && typeof module !== 'undefined' && require.main === module) ||
   (typeof process.argv[1] === 'string' &&
-    (process.argv[1].endsWith('server.cjs') || process.argv[1].endsWith('server/index.ts')));
+    (/(?:^|[/\\])server\.cjs$/i.test(process.argv[1]) ||
+      /(?:^|[/\\])server[/\\]index\.ts$/i.test(process.argv[1])));
 
 if (isMain) {
   void main();

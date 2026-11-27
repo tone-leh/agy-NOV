@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getModuleDataDir } from '../../core/config.js';
 import type { NormalizedHookPayload } from '../../core/types.js';
-import { ensurePrivateDir } from '../../core/utils.js';
+import { atomicRenameSync, ensurePrivateDir } from '../../core/utils.js';
 import type { LiveHookState } from './types.js';
 
 function formatErrorValue(err: unknown): string | undefined {
@@ -63,7 +63,7 @@ export function handleXrayHook(payload: NormalizedHookPayload, rootDataDir: stri
 
     const tmpPath = `${statePath}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
     fs.writeFileSync(tmpPath, `${JSON.stringify(state, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
-    fs.renameSync(tmpPath, statePath);
+    atomicRenameSync(tmpPath, statePath);
   } catch {
     // Fail-open on filesystem issues
   }

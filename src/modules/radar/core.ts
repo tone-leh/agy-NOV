@@ -616,6 +616,14 @@ export function triggerRadarNotification(
   if (!invocation) {
     return { dispatched: false, reason: 'unsupported-platform' };
   }
+  if (
+    platform === 'linux' &&
+    invocation.command === 'notify-send' &&
+    !process.env.DISPLAY?.trim() &&
+    !process.env.WAYLAND_DISPLAY?.trim()
+  ) {
+    return { dispatched: false, reason: 'headless-linux' };
+  }
 
   try {
     const child = execFile(

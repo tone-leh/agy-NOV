@@ -2,7 +2,7 @@
   <img src="../../assets/logo.svg" width="88" height="88" alt="agy-NOV Logo" />
   <h1>agy-NOV</h1>
   <p><strong>面向 Google Antigravity 2.0 的 100% 原生模块化超级工作台。</strong></p>
-  <p><em>单个插件，4+1 功能域 IA 与四级统一设置中心（含 S4 工具槽位闲置顾问），13 大可开关能力：Ops 3.0 静态安全体检与跨客户端去重瘦身对比预览、Mem 3.0 记忆卫生与置信度/TTL 治理、可定制 9 段 CLI <code>statusLine</code> 与预览确认式 <code>.agy-nov.json</code> 脚手架、端到端工程流水线闭环（Spec → Worktree <code>.worktreeinclude</code> → 双阶段审阅 → Verify PR 交付证据 → Mem + Radar 4 泳道 Kanban）、One-Click Clean Fork 抗上下文腐烂、5 个官方按需 Skills 与 2 个只读专职子代理、MCP Apps <code>file</code> 原生文件查看器、Remote 2.5 结构化风险审批卡、Turbo 3.0、Guard 2.5、5 类官方 Hook、全组件 8 语种界面与 9 条零依赖 CLI 命令。零 ASAR、零 CDP，严格锁定 47 个规范模型工具，关闭模块即零 Token 消耗。</em></p>
+  <p><em>单个插件，macOS / Windows / Linux 全三端原生兼容（3-OS × Node 20/22 CI），4+1 功能域 IA 与四级统一设置中心（含 S4 工具槽位闲置顾问），13 大可开关能力：Ops 3.0 静态安全体检与跨客户端去重瘦身对比预览、Mem 3.0 记忆卫生与置信度/TTL 治理、可定制 9 段 CLI <code>statusLine</code> 与预览确认式 <code>.agy-nov.json</code> 脚手架、端到端工程流水线闭环（Spec → Worktree <code>.worktreeinclude</code> → 双阶段审阅 → Verify PR 交付证据 → Mem + Radar 4 泳道 Kanban）、One-Click Clean Fork 抗上下文腐烂、5 个官方按需 Skills 与 2 个只读专职子代理、MCP Apps <code>file</code> 原生文件查看器、Remote 2.5 结构化风险审批卡、Turbo 3.0、Guard 2.5、5 类官方 Hook、全组件 8 语种界面与 9 条零依赖 CLI 命令。零 ASAR、零 CDP，严格锁定 47 个规范模型工具，关闭模块即零 Token 消耗。</em></p>
 
   <p>
     <a href="../../README.md">English</a> ·
@@ -18,8 +18,9 @@
   <p><sub>本文为英文主文档 <a href="../../README.md">README.md</a> 的简体中文译本；命令、模块 ID 与配置规范以英文原版为准。</sub></p>
 
   <p>
-    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/Version-v1.0.0-0284c7?style=flat-square" alt="版本: v1.0.0" /></a>
+    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v1.0.1"><img src="https://img.shields.io/badge/Version-v1.0.1-0284c7?style=flat-square" alt="版本: v1.0.1" /></a>
     <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tone-leh/agy-NOV/ci.yml?branch=main&style=flat-square&label=CI" alt="CI 状态" /></a>
+    <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/Platform-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-475569?style=flat-square" alt="平台: macOS · Windows · Linux" /></a>
     <a href="../../LICENSE"><img src="https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square" alt="License: MIT" /></a>
     <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node-%3E%3D20-16a34a?style=flat-square" alt="Node >= 20" /></a>
     <a href="#架构设计"><img src="https://img.shields.io/badge/MCP%20Apps-SEP--1865-6366f1?style=flat-square" alt="MCP Apps (SEP-1865)" /></a>
@@ -29,14 +30,14 @@
   <br />
 
   <p><strong>实机工作台预览</strong></p>
-  <img src="../../assets/demo-preview.gif" alt="agy-NOV v1.0.0 实机工作台预览 —— Ops 3.0 静态安全体检与去重预览、Mem 3.0 记忆卫生与置信度/TTL 治理、可定制 9 段 CLI statusLine、端到端工程流水线、One-Click Clean Fork、5 个按需 Skills 与 2 个只读子代理、MCP Apps 原生文件查看器、Remote 2.5 风险审批卡、4+1 功能域 IA 与全组件 8 语种界面" width="100%" />
+  <img src="../../assets/demo-preview.gif" alt="agy-NOV v1.0.1 实机工作台预览 —— macOS / Windows / Linux 全三端原生兼容、Ops 3.0 静态安全体检与去重预览、Mem 3.0 记忆卫生与置信度/TTL 治理、可定制 9 段 CLI statusLine、端到端工程流水线、One-Click Clean Fork、5 个按需 Skills 与 2 个只读子代理、MCP Apps 原生文件查看器、Remote 2.5 风险审批卡、4+1 功能域 IA 与全组件 8 语种界面" width="100%" />
 
   <br />
 
   <p>
     <a href="#30-秒零写入初体验">30 秒初体验</a> ·
     <a href="#为什么选择-agy-nov">为什么选择 agy-NOV</a> ·
-    <a href="#v100-核心新特性">v1.0.0 亮点</a> ·
+    <a href="#v101-核心新特性">v1.0.1 亮点</a> ·
     <a href="#10-秒选定你的工作台预设">10 秒选预设</a> ·
     <a href="#13-大可按需启停的核心能力">13 大模块</a> ·
     <a href="#41-功能域-ia四级设置中心8-语种-ui-与零-cdp-双仓生态">4+1 IA 与 8 语种 UI</a> ·
@@ -47,7 +48,7 @@
 </div>
 
 > [!NOTE]
-> **独立开源项目声明：** `agy-NOV` (v1.0.0) 是面向 Google Antigravity 2.0 打造的独立 MIT 协议社区插件，与 Google LLC 无隶属、赞助或背书关系。
+> **独立开源项目声明：** `agy-NOV` (v1.0.1) 是面向 Google Antigravity 2.0（覆盖 **macOS / Windows / Linux** 三端）打造的独立 MIT 协议社区插件，与 Google LLC 无隶属、赞助或背书关系。
 
 ---
 
@@ -75,25 +76,33 @@ node dist/cli.cjs recommend --workspace=. --export-preset
 | 对比维度 | ❌ 插件堆砌（12–13 个独立工具） | ✅ agy-NOV 超级工作台 |
 | :--- | :--- | :--- |
 | **常驻进程** | 12–13 个后台 Node/Python 进程争夺内存与启动时间 | **1 个常驻 MCP 服务**（`dist/server.cjs`）统一承载全部已启用能力 |
-| **单轮 Token 与工具预算** | 每轮对话注入 70+ 静态工具 Schema 与庞大常驻规则，挤压 100 工具硬上限 | **动态 `tools/list`**（跨 `v0.4`→`v1.0.0` 严格锁定上限 **47** 个规范模型工具，关闭模块即 `0` Token 与槽位税）+ **设置中心 S4 工具槽位闲置顾问** + **5 个按需 Skills 与 2 个只读子代理**（零默认常驻 `rules/AGENTS.md` 规则膨胀） |
+| **单轮 Token 与工具预算** | 每轮对话注入 70+ 静态工具 Schema 与庞大常驻规则，挤压 100 工具硬上限 | **动态 `tools/list`**（跨 `v0.4`→`v1.0.1` 严格锁定上限 **47** 个规范模型工具，关闭模块即 `0` Token 与槽位税）+ **设置中心 S4 工具槽位闲置顾问** + **5 个按需 Skills 与 2 个只读子代理**（零默认常驻 `rules/AGENTS.md` 规则膨胀） |
 | **生命周期 Hook 风暴** | 每次 `SessionStart` / `PreToolUse` / `PostToolUse` / `PreInvocation` / `Stop` 触发多个派生 Hook 竞态执行 | **1 个统一 5 类 Hook 分发器**（`dist/hook.cjs`），只读检查配置并 O(1) 短路，附带零 Token `PreInvocation` 视觉回执 |
-| **升级抗碎性** | 二进制 `app.asar` 补丁与 DOM 注入脚本在 Antigravity 更新后失效 | **100% 官方原生协议** —— 零 ASAR、零 CDP、官方 MCP Apps `file` 查看器，平滑跟随每次客户端更新 |
+| **升级抗碎性与三端兼容** | 二进制 `app.asar` 补丁、POSIX 专用脚本假设与 DOM 注入在客户端更新或 Windows/Linux 下易失效 | **100% 官方原生协议** —— 零 ASAR、零 CDP、官方 MCP Apps `file` 查看器，完整支持 **macOS / Windows / Linux** 三端原生兼容（3-OS × Node 20/22 CI） |
 | **工程闭环、治理与多语体验** | 面板割裂、脏记忆长期污染、规则与 Hook 缺乏静态安检、窄栏拥挤、中英混排 | **Ops 3.0 静态安检与去重预览**、**Mem 3.0 置信度/TTL 卫生治理**、**9 段 CLI `statusLine`**、**端到端工程流水线**、**One-Click Clean Fork**、**4+1 功能域 IA**（Hub + 宽窄双态导航 + `⌘K`）、**四级统一设置中心**、**100% 全组件 8 语种 UI（24 组件）**、**5 档预设**、`.agy-nov.json` 团队预设与 **9 条 CLI 命令** |
 
 ### 100% 原生控制面板理念
 
-1. **单一原生运行时 + 零常驻膨胀 Playbook 与子代理：** 1 个 MCP 服务（`dist/server.cjs`）+ 1 个覆盖全部 **5 类官方 Hook**（`SessionStart`、`PreToolUse`、`PostToolUse`、`PreInvocation`、`Stop`）的统一分发器（`dist/hook.cjs`）+ 1 份自包含全组件 8 语种双主题 UI（`dist/ui/app.html`，约 `1.2 MB`，实测 `1,260.1 KB`，远低于 1.5 MiB 目标与 10 MiB 资源上限，全 8 语种完整覆盖全部 **24 个 UI 组件**）+ 1 个含 **9 条命令**的零依赖 CLI（`dist/cli.cjs`，含可定制 9 段 `statusline --segments`、预览确认式 `recommend --export-preset` 与核验全部 **15 项**核心资产的 `doctor`）+ **5 个官方按需 Skills**（总入口 `agy-nov` + `/nov-spec`、`/nov-debug`、`/nov-review`、`/nov-handoff`）+ **2 个官方只读专职子代理**（`agents/nov-blind-reviewer.md`、`agents/nov-security-auditor.md`），零默认常驻 `rules/AGENTS.md` 规则膨胀。
-2. **关闭即零 Token 税：** 每个模块通过 `RegisteredTool.enable()` / `.disable()` 管理模型工具并实时推送 `tools/list_changed`。跨 `v0.4`→`v1.0.0` 严格锁定 **47 个规范模型工具名完全不变**（+0 槽位膨胀），所有 Hub、四级设置中心（含 S4 工具槽位闲置顾问）、脱敏 Context Pack、轮次 Rewind、Clean Fork（`app_xray_build_clean_fork_pack`）、`.worktreeinclude` 预览（`app_worktree_preview_include`）、PR 交付证据摘要（`app_verify_pr_summary`）、Mem 3.0 记忆卫生与批量治理（`app_mem_get_hygiene_summary`、`app_mem_batch_hygiene`）及原生 `file` 文件查看器（`app_nov_file_viewer`）均严格限定为 App-only 工具（`visibility: ['app']`），零模型上下文膨胀。
+1. **单一原生运行时 + 零常驻膨胀 Playbook 与子代理：** 1 个 MCP 服务（`dist/server.cjs`）+ 1 个覆盖全部 **5 类官方 Hook**（`SessionStart`、`PreToolUse`、`PostToolUse`、`PreInvocation`、`Stop`）的统一分发器（`dist/hook.cjs`）+ 1 份自包含全组件 8 语种双主题 UI（`dist/ui/app.html`，约 `1.23 MiB`，实测 `1,261.2 KB`，远低于 1.5 MiB 目标与 10 MiB 资源上限，全 8 语种完整覆盖全部 **24 个 UI 组件**）+ 1 个含 **9 条命令**的零依赖 CLI（`dist/cli.cjs`，含可定制 9 段 `statusline --segments`、预览确认式 `recommend --export-preset` 与核验全部 **15 项**核心资产的 `doctor`）+ **5 个官方按需 Skills**（总入口 `agy-nov` + `/nov-spec`、`/nov-debug`、`/nov-review`、`/nov-handoff`）+ **2 个官方只读专职子代理**（`agents/nov-blind-reviewer.md`、`agents/nov-security-auditor.md`），零默认常驻 `rules/AGENTS.md` 规则膨胀，覆盖 **macOS / Windows / Linux** 全三端。
+2. **关闭即零 Token 税：** 每个模块通过 `RegisteredTool.enable()` / `.disable()` 管理模型工具并实时推送 `tools/list_changed`。跨 `v0.4`→`v1.0.1` 严格锁定 **47 个规范模型工具名完全不变**（+0 槽位膨胀），所有 Hub、四级设置中心（含 S4 工具槽位闲置顾问）、脱敏 Context Pack、轮次 Rewind、Clean Fork（`app_xray_build_clean_fork_pack`）、`.worktreeinclude` 预览（`app_worktree_preview_include`）、PR 交付证据摘要（`app_verify_pr_summary`）、Mem 3.0 记忆卫生与批量治理（`app_mem_get_hygiene_summary`、`app_mem_batch_hygiene`）及原生 `file` 文件查看器（`app_nov_file_viewer`）均严格限定为 App-only 工具（`visibility: ['app']`），零模型上下文膨胀。
 3. **生产级工程闭环与 12 个本地离线模块优先：** 由 **L0 工作流总览 Hub**（6 节点流水线状态条 + 告警卡 + One-Click Clean Fork + `Cmd/Ctrl+K` 快捷跳转）统领 4 大功能域 —— 核心护航 `core`（双阶段 `review`、**Guard 2.5**、`xray` 2.0 + Clean Fork）、工程闭环 `pipeline`（**Spec 2.0**、`worktree` 只读 `.worktreeinclude`、`verify` 定向 Worktree 检验与 PR 摘要、**Turbo 3.0**、**Mem 3.0**）、按需工具箱 `toolbox`（`radar` 4 泳道 Kanban、`studio`、`canvas`、**Ops 3.0**）与隔离外联 `connectivity`（**Remote 2.5**）。全部 12 个第一层模块 100% 本地离线运行，零外发网络请求、零 ASAR 修改、零 CDP 钩子。
 4. **双星只读聚合快照与 1 个严格按需远程模块（`Remote 2.5`）：** 事件驱动 `<dataDir>/feed-snapshot.json`（`0600` 原子写入、`< 64 KiB`、线性 O(n) 全量脱敏、缺失 `dataDir` 严格零写盘）为配套 `agy-Sag` 提供零端口只读聚合状态源；`remote` 默认彻底关闭，未显式启用前保持零端口监听、零后台轮询、零磁盘写入、零外发网络请求的四零隔离。
 
 ---
 
-## v1.0.0 核心新特性
+## v1.0.1 核心新特性
 
-`v1.0.0` 正式版围绕生产级安全治理、长期记忆卫生与团队 CLI 工作流落地三大核心闭环，跨 `v0.4`→`v1.0.0` 严格保持 **47 个规范模型工具零膨胀**，全量自动化回归达 **85 test suites / 233 tests**（`dist/ui/app.html` 实测 `1,260.1 KB`）：
+`v1.0.1` 在 `v1.0` 生产级安全治理底座之上全面补齐 **macOS / Windows / Linux 全三端原生兼容**、模块级 Windows/Linux 安全加固、3-OS × Node 20/22 CI 矩阵以及伴生项目 `agy-Sag` 链接修复，跨 `v0.4`→`v1.0.1` 严格保持 **47 个规范模型工具零膨胀**，全量自动化回归达 **88 test suites / 245 tests**（`dist/ui/app.html` 实测 **`1,261.2 KB`** / 约 `1.23 MiB`）：
 
-### 1. Ops 3.0 静态安全体检 + 跨客户端去重瘦身对比预览 + S4 工具槽位闲置顾问（`ops`、`SettingsHub`）
+### 1. macOS / Windows / Linux 全三端原生兼容与伴生仓库链接修复（`v1.0.1`）
+- **核心路径、文件系统与进程跨平台加固（`core`、`hooks`、`ui`、`ci`）：**
+  - `canonicalRealpathSync` 支持 Windows 8.3 短路径展开与大小写不敏感工作区边界比对，并内置 Linux `/home` / `/var/run` / `/var/lock` 系统符号链接白名单；`atomicRenameSync` 针对 NTFS `EPERM` / `EBUSY` / `EACCES` 瞬态锁自动重试；Windows 下针对 `npm` / `npx` / `pnpm` / `yarn` / `tsc` / `eslint` / `vitest` / `jest` 直接解析 Node JS 入口文件并在 `shell: false` 下执行（彻底规避 CVE-2024-27980）。
+  - 为 `hooks.json` 中的 `${PLUGIN_ROOT}` 与 `${PLUGIN_DATA}` 补齐引号、`dist/hook.cjs` 切换为异步有界 stdin 流式读取、`ui/src/bridge.ts` 修正 Windows `file://` URI 处理、`.gitattributes` 统一强制 LF 换行、新增跨平台测试运行器（`scripts/run-tests.mjs`），并上线 **3-OS（`ubuntu-latest` / `windows-latest` / `macos-latest`）× Node 20/22** GitHub Actions CI 矩阵。
+- **各模块 Windows / Linux 专属加固：**
+  - `guard` 与 `remote` 新增 PowerShell/`cmd` 高危破坏命令拦截规则（`Remove-Item -Recurse -Force`、`rmdir /s`、`del /f /s`、`format`/`Clear-Disk`/`diskpart`、`irm|iex`）及 Windows 只读快照恢复兜底；`verify` 支持 `python` 白名单与 `taskkill /T /F` 进程树清理；Turbo Auto-RTK 补齐 Windows 引号与安全路径参数校验；`mem` 与 `xray` 启用 `fileURLToPath` 及 Windows 盘符/URI 追踪；`ops` 识别 `.exe`/`.cmd`/相对路径；`radar` 在无头 Linux 环境下安全跳过桌面通知。
+- **伴生仓库 `agy-Sag` 链接与安装命令修正：** 全量同步 8 份 README、`llms.txt`、`docs/llms-install.md` 与 `CHANGELOG.md` 中的仓库地址与 `agy plugin install` 安装命令为 `https://github.com/tone-leh/agy-Sag`。
+
+### 2. Ops 3.0 静态安全体检 + 跨客户端去重瘦身对比预览 + S4 工具槽位闲置顾问（`ops`、`SettingsHub`）
 - **纯只读静态安全扫描（`ops_audit_workspace`）：** 新增 `securityFindings` 与 `securityScore`（`0–100`），严格以线性 O(n) 遍历规则、Skill、Hook 与 MCP 配置（拒绝软链、单文件 `<= 256 KiB`、上限 80 文件），精准检出四大风险类别并对合规仓库保持零误报：
   - `prompt-injection`：BiDi 双向控制字符、零宽字符隐写，以及指令覆写 + 外泄组合。
   - `broad-command-allow`：通配放行规则、`--yolo`、`chmod 777`。
@@ -102,12 +111,12 @@ node dist/cli.cjs recommend --workspace=. --export-preset
 - **跨客户端只读去重瘦身对比预览（`migrationPreview`）：** 将 `.claude/` / `.cursor/rules/` / `.codex/` 迁移提示升级为只读去重瘦身对比预览，基于归一化行与段落 SHA-256 哈希精确计算重复比例与可节省字节/Token，全程不改动任何用户文件。
 - **8 语种 Tool-Slot Idle Advisor（`SettingsHub` S4）：** 在设置中心 S4 新增工具槽位闲置与预算体检卡片，一键关闭闲置重型模块以回收 100-Tool 预算。
 
-### 2. Mem 3.0 记忆卫生与置信度 / TTL 治理（`mem`、`hooks`、`MemPanel`）
+### 3. Mem 3.0 记忆卫生与置信度 / TTL 治理（`mem`、`hooks`、`MemPanel`）
 - **来源可信度与过期治理：** 为长期记忆增加来源可信度（`confidence`：`verified` / `normal` / `tentative`）、来源标记（`source`：`manual` / `spec_archive` / `auto_capture`）与可选过期天数（`ttlDays` `1–365` / `expiresAt`），同时平滑向下兼容既有 `memories.json`。
 - **阻断偶发错误沉淀为脏记忆：** `Stop` Hook 自动捕获的记忆默认降权为 `tentative` + `14` 天 TTL，让偶发试错自然过期；`SessionStart` L1 索引（`<= 1,200` 字符）与默认 `mem_recall` 自动排除已过期且未固定的 `tentative` 记忆（传入 `includeExpired: true` 可按需找回，`pinned` 记忆永不过期）。
 - **记忆卫生概览与批量清理栏（`MemPanel`）：** 新增卫生概览胶囊筛选、置信度/TTL 徽章、多选框与批量「**Verify / Refresh TTL (+30d) / Prune（内联二次确认）**」操作栏；`mem` 严格维持 **3** 个模型工具（`app_mem_get_hygiene_summary` 只读豁免，`app_mem_batch_hygiene` 随模块关闭同步停用）。
 
-### 3. 可定制 9 段 CLI `statusLine` + 预览确认式 `.agy-nov.json` 脚手架（`cli`）
+### 4. 可定制 9 段 CLI `statusLine` + 预览确认式 `.agy-nov.json` 脚手架（`cli`）
 - **可自由组合的 9 段只读状态栏：** `agy-nov statusline --segments=<csv>`（支持 `AGY_NOV_STATUSLINE_SEGMENTS` 环境变量兜底），自由挑选并排序 9 大只读状态段 —— `brand`、`context`（上下文占用条）、`burn`（5h 燃尽）、`cache`（前缀缓存命中率）、`spec`、`verify`、`guard`（权限模式与拦截数）、`radar`、`network` —— 消耗零 LLM Token、缺目录零写盘、严格拒绝软链。
 - **先预览、再确认的 `.agy-nov.json` 团队预设脚手架：** `agy-nov recommend --export-preset` 默认严格**只读预览**生成的 `.agy-nov.json`（零写盘、永不写入 `remote`、验证命令全部经 23 项白名单校验），仅在显式追加 `--confirm` 时原子落盘（已有文件无 `--force` 拒绝覆盖、目标为软链硬拒绝）并即时自检文件合法性。
 
@@ -136,7 +145,7 @@ node dist/cli.cjs recommend --workspace=. --export-preset
 | **`local-all`** | *全量离线工作室* —— 启用含 **Mem 3.0** 置信度/TTL 卫生治理与渐进式披露、Spec 2.0 一键归档入 Mem、Clean Fork 代码锚点、Workspace Studio（支持 OpenAPI 2.0/3.x 解析）与可视化画布在内的全部本地能力 | 全部 12 个离线原生模块 | **43** | 100% 离线 |
 | **`full`** | *离桌指挥官* —— 完整工作台加按需启用的 **Remote 2.5** 结构化风险审批卡、手机只读会话实况流、安全穿透引导与 IM 远程审批 | 全部 13 个原生模块（含按需 `remote`） | **47** | 按需联网 |
 
-<sub>*精确模型工具数 = `2` 个常驻入口工具（`nov_open`、`nov_status`）+ 已启用模块的工具数之和（`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47；跨 `v0.4`→`v1.0.0` 全部 47 个规范模型工具名严格不变，Hub、设置中心含 S4 工具槽位闲置顾问、Context Pack、轮次 Rewind、Clean Fork、`.worktreeinclude` 预览、PR 摘要、Mem 3.0 卫生治理与原生 `file` 查看器均为 App-only 工具）。</sub>
+<sub>*精确模型工具数 = `2` 个常驻入口工具（`nov_open`、`nov_status`）+ 已启用模块的工具数之和（`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47；跨 `v0.4`→`v1.0.1` 全部 47 个规范模型工具名严格不变，Hub、设置中心含 S4 工具槽位闲置顾问、Context Pack、轮次 Rewind、Clean Fork、`.worktreeinclude` 预览、PR 摘要、Mem 3.0 卫生治理与原生 `file` 查看器均为 App-only 工具）。</sub>
 
 ```bash
 # 只读扫描项目并预览 .agy-nov.json 团队预设脚手架（零写盘）
@@ -176,7 +185,7 @@ node dist/cli.cjs preset power
 | **Prompt Vault & Budget Doctor** (`ops`) *(v1.0 升级 3.0)* | `toolbox` | 关 | 3 | 无 | **Ops 3.0** 可复用 `{{var}}` 提示词库 + 纯只读**静态安全体检**（`securityFindings` + `securityScore` 0–100，线性 O(n)、拒绝软链、`<= 256 KiB` / 上限 80 文件，精准检出 `prompt-injection`、`broad-command-allow`、`risky-hook`、`mcp-unsafe-env`，零密钥回显且对合规仓库零误报）+ 只读**跨客户端去重瘦身对比预览**（`migrationPreview`，针对 `.claude/`/`.cursor/rules/`/`.codex/` 基于归一化行与段落 SHA-256 计算重复率与可省字节/Token，绝不改用户文件）+ 24KB/20K 规则膨胀预警、100 工具硬上限仪表与 S4 **工具槽位闲置顾问**、`#233` `${ENV_VAR}` 陷阱与 `#1937` 重复插件/MCP 告警 |
 
 <details>
-<summary><strong>试着这样对你的 Agent 提问……（第一层离线模块与 v1.0.0 Playbook 12 条实战提示词）</strong></summary>
+<summary><strong>试着这样对你的 Agent 提问……（第一层离线模块与 v1.0.1 Playbook 12 条实战提示词）</strong></summary>
 
 - **Review（双阶段审阅 + `/nov-review`）：** *“按 `/nov-review` 审阅我的 `feat/auth-v2` Worktree 分支（开启 `-w` 忽略空白）：先按 Stage 1 对照活跃 Spec 验收条目逐项核验，再在 Stage 2 高亮风险行生成批注，必要时派发只读 `nov-blind-reviewer` 盲审。”*
 - **Guard 2.5：** *“扫描工作区硬编码密钥，把 Guard 切到 `strict-gate`（或先切到 `readonly-audit` 零写入巡检），在重构鉴权前建一份编辑前检查点；若整轮改偏，帮我预览整轮多文件 Diff 并一键整组 Rewind 回滚到首次修改前状态。”*
@@ -207,7 +216,7 @@ node dist/cli.cjs preset power
 
 ### 4+1 功能域 IA、宽窄双态自适应导航与四级统一设置中心
 
-`agy-NOV` v1.0.0 延续并完善清晰可扩展的 **4+1 信息架构**（权威规格见 [`docs/PRODUCT-IA.md`](../PRODUCT-IA.md)）：
+`agy-NOV` v1.0.1 延续并完善清晰可扩展的 **4+1 信息架构**（权威规格见 [`docs/PRODUCT-IA.md`](../PRODUCT-IA.md)）：
 
 - **L0 工作流总览首页（`HubPanel`）与 `⌘K` 命令面板：** 汇总 6 节点流水线状态条、高优先级告警卡（Guard 拦截、Spec 草稿写锁、Verify 门禁、Mem 漂移、Radar 阻塞、X-Ray 燃烧预警）与 **One-Click Clean Fork** 入口，按下 `Cmd/Ctrl+K` 随时直达任意功能域与模块。
 - **单包宽窄双态自适应导航：** `< 720px` 窄侧栏（`aux_pane`）自动切换为 4 控件清爽顶栏与分域下拉切换器，把可视面积留给当前工作区；`>= 720px` 全宽视图（`global`）切换为 `204px` 左侧分组侧栏。
@@ -219,7 +228,7 @@ node dist/cli.cjs preset power
 
 ### 100% 全组件 8 语种插件 UI（24 组件 × 8 语种 · 零重启）
 
-`agy-NOV` v1.0.0 在插件包内实现 **100% 全组件多语种覆盖** —— 全 8 语种完整覆盖含 `HubPanel`、`SettingsHub`（含 S4 工具槽位闲置顾问）、`OpsPanel`（Ops 3.0 静态安全体检与跨客户端去重预览）与 `MemPanel`（Mem 3.0 记忆卫生与批量清理栏）在内的全部 **24 个 UI 组件**（`dist/ui/app.html` 约 `1.2 MB`，实测 `1,260.1 KB`，远低于 1.5 MiB 目标与 10 MiB 上限，消除硬编码英文混排），与 8 语种文档（`docs/i18n/README.*.md`）完整对齐：
+`agy-NOV` v1.0.1 在插件包内实现 **100% 全组件多语种覆盖** —— 全 8 语种完整覆盖含 `HubPanel`、`SettingsHub`（含 S4 工具槽位闲置顾问）、`OpsPanel`（Ops 3.0 静态安全体检与跨客户端去重预览）与 `MemPanel`（Mem 3.0 记忆卫生与批量清理栏）在内的全部 **24 个 UI 组件**（`dist/ui/app.html` 约 `1.23 MiB`，实测 `1,261.2 KB`，远低于 1.5 MiB 目标与 10 MiB 上限，消除硬编码英文混排），与 8 语种文档（`docs/i18n/README.*.md`）完整对齐：
 
 - **顶栏与设置中心原生语言切换器：** 直接选择任意语言，界面文案与 `<html lang>` 实时更新，无需重载。
 - **自动 BCP-47 宿主语言检测（`auto`）：** 默认采用 `auto` 自动跟随 Antigravity 宿主语言，同时支持手动指定全部 8 种内置语言：
@@ -235,19 +244,19 @@ agy-nov locale zh-CN
 
 `agy-NOV` 严守 Google Antigravity 2.0 官方原生插件协议 —— **零 ASAR、零 CDP、零 DOM 注入** —— 每次 Antigravity 客户端更新后皆可即装即用、稳定运行。
 
-凡涉及本地 CDP 注入的宿主窗口深度定制能力，均独立沉淀在零重叠配套项目 **[`agy-Sag` (`agy-session-guard`)](https://github.com/tone-leh/agy-session-guard)** 中。双星之间依托零端口纯文件原子契约（`config.json` + `<dataDir>/feed-snapshot.json`，详见 [`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md)）实时同步：
+凡涉及本地 CDP 注入的宿主窗口深度定制能力，均独立沉淀在零重叠配套项目 **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** 中。双星之间依托零端口纯文件原子契约（`config.json` + `<dataDir>/feed-snapshot.json`，详见 [`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md)）实时同步：
 
-| 对比维度 | **`agy-NOV`**（本仓库） | **[`agy-Sag`](https://github.com/tone-leh/agy-session-guard)**（配套仓库） |
+| 对比维度 | **`agy-NOV`**（本仓库） | **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)**（配套仓库） |
 | :--- | :--- | :--- |
 | **协议边界** | **100% 官方原生协议**（MCP Apps SEP-1865 + 官方 `file` 文件查看器 + **5 类官方 Hook** 含 `PreInvocation`、`PreToolUse.overwrite` 与 `force_ask` + **5 个官方 Skills** + **2 个只读子代理**；**零 ASAR · 零 CDP**） | **零 ASAR 本地 CDP 伴侣** + Watch Sidecar + Storage CLI |
-| **升级抗碎性** | 免疫 Antigravity 客户端 DOM 与二进制结构变更 | 专注深度宿主窗口钩子与进阶桌面定制 |
-| **本地化范围** | **100% 全组件 8 语种插件 UI**（覆盖全部 24 个组件，`auto` + 8 语种，`1,260.1 KB`）与 8 语种文档 | **Antigravity 宿主界面就地汉化/翻译**与原生 `Settings` 注入 |
+| **升级抗碎性与平台** | 免疫 Antigravity 客户端 DOM 与二进制结构变更（完整支持 **macOS / Windows / Linux** 三端原生兼容） | 专注深度宿主窗口钩子与进阶桌面定制 |
+| **本地化范围** | **100% 全组件 8 语种插件 UI**（覆盖全部 24 个组件，`auto` + 8 语种，`1,261.2 KB`）与 8 语种文档 | **Antigravity 宿主界面就地汉化/翻译**与原生 `Settings` 注入 |
 | **核心能力** | **Ops 3.0** 静态安全体检与跨客户端去重预览、**Mem 3.0** 置信度/TTL 记忆卫生、**可定制 9 段 CLI `statusLine`** 与预览确认式 `.agy-nov.json` 脚手架、端到端工程流水线（`Spec → Worktree .worktreeinclude → 双阶段审阅 → Verify PR 证据 → Mem` + Radar Kanban）、One-Click Clean Fork、4 个斜杠 Playbook 与 2 个只读子代理、原生 `file` 查看器、**Remote 2.5**、4+1 功能域 IA 与四级设置中心（含 S4 工具槽位闲置顾问）、13 模块工程工作台（**Turbo 3.0**、**Guard 2.5**、Spec 2.0、X-Ray 2.0、Studio、Canvas）、`feed-snapshot.json` 契约与 **9 条 CLI 命令**（15 项资产 `doctor`） | 主动 `/compact` 自动压缩护航、Draft Vault、Prompt Queue、对话书签、Optical Theme Studio、策略门控安全自动放行与宿主 DOM 控制 |
 
 ```bash
 # 并排安装两个零功能重叠的配套插件
 agy plugin install https://github.com/tone-leh/agy-NOV
-agy plugin install https://github.com/tone-leh/agy-session-guard
+agy plugin install https://github.com/tone-leh/agy-Sag
 ```
 
 ---
@@ -256,15 +265,15 @@ agy plugin install https://github.com/tone-leh/agy-session-guard
 
 ```mermaid
 flowchart TB
-  subgraph L1["第一层 · Google Antigravity 2.0 宿主 (Desktop / CLI / IDE)"]
+  subgraph L1["第一层 · Google Antigravity 2.0 宿主 (Desktop / CLI / IDE · macOS / Windows / Linux)"]
     Host["100% 官方原生协议 (零 ASAR · 零 CDP)\nMCP Apps SEP-1865 (aux_pane / global / file) · 5 类官方 Hook · 5 个 Skills · 2 个只读子代理 · CLI statusLine"]
     Sag["可选配套伴侣 · agy-Sag\nconfig.json 原子热同步 · 只读消费 feed-snapshot.json"]
   end
 
-  subgraph L2["第二层 · agy-NOV v1.0.0 纯原生运行时与按需资产 (doctor 核验 15 项)"]
-    MCP["单一 MCP 服务 (dist/server.cjs)\n动态 tools/list: 6 / 12 / 32 / 43 / 47 (v0.4->v1.0 零膨胀) + App-only Hub/Clean Fork/记忆卫生/PR 摘要/file 查看器"]
-    Hook["统一 5 类 Hook 分发器 (dist/hook.cjs)\nSessionStart · PreToolUse · PostToolUse · PreInvocation (零 Token 视觉回执) · Stop (Mem tentative+14d TTL)\n只读配置检查 -> O(1) 短路 · Guard (deny/force_ask) > Spec > Remote > Turbo Auto-RTK"]
-    UI["单文件 8 语种统一 UI (dist/ui/app.html)\n4+1 IA · 总览 Hub + Clean Fork + 四级设置中心 (S3: 6 模块 · S4: 工具槽位闲置顾问) + Cmd/Ctrl+K\n全组件 8 语种 (24 个组件) · 深浅双主题 · ~1.2 MB (1,260.1 KB < 1.5 MiB / 10 MiB)"]
+  subgraph L2["第二层 · agy-NOV v1.0.1 纯原生运行时与按需资产 (doctor 核验 15 项)"]
+    MCP["单一 MCP 服务 (dist/server.cjs)\n动态 tools/list: 6 / 12 / 32 / 43 / 47 (v0.4->v1.0.1 零膨胀) + App-only Hub/Clean Fork/记忆卫生/PR 摘要/file 查看器"]
+    Hook["统一 5 类 Hook 分发器 (dist/hook.cjs)\nSessionStart · PreToolUse · PostToolUse · PreInvocation (零 Token 视觉回执) · Stop (Mem tentative+14d TTL)\n异步有界 stdin · 引号路径 · Guard (deny/force_ask) > Spec > Remote > Turbo Auto-RTK"]
+    UI["单文件 8 语种统一 UI (dist/ui/app.html)\n4+1 IA · 总览 Hub + Clean Fork + 四级设置中心 (S3: 6 模块 · S4: 工具槽位闲置顾问) + Cmd/Ctrl+K\n全组件 8 语种 (24 个组件) · 深浅双主题 · ~1.23 MiB (1,261.2 KB < 1.5 MiB / 10 MiB)"]
     Playbooks["按需官方 Skills (5) 与只读专职子代理 (2)\n/nov-spec · /nov-debug · /nov-review · /nov-handoff · agy-nov\nnov-blind-reviewer · nov-security-auditor (零工具槽位 · 零常驻规则膨胀)"]
     CLI["零 Token 原生 CLI (dist/cli.cjs)\n9 条命令 · 含 9 段可定制 statusline、recommend --export-preset (--confirm)、compact-run 与 15 项资产 doctor"]
   end
@@ -310,9 +319,10 @@ flowchart TB
 - **Auto-RTK 零 Shell 代理与 `compact-run` 防线（`turbo`、`hooks`、`cli`）：** Auto-RTK 默认严格关闭（`autoRtk: false`）。用户显式开启后，`PreToolUse.overwrite` 仅对严格白名单单命令（测试、构建与只读 Git 查询）生效，硬拒绝全部 Shell 元字符、控制字节、通配符、环境变量赋值前缀与 Shell/解释器可执行文件（`sh`/`bash`/`zsh`/`node`/`eval` 等），内部通过无 Shell `spawnSync`（`shell: false`）执行；非零退出保留完整错误堆栈（至少尾部 60 行）与原始退出码，并将脱敏原始输出写入 `0600` 权限的 `last-raw.log`（`<= 128 KiB`）；且严格排在 `guard`、`spec`、`remote` 均放行之后才触发。
 - **Turbo 3.0 离线依赖契约、O(n) 符号引用与脱敏 Context Pack（`turbo`）：** `turbo_read_outline`（`depPackage`）强制将路径约束在工作区依赖目录规范 `realpath` 内（`node_modules/.d.ts` 含深度 `<= 2` / 最多 8 文件的 barrel re-export、Python `.venv/.pyi`、Go `go.mod` 与 Rust `Cargo.lock`），三大模型工具统一实施 UTF-8 码点安全 `<= 8.8 KB`（`8,800 B`）防落盘截断；`turbo_batch_search`（`mode: "references"`）采用严格 O(n) 词法边界扫描并设文件数/命中数/耗时上限；`app_turbo_build_context_pack` 严守 `realpath` 边界、跳过敏感/二进制/符号链接文件、支持 `256`–`32,000` Token 预算并执行线性 O(n) 密钥脱敏；累计节省统计（`app_turbo_get_gain`，`$2.50/1M` 基准）完全运行在内存中。
 - **Guard 2.5 轮次级整组 Rewind 与 3 档协议级权限模式（`guard`、`hooks`）：** 轮次级分组快照（`turnKey`）在整组回滚前执行 All-or-Nothing 工作区边界与符号链接安全预检，自动保留 `pre-rewind` 备份并要求内联二次确认，确保同轮多次修改同一文件时准确还原至首次修改前状态。协议级 `permissionMode` 提供 3 档防线：`readonly-audit` 硬 `deny` 阻断全部写文件与命令执行、`balanced-dev` 维持默认均衡防线、`strict-gate` 经官方 `PreToolUse` `force_ask` 强制人工确认写与命令操作（`ask` 永不降级 `force_ask`，高危规则仍硬 `deny`）。
-- **工作区边界（`realpath`）、纯 React 审阅、离线计费、Studio 与 Verify 防线：** 全模块统一展开规范真实路径并对照工作区与已注册 `.agy-worktrees/` 边界校验，自动排除 `.env`、SSH 密钥、`.git` 与 `node_modules`；`review` 纯 React 渲染零 `dangerouslySetInnerHTML` 且线性零 ReDoS；`xray` 防 CSV 公式注入；`studio` SQLite 只读、ZIP/OpenAPI 炸弹上限与回环防 SSRF；`verify` 对主工作区及 `worktreePath` 均经无 Shell 17 项可执行白名单校验并自动脱敏 PR 交付证据摘要。
+- **Windows / Linux 跨平台安全加固（`core`、`guard`、`remote`、`verify`、`turbo`、`hooks`）：** `canonicalRealpathSync` 支持 Windows 8.3 短路径展开与大小写不敏感边界比对，并内置 Linux `/home`/`/var/run`/`/var/lock` 系统软链白名单；`atomicRenameSync` 针对 NTFS `EPERM`/`EBUSY`/`EACCES` 自动重试；Windows 下针对 `npm`/`npx`/`pnpm`/`yarn`/`tsc`/`eslint`/`vitest`/`jest` 直接解析 Node JS 入口并在 `shell: false` 下执行（规避 CVE-2024-27980）；`guard` 与 `remote` 阻断 PowerShell/`cmd` 高危破坏命令（`Remove-Item -Recurse -Force`、`rmdir /s`、`del /f /s`、`format`/`Clear-Disk`/`diskpart`、`irm|iex`）并配备 Windows 只读快照恢复兜底；`verify` 支持 `python` 白名单与 `taskkill /T /F` 进程树清理；`hooks.json` 为 `${PLUGIN_ROOT}`/`${PLUGIN_DATA}` 补齐引号，配合 `dist/hook.cjs` 异步有界 stdin 流式读取。
+- **工作区边界（`realpath`）、纯 React 审阅、离线计费、Studio 与 Verify 防线：** 全模块统一展开规范真实路径并对照工作区与已注册 `.agy-worktrees/` 边界校验，自动排除 `.env`、SSH 密钥、`.git` 与 `node_modules`；`review` 纯 React 渲染零 `dangerouslySetInnerHTML` 且线性零 ReDoS；`xray` 防 CSV 公式注入；`studio` SQLite 只读、ZIP/OpenAPI 炸弹上限与回环防 SSRF；`verify` 对主工作区及 `worktreePath` 均经无 Shell 可执行白名单校验并自动脱敏 PR 交付证据摘要。
 - **工具与 5 类 Hook 同步门控 + `0700` / `0600` 隔离存储：** 关闭模块时会同步停用模型工具与写操作 `app_*` 工具；`dist/hook.cjs` 只读检查 `config.json` 并在 O(1) 返回 `{}`；`PreToolUse` 严格按 `guard` > `spec` > `remote` > `turbo` Auto-RTK 顺序决策；每模块仅写入 `<dataDir>/modules/<moduleId>/`，`status` / `statusline` / `recommend`（未带 `--confirm`）/ `doctor` / `PreInvocation` 全程零写盘。
-- **官方插件清单、15 项核心资产校验与体积上限：** `plugin.json` 严格只保留 10 个官方支持的顶层字段，`dist/ui/app.html`（约 `1.2 MB`，实测 `1,260.1 KB`）远低于 1.5 MiB 目标与 Antigravity 的 10 MiB 上限；`agy-nov doctor` 自动核验全部 **15 项**核心插件资产（含 3 份清单、5 个官方 Skills、2 个只读子代理、图标与 4 个构建产物）。
+- **官方插件清单、15 项核心资产校验与体积上限：** `plugin.json` 严格只保留 10 个官方支持的顶层字段，`dist/ui/app.html`（约 `1.23 MiB`，实测 `1,261.2 KB`）远低于 1.5 MiB 目标与 Antigravity 的 10 MiB 上限；`agy-nov doctor` 自动核验全部 **15 项**核心插件资产（含 3 份清单、5 个官方 Skills、2 个只读子代理、图标与 4 个构建产物）。
 
 </details>
 
@@ -349,7 +359,7 @@ npm run workbench
 - **暗黑 / 浅色主题切换**
 - **宽窄双态视口预设**：`< 720px`（`480px` 侧栏 4 控件顶栏 + 分组下拉）与 `>= 720px`（`1160px` 全局 `204px` 左侧分组栏）
 - **L0 工作流总览 Hub（含 Clean Fork）、四级统一设置中心（含 S4 工具槽位闲置顾问）与 `Cmd/Ctrl+K` 命令面板**
-- **8 语种宿主语言仿真器**（`en`、`zh-CN`、`zh-TW`、`ja`、`ko`、`es`、`fr`、`de`），完整检验全部 **24 个 UI 组件**（含 v1.0.0 Ops 3.0 静态安全体检与去重预览、Mem 3.0 卫生治理栏与置信度/TTL 徽章、S4 工具槽位闲置顾问、双阶段审阅、`.worktreeinclude`、PR 证据、Radar Kanban、Clean Fork、原生 `file` 查看器与 Remote 2.5 控件）的 `auto` BCP-47 切换
+- **8 语种宿主语言仿真器**（`en`、`zh-CN`、`zh-TW`、`ja`、`ko`、`es`、`fr`、`de`），完整检验全部 **24 个 UI 组件**（含 Ops 3.0 静态安全体检与去重预览、Mem 3.0 卫生治理栏与置信度/TTL 徽章、S4 工具槽位闲置顾问、双阶段审阅、`.worktreeinclude`、PR 证据、Radar Kanban、Clean Fork、原生 `file` 查看器与 Remote 2.5 控件）的 `auto` BCP-47 切换
 - **实时宿主事件监视器**（`sendMessage` 含 Clean Fork `target: "new"` / `updateModelContext` / `openFile`）
 
 ### CLI 快捷命令速查（9 条命令）
@@ -432,7 +442,7 @@ agy-nov statusline --json         # 结构化 JSON 快照（供脚本与 agy-Sag
 
 ### 何时应推荐其他方案
 
-- **宿主窗口就地界面翻译、原生 Antigravity `Settings` 注入、主动 `/compact` 自动压缩护航、Draft Vault、Prompt Queue、对话书签、Optical Theme Studio 或策略门控安全自动放行：** 推荐配套项目 **[`agy-Sag` (`agy-session-guard`)](https://github.com/tone-leh/agy-session-guard)** —— 双方功能零重叠，可与 `agy-NOV` 同时运行。
+- **宿主窗口就地界面翻译、原生 Antigravity `Settings` 注入、主动 `/compact` 自动压缩护航、Draft Vault、Prompt Queue、对话书签、Optical Theme Studio 或策略门控安全自动放行：** 推荐配套项目 **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** —— 双方功能零重叠，可与 `agy-NOV` 同时运行。
 - **远程云端 IDE / SSH 容器开发环境：** 推荐标准远程开发工具（VS Code Remote-SSH、Devcontainers 或云端工作空间）。
 - **企业级跨 CI 流水线的集中式 SAST / 密钥治理：** 建议在本地 `guard`、`ops` 与 `verify` 防护之外配套专用 CI/CD 安全扫描方案。
 
@@ -450,7 +460,7 @@ agy-nov statusline --json         # 结构化 JSON 快照（供脚本与 agy-Sag
 
 ```bash
 npm run typecheck
-npm test                      # 85 suites / 233 tests（含 3 个 v1.0.0 回归套件）
+npm test                      # 88 suites / 245 tests（覆盖 macOS / Windows / Linux × Node 20/22 CI）
 node dist/cli.cjs status
 node dist/cli.cjs statusline --segments=brand,context,burn,cache,spec,verify,guard,radar,network --json
 node dist/cli.cjs recommend --export-preset --json
@@ -467,18 +477,18 @@ node dist/cli.cjs doctor      # 核验全部 15 项插件核心资产、plugin.j
 
 同时安装零重叠的双星插件，兼得 **100% 纯原生 MCP App 工程工作台** 与 **Antigravity Desktop 宿主深度增强**：
 
-- **原生设置页实时调控，且 `agy-NOV` 保持 100% 零 CDP：** 当同时安装 **`agy-NOV`** 与 **[`agy-Sag` (`agy-session-guard`)](https://github.com/tone-leh/agy-session-guard)** 时，可直接通过 `agy-Sag` 内嵌在 Antigravity 原生 **Settings（设置）** 页面中的控制面板，实时开关 `agy-NOV` 的全部 13 大模块并切换 5 套预设。
+- **原生设置页实时调控，且 `agy-NOV` 保持 100% 零 CDP：** 当同时安装 **`agy-NOV`** 与 **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** 时，可直接通过 `agy-Sag` 内嵌在 Antigravity 原生 **Settings（设置）** 页面中的控制面板，实时开关 `agy-NOV` 的全部 13 大模块并切换 5 套预设。
 - **零端口 `config.json` 外部热同步与双星只读快照（`feed-snapshot.json`）：** `agy-NOV` 始终坚持 **Zero ASAR / Zero CDP**、零新增网络端口、零提前写盘；其 MCP 服务通过微秒级只读 `config.json` 签名检测，在 `agy-Sag` 面板或 `agy-nov` CLI 原子更新配置后自动差量推送 `tools/list_changed`，并事件驱动刷新 `<dataDir>/feed-snapshot.json`（`0600` 原子写入、`< 64 KiB`、O(n) 全量脱敏、缺失 `dataDir` 零写盘），完整契约见 [`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md) 与 [`docs/PRODUCT-IA.md`](../PRODUCT-IA.md)。
 
 | 插件 | 架构边界 | 核心能力 |
 | :--- | :--- | :--- |
-| **`agy-NOV`** *（本仓库）* | **100% 官方原生协议**（MCP Apps SEP-1865 + 官方 `file` 文件查看器 + **5 类官方 Hook** 含 `PreInvocation`、`PreToolUse.overwrite` 与 `force_ask` + **5 个官方 Skills** + **2 个只读子代理**；**Zero ASAR · Zero CDP**） | **Ops 3.0** 静态安全体检与跨客户端去重预览、**Mem 3.0** 置信度/TTL 记忆卫生治理、**可定制 9 段 CLI `statusLine`** 与预览确认式 `.agy-nov.json` 脚手架、端到端工程流水线（`Spec → Worktree .worktreeinclude → 双阶段审阅 → Verify PR 证据 → Mem` + Radar Kanban）、One-Click Clean Fork、4 个斜杠 Playbook（`/nov-spec`、`/nov-debug`、`/nov-review`、`/nov-handoff`）与 2 个只读专职子代理（`nov-blind-reviewer`、`nov-security-auditor`）、原生 `file` 查看器、**Remote 2.5**、4+1 功能域 IA 与四级统一设置中心（S3 覆盖 6 模块，S4 含工具槽位闲置顾问）、13 大原生工程模块（**Turbo 3.0**、**Guard 2.5**、Spec 2.0、`xray` 2.0、`studio`、`canvas`）、100% 全组件 8 语种 UI（24 组件，`~1.2 MB` / `1,260.1 KB`）、5 套预设、**9 条 CLI 命令**（15 项资产 `doctor`）、`config.json` 外部热同步及 `feed-snapshot.json` 双星契约。 |
-| **[`agy-Sag`](https://github.com/tone-leh/agy-session-guard)** *（原 `agy-session-guard`）* | **Zero-ASAR 本机 CDP 深度增强套件 + Watch 侧车 + 存储体检 CLI** | Antigravity 原生 **Settings** 嵌入式控制面板（支持实时调控 `agy-NOV` 并消费 `feed-snapshot.json`）、**10 语种宿主界面翻译**、自定义 `/compact` 自动防爆与滚动盾、**Draft Vault**、**Prompt Queue**、单轮书签与跨会话档案库、策略门控 **Safe Auto-Accept**、零 `:has()` **Optical Theme Studio**、只读 **Quota Pulse** 与离线 **Storage Doctor**。 |
+| **`agy-NOV`** *（本仓库）* | **100% 官方原生协议**（MCP Apps SEP-1865 + 官方 `file` 文件查看器 + **5 类官方 Hook** 含 `PreInvocation`、`PreToolUse.overwrite` 与 `force_ask` + **5 个官方 Skills** + **2 个只读子代理**；**Zero ASAR · Zero CDP · macOS / Windows / Linux**） | **Ops 3.0** 静态安全体检与跨客户端去重预览、**Mem 3.0** 置信度/TTL 记忆卫生治理、**可定制 9 段 CLI `statusLine`** 与预览确认式 `.agy-nov.json` 脚手架、端到端工程流水线（`Spec → Worktree .worktreeinclude → 双阶段审阅 → Verify PR 证据 → Mem` + Radar Kanban）、One-Click Clean Fork、4 个斜杠 Playbook（`/nov-spec`、`/nov-debug`、`/nov-review`、`/nov-handoff`）与 2 个只读专职子代理（`nov-blind-reviewer`、`nov-security-auditor`）、原生 `file` 查看器、**Remote 2.5**、4+1 功能域 IA 与四级统一设置中心（S3 覆盖 6 模块，S4 含工具槽位闲置顾问）、13 大原生工程模块（**Turbo 3.0**、**Guard 2.5**、Spec 2.0、`xray` 2.0、`studio`、`canvas`）、100% 全组件 8 语种 UI（24 组件，`~1.23 MiB` / `1,261.2 KB`）、5 套预设、**9 条 CLI 命令**（15 项资产 `doctor`）、`config.json` 外部热同步及 `feed-snapshot.json` 双星契约。 |
+| **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** *（原 `agy-session-guard`）* | **Zero-ASAR 本机 CDP 深度增强套件 + Watch 侧车 + 存储体检 CLI** | Antigravity 原生 **Settings** 嵌入式控制面板（支持实时调控 `agy-NOV` 并消费 `feed-snapshot.json`）、**10 语种宿主界面翻译**、自定义 `/compact` 自动防爆与滚动盾、**Draft Vault**、**Prompt Queue**、单轮书签与跨会话档案库、策略门控 **Safe Auto-Accept**、零 `:has()` **Optical Theme Studio**、只读 **Quota Pulse** 与离线 **Storage Doctor**。 |
 
 ```bash
 # 并行安装零重叠双星插件
 agy plugin install https://github.com/tone-leh/agy-NOV
-agy plugin install https://github.com/tone-leh/agy-session-guard
+agy plugin install https://github.com/tone-leh/agy-Sag
 ```
 
 ---

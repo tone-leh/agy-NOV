@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { canonicalRealpathSync, isPathInsideDir } from '../../core/utils.js';
 import {
   isSensitiveTurboPath,
   resolveInsideWorkspaceReal,
@@ -316,8 +317,7 @@ export function findSymbolReferences(
     throw new Error('Invalid workspace root path');
   }
 
-  const realRoot = fs.realpathSync(path.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
+  const realRoot = canonicalRealpathSync(path.resolve(workspaceRoot));
 
   let searchRoot = realRoot;
   let scope = '.';
@@ -366,7 +366,7 @@ export function findSymbolReferences(
   let truncated = false;
 
   const isInsideRealRoot = (candidate: string): boolean =>
-    candidate === realRoot || candidate.startsWith(rootPrefix);
+    isPathInsideDir(realRoot, candidate);
 
   const scanFile = (filePath: string, relPath: string): void => {
     if (scannedFiles >= maxFiles || totalHits >= maxHits || Date.now() - startedAt > maxElapsedMs) {
@@ -379,7 +379,7 @@ export function findSymbolReferences(
     try {
       const lst = fs.lstatSync(filePath);
       if (lst.isSymbolicLink() || !lst.isFile()) return;
-      const realFile = fs.realpathSync(filePath);
+      const realFile = canonicalRealpathSync(filePath);
       if (!isInsideRealRoot(realFile)) return;
       const realRel = path.relative(realRoot, realFile).replace(/\\/g, '/');
       if (isSensitiveTurboPath(realRel)) return;
@@ -491,7 +491,7 @@ export function findSymbolReferences(
         if (entry.isDirectory()) {
           if (SKIP_DIRS.has(entry.name) || isSensitiveTurboPath(rawRel)) continue;
           try {
-            const realSub = fs.realpathSync(fullPath);
+            const realSub = canonicalRealpathSync(fullPath);
             if (!isInsideRealRoot(realSub)) continue;
             const realSubRel = path.relative(realRoot, realSub).replace(/\\/g, '/');
             if (isSensitiveTurboPath(realSubRel)) continue;

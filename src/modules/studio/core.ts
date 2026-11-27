@@ -3,6 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import {
+  canonicalRealpathSync,
+  isPathInsideDir,
+  isSamePath,
+} from '../../core/utils.js';
+import {
   createDemoOpenApiSpec,
   isLikelyOpenApiDocument,
   OPENAPI_MAX_FILE_BYTES,
@@ -454,7 +459,7 @@ export function resolveStudioWorkspaceFile(
     throw new Error('Invalid file path');
   }
 
-  const realRoot = fs.realpathSync(path.resolve(workspaceRoot));
+  const realRoot = canonicalRealpathSync(path.resolve(workspaceRoot));
   const cleanedTarget = targetPath.trim();
   const candidate = path.isAbsolute(cleanedTarget)
     ? path.resolve(cleanedTarget)
@@ -471,13 +476,12 @@ export function resolveStudioWorkspaceFile(
 
   let realTarget: string;
   try {
-    realTarget = fs.realpathSync(candidate);
+    realTarget = canonicalRealpathSync(candidate);
   } catch {
     throw new Error(`File does not exist or cannot be resolved: ${cleanedTarget}`);
   }
 
-  const prefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
-  if (realTarget === realRoot || !realTarget.startsWith(prefix)) {
+  if (isSamePath(realRoot, realTarget) || !isPathInsideDir(realRoot, realTarget)) {
     throw new Error(`Path escapes workspace boundary: ${cleanedTarget}`);
   }
 
@@ -594,10 +598,9 @@ export function listStudioSources(
   opts: { category?: StudioSourceFilterCategory } = {},
 ): StudioSourcesResult {
   const category = opts.category ?? 'all';
-  const realRoot = fs.realpathSync(path.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
+  const realRoot = canonicalRealpathSync(path.resolve(workspaceRoot));
   const isInsideRoot = (realCandidate: string): boolean =>
-    realCandidate === realRoot || realCandidate.startsWith(rootPrefix);
+    isPathInsideDir(realRoot, realCandidate);
 
   const allSources: StudioSourceItem[] = [];
   const visitedDirs = new Set<string>();
@@ -614,7 +617,7 @@ export function listStudioSources(
 
     let realDir: string;
     try {
-      realDir = fs.realpathSync(dir);
+      realDir = canonicalRealpathSync(dir);
     } catch {
       skippedSymlinks += 1;
       return;
@@ -658,7 +661,7 @@ export function listStudioSources(
 
       if (entry.isSymbolicLink()) {
         try {
-          realFilePath = fs.realpathSync(fullPath);
+          realFilePath = canonicalRealpathSync(fullPath);
           if (!isInsideRoot(realFilePath)) {
             skippedSymlinks += 1;
             continue;
@@ -687,7 +690,7 @@ export function listStudioSources(
       if (!isFile) continue;
 
       try {
-        realFilePath = fs.realpathSync(realFilePath);
+        realFilePath = canonicalRealpathSync(realFilePath);
       } catch {
         skippedSymlinks += 1;
         continue;
@@ -1374,8 +1377,6 @@ function readSqliteHeaderMetadata(realFilePath: string): {
 const SQLITE_COMPANION_SUFFIXES = ['-wal', '-shm', '-journal'] as const;
 
 function assertSafeSqliteCompanionFiles(realRoot: string, realDbPath: string): void {
-  const rootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
-
   for (const suffix of SQLITE_COMPANION_SUFFIXES) {
     const companionPath = `${realDbPath}${suffix}`;
     let lstat: fs.Stats;
@@ -1402,14 +1403,14 @@ function assertSafeSqliteCompanionFiles(realRoot: string, realDbPath: string): v
 
     let realCompanion: string;
     try {
-      realCompanion = fs.realpathSync(companionPath);
+      realCompanion = canonicalRealpathSync(companionPath);
     } catch (err) {
       throw new Error(
         `Refused to open SQLite database: companion file "${path.basename(companionPath)}" could not be resolved: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
 
-    if (realCompanion === realRoot || !realCompanion.startsWith(rootPrefix)) {
+    if (isSamePath(realRoot, realCompanion) || !isPathInsideDir(realRoot, realCompanion)) {
       throw new Error(
         `Refused to open SQLite database: companion file "${path.basename(companionPath)}" escapes workspace boundary`,
       );

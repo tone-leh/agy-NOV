@@ -1,6 +1,6 @@
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
+import { getDefaultAntigravityBrainDirs, isSamePath } from '../../core/utils.js';
 import { buildDemoSessions } from './demo-data.js';
 import { loadPricingOverrides } from './pricing.js';
 import { parseTranscriptFile } from './transcript.js';
@@ -12,14 +12,27 @@ export interface DiscoveryOptions {
   demoMode?: boolean;
 }
 
+function inferBrainDirSource(
+  dir: string,
+  env: NodeJS.ProcessEnv = process.env,
+): SessionSummary['source'] {
+  const norm = dir.replace(/\\/g, '/').toLowerCase();
+  if (/(?:^|\/)antigravity-cli\/brain\/?$/.test(norm)) return 'cli';
+  if (/(?:^|\/)antigravity-ide\/brain\/?$/.test(norm)) return 'ide';
+  if (/(?:^|\/)(?:antigravity|\.?gemini)\/brain\/?$/.test(norm)) return 'desktop';
+  const envOverrides = [env.AGY_BRAIN_DIR, env.ANTIGRAVITY_BRAIN_DIR].filter(
+    (v): v is string => typeof v === 'string' && v.trim().length > 0,
+  );
+  if (envOverrides.some((v) => isSamePath(path.resolve(v.trim()), dir))) {
+    return 'custom';
+  }
+  return 'desktop';
+}
+
 export function getDefaultBrainDirs(): Array<{ dir: string; source: SessionSummary['source'] }> {
-  const home = os.homedir();
-  const candidates: Array<{ dir: string; source: SessionSummary['source'] }> = [
-    { dir: path.join(home, '.gemini', 'antigravity', 'brain'), source: 'desktop' },
-    { dir: path.join(home, '.gemini', 'antigravity-cli', 'brain'), source: 'cli' },
-    { dir: path.join(home, '.gemini', 'antigravity-ide', 'brain'), source: 'ide' },
-  ];
-  return candidates.filter((c) => fs.existsSync(c.dir));
+  return getDefaultAntigravityBrainDirs()
+    .filter((dir) => fs.existsSync(dir))
+    .map((dir) => ({ dir, source: inferBrainDirSource(dir) }));
 }
 
 export function readLiveHookState(dataDir?: string): LiveHookState {

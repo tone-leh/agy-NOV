@@ -2,7 +2,7 @@
   <img src="../../assets/logo.svg" width="88" height="88" alt="agy-NOV Logo" />
   <h1>agy-NOV</h1>
   <p><strong>面向 Google Antigravity 2.0 的 100% 原生模組化超級工作台。</strong></p>
-  <p><em>單一外掛，4 大功能域整合 13 大可開關核心能力：Ops 3.0 靜態安全健檢、跨用戶端去重複精簡預覽與 S4 Tool-Slot Idle Advisor、Mem 3.0 記憶衛生與信賴度／TTL 治理、可自訂 9 段 CLI <code>statusline --segments</code> 與預覽確認式 <code>.agy-nov.json</code> 鷹架，完整保留 <code>Spec → Worktree → Two-Stage Review → Verify → Mem</code> 端到端工程流水線閉環、One-Click Clean Fork、5 個官方按需 Skills 與 2 個唯讀專職子代理、MCP Apps <code>file</code> 原生檔案檢視器、Remote 2.5 結構化風險核准卡、全元件 8 語種介面與 9 指令零相依 CLI。零 ASAR、零 CDP，跨 <code>v0.4 → v1.0</code> 嚴守 47 個規範模型工具零膨脹，關閉模組即零 Token 消耗。</em></p>
+  <p><em>單一外掛，4 大功能域整合 13 大可開關核心能力：Ops 3.0 靜態安全健檢、跨用戶端去重複精簡預覽與 S4 Tool-Slot Idle Advisor、Mem 3.0 記憶衛生與信賴度／TTL 治理、可自訂 9 段 CLI <code>statusline --segments</code> 與預覽確認式 <code>.agy-nov.json</code> 鷹架，完整保留 <code>Spec → Worktree → Two-Stage Review → Verify → Mem</code> 端到端工程流水線閉環、One-Click Clean Fork、5 個官方按需 Skills 與 2 個唯讀專職子代理、MCP Apps <code>file</code> 原生檔案檢視器、Remote 2.5 結構化風險核准卡、全元件 8 語種介面與 9 指令零相依 CLI，並全面加固 macOS / Windows / Linux 全三端原生相容性。零 ASAR、零 CDP，跨 <code>v0.4 → v1.0.1</code> 嚴守 47 個規範模型工具零膨脹，關閉模組即零 Token 消耗。</em></p>
 
   <p>
     <a href="../../README.md">English</a> ·
@@ -18,7 +18,7 @@
   <p><sub>本文為英文主文件 <a href="../../README.md">README.md</a> 的繁體中文譯本；指令、模組 ID 與設定規格以英文原版為準。</sub></p>
 
   <p>
-    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/Version-v1.0.0-0284c7?style=flat-square" alt="版本: v1.0.0" /></a>
+    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v1.0.1"><img src="https://img.shields.io/badge/Version-v1.0.1-0284c7?style=flat-square" alt="版本: v1.0.1" /></a>
     <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tone-leh/agy-NOV/ci.yml?branch=main&style=flat-square&label=CI" alt="CI 狀態" /></a>
     <a href="../../LICENSE"><img src="https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square" alt="License: MIT" /></a>
     <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node-%3E%3D20-16a34a?style=flat-square" alt="Node >= 20" /></a>
@@ -29,7 +29,7 @@
   <br />
 
   <p><strong>實機工作台預覽</strong></p>
-  <img src="../../assets/demo-preview.gif" alt="agy-NOV v1.0.0 實機工作台預覽 —— Ops 3.0 靜態安全健檢與 Tool-Slot Idle Advisor、Mem 3.0 信賴度與 TTL 治理、端到端工程流水線閉環、One-Click Clean Fork、5 個官方按需 Skills 與 2 個唯讀子代理、MCP Apps file 原生檔案檢視器、Remote 2.5 結構化風險核准卡與全元件 8 語種介面" width="100%" />
+  <img src="../../assets/demo-preview.gif" alt="agy-NOV v1.0.1 實機工作台預覽 —— macOS / Windows / Linux 全三端相容加固、Ops 3.0 靜態安全健檢與 Tool-Slot Idle Advisor、Mem 3.0 信賴度與 TTL 治理、端到端工程流水線閉環、One-Click Clean Fork、5 個官方按需 Skills 與 2 個唯讀子代理、MCP Apps file 原生檔案檢視器、Remote 2.5 結構化風險核准卡與全元件 8 語種介面" width="100%" />
 
   <br />
 
@@ -46,7 +46,7 @@
 </div>
 
 > [!NOTE]
-> **獨立開源專案聲明：** `agy-NOV` (`v1.0.0`) 是面向 Google Antigravity 2.0 打造的獨立 MIT 授權社群外掛，與 Google LLC 無隸屬、贊助或背書關係。
+> **獨立開源專案聲明：** `agy-NOV` (`v1.0.1`) 是面向 Google Antigravity 2.0 打造的獨立 MIT 授權社群外掛，與 Google LLC 無隸屬、贊助或背書關係。
 
 ---
 
@@ -76,31 +76,35 @@ node dist/cli.cjs recommend --workspace=.
 | 比較維度 | ❌ 外掛堆疊（12–13 個獨立工具） | ✅ agy-NOV 超級工作台 |
 | :--- | :--- | :--- |
 | **常駐處理程序** | 12–13 個背景 Node/Python 處理程序爭搶記憶體與啟動時間 | **1 個常駐 MCP 伺服器**（`dist/server.cjs`）統一承載全部已啟用能力 |
-| **單輪 Token 稅** | 無論是否用到，每輪對話都會注入 70+ 靜態工具 Schema 並擠壓 100 工具預算 | **動態 `tools/list`** —— 關閉模組立即註銷工具（`0` Token 與工具預算佔用），跨 `v0.4 → v1.0` 嚴格維持 **47 個模型工具**零膨脹（+0 膨脹），並附帶 S4 **Tool-Slot Idle Advisor** 主動回收閒置預算 |
+| **單輪 Token 稅** | 無論是否用到，每輪對話都會注入 70+ 靜態工具 Schema 並擠壓 100 工具預算 | **動態 `tools/list`** —— 關閉模組立即註銷工具（`0` Token 與工具預算佔用），跨 `v0.4 → v1.0.1` 嚴格維持 **47 個模型工具**零膨脹（+0 膨脹），並附帶 S4 **Tool-Slot Idle Advisor** 主動回收閒置預算 |
 | **生命週期 Hook 風暴** | 每次 `SessionStart` / `PreToolUse` / `PostToolUse` / `PreInvocation` / `Stop` 觸發多個衍生 Hook 競態執行 | **1 個統一 Hook 分發器**（`dist/hook.cjs`）覆蓋全部 **5 類官方 Hook**（支援 `PreToolUse` `force_ask` 與 `overwrite`），唯讀檢查設定並 O(1) 短路 |
 | **升級抗碎性** | 二進位 `app.asar` 修補與 DOM 注入指令碼在 Antigravity 更新後失效 | **100% 官方原生協定** —— 零 ASAR、零 CDP，平滑跟隨每次用戶端更新 |
 | **資訊架構與多語體驗** | 分散的 JSON 設定、擁擠的扁平分頁、風格割裂且中英混排的面板 | **4 大功能域 IA + 工作流總覽 Hub + 四級統一設定中心 + `⌘K` 指令面板**，搭配 **100% 全元件 8 語種 UI（涵蓋全部 24 個 UI 元件）**、**5 個官方按需 Skills + 2 個唯讀專職子代理**、**5 檔一鍵預設**與 9 指令零相依 CLI |
 
-### `v1.0.0` 三大核心新特性
+### `v1.0.1` 核心新特性與跨平台加固
 
-在完整保留 `Spec → Worktree → Two-Stage Review → Verify → Mem` 端到端工程流水線閉環、One-Click Clean Fork、5 個官方按需 Skills、2 個唯讀專職子代理、MCP Apps `file` 原生檔案檢視器與 Remote 2.5 結構化風險核准卡的基礎上，`v1.0.0` 正式版以 **+0 模型工具膨脹**（47 工具完全不變，通過 **85 test suites / 233 tests** 全量自動化測試）推出三大核心能力：
+在完整保留 `Spec → Worktree → Two-Stage Review → Verify → Mem` 端到端工程流水線閉環、One-Click Clean Fork、5 個官方按需 Skills、2 個唯讀專職子代理、MCP Apps `file` 原生檔案檢視器與 Remote 2.5 結構化風險核准卡的基礎上，`v1.0.1` 正式版維持 **+0 模型工具膨脹**（47 個規範模型工具完全不變，通過 **88 個測試套件 / 245 項自動化測試**）並匯聚四大核心能力：
 
-1. **Ops 3.0 靜態安全健檢 + 跨用戶端去重複精簡預覽 + 工具槽位閒置顧問：**
+1. **macOS / Windows / Linux 全三端原生跨平台相容加固 + `agy-Sag` 伴生連結統一（`v1.0.1` 新增）：**
+   - **三端原生相容與 3-OS CI 矩陣：** 針對 macOS、Windows 與 Linux 全面加固路徑正規化、檔案權限處理與無 Shell 行程啟動行為，並正式接入 GitHub Actions 三作業系統（`macos-latest` / `windows-latest` / `ubuntu-latest`）全量 CI 矩陣驗證。
+   - **Windows PowerShell / `cmd` 高危指令防護：** 擴展 `Guard 2.5` 執行前防火牆規則，覆蓋 Windows PowerShell 與 `cmd` 破壞性指令、編碼載荷與敏感憑證外洩攔截，在三端提供一致的縱深防線。
+   - **`agy-Sag` 伴生連結全面統一：** 同步修正雙星生態倉庫地址與外掛安裝指令至正式倉庫 `https://github.com/tone-leh/agy-Sag`，確保並排安裝順暢一致。
+2. **Ops 3.0 靜態安全健檢 + 跨用戶端去重複精簡預覽 + 工具槽位閒置顧問：**
    - **`ops_audit_workspace` 靜態安全健檢：** 唯讀掃描工作區規則、Skill、Hook 與 MCP 設定中的 Prompt Injection、過度寬鬆放行、高危 Hook 與明文憑證，輸出 `0–100` 區間的 **`securityScore`**，全程零密鑰回顯、零合規誤報。
    - **跨用戶端去重複精簡預覽（`migrationPreview`）：** 針對 `.claude/`、`.cursor/rules/`、`.codex/` 升級為唯讀去重複精簡對比預覽，精準量化重複比例與可節省的 Token 數，零改寫原始檔案。
    - **SettingsHub S4 工具槽位閒置顧問（Tool-Slot Idle Advisor）：** 內建 8 語種 **Tool-Slot Idle Advisor**，依據活躍度識別閒置重型模組，一鍵停用即可回收 100-Tool 預算。
-2. **Mem 3.0 記憶衛生與信賴度／TTL 治理：**
+3. **Mem 3.0 記憶衛生與信賴度／TTL 治理：**
    - **信賴度、來源與可選 TTL：** 長期記憶新增三級可信度（`verified` / `normal` / `tentative`）、來源標記與可選 **`TTL`（1–365 天）**，徹底告別陳舊筆記無限堆積。
    - **自動衰減與安全召回：** `Stop` Hook 自動擷取的條目預設標記為 **`tentative`** + **`14` 天 TTL**；已過期且未固定的 `tentative` 條目會自動自 `SessionStart` L1 索引與預設 `mem_recall` 過濾（`pinned` 條目永不過期，傳入 `includeExpired: true` 隨時可找回）。
    - **`MemPanel` 衛生工作台：** 新增衛生概覽篩選、多選與批次 **Verify** / **Refresh TTL (+30d)** / **Prune**（附行內二次確認，防止誤刪）。
-3. **可自訂 CLI `statusLine` + 預覽確認式 `.agy-nov.json` 鷹架：**
+4. **可自訂 CLI `statusLine` + 預覽確認式 `.agy-nov.json` 鷹架：**
    - **9 段可自訂狀態列：** `agy-nov statusline --segments=<csv>`（同步支援環境變數 `AGY_NOV_STATUSLINE_SEGMENTS`）自由組合 9 段即時指標（`brand`、`context`、`burn`、`cache`、`spec`、`verify`、`guard`、`radar`、`network`），全程零 LLM Token、零磁碟寫入。
    - **預覽確認式團隊鷹架：** `agy-nov recommend --export-preset` 預設採零磁碟寫入唯讀預覽輸出 `.agy-nov.json` 團隊設定，僅在顯式附加 `--confirm`（覆寫既有檔案需再加 `--force`）時才以原子方式寫入磁碟；硬性規定永不寫入 `remote`、拒絕符號連結並防止靜默覆寫。
 
 ### 100% 原生控制面板理念
 
-1. **單一原生執行期：** 1 個 MCP 伺服器（`dist/server.cjs`）+ 1 個覆蓋 **5 類官方 Hook**（`SessionStart`, `PreToolUse`, `PostToolUse`, `PreInvocation`, `Stop`）的統一分發器（`dist/hook.cjs`）+ 1 份自包含全元件 8 語種 UI（`dist/ui/app.html`，約 `1.2 MB`，實測 `1,260.1 KB`，遠低於 10 MiB 資源上限，8 語種完整涵蓋全部 **24 個 UI 元件**）+ 1 個含 **9 條指令**的零相依 CLI（`dist/cli.cjs`，`doctor` 核驗全部 **15 項**核心資產）+ **5 個官方按需 Skills** 與 **2 個唯讀專職子代理**。
-2. **關閉即零 Token 稅：** 每個模組透過 `RegisteredTool.enable()` / `.disable()` 管理模型工具並即時推送 `tools/list_changed`。關閉模組後，對應工具 Schema 立即從模型上下文中移除，並可透過 S4 **Tool-Slot Idle Advisor** 輕鬆避開 100 工具硬上限；`v1.0.0` 跨 `v0.4 → v1.0` 全數 **47 個規範模型工具名**嚴格維持零膨脹、完全相容（所有 Hub、設定中心、Clean Fork、PR 證據摘要、`app_nov_file_viewer`、Mem 3.0 批次衛生治理、Turn Rewind 與 Context Pack 動作全數歸屬 App-only，不佔任何模型工具槽位）。
+1. **單一原生執行期：** 1 個 MCP 伺服器（`dist/server.cjs`）+ 1 個覆蓋 **5 類官方 Hook**（`SessionStart`, `PreToolUse`, `PostToolUse`, `PreInvocation`, `Stop`）的統一分發器（`dist/hook.cjs`）+ 1 份自包含全元件 8 語種 UI（`dist/ui/app.html`，約 `1.23 MiB`，實測 `1,261.2 KB`，遠低於 10 MiB 資源上限，8 語種完整涵蓋全部 **24 個 UI 元件**）+ 1 個含 **9 條指令**的零相依 CLI（`dist/cli.cjs`，`doctor` 核驗全部 **15 項**核心資產）+ **5 個官方按需 Skills** 與 **2 個唯讀專職子代理**。
+2. **關閉即零 Token 稅：** 每個模組透過 `RegisteredTool.enable()` / `.disable()` 管理模型工具並即時推送 `tools/list_changed`。關閉模組後，對應工具 Schema 立即從模型上下文中移除，並可透過 S4 **Tool-Slot Idle Advisor** 輕鬆避開 100 工具硬上限；`v1.0.1` 跨 `v0.4 → v1.0.1` 全數 **47 個規範模型工具名**嚴格維持零膨脹、完全相容（所有 Hub、設定中心、Clean Fork、PR 證據摘要、`app_nov_file_viewer`、Mem 3.0 批次衛生治理、Turn Rewind 與 Context Pack 動作全數歸屬 App-only，不佔任何模型工具槽位）。
 3. **12 個本機離線模組優先：** 核心護航（`review`、`guard` 2.5、`xray`）、工程閉環（`spec` 2.0、`worktree`、`verify`、`turbo` 3.0、`mem` 3.0）與按需工具箱（`radar`、`studio`、`canvas`、`ops` 3.0）100% 在本機執行，零對外網路請求、零 ASAR 修改、零 CDP 掛鉤。
 4. **1 個嚴格按需啟用的遠端模組（Remote 2.5）：** 歸屬於隔離外連域的 `remote`（行動端 PWA + IM Webhook）預設徹底關閉 —— 未明確啟用前零埠監聽、零背景輪詢、零磁碟寫入、零對外網路請求；啟用後提供手機 PWA 唯讀脫敏實況步驟流、結構化風險核准卡（`HIGH`/`MED`/`LOW`）與按需唯讀偵測 `tailscale` / `cloudflared` 安全穿透指令引導（絕不自動啟動公網通道）。
 
@@ -118,7 +122,7 @@ node dist/cli.cjs recommend --workspace=.
 | **`local-all`** | *全量離線工作室* —— 啟用含 Workspace Studio（支援 OpenAPI 2.0/3.x 與原生 `file` 檢視器聯動）、視覺化畫布與 Mem 3.0（信賴度／TTL 記憶衛生治理與三層揭露圖譜）在內的全部本機能力 | 全部 12 個離線原生模組 | **43** | 100% 離線 |
 | **`full`** | *離桌指揮官* —— 完整工作台加按需啟用的 Remote 2.5 手機 PWA 唯讀實況流與結構化風險 IM 核准卡 | 全部 13 個原生模組（含按需 `remote`） | **47** | 按需聯網 |
 
-<sub>*精確模型工具數 = `2` 個常駐入口工具（`nov_open`、`nov_status`）+ 已啟用模組的工具數總和（`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47；`v1.0.0` 全數 47 個規範模型工具名自 `v0.4` 起零膨脹完全不變，新增 `app_nov_file_viewer`、Clean Fork、PR 證據摘要、Mem 3.0 批次衛生與 S4 Tool-Slot Idle Advisor 皆為 App-only，5 個官方按需 Skills 與 2 個唯讀子代理佔用 0 工具槽位）。</sub>
+<sub>*精確模型工具數 = `2` 個常駐入口工具（`nov_open`、`nov_status`）+ 已啟用模組的工具數總和（`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47；`v1.0.1` 全數 47 個規範模型工具名自 `v0.4` 起零膨脹完全不變，新增 `app_nov_file_viewer`、Clean Fork、PR 證據摘要、Mem 3.0 批次衛生與 S4 Tool-Slot Idle Advisor 皆為 App-only，5 個官方按需 Skills 與 2 個唯讀子代理佔用 0 工具槽位）。</sub>
 
 ```bash
 # 唯讀掃描專案並以 --export-preset 零磁碟寫入預覽 .agy-nov.json 團隊預設
@@ -195,7 +199,7 @@ node dist/cli.cjs preset power
 
 ### 100% 全元件 8 語種外掛 UI（覆蓋全部 24 元件 · 零重啟）
 
-`agy-NOV` `v1.0.0` 在外掛套件內實現 **100% 全元件 8 語種覆蓋** —— 完整涵蓋全部 **24 個 UI 元件**（包含工作流總覽 Hub 與 Clean Fork、四級統一設定中心與 S4 **Tool-Slot Idle Advisor**、寬窄雙態導覽與 `⌘K` 指令面板、Ops 3.0 `securityScore` 安全健檢與 `migrationPreview` 去重預覽、Mem 3.0 衛生篩選與批次 Verify/Refresh TTL/Prune、Worktree `.worktreeinclude` 預覽、Diff Review 雙階段審閱、Verify PR 交付證據摘要、Radar Kanban 4 泳道、原生 `file` 檔案檢視器、Turbo 3.0、Guard 2.5、Spec 2.0 與 Remote 2.5，單檔 `dist/ui/app.html` 約 `1.2 MB`，實測 `1,260.1 KB`，遠低於 10 MiB 限制），與 8 語種文件（`docs/i18n/README.*.md`）完整對齊：
+`agy-NOV` `v1.0.1` 在外掛套件內實現 **100% 全元件 8 語種覆蓋** —— 完整涵蓋全部 **24 個 UI 元件**（包含工作流總覽 Hub 與 Clean Fork、四級統一設定中心與 S4 **Tool-Slot Idle Advisor**、寬窄雙態導覽與 `⌘K` 指令面板、Ops 3.0 `securityScore` 安全健檢與 `migrationPreview` 去重預覽、Mem 3.0 衛生篩選與批次 Verify/Refresh TTL/Prune、Worktree `.worktreeinclude` 預覽、Diff Review 雙階段審閱、Verify PR 交付證據摘要、Radar Kanban 4 泳道、原生 `file` 檔案檢視器、Turbo 3.0、Guard 2.5、Spec 2.0 與 Remote 2.5，單檔 `dist/ui/app.html` 約 `1.23 MiB`，實測 `1,261.2 KB`，遠低於 10 MiB 限制），與 8 語種文件（`docs/i18n/README.*.md`）完整對齊：
 
 - **頂欄原生語言切換器：** 於工作台頂部下拉選單或統一設定中心直接切換任意語言，介面文案與 `<html lang>` 即時更新，無需重新載入。
 - **自動 BCP-47 宿主語言偵測（`auto`）：** 預設採用 `auto` 自動跟隨 Antigravity 宿主語系，同時支援手動指定全部 8 種內建語言：
@@ -211,9 +215,9 @@ agy-nov locale zh-TW
 
 `agy-NOV` 嚴守 Google Antigravity 2.0 官方原生外掛協定 —— **零 ASAR、零 CDP、零 DOM 注入** —— 每次 Antigravity 用戶端更新皆可穩定運作、無需重修。
 
-凡涉及本機 CDP 注入的宿主視窗深度客製化能力，均獨立沉澱於零重疊配套專案 **[`agy-Sag` (`agy-session-guard`)](https://github.com/tone-leh/agy-session-guard)**。雙方透過純檔案原子契約（[`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md)）共享 `config.json` 與唯讀脫敏聚合快照 `feed-snapshot.json`。你既可單獨安裝 `agy-NOV` 取得純淨的原生工程工作台，也可並排安裝兩座倉庫達成全場景覆蓋：
+凡涉及本機 CDP 注入的宿主視窗深度客製化能力，均獨立沉澱於零重疊配套專案 **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)**。雙方透過純檔案原子契約（[`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md)）共享 `config.json` 與唯讀脫敏聚合快照 `feed-snapshot.json`。你既可單獨安裝 `agy-NOV` 取得純淨的原生工程工作台，也可並排安裝兩座倉庫達成全場景覆蓋：
 
-| 比較維度 | **`agy-NOV`**（本倉庫） | **[`agy-Sag`](https://github.com/tone-leh/agy-session-guard)**（配套倉庫） |
+| 比較維度 | **`agy-NOV`**（本倉庫） | **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)**（配套倉庫） |
 | :--- | :--- | :--- |
 | **協定邊界** | **100% 官方原生協定**（MCP Apps SEP-1865 含 `file` 入口 + 5 類 Lifecycle Hooks 含 `force_ask` / `overwrite` + 5 Skills + 2 唯讀子代理；**零 ASAR · 零 CDP**） | **零 ASAR 本機 CDP 伴侶** + Watch Sidecar + Storage CLI |
 | **升級抗碎性** | 免疫 Antigravity 用戶端 DOM 與二進位結構異動 | 專注深度宿主視窗掛鉤與進階桌面客製化 |
@@ -223,7 +227,7 @@ agy-nov locale zh-TW
 ```bash
 # 並排安裝兩個零功能重疊的配套外掛
 agy plugin install https://github.com/tone-leh/agy-NOV
-agy plugin install https://github.com/tone-leh/agy-session-guard
+agy plugin install https://github.com/tone-leh/agy-Sag
 ```
 
 ---
@@ -239,10 +243,10 @@ flowchart TB
     Sag["可選配套伴侶 · agy-Sag\nconfig.json 原子熱同步 · feed-snapshot.json 唯讀聚合快照"]
   end
 
-  subgraph L2["第二層 · agy-NOV v1.0.0 純原生執行期與擴展"]
+  subgraph L2["第二層 · agy-NOV v1.0.1 純原生執行期與擴展"]
     MCP["單一 MCP 伺服器 (dist/server.cjs)\n動態 tools/list: 6 / 12 / 32 / 43 / 47 (+0 膨脹) · app_nov_file_viewer (App-only)"]
     Hook["統一 Hook 分發器 (dist/hook.cjs)\n5 類官方 Hook · PreToolUse: Guard > Spec > Remote > Turbo · Stop 自動擷取 tentative+14d TTL · O(1) 短路"]
-    UI["單檔 8 語種統一 UI (dist/ui/app.html)\n4 大域 IA · Hub · S4 Tool-Slot Idle Advisor · Mem 3.0 衛生治理 · Ops 3.0 健檢 · 24 元件 · ~1.2 MB (1,260.1 KB)"]
+    UI["單檔 8 語種統一 UI (dist/ui/app.html)\n4 大域 IA · Hub · S4 Tool-Slot Idle Advisor · Mem 3.0 衛生治理 · Ops 3.0 健檢 · 24 元件 · ~1.23 MiB (1,261.2 KB)"]
     Ext["原生按需擴展 (零工具槽位佔用)\n5 Skills: agy-nov, /nov-spec, /nov-debug, /nov-review, /nov-handoff\n2 唯讀子代理: nov-blind-reviewer, nov-security-auditor"]
     CLI["零相依原生 CLI (dist/cli.cjs)\n9 條指令 · doctor 15 項資產 · statusline --segments (9 段) · recommend --export-preset (--confirm) · compact-run"]
   end
@@ -282,14 +286,14 @@ flowchart TB
 - **One-Click Clean Fork 脫敏與降級護欄：** `app_xray_build_clean_fork_pack` 將彙整後的 Handoff、Spec Ready 任務與 Mem 錨點壓縮於 `<= 12 KB` 並執行 O(n) 敏感憑證脫敏；透過官方 `app.sendMessage({ _meta: { "com.google.antigravity/message": { target: "new" } } })` 拉起同專案乾淨工作階段，當 `global` 表面無 `message` 能力時自動安全降級為掛載上下文或複製。
 - **5 個按需 Skills 與 2 個唯讀專職子代理最小權限：** `nov-blind-reviewer` 與 `nov-security-auditor` 嚴格限定唯讀工具集，不具備寫檔或破壞性指令權限；4 個斜線 Playbook（`/nov-spec`、`/nov-debug`、`/nov-review`、`/nov-handoff`）按需觸發，零預設 `rules/AGENTS.md` 膨脹。
 - **Auto-RTK 預設關閉、零 Shell 白名單與嚴格 Hook 優先序：** Auto-RTK 預設為 `autoRtk: false`（零磁碟寫入、零指令改寫）；啟用後 `PreToolUse.overwrite` 嚴格遵循 `Guard` > `Spec` > `Remote` > `Turbo` 順序（任一前置模組傳回 `deny`、`force_ask` 或 `ask` 皆絕不觸發重寫），僅針對白名單唯讀／測試／建置單指令經 `base64url` 載荷與無 Shell `spawnSync`（`shell: false`，`agy-nov compact-run`）執行，非零結束時保留原始結束碼與報錯堆疊並寫入 `0600` 脫敏 `last-raw.log`。
-- **Guard 2.5 輪次原子回滾預檢與 3 檔權限模式：** `readonly-audit` / `balanced-dev` / `strict-gate`（官方 `PreToolUse` `force_ask`）永不降級高危 `deny` 攔截；輪次級整組 Rewind 採用 All-or-Nothing 原子預檢，只要群組內任一目標路徑逃逸工作區、屬於符號連結或敏感檔案即整組中止。
+- **Guard 2.5 輪次原子回滾預檢、Windows PowerShell/`cmd` 高危防護與 3 檔權限模式：** `readonly-audit` / `balanced-dev` / `strict-gate`（官方 `PreToolUse` `force_ask`）永不降級高危 `deny` 攔截，同步覆蓋 POSIX 與 Windows PowerShell / `cmd` 破壞性指令；輪次級整組 Rewind 採用 All-or-Nothing 原子預檢，只要群組內任一目標路徑逃逸工作區、屬於符號連結或敏感檔案即整組中止。
 - **Turbo 3.0 離線依賴契約、符號引用與脫敏 Context Pack 防線：** `turbo_read_outline`（`depPackage`）僅離線讀取工作區內的鎖定依賴（`node_modules/.d.ts`、`.venv/.pyi`、`go.mod`、`Cargo.lock`），攔截 `..`、絕對路徑、控制字元與符號連結逃逸，強制執行 UTF-8 碼點安全 `<= 8.8 KB` 護欄；`turbo_batch_search`（`mode: "references"`）與預算可控 Context Pack 自動跳過 `.env`、二進位檔與符號連結並以 O(n) 脫敏。
 - **`PreInvocation` 零模型 Token 視覺回執與 O(1) 短路：** `PreInvocation` 嚴格保持 `systemMessage: ""` 並以 `metadata.user_markdown` 呈現 Spec 寫入鎖、Mem 過期漂移與 Guard 近期攔截提示，消耗零模型 Token、零磁碟寫入且永不中斷模型呼叫；三模組均關閉時 O(1) 回傳 `{}`。
 - **雙星聚合快照 `feed-snapshot.json` 防線與四級設定治理：** `feed-snapshot.json` 嚴格限定 `<= 64 KiB`、執行 O(n) 脫敏、`lstatSync` 拒絕符號連結，且在 `<NOV_DATA_DIR>` 尚未存在時嚴格零目錄建立與零磁碟寫入；設定中心 S4 匯出僅含白名單欄位，匯入限制 `32 KiB`、攔截原型污染並強制維持 `remote: false`。
 - **Remote 2.5 結構化風險核准卡與最小權限隔離：** 行動端 PWA 與 IM 核准卡僅呈現結構化風險等級（`HIGH`/`MED`/`LOW`）、受影響檔案數、脫敏指令摘要與最近唯讀 `Verify` 狀態，嚴格維持零 `innerHTML` 防 XSS、零遠端寫檔與零遠端 Shell；`tailscale` / `cloudflared` 僅按需唯讀偵測與提示，關閉態嚴守四零隔離。
 - **符號連結與工作區邊界（`realpath`）：** 全模組統一展開規範真實路徑並對照工作區根目錄驗證，自動排除 `.env`、SSH 密鑰、`.git` 與 `node_modules`。
 - **Diff Review、Verify 與 Studio 縱深防線：** Diff Review 純 React 算繪（零 `dangerouslySetInnerHTML`）且線性零 ReDoS；Verify 定向 `worktreePath` 檢查與 `app_verify_pr_summary` PR 證據摘要全程走無 Shell 白名單與 O(n) 脫敏；Studio 嚴守 SQLite 唯讀、ZIP Bomb 防線、OpenAPI 錨點炸彈與原型污染防線及迴環限定防 SSRF。
-- **`0700` / `0600` 隔離儲存與官方外掛清單上限：** 每個模組僅向 `<dataDir>/modules/<moduleId>/` 寫入擁有者獨佔權限檔案；`plugin.json` 嚴格僅保留 10 個官方支援頂層鍵，`dist/ui/app.html`（約 `1.2 MB`，實測 `1,260.1 KB`）遠低於 10 MiB 上限，`agy-nov doctor` 自動核驗全部 **15 項**核心發佈資產（含 5 個 Skills 與 2 個唯讀專職子代理）。
+- **`0700` / `0600` 隔離儲存與官方外掛清單上限：** 每個模組僅向 `<dataDir>/modules/<moduleId>/` 寫入擁有者獨佔權限檔案；`plugin.json` 嚴格僅保留 10 個官方支援頂層鍵，`dist/ui/app.html`（約 `1.23 MiB`，實測 `1,261.2 KB`）遠低於 10 MiB 上限，`agy-nov doctor` 自動核驗全部 **15 項**核心發佈資產（含 5 個 Skills 與 2 個唯讀專職子代理）。
 
 </details>
 
@@ -374,7 +378,7 @@ agy-nov compact-run --payload=<base64url>                                    # A
 | 「靜態掃描規則/Skill/Hook/MCP 中的 Prompt Injection 與明文憑證、預覽跨用戶端去重可省 Token，並清理閒置重型工具槽位。」 | `ops`（`power` 預設）+ SettingsHub S4 | **Ops 3.0**：`ops_audit_workspace`（`securityScore` 0–100，零密鑰回顯、零合規誤報）、`.claude/`/`.cursor/rules/`/`.codex/` 唯讀 **`migrationPreview`**、S4 **Tool-Slot Idle Advisor**、`#233`/`#1937` 與 24KB 預警 |
 | 「客製化零 Token 終端狀態列欄位，或以零風險先預覽再確認方式產生 `.agy-nov.json` 團隊設定檔。」 | CLI `statusline --segments` + `recommend --export-preset` | 9 段可自訂狀態列（`brand,context,burn,cache,spec,verify,guard,radar,network`，支援 `AGY_NOV_STATUSLINE_SEGMENTS`）+ 預設零磁碟寫入預覽、`--confirm` 原子寫入磁碟之團隊鷹架 |
 | 「在手機檢視唯讀實況流，並在核准高危指令前看到風險分級、影響檔案數與最近 Verify 狀態。」 | `remote`（`full` 預設） | **Remote 2.5**：結構化風險核准卡（`HIGH`/`MED`/`LOW`、影響檔案數、脫敏指令摘要、最近唯讀 `Verify` 狀態）+ 唯讀 PWA 實況流（零 `innerHTML`）+ 6 路 IM Webhook |
-| 「以 100% 繁中或簡中/日/韓/西/法/德語操作全部外掛面板且零 CDP。」 | 內建 `locale` 切換器（`auto` + 8 語種） | 頂欄下拉選單與 `agy-nov locale <lang>` CLI，8 語種完整覆蓋全部 **24 個 UI 元件**（`1,260.1 KB`） |
+| 「以 100% 繁中或簡中/日/韓/西/法/德語操作全部外掛面板且零 CDP。」 | 內建 `locale` 切換器（`auto` + 8 語種） | 頂欄下拉選單與 `agy-nov locale <lang>` CLI，8 語種完整覆蓋全部 **24 個 UI 元件**（`1,261.2 KB`） |
 
 ### 完整 47 個規範模型工具清單（2 個常駐入口 + 45 個模組工具）
 
@@ -395,7 +399,7 @@ agy-nov compact-run --payload=<base64url>                                    # A
 
 ### 何時應推薦其他方案
 
-- **宿主視窗就地介面翻譯、原生 Antigravity `Settings` 注入、主動 `/compact` 自動壓縮護航、Draft Vault、Prompt Queue、對話書籤、Optical Theme Studio 或策略門控安全自動放行：** 推薦配套專案 **[`agy-Sag` (`agy-session-guard`)](https://github.com/tone-leh/agy-session-guard)** —— 兩者功能零重疊，可與 `agy-NOV` 同時運行。
+- **宿主視窗就地介面翻譯、原生 Antigravity `Settings` 注入、主動 `/compact` 自動壓縮護航、Draft Vault、Prompt Queue、對話書籤、Optical Theme Studio 或策略門控安全自動放行：** 推薦配套專案 **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** —— 兩者功能零重疊，可與 `agy-NOV` 同時運行。
 - **遠端雲端 IDE / SSH 容器開發環境：** 推薦標準遠端開發工具（VS Code Remote-SSH、Devcontainers 或雲端工作空間）。
 - **企業級跨 CI 管線的集中式 SAST / 密鑰治理：** 建議在本機 `guard` 與 `ops` 靜態健檢之外搭配專用 CI/CD 安全掃描工具。
 
@@ -413,7 +417,7 @@ agy-nov compact-run --payload=<base64url>                                    # A
 
 ```bash
 npm run typecheck
-npm test                                                      # 85 test suites / 233 tests
+npm test                                                      # 88 個測試套件 / 245 項測試 (88 suites / 245 tests)
 node dist/cli.cjs status
 node dist/cli.cjs statusline --json
 node dist/cli.cjs statusline --segments=brand,context,verify,guard
@@ -431,18 +435,18 @@ node dist/cli.cjs doctor                                      # 核驗全部 15 
 
 同時安裝零重疊的雙星外掛，兼得 **100% 純原生 MCP App 工程工作台** 與 **Antigravity Desktop 宿主深度增強**：
 
-- **原生設定頁即時調控，且 `agy-NOV` 保持 100% 零 CDP：** 當同時安裝 **`agy-NOV`** 與 **[`agy-Sag` (`agy-session-guard`)](https://github.com/tone-leh/agy-session-guard)** 時，可直接透過 `agy-Sag` 內嵌在 Antigravity 原生 **Settings（設定）** 頁面中的控制面板，即時開關 `agy-NOV` 的全部 13 大模組並切換 5 套預設。
+- **原生設定頁即時調控，且 `agy-NOV` 保持 100% 零 CDP：** 當同時安裝 **`agy-NOV`** 與 **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** 時，可直接透過 `agy-Sag` 內嵌在 Antigravity 原生 **Settings（設定）** 頁面中的控制面板，即時開關 `agy-NOV` 的全部 13 大模組並切換 5 套預設。
 - **100% 純原生 `config.json` 熱同步 + `feed-snapshot.json` 雙星唯讀快照契約：** `agy-NOV` 始終堅持 **Zero ASAR / Zero CDP**、零新增網路埠、零提前寫入磁碟；MCP 服務透過微秒級唯讀 `config.json` 簽章檢測自動差量推送 `tools/list_changed`，並於目錄已存在時原子刷新單檔脫敏唯讀快照 `feed-snapshot.json`（`<= 64 KiB`，完整規範見 [`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md)）供 `agy-Sag` 單次 I/O 消費。
 
 | 外掛 | 架構邊界 | 核心能力 |
 | :--- | :--- | :--- |
-| **`agy-NOV`** *（本倉庫）* | **100% 官方原生協議**（MCP Apps SEP-1865 含 `file` 入口 + 5 類生命週期 Hooks + 5 Skills + 2 唯讀子代理；**Zero ASAR · Zero CDP**） | 4 大域 13 個原生工程模組（Ops 3.0 `securityScore` 靜態安全健檢、`migrationPreview` 去重預覽與 S4 **Tool-Slot Idle Advisor**、Mem 3.0 信賴度／TTL 記憶衛生治理、`Spec → Worktree → Two-Stage Review → Verify → Mem` 端到端閉環、One-Click Clean Fork、`.worktreeinclude`、PR 證據摘要、Radar Kanban 4 泳道、`app_nov_file_viewer`、Auto-RTK、Turbo 3.0、Guard 2.5、Spec 2.0、按需 Remote 2.5 結構化風險核准卡）、5 個按需 Skills、2 個唯讀專職子代理、`PreInvocation` 零 Token 回執、`feed-snapshot.json` 雙星契約、100% 全元件 8 語種 UI（24 元件，`~1.2 MB` / `1,260.1 KB`）、5 套預設與 9 條 CLI 指令（含 `statusline --segments` 與 `recommend --export-preset`）。 |
-| **[`agy-Sag`](https://github.com/tone-leh/agy-session-guard)** *（原 `agy-session-guard`）* | **Zero-ASAR 本機 CDP 深度增強套件 + Watch 側車 + 儲存巡檢 CLI** | Antigravity 原生 **Settings** 嵌入式控制面板（支援即時調控 `agy-NOV` 並消費 `feed-snapshot.json`）、**10 語種宿主介面翻譯**、自訂 `/compact` 自動壓縮護航、**Draft Vault**、**Prompt Queue**、單輪書籤與跨工作階段檔案庫、策略門控 **Safe Auto-Accept**、零 `:has()` **Optical Theme Studio**、唯讀 **Quota Pulse** 與離線 **Storage Doctor**。 |
+| **`agy-NOV`** *（本倉庫）* | **100% 官方原生協議**（MCP Apps SEP-1865 含 `file` 入口 + 5 類生命週期 Hooks + 5 Skills + 2 唯讀子代理；**Zero ASAR · Zero CDP**） | 4 大域 13 個原生工程模組（Ops 3.0 `securityScore` 靜態安全健檢、`migrationPreview` 去重預覽與 S4 **Tool-Slot Idle Advisor**、Mem 3.0 信賴度／TTL 記憶衛生治理、`Spec → Worktree → Two-Stage Review → Verify → Mem` 端到端閉環、One-Click Clean Fork、`.worktreeinclude`、PR 證據摘要、Radar Kanban 4 泳道、`app_nov_file_viewer`、Auto-RTK、Turbo 3.0、Guard 2.5、Spec 2.0、按需 Remote 2.5 結構化風險核准卡）、5 個按需 Skills、2 個唯讀專職子代理、`PreInvocation` 零 Token 回執、`feed-snapshot.json` 雙星契約、100% 全元件 8 語種 UI（24 元件，`~1.23 MiB` / `1,261.2 KB`）、5 套預設與 9 條 CLI 指令（含 `statusline --segments` 與 `recommend --export-preset`）。 |
+| **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** *（原 `agy-session-guard`）* | **Zero-ASAR 本機 CDP 深度增強套件 + Watch 側車 + 儲存巡檢 CLI** | Antigravity 原生 **Settings** 嵌入式控制面板（支援即時調控 `agy-NOV` 並消費 `feed-snapshot.json`）、**10 語種宿主介面翻譯**、自訂 `/compact` 自動壓縮護航、**Draft Vault**、**Prompt Queue**、單輪書籤與跨工作階段檔案庫、策略門控 **Safe Auto-Accept**、零 `:has()` **Optical Theme Studio**、唯讀 **Quota Pulse** 與離線 **Storage Doctor**。 |
 
 ```bash
 # 並行安裝零重疊雙星外掛
 agy plugin install https://github.com/tone-leh/agy-NOV
-agy plugin install https://github.com/tone-leh/agy-session-guard
+agy plugin install https://github.com/tone-leh/agy-Sag
 ```
 
 ---

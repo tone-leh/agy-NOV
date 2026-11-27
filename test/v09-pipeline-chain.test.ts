@@ -8,6 +8,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MODULE_CATALOG } from '../src/core/catalog.js';
+import { canonicalRealpathSync } from '../src/core/utils.js';
 import { registerMemModule } from '../src/modules/mem/register.js';
 import { registerRadarModule } from '../src/modules/radar/register.js';
 import { resolveAllowedReviewTarget } from '../src/modules/review/git-diff.js';
@@ -37,9 +38,10 @@ import {
   type WorktreeIncludePreviewResult,
 } from '../src/modules/worktree/core.js';
 import { registerWorktreeModule } from '../src/modules/worktree/register.js';
+import { createDirSymlink } from './helpers/cross-platform.js';
 
 function withTempDir<T>(prefix: string, fn: (dir: string) => Promise<T> | T): Promise<T> {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  const dir = canonicalRealpathSync(fs.mkdtempSync(path.join(os.tmpdir(), prefix)));
   return Promise.resolve()
     .then(() => fn(dir))
     .finally(() => {
@@ -84,7 +86,7 @@ function initTempGitRepo(repoDir: string): string {
   gitSync(repoDir, ['add', '.']);
   gitSync(repoDir, ['commit', '-m', 'chore: initial commit']);
 
-  return fs.realpathSync(repoDir);
+  return canonicalRealpathSync(repoDir);
 }
 
 describe('v0.9.0 T9.1 — Worktree .worktreeinclude safe whitelist', () => {
@@ -150,7 +152,7 @@ describe('v0.9.0 T9.1 — Worktree .worktreeinclude safe whitelist', () => {
 
       // Symlink escapes (leaf symlink and parent-dir symlink)
       fs.symlinkSync(path.join(outsideDir, 'outside.txt'), path.join(repoRoot, 'escape-leaf.txt'));
-      fs.symlinkSync(outsideDir, path.join(repoRoot, 'escape-dir'));
+      createDirSymlink(outsideDir, path.join(repoRoot, 'escape-dir'));
 
       const includeLines = [
         '# Valid non-sensitive whitelist entries',
@@ -224,8 +226,10 @@ describe('v0.9.0 T9.1 — Worktree .worktreeinclude safe whitelist', () => {
 
       // Script was never executed and copied without execute bit
       assert.equal(fs.existsSync(sideEffectMarker), false);
-      const copiedScriptStat = fs.statSync(path.join(wtPath, 'scripts', 'helper.sh'));
-      assert.equal(copiedScriptStat.mode & 0o111, 0);
+      if (process.platform !== 'win32') {
+        const copiedScriptStat = fs.statSync(path.join(wtPath, 'scripts', 'helper.sh'));
+        assert.equal(copiedScriptStat.mode & 0o111, 0);
+      }
 
       // Zero sensitive files copied into the new worktree
       for (const rel of sensitiveEntries) {
@@ -341,7 +345,7 @@ describe('v0.9.0 T9.1 — Review worktree switching, Spec compliance & two-stage
       assert.throws(() => resolveAllowedReviewTarget(repoRoot, outsideDir), /not the main repository or a registered git worktree/i);
       assert.throws(() => resolveAllowedReviewTarget(repoRoot, path.join(repoRoot, 'src')), /not the main repository or a registered git worktree/i);
       const symToWt = path.join(tmpDir, 'wt-symlink');
-      fs.symlinkSync(wtPath, symToWt);
+      createDirSymlink(wtPath, symToWt);
       assert.throws(() => resolveAllowedReviewTarget(repoRoot, symToWt), /symbolic link/i);
 
       // Legacy buildReviewPrompt signature remains 100% backward-compatible
@@ -514,7 +518,7 @@ describe('v0.9.0 T9.1 — Verify targeted worktree checks & redacted PR delivery
       assert.throws(() => resolveAllowedVerifyTargetRoot(repoRoot, outsideDir), /not the workspace root or a registered git worktree/i);
       assert.throws(() => resolveAllowedVerifyTargetRoot(repoRoot, path.join(repoRoot, 'src')), /not the workspace root or a registered git worktree/i);
       const escapeSym = path.join(tmpDir, 'verify-sym');
-      fs.symlinkSync(wtPath, escapeSym);
+      createDirSymlink(wtPath, escapeSym);
       assert.throws(() => resolveAllowedVerifyTargetRoot(repoRoot, escapeSym), /symbolic link/i);
 
       // Direct buildPrDeliverySummary redaction check (using runtime-composed synthetic secret strings)
