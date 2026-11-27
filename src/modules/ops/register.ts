@@ -204,7 +204,7 @@ export function registerOpsModule(
     {
       title: 'Audit Workspace Assets & Storage',
       description:
-        'Read-only inspection of workspace rules (24KB/20K bloat guard), 100-tool MCP budget meter, static MCP config health, skills/manifests, token estimates, and local agy-NOV storage usage.',
+        'Read-only inspection of workspace rules (24KB/20K bloat guard), 100-tool MCP budget meter, static MCP config health, optional .agy-nov.json team preset, cross-client pitfall & migration checks, skills/manifests, token estimates, and local agy-NOV storage usage.',
       inputSchema: {},
     },
     async () => {
@@ -212,11 +212,16 @@ export function registerOpsModule(
         const report = runAudit();
         const largestKb = (report.ruleBloat.largestFileBytes / 1024).toFixed(1);
         const limitKb = Math.round(report.ruleBloat.singleFileLimitBytes / 1024);
+        const teamPresetSummary = report.teamPreset.found
+          ? `${report.teamPreset.valid ? 'VALID' : 'INVALID'}${report.teamPreset.preset ? ` (preset=${report.teamPreset.preset})` : ''}, ${report.teamPreset.verifyCommands.length} verify cmd(s), ${report.teamPreset.warnings.length} warn(s), ${report.teamPreset.errors.length} error(s)`
+          : 'not found (optional)';
         const lines = [
           `Workspace Audit (${report.workspaceName}, score=${report.healthScore}/100): ${report.summary.assetCount} asset(s), ~${report.summary.totalEstimatedTokens} tokens (${report.summary.totalBytes} bytes)`,
           `Rule Bloat: [${report.ruleBloat.status.toUpperCase()}] largest=${largestKb}KB/${limitKb}KB${report.ruleBloat.largestFilePath ? ` (${report.ruleBloat.largestFilePath})` : ''}, total=~${report.ruleBloat.totalRuleTokens}/${report.ruleBloat.aggregateTokenLimit} tokens`,
           `Tool Budget (${report.toolBudget.estimatedTotalTools}/${report.toolBudget.hardLimit}): [${report.toolBudget.status.toUpperCase()}] ${report.toolBudget.usagePercent}% (agy-NOV=${report.toolBudget.agyNovTools}, external MCP=${report.toolBudget.externalServersCount} server(s) ~${report.toolBudget.estimatedExternalTools} tools)`,
           `MCP Health: ${report.mcpHealthFindings.length} finding(s)`,
+          `Team Preset (.agy-nov.json): ${teamPresetSummary}`,
+          `Cross-Client Findings: ${report.crossClientFindings.length} finding(s)`,
           `Local storage: ${report.storage.rootDataDirExists ? `${report.storage.totalFiles} files, ${report.storage.totalBytes} bytes` : 'not initialized (0 bytes)'}`,
           ...report.assets.slice(0, 12).map(
             (a) => `- [${a.kind}] ${a.relPath}: ~${a.estimatedTokens} tokens (${a.bytes}B, ${a.lineCount}L)`,
@@ -226,6 +231,12 @@ export function registerOpsModule(
             .map(
               (f) =>
                 `! [MCP ${f.severity.toUpperCase()}] ${f.file}${f.serverName ? ` (${f.serverName})` : ''}: ${f.message}`,
+            ),
+          ...report.crossClientFindings
+            .slice(0, 6)
+            .map(
+              (f) =>
+                `~ [${f.client.toUpperCase()} ${f.severity.toUpperCase()} ${f.code}] ${f.file}: ${f.message}`,
             ),
           ...report.recommendations.map((r) => `• [${r.level.toUpperCase()}] ${r.title}: ${r.detail}`),
         ];

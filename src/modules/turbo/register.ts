@@ -10,9 +10,11 @@ import {
   batchSearchWorkspace,
   buildWorkspaceSnapshot,
   CompactedChunkStore,
+  enforceToolTextGuardrail,
   readFileOutlineAndSlice,
   TURBO_MAX_COMPACTED_CHUNKS,
   TURBO_MAX_QUERIES,
+  TurboGainTracker,
   type BatchSearchResult,
   type CompactOutputResult,
   type ReadOutlineResult,
@@ -29,13 +31,16 @@ function toHandle(name: string, tool: RegisteredTool): ModuleToolHandle {
   };
 }
 
-function seedDemoTurboStore(store: CompactedChunkStore): {
+function seedDemoTurboStore(
+  store: CompactedChunkStore,
+  gainTracker: TurboGainTracker,
+): {
   lastCompact: CompactOutputResult;
   lastSearch: BatchSearchResult;
   lastOutline: ReadOutlineResult;
 } {
   const sampleBuildLog = [
-    '> agy-nov@0.2.0 test',
+    '> agy-nov@0.6.0 test',
     '> node --import tsx --test test/*.test.ts',
     'TAP version 13',
     '# Subtest: Core modules',
@@ -61,11 +66,14 @@ function seedDemoTurboStore(store: CompactedChunkStore): {
     'added 84 packages, audited 85 packages in 2s',
     'found 0 vulnerabilities',
   ].join('\n');
-  store.compact(undefined, 'npm ci (demo output)', sampleInstallLog, { persistStats: false });
+  const installCompact = store.compact(undefined, 'npm ci (demo output)', sampleInstallLog, {
+    persistStats: false,
+  });
 
   const lastSearch: BatchSearchResult = {
     scope: 'src',
     scannedFiles: 46,
+    scannedBytes: 168400,
     skippedFiles: 3,
     skippedSensitive: 2,
     skippedSymlinks: 0,
@@ -116,23 +124,113 @@ function seedDemoTurboStore(store: CompactedChunkStore): {
     totalLines: 540,
     bytes: 18420,
     outline: [
-      { kind: 'function', name: 'isSensitiveTurboPath', line: 196, signature: 'export function isSensitiveTurboPath(inputPath: string): boolean' },
-      { kind: 'function', name: 'batchSearchWorkspace', line: 342, signature: 'export function batchSearchWorkspace(workspaceRoot, queries, opts)' },
-      { kind: 'function', name: 'readFileOutlineAndSlice', line: 510, signature: 'export function readFileOutlineAndSlice(workspaceRoot, filePath, opts)' },
-      { kind: 'class', name: 'CompactedChunkStore', line: 580, signature: 'export class CompactedChunkStore' },
-      { kind: 'function', name: 'buildWorkspaceSnapshot', line: 720, signature: 'export function buildWorkspaceSnapshot(workspaceRoot: string)' },
+      {
+        kind: 'function',
+        name: 'isSensitiveTurboPath',
+        line: 196,
+        signature: 'export function isSensitiveTurboPath(inputPath: string): boolean',
+        level: 0,
+      },
+      {
+        kind: 'function',
+        name: 'batchSearchWorkspace',
+        line: 342,
+        signature: 'export function batchSearchWorkspace(workspaceRoot, queries, opts)',
+        level: 0,
+      },
+      {
+        kind: 'function',
+        name: 'readFileOutlineAndSlice',
+        line: 510,
+        signature: 'export function readFileOutlineAndSlice(workspaceRoot, filePath, opts)',
+        level: 0,
+      },
+      {
+        kind: 'class',
+        name: 'CompactedChunkStore',
+        line: 580,
+        signature: 'export class CompactedChunkStore',
+        level: 0,
+      },
+      {
+        kind: 'method',
+        name: 'compact',
+        line: 592,
+        signature: 'compact(dataDir, label, rawText, opts): CompactOutputResult',
+        parent: 'CompactedChunkStore',
+        level: 1,
+      },
+      {
+        kind: 'method',
+        name: 'query',
+        line: 794,
+        signature: 'query(chunkId: string, query: string, limit = 10): ChunkQueryResult',
+        parent: 'CompactedChunkStore',
+        level: 1,
+      },
+      {
+        kind: 'function',
+        name: 'buildWorkspaceSnapshot',
+        line: 890,
+        signature: 'export function buildWorkspaceSnapshot(workspaceRoot: string)',
+        level: 0,
+      },
     ],
     outlineTruncated: false,
     slice: {
       startLine: 1,
       endLine: 12,
       truncated: true,
-      content: '1 | import crypto from "node:crypto";\n2 | import fs from "node:fs";\n3 | import path from "node:path";',
+      content:
+        '1 | import crypto from "node:crypto";\n2 | import fs from "node:fs";\n3 | import path from "node:path";',
     },
     estimatedFullTokens: 4605,
     estimatedReturnedTokens: 218,
     estimatedSavedTokens: 4387,
   };
+
+  // Seed realistic in-memory cumulative gain records (zero disk writes)
+  const baseTs = Date.now() - 180_000;
+  gainTracker.record({
+    op: 'batch_search',
+    label: 'registerTool, realpathSync',
+    rawTokens: 42100,
+    returnedTokens: 420,
+    guardrailApplied: false,
+    timestamp: new Date(baseTs).toISOString(),
+  });
+  gainTracker.record({
+    op: 'read_outline',
+    label: 'src/server/index.ts',
+    rawTokens: 5400,
+    returnedTokens: 310,
+    guardrailApplied: false,
+    timestamp: new Date(baseTs + 30_000).toISOString(),
+  });
+  gainTracker.record({
+    op: 'read_outline',
+    label: 'src/modules/turbo/core.ts',
+    rawTokens: lastOutline.estimatedFullTokens,
+    returnedTokens: lastOutline.estimatedReturnedTokens,
+    guardrailApplied: false,
+    timestamp: new Date(baseTs + 60_000).toISOString(),
+  });
+  gainTracker.record({
+    op: 'compact_output',
+    label: installCompact.label,
+    rawTokens: installCompact.estimatedRawTokens,
+    returnedTokens: installCompact.estimatedSummaryTokens,
+    guardrailApplied: false,
+    timestamp: new Date(baseTs + 110_000).toISOString(),
+  });
+  gainTracker.record({
+    op: 'compact_output',
+    label: lastCompact.label,
+    rawTokens: Math.max(lastCompact.estimatedRawTokens, 12800),
+    returnedTokens: Math.min(lastCompact.estimatedSummaryTokens, 1450),
+    guardrailApplied: true,
+    timestamp: new Date(baseTs + 150_000).toISOString(),
+  });
 
   return { lastCompact, lastSearch, lastOutline };
 }
@@ -147,8 +245,9 @@ export function registerTurboModule(
   const workspaceRoot = options.workspaceRoot;
   const isDemo = options.demoMode === true;
 
-  // Strictly in-memory store: zero disk writes during registration or standard runtime
+  // Strictly in-memory stores: zero disk writes during registration or standard runtime
   const chunkStore = new CompactedChunkStore(TURBO_MAX_COMPACTED_CHUNKS);
+  const gainTracker = new TurboGainTracker();
 
   let searchCount = 0;
   let outlineCount = 0;
@@ -158,7 +257,7 @@ export function registerTurboModule(
   let lastCompact: CompactOutputResult | null = null;
 
   if (isDemo) {
-    const seeded = seedDemoTurboStore(chunkStore);
+    const seeded = seedDemoTurboStore(chunkStore, gainTracker);
     lastCompact = seeded.lastCompact;
     lastSearch = seeded.lastSearch;
     lastOutline = seeded.lastOutline;
@@ -182,8 +281,46 @@ export function registerTurboModule(
     }
   };
 
+  const formatBatchSearchText = (result: BatchSearchResult): string => {
+    const lines = [
+      `Turbo batch search (${result.scannedFiles} files in ${result.elapsedMs}ms, ${result.totalMatches} total hit(s), skipped ${result.skippedSensitive} sensitive / ${result.skippedSymlinks} symlink):`,
+      ...result.results.map((r) => {
+        const top = r.matches
+          .slice(0, 5)
+          .map((m) => `  - ${m.file}:${m.line} | ${m.snippet}`)
+          .join('\n');
+        return `• "${r.query}" [${r.mode}${r.fallbackLiteral ? ' fallback' : ''}]: ${r.totalHits} hit(s)${top ? `\n${top}` : ''}`;
+      }),
+    ];
+    return lines.join('\n');
+  };
+
+  const recordSearchGain = (
+    queries: string[],
+    result: BatchSearchResult,
+    returnedText: string,
+    guardrailApplied: boolean,
+  ): void => {
+    const returnedTokens = Math.ceil(returnedText.length / 4);
+    const scannedTokens =
+      typeof result.scannedBytes === 'number' && result.scannedBytes > 0
+        ? Math.ceil(result.scannedBytes / 4)
+        : result.scannedFiles > 0
+          ? result.scannedFiles * 512
+          : 0;
+    const rawTokens = Math.max(returnedTokens, scannedTokens);
+    gainTracker.record({
+      op: 'batch_search',
+      label: queries.slice(0, 3).join(', '),
+      rawTokens,
+      returnedTokens,
+      guardrailApplied,
+    });
+  };
+
   const buildState = () => {
     const compactStats = chunkStore.getStats();
+    const gain = gainTracker.getSummary();
     return {
       mode: isDemo ? 'demo' : 'live',
       workspaceRoot,
@@ -193,10 +330,14 @@ export function registerTurboModule(
         compactionCount: compactStats.totalCompactions,
         indexedChunks: compactStats.indexedChunks,
         maxChunks: compactStats.maxChunks,
-        estimatedSavedTokens: compactStats.totalSavedTokens + outlineSavedTokens,
+        estimatedSavedTokens: Math.max(
+          compactStats.totalSavedTokens + outlineSavedTokens,
+          gain.totalSavedTokens,
+        ),
         compactedSavedTokens: compactStats.totalSavedTokens,
         outlineSavedTokens,
       },
+      gain,
       chunks: chunkStore.listChunks(),
       lastSearch,
       lastOutline,
@@ -237,19 +378,20 @@ export function registerTurboModule(
         searchCount += 1;
         lastSearch = result;
 
-        const lines = [
-          `Turbo batch search (${result.scannedFiles} files in ${result.elapsedMs}ms, ${result.totalMatches} total hit(s), skipped ${result.skippedSensitive} sensitive / ${result.skippedSymlinks} symlink):`,
-          ...result.results.map((r) => {
-            const top = r.matches
-              .slice(0, 5)
-              .map((m) => `  - ${m.file}:${m.line} | ${m.snippet}`)
-              .join('\n');
-            return `• "${r.query}" [${r.mode}${r.fallbackLiteral ? ' fallback' : ''}]: ${r.totalHits} hit(s)${top ? `\n${top}` : ''}`;
-          }),
-        ];
+        const rawText = formatBatchSearchText(result);
+        const guarded = enforceToolTextGuardrail(
+          rawText,
+          'Narrow `directory`, reduce `maxMatchesPerQuery`, or use more specific queries.',
+        );
+        recordSearchGain(queries, result, guarded.text, guarded.capped);
+
         return {
-          content: [{ type: 'text', text: lines.join('\n') }],
-          structuredContent: { ...result },
+          content: [{ type: 'text', text: guarded.text }],
+          structuredContent: {
+            ...result,
+            textGuardrailApplied: guarded.capped,
+            textBytes: guarded.bytes,
+          },
         };
       } catch (err) {
         return {
@@ -267,7 +409,7 @@ export function registerTurboModule(
     {
       title: 'Read File Outline & Slice',
       description:
-        'Extract top-level symbols (functions, classes, interfaces, exports, headings) and a bounded line slice from a workspace file without flooding context.',
+        'Extract top-level and nested symbols (functions, classes, methods, interfaces, impl/receiver methods, exports, headings) and a bounded line slice from a workspace file without flooding context.',
       inputSchema: {
         filePath: z.string().min(1).describe('Relative or workspace-scoped file path'),
         startLine: z.number().int().min(1).optional(),
@@ -290,7 +432,11 @@ export function registerTurboModule(
 
         const outlineText = result.outline
           .slice(0, 40)
-          .map((s) => `  L${s.line} [${s.kind}] ${s.name}`)
+          .map((s) => {
+            const indentPrefix = s.level && s.level > 0 ? '    ' : '  ';
+            const displayName = s.parent ? `${s.parent}::${s.name}` : s.name;
+            return `${indentPrefix}L${s.line} [${s.kind}] ${displayName}`;
+          })
           .join('\n');
         const summary = [
           `${result.file} (${result.language}, ${result.totalLines} lines, ~${result.estimatedSavedTokens} tokens saved)`,
@@ -298,9 +444,28 @@ export function registerTurboModule(
           `Slice (L${result.slice.startLine}-L${result.slice.endLine}):\n${result.slice.content}`,
         ].join('\n');
 
+        const guarded = enforceToolTextGuardrail(
+          summary,
+          `Narrow startLine/endLine or reduce maxSliceLines for ${result.file}.`,
+        );
+        const returnedTokens = guarded.capped
+          ? Math.min(result.estimatedReturnedTokens, Math.ceil(guarded.text.length / 4))
+          : result.estimatedReturnedTokens;
+        gainTracker.record({
+          op: 'read_outline',
+          label: result.file,
+          rawTokens: result.estimatedFullTokens,
+          returnedTokens,
+          guardrailApplied: guarded.capped,
+        });
+
         return {
-          content: [{ type: 'text', text: summary }],
-          structuredContent: { ...result },
+          content: [{ type: 'text', text: guarded.text }],
+          structuredContent: {
+            ...result,
+            textGuardrailApplied: guarded.capped,
+            textBytes: guarded.bytes,
+          },
         };
       } catch (err) {
         return {
@@ -333,16 +498,20 @@ export function registerTurboModule(
     async ({ label, rawText, preset, headLines, tailLines, maxErrorLines, query, chunkId }) => {
       if (chunkId && query !== undefined) {
         const hit = chunkStore.query(chunkId, query, 10);
+        const rawQueryText = hit.found
+          ? `Chunk ${chunkId} (${hit.label}): ${hit.totalHits} match(es) for "${hit.query}"\n${hit.matches.map((m) => `[L${m.matchedLine}]\n${m.snippet}`).join('\n---\n')}`
+          : `Chunk ${chunkId} not found in memory LRU.`;
+        const guarded = enforceToolTextGuardrail(
+          rawQueryText,
+          `Use a more specific query for chunkId="${chunkId}".`,
+        );
         return {
-          content: [
-            {
-              type: 'text',
-              text: hit.found
-                ? `Chunk ${chunkId} (${hit.label}): ${hit.totalHits} match(es) for "${hit.query}"\n${hit.matches.map((m) => `[L${m.matchedLine}]\n${m.snippet}`).join('\n---\n')}`
-                : `Chunk ${chunkId} not found in memory LRU.`,
-            },
-          ],
-          structuredContent: { ...hit },
+          content: [{ type: 'text', text: guarded.text }],
+          structuredContent: {
+            ...hit,
+            textGuardrailApplied: guarded.capped,
+            textBytes: guarded.bytes,
+          },
         };
       }
 
@@ -365,20 +534,39 @@ export function registerTurboModule(
       const textSummary = result.summaryText.includes(presetTag)
         ? result.summaryText
         : `${presetTag}\n${result.summaryText}`;
+      const guarded = enforceToolTextGuardrail(
+        textSummary,
+        `Query full indexed log via turbo_compact_output with chunkId="${result.chunkId}" and a keyword query.`,
+      );
+      const returnedTokens = guarded.capped
+        ? Math.min(result.estimatedSummaryTokens, Math.ceil(guarded.text.length / 4))
+        : result.estimatedSummaryTokens;
+      gainTracker.record({
+        op: 'compact_output',
+        label: result.label,
+        rawTokens: result.estimatedRawTokens,
+        returnedTokens,
+        guardrailApplied: guarded.capped,
+      });
+
       return {
-        content: [{ type: 'text', text: textSummary }],
-        structuredContent: { ...result },
+        content: [{ type: 'text', text: guarded.text }],
+        structuredContent: {
+          ...result,
+          textGuardrailApplied: guarded.capped,
+          textBytes: guarded.bytes,
+        },
       };
     },
   );
   modelTools.push(toHandle('turbo_compact_output', compactOutputTool));
 
-  // App-only tools (5)
+  // App-only tools (6)
   server.registerTool(
     'app_turbo_get_state',
     {
       title: 'Get Turbo State (App Only)',
-      description: 'Return Turbo counters, indexed chunks, recent search/outline/compaction results, and workspace snapshot.',
+      description: 'Return Turbo counters, cumulative gain summary, indexed chunks, recent search/outline/compaction results, and workspace snapshot.',
       inputSchema: {},
       _meta: APP_ONLY_META,
     },
@@ -386,6 +574,24 @@ export function registerTurboModule(
       content: [{ type: 'text', text: 'ok' }],
       structuredContent: buildState(),
     }),
+  );
+
+  server.registerTool(
+    'app_turbo_get_gain',
+    {
+      title: 'Get Turbo Cumulative Gain (App Only)',
+      description:
+        'Return in-memory cumulative token savings, estimated USD saved ($2.50/1M), average compression ratio, guardrail trigger count, and recent Turbo operations.',
+      inputSchema: {},
+      _meta: APP_ONLY_META,
+    },
+    async () => {
+      const gain = gainTracker.getSummary();
+      return {
+        content: [{ type: 'text', text: 'ok' }],
+        structuredContent: { ...gain },
+      };
+    },
   );
 
   server.registerTool(
@@ -407,6 +613,8 @@ export function registerTurboModule(
         const result = batchSearchWorkspace(workspaceRoot, input.queries, input);
         searchCount += 1;
         lastSearch = result;
+        const guarded = enforceToolTextGuardrail(formatBatchSearchText(result));
+        recordSearchGain(input.queries, result, guarded.text, guarded.capped);
         return {
           content: [{ type: 'text', text: 'ok' }],
           structuredContent: { result, state: buildState() },
@@ -440,6 +648,13 @@ export function registerTurboModule(
         outlineCount += 1;
         outlineSavedTokens += result.estimatedSavedTokens;
         lastOutline = result;
+        gainTracker.record({
+          op: 'read_outline',
+          label: result.file,
+          rawTokens: result.estimatedFullTokens,
+          returnedTokens: result.estimatedReturnedTokens,
+          guardrailApplied: false,
+        });
         return {
           content: [{ type: 'text', text: 'ok' }],
           structuredContent: { result, state: buildState() },
@@ -477,6 +692,14 @@ export function registerTurboModule(
         persistStats: false,
       });
       lastCompact = result;
+      const guarded = enforceToolTextGuardrail(result.summaryText);
+      gainTracker.record({
+        op: 'compact_output',
+        label: result.label,
+        rawTokens: result.estimatedRawTokens,
+        returnedTokens: result.estimatedSummaryTokens,
+        guardrailApplied: guarded.capped,
+      });
       return {
         content: [{ type: 'text', text: 'ok' }],
         structuredContent: { result, state: buildState() },

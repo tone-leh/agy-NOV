@@ -218,6 +218,13 @@ export const JA_DICT: UiDictionary = {
       'realpath ワークスペース境界内に厳格制限 · .env、SSH 鍵、.git、node_modules は自動スキップ。',
     presetLabel: '圧縮プリセット',
     compressionSaved: 'RTK 圧縮で {percent}% 削減',
+    gainTitle: '累計トークン節約ダッシュボード',
+    gainTokensSaved: '累計節約トークン',
+    gainEstUsdSaved: '推定節約額 (USD)',
+    gainAvgRatio: '平均圧縮率',
+    gainOpsCount: '計測操作回数',
+    guardrailBadge: '<=8.8 KB ガードレール',
+    nestedOutlineNote: 'クラスメソッド、Rust impl、Go receiver のネスト概要に対応',
   },
   radar: {
     title: 'セッションレーダー＆通知',
@@ -266,6 +273,12 @@ export const JA_DICT: UiDictionary = {
     ruleBloatTitle: 'ルール肥大チェック（24KB / 20K トークン）',
     toolBudgetTitle: 'MCP ツール予算（上限 100 ツール）',
     mcpHealthTitle: 'MCP 設定＆サーバー健全性',
+    teamPresetTitle: 'チームプリセット (.agy-nov.json)',
+    teamPresetMissing: '.agy-nov.json は見つかりませんでした（任意・厳格な読み取り専用）',
+    teamPresetValid: '設定有効',
+    teamPresetWarnings: '警告',
+    crossClientTitle: 'クロスクライアント互換性＆落とし穴検査',
+    crossClientEmpty: 'クロスクライアント設定の落とし穴は検出されませんでした。',
   },
   panels: {
     review: {
@@ -494,6 +507,12 @@ export const JA_DICT: UiDictionary = {
       stale: '要更新',
       forget: '削除',
       emptyMemories: 'コードに紐付けられたメモリはまだ保存されていません。',
+      progressiveIndexBadge: '3 層インデックス',
+      privateTagHint: '機密メモを <private>...</private> で囲むと保存前に自動除去されます',
+      recallModeIndex: 'L1 インデックス',
+      recallModeTimeline: 'L2 タイムライン',
+      recallModeDetail: 'L3 完全詳細',
+      tokenSavingsNote: 'SessionStart 圧縮インデックス（約 {tokens} トークン）',
     },
     remote: {
       title: 'モバイル＆IM リモート',
@@ -509,6 +528,15 @@ export const JA_DICT: UiDictionary = {
       sendAlert: 'テスト通知を送信',
       dispatchTask: 'タスクを配信',
       promptPlaceholder: 'リモートで Agent に指示するプロンプトを入力…',
+      liveStreamTitle: '読み取り専用ライブストリーム',
+      liveStreamHint:
+        '直近のマスク済み会話とツール実行ログを読み取り専用で確認。ファイル書き込み・リモート Shell は完全に無効です。',
+      tunnelGuideTitle: '安全なリモートトンネルガイド',
+      detectTunnelBtn: 'ローカルのトンネルツールを検出',
+      tunnelNotDetected: '未インストール',
+      tunnelDetected: 'インストール済み',
+      tunnelSafetyNote:
+        '読み取り専用のローカル CLI 確認のみ実行します。公開トンネルを自動起動することはありません。',
     },
   },
   quickStart: {

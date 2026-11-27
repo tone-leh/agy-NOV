@@ -10,6 +10,7 @@ import {
   isPresetId,
   LOCALE_IDS,
   loadNovConfigReadOnly,
+  loadTeamPresetReadOnly,
   MODULE_CATALOG,
   MODULE_CATEGORY_IDS,
   MODULE_CATEGORY_META,
@@ -19,10 +20,12 @@ import {
   resolveNovDataDir,
   setModuleEnabled,
   setNovLocale,
+  type ModuleId,
+  type PresetId,
 } from '../core/config.js';
 import { hasCliFlag, parseCliFlag } from '../core/utils.js';
 
-const CLI_VERSION = '0.5.0';
+const CLI_VERSION = '0.6.0';
 
 function printHelp(): void {
   console.log(`agy-NOV CLI (v${CLI_VERSION}) — The 100% Native Modular Super-Workbench for Antigravity 2.0
@@ -292,6 +295,18 @@ function printStatus(dataDir: string): void {
   }
 }
 
+type SafeRecommendedPreset = Exclude<PresetId, 'full'>;
+
+interface TeamPresetRecommendationSummary {
+  found: boolean;
+  valid: boolean;
+  preset?: PresetId;
+  enableModules: ModuleId[];
+  verifyCommandCount: number;
+  warningCount: number;
+  errorCount: number;
+}
+
 interface WorkspaceRecommendation {
   version: string;
   workspaceRoot: string;
@@ -302,17 +317,25 @@ interface WorkspaceRecommendation {
     hasDataOrOpenApi: boolean;
     hasMultipleTestsOrScripts: boolean;
   };
-  recommendedPreset: 'core' | 'power' | 'local-all';
+  teamPreset: TeamPresetRecommendationSummary;
+  recommendedPreset: SafeRecommendedPreset;
   suggestedExtraModules: string[];
   reasons: string[];
   applyCommand: string;
 }
 
 function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRecommendation {
-  const root = path.resolve(workspaceRoot);
+  const resolvedRoot = path.resolve(workspaceRoot);
+  let realRoot = resolvedRoot;
+  try {
+    realRoot = fs.realpathSync(resolvedRoot);
+  } catch {
+    // keep resolvedRoot when directory does not exist
+  }
+
   const exists = (rel: string): boolean => {
     try {
-      return fs.existsSync(path.join(root, rel));
+      return fs.existsSync(path.join(realRoot, rel));
     } catch {
       return false;
     }
@@ -322,7 +345,7 @@ function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRecommend
   let hasMultipleTestsOrScripts = false;
   if (exists('package.json')) {
     detectedStacks.push('Node.js / TypeScript');
-    const pkg = readJsonSilent(path.join(root, 'package.json'));
+    const pkg = readJsonSilent(path.join(realRoot, 'package.json'));
     const scripts =
       pkg?.scripts && typeof pkg.scripts === 'object' && !Array.isArray(pkg.scripts)
         ? Object.keys(pkg.scripts as Record<string, unknown>)
@@ -355,7 +378,7 @@ function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRecommend
 
   let hasDataOrOpenApi = false;
   try {
-    const entries = fs.readdirSync(root, { withFileTypes: true }).slice(0, 120);
+    const entries = fs.readdirSync(realRoot, { withFileTypes: true }).slice(0, 120);
     for (const ent of entries) {
       if (ent.isFile() && /\.(?:sqlite|sqlite3|db|csv|openapi\.ya?ml|openapi\.json)$/i.test(ent.name)) {
         hasDataOrOpenApi = true;
@@ -370,9 +393,20 @@ function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRecommend
     // read-only best effort
   }
 
+  const teamAudit = loadTeamPresetReadOnly(realRoot);
+  const teamPresetSummary: TeamPresetRecommendationSummary = {
+    found: teamAudit.found,
+    valid: teamAudit.valid,
+    ...(teamAudit.preset ? { preset: teamAudit.preset } : {}),
+    enableModules: [...teamAudit.enableModules],
+    verifyCommandCount: teamAudit.verifyCommands.length,
+    warningCount: teamAudit.warnings.length,
+    errorCount: teamAudit.errors.length,
+  };
+
   const reasons: string[] = [];
-  const suggestedExtraModules: string[] = [];
-  let recommendedPreset: 'core' | 'power' | 'local-all' = 'core';
+  const rawExtraModules: ModuleId[] = [];
+  let recommendedPreset: SafeRecommendedPreset = 'core';
 
   if (isGitRepo && hasMultipleTestsOrScripts) {
     recommendedPreset = 'power';
@@ -387,11 +421,58 @@ function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRecommend
 
   if (hasRulesOrMcp) {
     reasons.push('Found workspace rules or MCP configuration -> Ops Budget Doctor helps prevent 24KB rule bloat & 100-tool limit overflows.');
-    if (recommendedPreset === 'core') suggestedExtraModules.push('ops');
+    if (recommendedPreset === 'core') rawExtraModules.push('ops');
   }
   if (hasDataOrOpenApi) {
     reasons.push('Found local database, CSV, or OpenAPI files -> enable Workspace Studio on demand for offline inspection & loopback API probing.');
-    suggestedExtraModules.push('studio');
+    rawExtraModules.push('studio');
+  }
+
+  if (teamAudit.found) {
+    if (teamAudit.valid && teamAudit.errors.length === 0) {
+      if (teamAudit.preset) {
+        if (teamAudit.preset === 'full') {
+          recommendedPreset = 'local-all';
+          reasons.unshift(
+            'Found .agy-nov.json preset "full" -> downgraded to offline "local-all" because opt-in network module "remote" must be enabled manually.',
+          );
+        } else {
+          recommendedPreset = teamAudit.preset;
+          reasons.unshift(
+            `Adopted team preset "${teamAudit.preset}" from .agy-nov.json (read-only).`,
+          );
+        }
+      }
+      const safeTeamExtras = teamAudit.enableModules.filter((m) => m !== 'remote');
+      if (safeTeamExtras.length > 0) {
+        for (const m of safeTeamExtras) {
+          rawExtraModules.push(m);
+        }
+        reasons.push(
+          `Team preset (.agy-nov.json) requests additional offline module(s): ${safeTeamExtras.join(', ')}.`,
+        );
+      }
+    } else {
+      reasons.unshift(
+        `Ignored invalid .agy-nov.json: ${teamAudit.errors.join(' ')}`,
+      );
+    }
+
+    if (teamAudit.warnings.length > 0) {
+      for (const warn of teamAudit.warnings.slice(0, 8)) {
+        reasons.push(`[.agy-nov.json warning] ${warn}`);
+      }
+    }
+  }
+
+  const presetModules = PRESET_DEFINITIONS[recommendedPreset].modules;
+  const suggestedExtraModules: string[] = [];
+  for (const mod of rawExtraModules) {
+    if (mod === 'remote') continue;
+    if (presetModules[mod]) continue;
+    if (!suggestedExtraModules.includes(mod)) {
+      suggestedExtraModules.push(mod);
+    }
   }
 
   const applyCommand =
@@ -401,7 +482,7 @@ function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRecommend
 
   return {
     version: CLI_VERSION,
-    workspaceRoot: root,
+    workspaceRoot: resolvedRoot,
     detectedStacks,
     signals: {
       isGitRepo,
@@ -409,6 +490,7 @@ function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRecommend
       hasDataOrOpenApi,
       hasMultipleTestsOrScripts,
     },
+    teamPreset: teamPresetSummary,
     recommendedPreset,
     suggestedExtraModules,
     reasons,
@@ -555,6 +637,11 @@ function main(): void {
       console.log(`agy-NOV v${CLI_VERSION} Workspace Recommendation (Read-Only)`);
       console.log(`  Workspace:   ${rec.workspaceRoot}`);
       console.log(`  Stacks:      ${rec.detectedStacks.length > 0 ? rec.detectedStacks.join(', ') : 'Generic'}`);
+      if (rec.teamPreset.found) {
+        console.log(
+          `  Team Preset: .agy-nov.json (${rec.teamPreset.valid ? 'valid' : 'invalid'}${rec.teamPreset.preset ? ` · preset=${rec.teamPreset.preset}` : ''} · ${rec.teamPreset.verifyCommandCount} verify cmd(s) · ${rec.teamPreset.warningCount} warn(s))`,
+        );
+      }
       console.log(`  Recommended: preset "${rec.recommendedPreset}"${rec.suggestedExtraModules.length > 0 ? ` + [${rec.suggestedExtraModules.join(', ')}]` : ''}`);
       for (const r of rec.reasons) {
         console.log(`  - ${r}`);

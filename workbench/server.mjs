@@ -71,7 +71,7 @@ class StdioMcpClient {
     await this.request('initialize', {
       protocolVersion: '2025-03-26',
       capabilities: {},
-      clientInfo: { name: 'agy-nov-workbench', version: '0.5.0' },
+      clientInfo: { name: 'agy-nov-workbench', version: '0.6.0' },
     });
     this.proc.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' })}\n`);
   }

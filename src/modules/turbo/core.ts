@@ -8,6 +8,9 @@ export const TURBO_MAX_QUERY_LENGTH = 128;
 export const TURBO_MAX_FILE_BYTES = 512 * 1024; // 512 KiB for batch search
 export const TURBO_MAX_OUTLINE_FILE_BYTES = 1024 * 1024; // 1 MiB for outline/slice
 export const TURBO_MAX_COMPACTED_CHUNKS = 24;
+export const TURBO_MAX_TOOL_TEXT_BYTES = 8800; // <= 8.8 KB anti-host-disk-spill guardrail
+export const TURBO_INPUT_USD_PER_MILLION_TOKENS = 2.5;
+export const TURBO_GAIN_MAX_RECENT = 20;
 
 const SKIP_DIRS = new Set([
   '.git',
@@ -286,6 +289,7 @@ export interface BatchQueryResult {
 export interface BatchSearchResult {
   scope: string;
   scannedFiles: number;
+  scannedBytes?: number;
   skippedFiles: number;
   skippedSensitive: number;
   skippedSymlinks: number;
@@ -301,6 +305,62 @@ export interface OutlineSymbol {
   line: number;
   signature: string;
   level?: number;
+  parent?: string;
+}
+
+export interface ToolTextGuardrailResult {
+  text: string;
+  capped: boolean;
+  bytes: number;
+  originalBytes: number;
+}
+
+export type TurboGainOperation = 'batch_search' | 'read_outline' | 'compact_output';
+
+export interface TurboGainRecordInput {
+  op: TurboGainOperation;
+  label: string;
+  rawTokens: number;
+  returnedTokens: number;
+  guardrailApplied?: boolean;
+  timestamp?: string;
+}
+
+export interface TurboGainRecentEntry {
+  op: TurboGainOperation;
+  label: string;
+  rawTokens: number;
+  returnedTokens: number;
+  savedTokens: number;
+  savedPercent: number;
+  estimatedSavedUsd: number;
+  guardrailApplied: boolean;
+  timestamp: string;
+}
+
+export interface TurboGainOperationBucket {
+  operations: number;
+  rawTokens: number;
+  returnedTokens: number;
+  savedTokens: number;
+  savedPercent: number;
+  estimatedSavedUsd: number;
+}
+
+export interface TurboGainSummary {
+  totalOperations: number;
+  totalRawTokens: number;
+  totalReturnedTokens: number;
+  totalSavedTokens: number;
+  avgCompressionPercent: number;
+  estimatedSavedUsd: number;
+  guardrailTriggeredCount: number;
+  byOperation: {
+    search: TurboGainOperationBucket;
+    outline: TurboGainOperationBucket;
+    compact: TurboGainOperationBucket;
+  };
+  recent: TurboGainRecentEntry[];
 }
 
 export interface ReadOutlineOptions {
@@ -647,6 +707,7 @@ export function batchSearchWorkspace(
   }));
 
   let scannedFiles = 0;
+  let scannedBytes = 0;
   let skippedFiles = 0;
   let skippedSensitive = 0;
   let skippedSymlinks = 0;
@@ -783,6 +844,7 @@ export function batchSearchWorkspace(
       }
 
       scannedFiles += 1;
+      scannedBytes += buf.length;
       const text = buf.toString('utf8');
       const lines = text.split(/\r?\n/);
 
@@ -824,6 +886,7 @@ export function batchSearchWorkspace(
   return {
     scope,
     scannedFiles,
+    scannedBytes,
     skippedFiles,
     skippedSensitive,
     skippedSymlinks,
@@ -832,6 +895,237 @@ export function batchSearchWorkspace(
     elapsedMs: Date.now() - startedAt,
     results: states,
   };
+}
+
+function utf8ByteLengthOfCodePoint(cp: number): number {
+  if (cp <= 0x7f) return 1;
+  if (cp <= 0x7ff) return 2;
+  if (cp <= 0xffff) return 3;
+  return 4;
+}
+
+function truncateToUtf8BytesSafe(input: string, maxBytes: number): string {
+  if (maxBytes <= 0 || input.length === 0) return '';
+  let bytes = 0;
+  let i = 0;
+  while (i < input.length) {
+    const codeUnit = input.charCodeAt(i);
+    let cp = codeUnit;
+    let step = 1;
+    if (codeUnit >= 0xd800 && codeUnit <= 0xdbff && i + 1 < input.length) {
+      const low = input.charCodeAt(i + 1);
+      if (low >= 0xdc00 && low <= 0xdfff) {
+        cp = ((codeUnit - 0xd800) << 10) + (low - 0xdc00) + 0x10000;
+        step = 2;
+      }
+    }
+    const charBytes =
+      codeUnit >= 0xd800 && codeUnit <= 0xdfff && step === 1
+        ? 3
+        : utf8ByteLengthOfCodePoint(cp);
+    if (bytes + charBytes > maxBytes) {
+      break;
+    }
+    bytes += charBytes;
+    i += step;
+  }
+  return input.slice(0, i);
+}
+
+function truncatePrefixSafe(input: string, maxBytes: number): string {
+  if (maxBytes <= 0 || input.length === 0) return '';
+  let safe = truncateToUtf8BytesSafe(input, maxBytes);
+  const lastNl = safe.lastIndexOf('\n');
+  if (lastNl > 0 && lastNl >= Math.floor(safe.length * 0.8)) {
+    safe = safe.slice(0, lastNl);
+  }
+  return safe;
+}
+
+export function enforceToolTextGuardrail(
+  text: string,
+  hint?: string,
+): ToolTextGuardrailResult {
+  const source = typeof text === 'string' ? text : String(text ?? '');
+  const originalBytes = Buffer.byteLength(source, 'utf8');
+  if (originalBytes <= TURBO_MAX_TOOL_TEXT_BYTES) {
+    return {
+      text: source,
+      capped: false,
+      bytes: originalBytes,
+      originalBytes,
+    };
+  }
+
+  const cleanHint = typeof hint === 'string' ? hint.replace(/[\r\n]+/g, ' ').trim() : '';
+  const boundedHint = cleanHint ? truncateToUtf8BytesSafe(cleanHint, 512) : '';
+  const suffix = boundedHint
+    ? `\n\n[Turbo <=8.8KB guardrail: truncated from ${originalBytes} bytes to <=${TURBO_MAX_TOOL_TEXT_BYTES} bytes to avoid host disk spill. ${boundedHint}]`
+    : `\n\n[Turbo <=8.8KB guardrail: truncated from ${originalBytes} bytes to <=${TURBO_MAX_TOOL_TEXT_BYTES} bytes to avoid host disk spill. Narrow the line range, search scope, or query the indexed chunkId.]`;
+
+  const suffixBytes = Buffer.byteLength(suffix, 'utf8');
+  const prefixBudget = Math.max(0, TURBO_MAX_TOOL_TEXT_BYTES - suffixBytes);
+  const prefix = truncatePrefixSafe(source, prefixBudget);
+  let finalText = `${prefix}${suffix}`;
+  let finalBytes = Buffer.byteLength(finalText, 'utf8');
+
+  if (finalBytes > TURBO_MAX_TOOL_TEXT_BYTES) {
+    finalText = truncateToUtf8BytesSafe(finalText, TURBO_MAX_TOOL_TEXT_BYTES);
+    finalBytes = Buffer.byteLength(finalText, 'utf8');
+  }
+
+  return {
+    text: finalText,
+    capped: true,
+    bytes: finalBytes,
+    originalBytes,
+  };
+}
+
+export function estimateSavedUsd(savedTokens: number): number {
+  if (!Number.isFinite(savedTokens) || savedTokens <= 0) return 0;
+  return Number(((savedTokens / 1_000_000) * TURBO_INPUT_USD_PER_MILLION_TOKENS).toFixed(4));
+}
+
+function emptyGainBucket(): TurboGainOperationBucket {
+  return {
+    operations: 0,
+    rawTokens: 0,
+    returnedTokens: 0,
+    savedTokens: 0,
+    savedPercent: 0,
+    estimatedSavedUsd: 0,
+  };
+}
+
+export class TurboGainTracker {
+  private readonly maxRecent: number;
+  private totalOperations = 0;
+  private totalRawTokens = 0;
+  private totalReturnedTokens = 0;
+  private totalSavedTokens = 0;
+  private guardrailTriggeredCount = 0;
+  private readonly buckets: {
+    search: { operations: number; rawTokens: number; returnedTokens: number; savedTokens: number };
+    outline: { operations: number; rawTokens: number; returnedTokens: number; savedTokens: number };
+    compact: { operations: number; rawTokens: number; returnedTokens: number; savedTokens: number };
+  } = {
+    search: { operations: 0, rawTokens: 0, returnedTokens: 0, savedTokens: 0 },
+    outline: { operations: 0, rawTokens: 0, returnedTokens: 0, savedTokens: 0 },
+    compact: { operations: 0, rawTokens: 0, returnedTokens: 0, savedTokens: 0 },
+  };
+  private readonly recentEntries: TurboGainRecentEntry[] = [];
+
+  constructor(maxRecent = TURBO_GAIN_MAX_RECENT) {
+    this.maxRecent = Math.max(1, Math.min(Math.floor(maxRecent), 100));
+  }
+
+  record(input: TurboGainRecordInput): TurboGainRecentEntry {
+    const rawTokens =
+      Number.isFinite(input.rawTokens) && input.rawTokens > 0 ? Math.round(input.rawTokens) : 0;
+    const returnedTokens =
+      Number.isFinite(input.returnedTokens) && input.returnedTokens > 0
+        ? Math.round(input.returnedTokens)
+        : 0;
+    const savedTokens = Math.max(0, rawTokens - returnedTokens);
+    const savedPercent =
+      rawTokens > 0 ? Math.max(0, Math.min(100, Math.round((savedTokens / rawTokens) * 100))) : 0;
+    const estimatedSavedUsd = estimateSavedUsd(savedTokens);
+    const guardrailApplied = Boolean(input.guardrailApplied);
+    const safeLabel =
+      (input.label || input.op).replace(/[\r\n\t\x00-\x1f]/g, ' ').trim().slice(0, 80) || input.op;
+    const timestamp = input.timestamp ?? new Date().toISOString();
+
+    const entry: TurboGainRecentEntry = {
+      op: input.op,
+      label: safeLabel,
+      rawTokens,
+      returnedTokens,
+      savedTokens,
+      savedPercent,
+      estimatedSavedUsd,
+      guardrailApplied,
+      timestamp,
+    };
+
+    this.totalOperations += 1;
+    this.totalRawTokens += rawTokens;
+    this.totalReturnedTokens += returnedTokens;
+    this.totalSavedTokens += savedTokens;
+    if (guardrailApplied) {
+      this.guardrailTriggeredCount += 1;
+    }
+
+    const bucketKey =
+      input.op === 'batch_search' ? 'search' : input.op === 'read_outline' ? 'outline' : 'compact';
+    const bucket = this.buckets[bucketKey];
+    bucket.operations += 1;
+    bucket.rawTokens += rawTokens;
+    bucket.returnedTokens += returnedTokens;
+    bucket.savedTokens += savedTokens;
+
+    this.recentEntries.unshift(entry);
+    if (this.recentEntries.length > this.maxRecent) {
+      this.recentEntries.length = this.maxRecent;
+    }
+
+    return entry;
+  }
+
+  getSummary(): TurboGainSummary {
+    const formatBucket = (b: {
+      operations: number;
+      rawTokens: number;
+      returnedTokens: number;
+      savedTokens: number;
+    }): TurboGainOperationBucket => {
+      if (b.operations === 0) return emptyGainBucket();
+      return {
+        operations: b.operations,
+        rawTokens: b.rawTokens,
+        returnedTokens: b.returnedTokens,
+        savedTokens: b.savedTokens,
+        savedPercent:
+          b.rawTokens > 0
+            ? Math.max(0, Math.min(100, Math.round((b.savedTokens / b.rawTokens) * 100)))
+            : 0,
+        estimatedSavedUsd: estimateSavedUsd(b.savedTokens),
+      };
+    };
+
+    const avgCompressionPercent =
+      this.totalRawTokens > 0
+        ? Math.max(0, Math.min(100, Math.round((this.totalSavedTokens / this.totalRawTokens) * 100)))
+        : 0;
+
+    return {
+      totalOperations: this.totalOperations,
+      totalRawTokens: this.totalRawTokens,
+      totalReturnedTokens: this.totalReturnedTokens,
+      totalSavedTokens: this.totalSavedTokens,
+      avgCompressionPercent,
+      estimatedSavedUsd: estimateSavedUsd(this.totalSavedTokens),
+      guardrailTriggeredCount: this.guardrailTriggeredCount,
+      byOperation: {
+        search: formatBucket(this.buckets.search),
+        outline: formatBucket(this.buckets.outline),
+        compact: formatBucket(this.buckets.compact),
+      },
+      recent: this.recentEntries.map((r) => ({ ...r })),
+    };
+  }
+
+  clear(): void {
+    this.totalOperations = 0;
+    this.totalRawTokens = 0;
+    this.totalReturnedTokens = 0;
+    this.totalSavedTokens = 0;
+    this.guardrailTriggeredCount = 0;
+    this.buckets.search = { operations: 0, rawTokens: 0, returnedTokens: 0, savedTokens: 0 };
+    this.buckets.outline = { operations: 0, rawTokens: 0, returnedTokens: 0, savedTokens: 0 };
+    this.buckets.compact = { operations: 0, rawTokens: 0, returnedTokens: 0, savedTokens: 0 };
+    this.recentEntries.length = 0;
+  }
 }
 
 function detectLanguage(filePath: string): string {
@@ -844,6 +1138,366 @@ function detectLanguage(filePath: string): string {
   if (ext === '.md' || ext === '.mdx' || ext === '.markdown') return 'markdown';
   if (ext === '.json') return 'json';
   return 'text';
+}
+
+const TS_CONTROL_KEYWORDS = new Set([
+  'if',
+  'for',
+  'while',
+  'switch',
+  'catch',
+  'else',
+  'try',
+  'return',
+  'do',
+  'with',
+  'throw',
+  'case',
+  'default',
+  'break',
+  'continue',
+  'new',
+  'delete',
+  'typeof',
+  'void',
+  'yield',
+  'await',
+  'import',
+  'export',
+  'super',
+  'finally',
+  'of',
+  'in',
+  'extends',
+  'implements',
+  'class',
+  'interface',
+  'type',
+  'enum',
+  'namespace',
+  'function',
+  'const',
+  'let',
+  'var',
+]);
+
+const TS_MEMBER_MODIFIER_RE =
+  /^(?:public|private|protected|static|readonly|abstract|override|declare|async)\s+/;
+
+interface BraceScanResult {
+  openCount: number;
+  closeCount: number;
+  delta: number;
+  parenDelta: number;
+  startedInComment: boolean;
+}
+
+const TURBO_OUTLINE_MAX_PROBE_CHARS = 512;
+
+function findSameLineQuoteClose(
+  line: string,
+  startIdx: number,
+  quote: string,
+  maxLookahead?: number,
+): number {
+  let escaped = false;
+  const limit =
+    maxLookahead !== undefined
+      ? Math.min(line.length, startIdx + 1 + maxLookahead)
+      : line.length;
+  for (let i = startIdx + 1; i < limit; i += 1) {
+    const ch = line[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (ch === quote) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+function scanBraceLineJs(
+  line: string,
+  state: { inBlockComment: boolean },
+): BraceScanResult {
+  const startedInComment = state.inBlockComment;
+  let openCount = 0;
+  let closeCount = 0;
+  let parenOpen = 0;
+  let parenClose = 0;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    const next = line[i + 1];
+
+    if (state.inBlockComment) {
+      if (ch === '*' && next === '/') {
+        state.inBlockComment = false;
+        i += 1;
+      }
+      continue;
+    }
+
+    if (ch === '\\') {
+      i += 1;
+      continue;
+    }
+    if (ch === '/' && next === '*') {
+      state.inBlockComment = true;
+      i += 1;
+      continue;
+    }
+    if (ch === '/' && next === '/') {
+      break;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      const end = findSameLineQuoteClose(line, i, ch);
+      if (end > i) {
+        i = end;
+        continue;
+      }
+      // Unclosed quote on this line: advance straight to end of line to guarantee strict O(n)
+      break;
+    }
+    if (ch === '{') {
+      openCount += 1;
+    } else if (ch === '}') {
+      closeCount += 1;
+    } else if (ch === '(') {
+      parenOpen += 1;
+    } else if (ch === ')') {
+      parenClose += 1;
+    }
+  }
+
+  return {
+    openCount,
+    closeCount,
+    delta: openCount - closeCount,
+    parenDelta: parenOpen - parenClose,
+    startedInComment,
+  };
+}
+
+function scanBraceLineRust(
+  line: string,
+  state: { blockCommentDepth: number },
+): BraceScanResult {
+  const startedInComment = state.blockCommentDepth > 0;
+  let openCount = 0;
+  let closeCount = 0;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    const next = line[i + 1];
+
+    if (state.blockCommentDepth > 0) {
+      if (ch === '/' && next === '*') {
+        state.blockCommentDepth += 1;
+        i += 1;
+      } else if (ch === '*' && next === '/') {
+        state.blockCommentDepth -= 1;
+        i += 1;
+      }
+      continue;
+    }
+
+    if (ch === '\\') {
+      i += 1;
+      continue;
+    }
+    if (ch === '/' && next === '*') {
+      state.blockCommentDepth += 1;
+      i += 1;
+      continue;
+    }
+    if (ch === '/' && next === '/') {
+      break;
+    }
+    if (ch === '"') {
+      const end = findSameLineQuoteClose(line, i, '"');
+      if (end > i) {
+        i = end;
+        continue;
+      }
+      // Unclosed string quote on this line: stop scanning to guarantee strict O(n)
+      break;
+    }
+    // Skip Rust character literals ('a', '\n', '\x7f', '\u{1234}') with O(1) bounded lookahead
+    // without misreading lifetimes ('a)
+    if (ch === "'") {
+      if (next === '\\') {
+        const end = findSameLineQuoteClose(line, i, "'", 12);
+        if (end > i) {
+          i = end;
+          continue;
+        }
+      } else if (i + 2 < line.length && line[i + 2] === "'") {
+        i += 2;
+        continue;
+      }
+      continue;
+    }
+    if (ch === '{') {
+      openCount += 1;
+    } else if (ch === '}') {
+      closeCount += 1;
+    }
+  }
+
+  return {
+    openCount,
+    closeCount,
+    delta: openCount - closeCount,
+    parenDelta: 0,
+    startedInComment,
+  };
+}
+
+function stripLeadingAngleGroup(text: string): string {
+  const trimmed = text.trimStart();
+  if (!trimmed.startsWith('<')) return trimmed;
+  let depth = 0;
+  for (let i = 0; i < trimmed.length; i += 1) {
+    const ch = trimmed[i];
+    if (ch === '<') depth += 1;
+    else if (ch === '>') {
+      depth -= 1;
+      if (depth === 0) {
+        return trimmed.slice(i + 1).trimStart();
+      }
+    }
+  }
+  return trimmed;
+}
+
+function stripTrailingGenerics(typeExpr: string): string {
+  const angleIdx = typeExpr.indexOf('<');
+  const base = angleIdx >= 0 ? typeExpr.slice(0, angleIdx) : typeExpr;
+  return base.replace(/^\s*&?(?:mut\s+)?/, '').trim();
+}
+
+function extractRustImplTarget(trimmedLine: string): string | null {
+  const head = /^(?:unsafe\s+)?impl\b(.*)$/.exec(trimmedLine);
+  if (!head) return null;
+  let rest = stripLeadingAngleGroup(head[1]);
+  // Drop trailing block/where clause so we only parse the type header
+  const braceIdx = rest.indexOf('{');
+  if (braceIdx >= 0) rest = rest.slice(0, braceIdx);
+  const whereIdx = rest.search(/\bwhere\b/);
+  if (whereIdx >= 0) rest = rest.slice(0, whereIdx);
+  rest = rest.trim();
+  if (!rest) return null;
+
+  // Handle `impl Trait<A> for TargetType<B>` by tracking angle bracket depth to locate top-level `for`
+  let angleDepth = 0;
+  let forPos = -1;
+  for (let i = 0; i < rest.length - 3; i += 1) {
+    const ch = rest[i];
+    if (ch === '<') angleDepth += 1;
+    else if (ch === '>') angleDepth = Math.max(0, angleDepth - 1);
+    else if (
+      angleDepth === 0 &&
+      rest.slice(i, i + 3) === 'for' &&
+      (i === 0 || /\s/.test(rest[i - 1])) &&
+      /\s/.test(rest[i + 3])
+    ) {
+      forPos = i;
+      break;
+    }
+  }
+
+  const targetSlice = forPos >= 0 ? rest.slice(forPos + 3).trim() : rest;
+  const cleaned = stripTrailingGenerics(targetSlice);
+  const ident = /^([A-Za-z_][A-Za-z0-9_:]*)/.exec(cleaned);
+  return ident ? ident[1] : null;
+}
+
+function extractGoReceiverType(receiverInner: string): string | null {
+  const withoutGenerics = receiverInner.replace(/\[[^\]]*\]/g, '').trim();
+  if (!withoutGenerics) return null;
+  const tokens = withoutGenerics.split(/\s+/).filter(Boolean);
+  const lastToken = tokens[tokens.length - 1] ?? '';
+  const stripped = lastToken.replace(/^\*+/, '').trim();
+  return stripped || null;
+}
+
+function measurePythonIndent(line: string): number {
+  let width = 0;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (ch === ' ') width += 1;
+    else if (ch === '\t') width += 4;
+    else break;
+  }
+  return width;
+}
+
+function updatePythonTripleQuoteState(
+  line: string,
+  activeQuote: '"""' | "'''" | null,
+): '"""' | "'''" | null {
+  let state = activeQuote;
+  let i = 0;
+  while (i < line.length) {
+    if (state) {
+      if (line.startsWith(state, i)) {
+        state = null;
+        i += 3;
+        continue;
+      }
+      if (line[i] === '\\') {
+        i += 2;
+        continue;
+      }
+      i += 1;
+      continue;
+    }
+
+    const ch = line[i];
+    if (ch === '\\') {
+      i += 2;
+      continue;
+    }
+    if (ch === '#') break;
+    if (line.startsWith('"""', i)) {
+      state = '"""';
+      i += 3;
+      continue;
+    }
+    if (line.startsWith("'''", i)) {
+      state = "'''";
+      i += 3;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      const end = findSameLineQuoteClose(line, i, ch);
+      if (end > i) {
+        i = end + 1;
+        continue;
+      }
+      // Unclosed single-line quote: advance straight to end of line to guarantee strict O(n)
+      break;
+    }
+    i += 1;
+  }
+  return state;
+}
+
+function stripTsMemberModifiers(trimmed: string): string {
+  let rest = trimmed;
+  for (let step = 0; step < 8; step += 1) {
+    const m = TS_MEMBER_MODIFIER_RE.exec(rest);
+    if (!m) break;
+    rest = rest.slice(m[0].length);
+  }
+  return rest;
 }
 
 export function extractOutlineSymbols(
@@ -868,17 +1522,23 @@ export function extractOutlineSymbols(
     let inFence = false;
     for (let i = 0; i < lines.length; i += 1) {
       const line = lines[i];
-      if (/^\s*(`{3,}|~{3,})/.test(line)) {
+      const probe =
+        line.length > TURBO_OUTLINE_MAX_PROBE_CHARS
+          ? line.slice(0, TURBO_OUTLINE_MAX_PROBE_CHARS)
+          : line;
+      if (/^\s*(`{3,}|~{3,})/.test(probe)) {
         inFence = !inFence;
         continue;
       }
       if (inFence) continue;
-      const m = /^(#{1,6})\s+(.+?)\s*#*$/.exec(line);
+      const m = /^(#{1,6})\s+(.+)$/.exec(probe);
       if (m) {
         const level = m[1].length;
-        const heading = m[2].trim();
-        if (!push({ kind: `h${level}`, name: heading, line: i + 1, signature: line.trim().slice(0, 120), level })) {
-          break;
+        const heading = m[2].trim().replace(/#+$/, '').trim();
+        if (heading) {
+          if (!push({ kind: `h${level}`, name: heading, line: i + 1, signature: probe.trim().slice(0, 120), level })) {
+            break;
+          }
         }
       }
     }
@@ -886,41 +1546,446 @@ export function extractOutlineSymbols(
   }
 
   if (language === 'typescript' || language === 'javascript') {
+    interface TsContainer {
+      kind: 'class' | 'interface' | 'namespace';
+      name: string;
+      bodyDepth: number;
+      awaitingBrace: boolean;
+    }
+
+    const commentState = { inBlockComment: false };
+    const containers: TsContainer[] = [];
+    let braceDepth = 0;
+    let parenDepth = 0;
+
     for (let i = 0; i < lines.length; i += 1) {
       const line = lines[i];
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')) {
-        continue;
-      }
-      const indent = line.length - line.trimStart().length;
-      if (indent > 2) continue;
+      const depthBefore = braceDepth;
+      const parenBefore = parenDepth;
+      const scan = scanBraceLineJs(line, commentState);
+      const depthAfter = Math.max(0, depthBefore + scan.delta);
+      braceDepth = depthAfter;
+      parenDepth = Math.max(0, parenBefore + scan.parenDelta);
 
-      let m: RegExpExecArray | null;
-      if ((m = /^(?:export\s+(?:default\s+)?)?(?:async\s+)?function\s+([A-Za-z_$][A-Za-z0-9_$]*)/.exec(trimmed))) {
-        if (!push({ kind: 'function', name: m[1], line: i + 1, signature: trimmed.slice(0, 120) })) break;
-      } else if ((m = /^(?:export\s+(?:default\s+)?)?(?:abstract\s+)?class\s+([A-Za-z_$][A-Za-z0-9_$]*)/.exec(trimmed))) {
-        if (!push({ kind: 'class', name: m[1], line: i + 1, signature: trimmed.slice(0, 120) })) break;
-      } else if ((m = /^(?:export\s+)?interface\s+([A-Za-z_$][A-Za-z0-9_$]*)/.exec(trimmed))) {
-        if (!push({ kind: 'interface', name: m[1], line: i + 1, signature: trimmed.slice(0, 120) })) break;
-      } else if ((m = /^(?:export\s+)?type\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*(?:<[^>]+>)?\s*=/.exec(trimmed))) {
-        if (!push({ kind: 'type', name: m[1], line: i + 1, signature: trimmed.slice(0, 120) })) break;
-      } else if ((m = /^(?:export\s+)?(?:const\s+)?enum\s+([A-Za-z_$][A-Za-z0-9_$]*)/.exec(trimmed))) {
-        if (!push({ kind: 'enum', name: m[1], line: i + 1, signature: trimmed.slice(0, 120) })) break;
-      } else if ((m = /^export\s+(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)/.exec(trimmed))) {
-        if (!push({ kind: 'export', name: m[1], line: i + 1, signature: trimmed.slice(0, 120) })) break;
+      // Resolve any pending Allman-style container waiting for its opening brace
+      const pendingTop = containers[containers.length - 1];
+      if (pendingTop?.awaitingBrace && scan.openCount > 0) {
+        pendingTop.awaitingBrace = false;
       }
+
+      const trimmed = line.trim();
+      const skipLine =
+        !trimmed ||
+        scan.startedInComment ||
+        trimmed.startsWith('//') ||
+        trimmed.startsWith('*') ||
+        trimmed.startsWith('/*') ||
+        trimmed.startsWith('@');
+
+      let stop = false;
+
+      if (!skipLine && parenBefore === 0) {
+        const probe =
+          trimmed.length > TURBO_OUTLINE_MAX_PROBE_CHARS
+            ? trimmed.slice(0, TURBO_OUTLINE_MAX_PROBE_CHARS)
+            : trimmed;
+        const top = containers[containers.length - 1];
+        const inNamespaceTop =
+          top !== undefined &&
+          top.kind === 'namespace' &&
+          !top.awaitingBrace &&
+          depthBefore === top.bodyDepth;
+        const inClassBody =
+          top !== undefined &&
+          top.kind === 'class' &&
+          !top.awaitingBrace &&
+          depthBefore === top.bodyDepth;
+        const inInterfaceBody =
+          top !== undefined &&
+          top.kind === 'interface' &&
+          !top.awaitingBrace &&
+          depthBefore === top.bodyDepth;
+
+        if (depthBefore === 0 || inNamespaceTop) {
+          const parentName = inNamespaceTop ? top.name : undefined;
+          const level = inNamespaceTop ? 1 : 0;
+          let m: RegExpExecArray | null;
+
+          if (
+            (m = /^(?:export\s+(?:default\s+)?)?(?:declare\s+)?(?:async\s+)?function(?:\s*\*\s*|\s+)([A-Za-z_$][A-Za-z0-9_$]*)/.exec(
+              probe,
+            ))
+          ) {
+            if (
+              !push({
+                kind: 'function',
+                name: m[1],
+                line: i + 1,
+                signature: probe.slice(0, 120),
+                level,
+                ...(parentName ? { parent: parentName } : {}),
+              })
+            ) {
+              stop = true;
+            }
+          } else if (
+            (m = /^(?:export\s+(?:default\s+)?)?(?:declare\s+)?(?:abstract\s+)?class\s+([A-Za-z_$][A-Za-z0-9_$]*)/.exec(
+              probe,
+            ))
+          ) {
+            if (
+              !push({
+                kind: 'class',
+                name: m[1],
+                line: i + 1,
+                signature: probe.slice(0, 120),
+                level,
+                ...(parentName ? { parent: parentName } : {}),
+              })
+            ) {
+              stop = true;
+            } else if (depthAfter >= depthBefore + 1) {
+              containers.push({
+                kind: 'class',
+                name: m[1],
+                bodyDepth: depthBefore + 1,
+                awaitingBrace: false,
+              });
+            } else if (scan.openCount === 0 && !trimmed.endsWith(';')) {
+              containers.push({
+                kind: 'class',
+                name: m[1],
+                bodyDepth: depthBefore + 1,
+                awaitingBrace: true,
+              });
+            }
+          } else if (
+            (m = /^(?:export\s+)?(?:declare\s+)?interface\s+([A-Za-z_$][A-Za-z0-9_$]*)/.exec(
+              probe,
+            ))
+          ) {
+            if (
+              !push({
+                kind: 'interface',
+                name: m[1],
+                line: i + 1,
+                signature: probe.slice(0, 120),
+                level,
+                ...(parentName ? { parent: parentName } : {}),
+              })
+            ) {
+              stop = true;
+            } else if (depthAfter >= depthBefore + 1) {
+              containers.push({
+                kind: 'interface',
+                name: m[1],
+                bodyDepth: depthBefore + 1,
+                awaitingBrace: false,
+              });
+            } else if (scan.openCount === 0 && !trimmed.endsWith(';')) {
+              containers.push({
+                kind: 'interface',
+                name: m[1],
+                bodyDepth: depthBefore + 1,
+                awaitingBrace: true,
+              });
+            }
+          } else if (
+            (m = /^(?:export\s+)?(?:declare\s+)?(?:namespace|module)\s+([A-Za-z_$][A-Za-z0-9_$.]*)/.exec(
+              probe,
+            ))
+          ) {
+            if (
+              !push({
+                kind: 'namespace',
+                name: m[1],
+                line: i + 1,
+                signature: probe.slice(0, 120),
+                level,
+                ...(parentName ? { parent: parentName } : {}),
+              })
+            ) {
+              stop = true;
+            } else if (depthAfter >= depthBefore + 1) {
+              containers.push({
+                kind: 'namespace',
+                name: m[1],
+                bodyDepth: depthBefore + 1,
+                awaitingBrace: false,
+              });
+            } else if (scan.openCount === 0 && !trimmed.endsWith(';')) {
+              containers.push({
+                kind: 'namespace',
+                name: m[1],
+                bodyDepth: depthBefore + 1,
+                awaitingBrace: true,
+              });
+            }
+          } else if (
+            (m = /^(?:export\s+)?(?:declare\s+)?type\s+([A-Za-z_$][A-Za-z0-9_$]*)(?:\s*<[^>\n]{0,120}>)?\s*=/.exec(
+              probe,
+            ))
+          ) {
+            if (
+              !push({
+                kind: 'type',
+                name: m[1],
+                line: i + 1,
+                signature: probe.slice(0, 120),
+                level,
+                ...(parentName ? { parent: parentName } : {}),
+              })
+            ) {
+              stop = true;
+            }
+          } else if (
+            (m = /^(?:export\s+)?(?:declare\s+)?(?:const\s+)?enum\s+([A-Za-z_$][A-Za-z0-9_$]*)/.exec(
+              probe,
+            ))
+          ) {
+            if (
+              !push({
+                kind: 'enum',
+                name: m[1],
+                line: i + 1,
+                signature: probe.slice(0, 120),
+                level,
+                ...(parentName ? { parent: parentName } : {}),
+              })
+            ) {
+              stop = true;
+            }
+          } else if (
+            (m = /^export\s+(?:declare\s+)?(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)/.exec(
+              probe,
+            ))
+          ) {
+            if (
+              !push({
+                kind: 'export',
+                name: m[1],
+                line: i + 1,
+                signature: probe.slice(0, 120),
+                level,
+                ...(parentName ? { parent: parentName } : {}),
+              })
+            ) {
+              stop = true;
+            }
+          }
+        } else if (inClassBody && top) {
+          const rest = stripTsMemberModifiers(probe);
+          let m: RegExpExecArray | null;
+          if (/^constructor\s*\(/.test(rest)) {
+            if (
+              !push({
+                kind: 'method',
+                name: 'constructor',
+                line: i + 1,
+                signature: probe.slice(0, 120),
+                parent: top.name,
+                level: 1,
+              })
+            ) {
+              stop = true;
+            }
+          } else if ((m = /^(?:get|set)\s+(#?[A-Za-z_$][A-Za-z0-9_$]*)\s*\(/.exec(rest))) {
+            const name = m[1];
+            if (!TS_CONTROL_KEYWORDS.has(name)) {
+              if (
+                !push({
+                  kind: 'method',
+                  name,
+                  line: i + 1,
+                  signature: probe.slice(0, 120),
+                  parent: top.name,
+                  level: 1,
+                })
+              ) {
+                stop = true;
+              }
+            }
+          } else if (
+            (m = /^(?:\*\s*)?(#?[A-Za-z_$][A-Za-z0-9_$]*)(?:\s*<[^>\n]{0,120}>)?\s*\(/.exec(rest))
+          ) {
+            const name = m[1];
+            if (!TS_CONTROL_KEYWORDS.has(name)) {
+              if (
+                !push({
+                  kind: 'method',
+                  name,
+                  line: i + 1,
+                  signature: probe.slice(0, 120),
+                  parent: top.name,
+                  level: 1,
+                })
+              ) {
+                stop = true;
+              }
+            }
+          } else if (
+            (m = /^(#?[A-Za-z_$][A-Za-z0-9_$]*)[!?]?\s*(?::[^=\n]{1,120})?=\s*(?:async\s+)?(?:\([^)\n]{0,160}\)|[A-Za-z_$][A-Za-z0-9_$]*)\s*=>/.exec(
+              rest,
+            ))
+          ) {
+            const name = m[1];
+            if (!TS_CONTROL_KEYWORDS.has(name)) {
+              if (
+                !push({
+                  kind: 'method',
+                  name,
+                  line: i + 1,
+                  signature: probe.slice(0, 120),
+                  parent: top.name,
+                  level: 1,
+                })
+              ) {
+                stop = true;
+              }
+            }
+          }
+        } else if (inInterfaceBody && top) {
+          let m: RegExpExecArray | null;
+          if (
+            (m = /^(?:readonly\s+)?([A-Za-z_$][A-Za-z0-9_$]*)\??(?:\s*<[^>\n]{0,120}>)?\s*\(/.exec(
+              probe,
+            ))
+          ) {
+            const name = m[1];
+            if (!TS_CONTROL_KEYWORDS.has(name)) {
+              if (
+                !push({
+                  kind: 'method',
+                  name,
+                  line: i + 1,
+                  signature: probe.slice(0, 120),
+                  parent: top.name,
+                  level: 1,
+                })
+              ) {
+                stop = true;
+              }
+            }
+          } else if ((m = /^(?:readonly\s+)?([A-Za-z_$][A-Za-z0-9_$]*)\??\s*:/.exec(probe))) {
+            const name = m[1];
+            if (!TS_CONTROL_KEYWORDS.has(name)) {
+              if (
+                !push({
+                  kind: 'property',
+                  name,
+                  line: i + 1,
+                  signature: probe.slice(0, 120),
+                  parent: top.name,
+                  level: 1,
+                })
+              ) {
+                stop = true;
+              }
+            }
+          }
+        }
+      }
+
+      // Pop containers whose closing brace has been passed
+      while (containers.length > 0) {
+        const current = containers[containers.length - 1];
+        if (!current.awaitingBrace && depthAfter < current.bodyDepth) {
+          containers.pop();
+        } else if (current.awaitingBrace && trimmed.endsWith(';')) {
+          containers.pop();
+        } else {
+          break;
+        }
+      }
+
+      if (stop) break;
     }
     return { symbols, truncated };
   }
 
   if (language === 'python') {
+    const classStack: Array<{ name: string; indent: number }> = [];
+    const defStack: number[] = [];
+    let tripleQuote: '"""' | "'''" | null = null;
+
     for (let i = 0; i < lines.length; i += 1) {
       const line = lines[i];
+      const wasInTriple = tripleQuote !== null;
+      tripleQuote = updatePythonTripleQuoteState(line, tripleQuote);
+      if (wasInTriple) continue;
+
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+
+      const indent = measurePythonIndent(line);
+
+      while (classStack.length > 0 && classStack[classStack.length - 1].indent >= indent) {
+        classStack.pop();
+      }
+      while (defStack.length > 0 && defStack[defStack.length - 1] >= indent) {
+        defStack.pop();
+      }
+
+      const probe =
+        trimmed.length > TURBO_OUTLINE_MAX_PROBE_CHARS
+          ? trimmed.slice(0, TURBO_OUTLINE_MAX_PROBE_CHARS)
+          : trimmed;
+
       let m: RegExpExecArray | null;
-      if ((m = /^(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/.exec(line))) {
-        if (!push({ kind: 'function', name: m[1], line: i + 1, signature: line.trim().slice(0, 120) })) break;
-      } else if ((m = /^class\s+([A-Za-z_][A-Za-z0-9_]*)/.exec(line))) {
-        if (!push({ kind: 'class', name: m[1], line: i + 1, signature: line.trim().slice(0, 120) })) break;
+      if ((m = /^class\s+([A-Za-z_][A-Za-z0-9_]*)/.exec(probe))) {
+        const parentClass = classStack[classStack.length - 1];
+        const insideMethod =
+          defStack.length > 0 &&
+          (!parentClass || defStack[defStack.length - 1] > parentClass.indent);
+        if (!insideMethod) {
+          if (
+            !push({
+              kind: 'class',
+              name: m[1],
+              line: i + 1,
+              signature: probe.slice(0, 120),
+              level: parentClass ? 1 : 0,
+              ...(parentClass ? { parent: parentClass.name } : {}),
+            })
+          ) {
+            break;
+          }
+          classStack.push({ name: m[1], indent });
+        }
+      } else if ((m = /^(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/.exec(probe))) {
+        const parentClass = classStack[classStack.length - 1];
+        if (indent === 0 && !parentClass) {
+          if (
+            !push({
+              kind: 'function',
+              name: m[1],
+              line: i + 1,
+              signature: probe.slice(0, 120),
+              level: 0,
+            })
+          ) {
+            break;
+          }
+          defStack.push(indent);
+        } else if (parentClass) {
+          const insideMethod =
+            defStack.length > 0 && defStack[defStack.length - 1] > parentClass.indent;
+          if (!insideMethod) {
+            if (
+              !push({
+                kind: 'method',
+                name: m[1],
+                line: i + 1,
+                signature: probe.slice(0, 120),
+                parent: parentClass.name,
+                level: 1,
+              })
+            ) {
+              break;
+            }
+          }
+          defStack.push(indent);
+        }
       }
     }
     return { symbols, truncated };
@@ -929,29 +1994,238 @@ export function extractOutlineSymbols(
   if (language === 'go') {
     for (let i = 0; i < lines.length; i += 1) {
       const line = lines[i];
+      const probe =
+        line.length > TURBO_OUTLINE_MAX_PROBE_CHARS
+          ? line.slice(0, TURBO_OUTLINE_MAX_PROBE_CHARS)
+          : line;
       let m: RegExpExecArray | null;
-      if ((m = /^func\s+(?:\([^)]+\)\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*\(/.exec(line))) {
-        if (!push({ kind: 'function', name: m[1], line: i + 1, signature: line.trim().slice(0, 120) })) break;
-      } else if ((m = /^type\s+([A-Za-z_][A-Za-z0-9_]*)\s+(struct|interface)\b/.exec(line))) {
-        if (!push({ kind: m[2], name: m[1], line: i + 1, signature: line.trim().slice(0, 120) })) break;
+      if (
+        (m = /^func\s+\(([^)\n]{1,120})\)\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*\[[^\]\n]{0,120}\])?\s*\(/.exec(
+          probe,
+        ))
+      ) {
+        const receiverType = extractGoReceiverType(m[1]);
+        if (
+          !push({
+            kind: 'method',
+            name: m[2],
+            line: i + 1,
+            signature: probe.trim().slice(0, 120),
+            ...(receiverType ? { parent: receiverType } : {}),
+            level: 1,
+          })
+        ) {
+          break;
+        }
+      } else if (
+        (m = /^func\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*\[[^\]\n]{0,120}\])?\s*\(/.exec(probe))
+      ) {
+        if (
+          !push({
+            kind: 'function',
+            name: m[1],
+            line: i + 1,
+            signature: probe.trim().slice(0, 120),
+            level: 0,
+          })
+        ) {
+          break;
+        }
+      } else if (
+        (m = /^type\s+([A-Za-z_][A-Za-z0-9_]*)(?:\s*\[[^\]\n]{0,120}\])?\s+(struct|interface)\b/.exec(
+          probe,
+        ))
+      ) {
+        if (
+          !push({
+            kind: m[2],
+            name: m[1],
+            line: i + 1,
+            signature: probe.trim().slice(0, 120),
+            level: 0,
+          })
+        ) {
+          break;
+        }
       }
     }
     return { symbols, truncated };
   }
 
   if (language === 'rust') {
+    interface RustContainer {
+      kind: 'impl' | 'trait' | 'mod';
+      name: string;
+      bodyDepth: number;
+      awaitingBrace: boolean;
+    }
+
+    const commentState = { blockCommentDepth: 0 };
+    const containers: RustContainer[] = [];
+    let braceDepth = 0;
+
     for (let i = 0; i < lines.length; i += 1) {
-      const line = lines[i].trim();
-      const indent = lines[i].length - lines[i].trimStart().length;
-      if (indent > 2) continue;
-      let m: RegExpExecArray | null;
-      if ((m = /^(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?fn\s+([A-Za-z_][A-Za-z0-9_]*)/.exec(line))) {
-        if (!push({ kind: 'fn', name: m[1], line: i + 1, signature: line.slice(0, 120) })) break;
-      } else if ((m = /^(?:pub(?:\([^)]*\))?\s+)?(struct|enum|trait|mod)\s+([A-Za-z_][A-Za-z0-9_]*)/.exec(line))) {
-        if (!push({ kind: m[1], name: m[2], line: i + 1, signature: line.slice(0, 120) })) break;
-      } else if ((m = /^impl(?:<[^>]+>)?\s+([A-Za-z0-9_:<>]+)/.exec(line))) {
-        if (!push({ kind: 'impl', name: m[1], line: i + 1, signature: line.slice(0, 120) })) break;
+      const line = lines[i];
+      const depthBefore = braceDepth;
+      const scan = scanBraceLineRust(line, commentState);
+      const depthAfter = Math.max(0, depthBefore + scan.delta);
+      braceDepth = depthAfter;
+
+      const pendingTop = containers[containers.length - 1];
+      if (pendingTop?.awaitingBrace && scan.openCount > 0) {
+        pendingTop.awaitingBrace = false;
       }
+
+      const trimmed = line.trim();
+      const skipLine =
+        !trimmed ||
+        scan.startedInComment ||
+        trimmed.startsWith('//') ||
+        trimmed.startsWith('*') ||
+        trimmed.startsWith('/*') ||
+        trimmed.startsWith('#[');
+
+      let stop = false;
+
+      if (!skipLine) {
+        const probe =
+          trimmed.length > TURBO_OUTLINE_MAX_PROBE_CHARS
+            ? trimmed.slice(0, TURBO_OUTLINE_MAX_PROBE_CHARS)
+            : trimmed;
+        const top = containers[containers.length - 1];
+        const inImplOrTrait =
+          top !== undefined &&
+          (top.kind === 'impl' || top.kind === 'trait') &&
+          !top.awaitingBrace &&
+          depthBefore === top.bodyDepth;
+        const inModBody =
+          top !== undefined &&
+          top.kind === 'mod' &&
+          !top.awaitingBrace &&
+          depthBefore === top.bodyDepth;
+
+        let m: RegExpExecArray | null;
+        if (inImplOrTrait && top) {
+          if (
+            (m = /^(?:pub(?:\([^)\n]{0,60}\))?\s+)?(?:default\s+)?(?:const\s+)?(?:async\s+)?(?:unsafe\s+)?(?:extern\s+"[^"\n]{0,30}"\s+)?fn\s+([A-Za-z_][A-Za-z0-9_]*)/.exec(
+              probe,
+            ))
+          ) {
+            if (
+              !push({
+                kind: 'method',
+                name: m[1],
+                line: i + 1,
+                signature: probe.slice(0, 120),
+                parent: top.name,
+                level: 1,
+              })
+            ) {
+              stop = true;
+            }
+          }
+        } else if (depthBefore === 0 || inModBody) {
+          const parentName = inModBody ? top.name : undefined;
+          const level = inModBody ? 1 : 0;
+
+          if (
+            (m = /^(?:pub(?:\([^)\n]{0,60}\))?\s+)?(?:const\s+)?(?:async\s+)?(?:unsafe\s+)?(?:extern\s+"[^"\n]{0,30}"\s+)?fn\s+([A-Za-z_][A-Za-z0-9_]*)/.exec(
+              probe,
+            ))
+          ) {
+            if (
+              !push({
+                kind: 'fn',
+                name: m[1],
+                line: i + 1,
+                signature: probe.slice(0, 120),
+                level,
+                ...(parentName ? { parent: parentName } : {}),
+              })
+            ) {
+              stop = true;
+            }
+          } else if (
+            (m = /^(?:pub(?:\([^)\n]{0,60}\))?\s+)?(?:unsafe\s+)?(struct|enum|trait|mod)\s+([A-Za-z_][A-Za-z0-9_]*)/.exec(
+              probe,
+            ))
+          ) {
+            const symKind = m[1];
+            const symName = m[2];
+            if (
+              !push({
+                kind: symKind,
+                name: symName,
+                line: i + 1,
+                signature: probe.slice(0, 120),
+                level,
+                ...(parentName ? { parent: parentName } : {}),
+              })
+            ) {
+              stop = true;
+            } else if (symKind === 'trait' || symKind === 'mod') {
+              if (depthAfter >= depthBefore + 1) {
+                containers.push({
+                  kind: symKind,
+                  name: symName,
+                  bodyDepth: depthBefore + 1,
+                  awaitingBrace: false,
+                });
+              } else if (scan.openCount === 0 && !trimmed.endsWith(';')) {
+                containers.push({
+                  kind: symKind,
+                  name: symName,
+                  bodyDepth: depthBefore + 1,
+                  awaitingBrace: true,
+                });
+              }
+            }
+          } else if (/^(?:unsafe\s+)?impl\b/.test(probe)) {
+            const target = extractRustImplTarget(probe);
+            if (target) {
+              if (
+                !push({
+                  kind: 'impl',
+                  name: target,
+                  line: i + 1,
+                  signature: probe.slice(0, 120),
+                  level,
+                  ...(parentName ? { parent: parentName } : {}),
+                })
+              ) {
+                stop = true;
+              } else if (depthAfter >= depthBefore + 1) {
+                containers.push({
+                  kind: 'impl',
+                  name: target,
+                  bodyDepth: depthBefore + 1,
+                  awaitingBrace: false,
+                });
+              } else if (scan.openCount === 0 && !trimmed.endsWith(';')) {
+                containers.push({
+                  kind: 'impl',
+                  name: target,
+                  bodyDepth: depthBefore + 1,
+                  awaitingBrace: true,
+                });
+              }
+            }
+          }
+        }
+      }
+
+      while (containers.length > 0) {
+        const current = containers[containers.length - 1];
+        if (!current.awaitingBrace && depthAfter < current.bodyDepth) {
+          containers.pop();
+        } else if (current.awaitingBrace && trimmed.endsWith(';')) {
+          containers.pop();
+        } else {
+          break;
+        }
+      }
+
+      if (stop) break;
     }
     return { symbols, truncated };
   }

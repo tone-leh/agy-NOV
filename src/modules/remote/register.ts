@@ -16,6 +16,7 @@ import {
 import { hasSavedConfig, toSafeChannelViews } from './config.js';
 import { ConversationClient } from './conversation-client.js';
 import { RemoteGateway } from './gateway.js';
+import { detectLocalTunnelTools, readConversationLiveStream } from './live-stream.js';
 import type { ChannelConfig } from './types.js';
 
 function toHandle(
@@ -37,8 +38,12 @@ export function registerRemoteModule(
 ): ModuleRegistrationResult {
   const rootDataDir = resolveNovDataDir(opts.dataDir);
   const dataDir = getModuleDataDir(rootDataDir, 'remote');
+  const brainDirs = opts.brainDir ? [opts.brainDir] : undefined;
   const convClient = new ConversationClient({ demoMode: opts.demoMode });
-  const gateway = new RemoteGateway(dataDir, convClient);
+  const gateway = new RemoteGateway(dataDir, convClient, {
+    demoMode: opts.demoMode,
+    ...(brainDirs ? { brainDirs } : {}),
+  });
 
   let moduleEnabled = Boolean(initialEnabled);
   let lifecycleQueue: Promise<void> = Promise.resolve();
@@ -281,7 +286,7 @@ export function registerRemoteModule(
   );
   modelTools.push(toHandle('remote_dispatch_task', dispatchTaskTool));
 
-  // App-only tools (9)
+  // App-only tools (11)
   server.registerTool(
     'app_remote_get_hub_state',
     {
@@ -621,6 +626,99 @@ export function registerRemoteModule(
       return {
         content: [{ type: 'text', text: res.conversation.id }],
         structuredContent: res,
+      };
+    },
+  );
+
+  server.registerTool(
+    'app_remote_get_conversation_stream',
+    {
+      title: 'Get Conversation Read-Only Live Stream (App Only)',
+      description:
+        'Read recent redacted conversation transcript steps (strictly read-only; rejects disabled remote module and unsafe IDs).',
+      inputSchema: {
+        conversationId: z.string().min(1),
+        limit: z.number().int().min(1).max(40).optional(),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ conversationId, limit }) => {
+      if (!moduleEnabled) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: 'Remote module is disabled.' }],
+          structuredContent: {
+            ok: false,
+            readOnly: true,
+            error: 'Remote module is disabled. Enable Remote first.',
+          },
+        };
+      }
+      try {
+        const stream = readConversationLiveStream(conversationId, {
+          demoMode: opts.demoMode,
+          limit,
+          brainDirs,
+        });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: stream.found
+                ? `Loaded ${stream.events.length}/${stream.totalSteps} read-only steps (${stream.mode}).`
+                : `No local transcript found for ${stream.conversationId}.`,
+            },
+          ],
+          structuredContent: { ok: true, ...stream },
+        };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          isError: true,
+          content: [{ type: 'text', text: msg }],
+          structuredContent: { ok: false, readOnly: true, error: msg },
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    'app_remote_detect_tunnels',
+    {
+      title: 'Detect Local Tunnel Tools (App Only)',
+      description:
+        'Read-only on-demand check for locally installed tailscale/cloudflared CLI versions and safe copy-only commands (never auto-starts any tunnel).',
+      inputSchema: {},
+      _meta: APP_ONLY_META,
+    },
+    async () => {
+      if (!moduleEnabled) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: 'Remote module is disabled.' }],
+          structuredContent: {
+            ok: false,
+            readOnly: true,
+            autoStart: false,
+            error: 'Remote module is disabled. Enable Remote first.',
+          },
+        };
+      }
+      const activePort = gateway.isRunning() ? gateway.getActualPort() : gateway.getConfig().port;
+      const result = await detectLocalTunnelTools({
+        port: activePort,
+        demoMode: opts.demoMode,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: result.tools
+              .map((t) => `${t.binary}: ${t.installed ? t.version ?? 'installed' : 'not detected'}`)
+              .join(' | '),
+          },
+        ],
+        structuredContent: { ok: true, ...result },
       };
     },
   );

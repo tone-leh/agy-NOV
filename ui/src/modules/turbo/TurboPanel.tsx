@@ -19,6 +19,38 @@ const COMPACT_PRESET_CHOICES: ReadonlyArray<{ value: CompactPresetOption; label:
   { value: 'generic', label: 'Generic' },
 ];
 
+interface TurboGainBucket {
+  operations: number;
+  rawTokens: number;
+  returnedTokens: number;
+  savedTokens: number;
+  savedPercent: number;
+  estimatedSavedUsd: number;
+}
+
+interface TurboGainSummary {
+  totalOperations: number;
+  totalRawTokens: number;
+  totalReturnedTokens: number;
+  totalSavedTokens: number;
+  avgCompressionPercent: number;
+  estimatedSavedUsd: number;
+  guardrailTriggeredCount: number;
+  byOperation: {
+    search: TurboGainBucket;
+    outline: TurboGainBucket;
+    compact: TurboGainBucket;
+  };
+  recent: Array<{
+    op: 'batch_search' | 'read_outline' | 'compact_output';
+    label: string;
+    savedTokens: number;
+    savedPercent: number;
+    guardrailApplied: boolean;
+    timestamp: string;
+  }>;
+}
+
 interface TurboState {
   mode: string;
   stats: {
@@ -28,6 +60,7 @@ interface TurboState {
     indexedChunks: number;
     estimatedSavedTokens: number;
   };
+  gain?: TurboGainSummary;
   chunks: Array<{
     chunkId: string;
     label: string;
@@ -52,7 +85,13 @@ interface TurboState {
     language: string;
     totalLines: number;
     estimatedSavedTokens: number;
-    outline: Array<{ kind: string; name: string; line: number }>;
+    outline: Array<{
+      kind: string;
+      name: string;
+      line: number;
+      level?: number;
+      parent?: string;
+    }>;
     slice: { startLine: number; endLine: number; content: string };
   } | null;
   lastCompact: {
@@ -169,6 +208,7 @@ export const TurboPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
   };
 
   const lastCompact = state?.lastCompact;
+  const gain = state?.gain;
   const savedRatio = lastCompact
     ? typeof lastCompact.savedPercent === 'number'
       ? Math.max(0, Math.min(100, Math.round(lastCompact.savedPercent)))
@@ -181,6 +221,22 @@ export const TurboPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
             )
           : 0
     : 0;
+
+  const gainTotalSavedTokens = gain?.totalSavedTokens ?? state?.stats.estimatedSavedTokens ?? 0;
+  const gainEstUsdSaved = gain?.estimatedSavedUsd ?? 0;
+  const gainAvgCompression = gain?.avgCompressionPercent ?? 0;
+  const gainTotalOps =
+    gain?.totalOperations ??
+    (state
+      ? state.stats.searchCount + state.stats.outlineCount + state.stats.compactionCount
+      : 0);
+  const gainGuardrailCount = gain?.guardrailTriggeredCount ?? 0;
+
+  const formatGainOpLabel = (op: 'batch_search' | 'read_outline' | 'compact_output'): string => {
+    if (op === 'batch_search') return dict.turbo.tabSearch;
+    if (op === 'read_outline') return dict.turbo.tabOutline;
+    return dict.turbo.tabCompact;
+  };
 
   return (
     <div className="nov-p-page">
@@ -209,9 +265,9 @@ export const TurboPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
             <div className="nov-p-stat-val">{state?.stats.indexedChunks ?? 0}</div>
           </div>
           <div className="nov-p-stat">
-            <div className="nov-p-stat-label">Saved Tokens</div>
+            <div className="nov-p-stat-label">{dict.turbo.gainTokensSaved}</div>
             <div className="nov-p-stat-val" style={{ color: 'var(--nov-success)' }}>
-              ~{state?.stats.estimatedSavedTokens ?? 0}
+              ~{gainTotalSavedTokens.toLocaleString()}
             </div>
           </div>
         </div>
@@ -234,6 +290,80 @@ export const TurboPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="nov-p-card">
+        <div className="nov-p-row">
+          <strong style={{ fontSize: '13px' }}>{dict.turbo.gainTitle}</strong>
+          <span className={`nov-badge ${gainGuardrailCount > 0 ? 'is-accent' : 'is-offline'}`}>
+            {dict.turbo.guardrailBadge}
+            {gainGuardrailCount > 0 ? ` · ${gainGuardrailCount}` : ''}
+          </span>
+        </div>
+
+        <div className="nov-p-stat-grid">
+          <div className="nov-p-stat">
+            <div className="nov-p-stat-label">{dict.turbo.gainTokensSaved}</div>
+            <div className="nov-p-stat-val" style={{ color: 'var(--nov-success)' }}>
+              ~{gainTotalSavedTokens.toLocaleString()}
+            </div>
+          </div>
+          <div className="nov-p-stat">
+            <div className="nov-p-stat-label">{dict.turbo.gainEstUsdSaved}</div>
+            <div className="nov-p-stat-val" style={{ color: 'var(--nov-accent)' }}>
+              ${gainEstUsdSaved.toFixed(4)}
+            </div>
+          </div>
+          <div className="nov-p-stat">
+            <div className="nov-p-stat-label">{dict.turbo.gainAvgRatio}</div>
+            <div className="nov-p-stat-val">{gainAvgCompression}%</div>
+          </div>
+          <div className="nov-p-stat">
+            <div className="nov-p-stat-label">{dict.turbo.gainOpsCount}</div>
+            <div className="nov-p-stat-val">{gainTotalOps}</div>
+          </div>
+        </div>
+
+        {gain && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            <span className="nov-badge">
+              {dict.turbo.tabSearch}: {gain.byOperation.search.operations} ({gain.byOperation.search.savedPercent}%)
+            </span>
+            <span className="nov-badge">
+              {dict.turbo.tabOutline}: {gain.byOperation.outline.operations} ({gain.byOperation.outline.savedPercent}%)
+            </span>
+            <span className="nov-badge">
+              {dict.turbo.tabCompact}: {gain.byOperation.compact.operations} ({gain.byOperation.compact.savedPercent}%)
+            </span>
+          </div>
+        )}
+
+        {gain && gain.recent.length > 0 && (
+          <div className="nov-p-list">
+            {gain.recent.slice(0, 4).map((entry, idx) => (
+              <div
+                key={`${entry.timestamp}-${entry.op}-${idx}`}
+                className="nov-p-row"
+                style={{ fontSize: '11.5px', fontFamily: 'var(--nov-font-mono)' }}
+              >
+                <span style={{ display: 'flex', gap: '6px', alignItems: 'center', minWidth: 0 }}>
+                  <span className="nov-badge">{formatGainOpLabel(entry.op)}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {entry.label}
+                  </span>
+                </span>
+                <span style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+                  {entry.guardrailApplied && (
+                    <span className="nov-badge is-accent">{dict.turbo.guardrailBadge}</span>
+                  )}
+                  <span style={{ color: 'var(--nov-success)' }}>
+                    -{entry.savedTokens.toLocaleString()} ({entry.savedPercent}%)
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {tab === 'search' && (
@@ -292,6 +422,7 @@ export const TurboPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
 
       {tab === 'outline' && (
         <section className="nov-p-card">
+          <div className="nov-p-banner">{dict.turbo.nestedOutlineNote}</div>
           <label style={{ fontSize: '12px', fontWeight: 600 }}>{dict.turbo.filePathLabel}</label>
           <input
             className="nov-p-input"
@@ -332,18 +463,34 @@ export const TurboPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
                 {dict.turbo.symbolsTitle} ({state.lastOutline.file})
               </div>
               <div className="nov-p-list">
-                {state.lastOutline.outline.slice(0, 20).map((sym) => (
-                  <div
-                    key={`${sym.line}-${sym.name}`}
-                    className="nov-p-row"
-                    style={{ fontSize: '12px', fontFamily: 'var(--nov-font-mono)' }}
-                  >
-                    <span>
-                      <span className="nov-badge">{sym.kind}</span> {sym.name}
-                    </span>
-                    <span style={{ color: 'var(--nov-text-2)' }}>L{sym.line}</span>
-                  </div>
-                ))}
+                {state.lastOutline.outline.slice(0, 40).map((sym, idx) => {
+                  const isNested = sym.level === 1 || Boolean(sym.parent);
+                  return (
+                    <div
+                      key={`${sym.line}-${sym.parent ?? ''}-${sym.name}-${idx}`}
+                      className="nov-p-row"
+                      style={{
+                        fontSize: '12px',
+                        fontFamily: 'var(--nov-font-mono)',
+                        paddingLeft: isNested ? '18px' : undefined,
+                        borderLeft: isNested ? '2px solid var(--nov-border)' : undefined,
+                      }}
+                    >
+                      <span>
+                        <span className={`nov-badge ${isNested ? 'is-accent' : ''}`}>{sym.kind}</span>{' '}
+                        {sym.parent ? (
+                          <>
+                            <span style={{ color: 'var(--nov-text-2)' }}>{sym.parent}::</span>
+                            {sym.name}
+                          </>
+                        ) : (
+                          sym.name
+                        )}
+                      </span>
+                      <span style={{ color: 'var(--nov-text-2)' }}>L{sym.line}</span>
+                    </div>
+                  );
+                })}
               </div>
               <div style={{ fontSize: '12px', fontWeight: 600 }}>{dict.turbo.sliceTitle}</div>
               <pre className="nov-p-pre">{state.lastOutline.slice.content}</pre>

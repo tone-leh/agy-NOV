@@ -206,7 +206,14 @@ describe('v0.2.0 Module 1 — Turbo core & SessionStart hook', () => {
       assert.equal(tsRes.language, 'typescript');
       assert.deepEqual(
         tsRes.outline.map((s) => `${s.kind}:${s.name}@${s.line}`),
-        ['interface:User@1', 'type:UserId@2', 'export:MAX_USERS@3', 'function:fetchUser@4', 'class:UserService@7'],
+        [
+          'interface:User@1',
+          'type:UserId@2',
+          'export:MAX_USERS@3',
+          'function:fetchUser@4',
+          'class:UserService@7',
+          'method:list@8',
+        ],
       );
       assert.equal(tsRes.slice.startLine, 4);
       assert.equal(tsRes.slice.endLine, 6);
@@ -221,7 +228,7 @@ describe('v0.2.0 Module 1 — Turbo core & SessionStart hook', () => {
       const goRes = readFileOutlineAndSlice(workspace, 'main.go');
       assert.deepEqual(
         goRes.outline.map((s) => `${s.kind}:${s.name}`),
-        ['struct:Config', 'function:Load'],
+        ['struct:Config', 'method:Load'],
       );
 
       const rsRes = readFileOutlineAndSlice(workspace, 'lib.rs');
@@ -764,6 +771,7 @@ describe('v0.2.0 Unified McpServer registration, zero-write init & live enable/d
           'turbo_read_outline',
           'turbo_compact_output',
           'app_turbo_get_state',
+          'app_turbo_get_gain',
           'app_turbo_batch_search',
           'app_turbo_read_outline',
           'app_turbo_compact_output',

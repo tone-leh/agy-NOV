@@ -47,6 +47,27 @@ interface McpHealthFindingView {
   message: string;
 }
 
+interface TeamPresetView {
+  found: boolean;
+  filePath: string;
+  valid: boolean;
+  preset?: string;
+  enableModules: string[];
+  verifyCommands: Array<{ label: string; executable: string; args: string[] }>;
+  specTemplatesCount: number;
+  warnings: string[];
+  errors: string[];
+}
+
+interface CrossClientFindingView {
+  severity: 'info' | 'warn' | 'error';
+  code: string;
+  client: 'antigravity' | 'claude' | 'cursor' | 'codex' | 'shared';
+  file: string;
+  message: string;
+  suggestion?: string;
+}
+
 interface OpsAudit {
   workspaceName: string;
   healthScore: number;
@@ -62,6 +83,8 @@ interface OpsAudit {
   ruleBloat?: RuleBloatView;
   toolBudget?: ToolBudgetView;
   mcpHealthFindings?: McpHealthFindingView[];
+  teamPreset?: TeamPresetView;
+  crossClientFindings?: CrossClientFindingView[];
 }
 
 function getStatusColor(status: 'ok' | 'warn' | 'critical' | 'info' | 'error'): string {
@@ -188,6 +211,15 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
   const ruleBloatTitle = opsDictExt.ruleBloatTitle ?? 'Rule Bloat Guard (24 KB / 20K Tokens)';
   const toolBudgetTitle = opsDictExt.toolBudgetTitle ?? '100-Tool Budget Meter';
   const mcpHealthTitle = opsDictExt.mcpHealthTitle ?? 'MCP Static Health Check';
+  const teamPresetTitle = dict.ops.teamPresetTitle ?? 'Team Preset (.agy-nov.json)';
+  const teamPresetMissing =
+    dict.ops.teamPresetMissing ?? 'No .agy-nov.json found (optional, strictly read-only)';
+  const teamPresetValid = dict.ops.teamPresetValid ?? 'Valid';
+  const teamPresetWarnings = dict.ops.teamPresetWarnings ?? 'Warnings';
+  const crossClientTitle =
+    dict.ops.crossClientTitle ?? 'Cross-Client Compatibility & Pitfall Guard';
+  const crossClientEmpty =
+    dict.ops.crossClientEmpty ?? 'No cross-client config pitfalls detected.';
 
   return (
     <div className="nov-p-page">
@@ -624,6 +656,157 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                 </div>
               )}
             </>
+          )}
+
+          {state.audit.teamPreset && (() => {
+            const tp = state.audit.teamPreset;
+            const statusType: 'ok' | 'warn' | 'error' = !tp.found
+              ? 'ok'
+              : !tp.valid
+                ? 'error'
+                : tp.warnings.length > 0
+                  ? 'warn'
+                  : 'ok';
+            const badgeColor = getStatusColor(statusType);
+            const badgeBg = getStatusSoftBg(statusType);
+            return (
+              <div className="nov-p-item" style={{ gap: '8px' }}>
+                <div className="nov-p-row">
+                  <strong style={{ fontSize: '12.5px' }}>{teamPresetTitle}</strong>
+                  {!tp.found ? (
+                    <span className="nov-badge">Optional</span>
+                  ) : (
+                    <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                      <span
+                        className="nov-badge"
+                        style={{ color: badgeColor, background: badgeBg, borderColor: badgeColor }}
+                      >
+                        {tp.valid ? teamPresetValid : 'INVALID'}
+                      </span>
+                      {tp.warnings.length > 0 && (
+                        <span
+                          className="nov-badge"
+                          style={{
+                            color: 'var(--nov-warn)',
+                            background: 'var(--nov-warn-soft)',
+                            borderColor: 'var(--nov-warn)',
+                          }}
+                        >
+                          {teamPresetWarnings}: {tp.warnings.length}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {!tp.found ? (
+                  <span style={{ fontSize: '12px', color: 'var(--nov-text-2)' }}>
+                    {teamPresetMissing}
+                  </span>
+                ) : (
+                  <>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '6px',
+                        fontSize: '11.5px',
+                      }}
+                    >
+                      {tp.preset && (
+                        <span className="nov-badge is-accent">preset: {tp.preset}</span>
+                      )}
+                      {tp.enableModules.length > 0 && (
+                        <span className="nov-badge">
+                          modules: {tp.enableModules.join(', ')}
+                        </span>
+                      )}
+                      <span className="nov-badge">
+                        verifyCommands: {tp.verifyCommands.length}
+                      </span>
+                      {tp.specTemplatesCount > 0 && (
+                        <span className="nov-badge">
+                          specTemplates: {tp.specTemplatesCount}
+                        </span>
+                      )}
+                    </div>
+
+                    {tp.errors.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {tp.errors.map((errMsg, idx) => (
+                          <div
+                            key={`tp-err-${idx}`}
+                            style={{ fontSize: '11.5px', color: 'var(--nov-danger)' }}
+                          >
+                            • {errMsg}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {tp.warnings.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <strong style={{ fontSize: '11.5px', color: 'var(--nov-warn)' }}>
+                          {teamPresetWarnings} ({tp.warnings.length})
+                        </strong>
+                        {tp.warnings.map((warnMsg, idx) => (
+                          <div
+                            key={`tp-warn-${idx}`}
+                            style={{ fontSize: '11.5px', color: 'var(--nov-warn)' }}
+                          >
+                            • {warnMsg}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })()}
+
+          {Array.isArray(state.audit.crossClientFindings) && (
+            <div className="nov-p-item" style={{ gap: '8px' }}>
+              <div className="nov-p-row">
+                <strong style={{ fontSize: '12.5px' }}>
+                  {crossClientTitle} ({state.audit.crossClientFindings.length})
+                </strong>
+              </div>
+              {state.audit.crossClientFindings.length > 0 ? (
+                <div className="nov-p-list">
+                  {state.audit.crossClientFindings.map((f, idx) => {
+                    const color = getStatusColor(f.severity);
+                    const bg = getStatusSoftBg(f.severity);
+                    return (
+                      <div key={`${f.code}-${f.file}-${idx}`} className="nov-p-item" style={{ gap: '4px' }}>
+                        <div className="nov-p-row" style={{ fontSize: '12px' }}>
+                          <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
+                            <span
+                              className="nov-badge"
+                              style={{ color, background: bg, borderColor: color }}
+                            >
+                              {f.severity.toUpperCase()}
+                            </span>
+                            <span className="nov-badge is-accent">{f.client}</span>
+                            <code>{f.file}</code>
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '12px', color: 'var(--nov-text-1)' }}>{f.message}</span>
+                        {f.suggestion && (
+                          <span style={{ fontSize: '11.5px', color: 'var(--nov-text-2)' }}>
+                            {f.suggestion}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <span style={{ fontSize: '12px', color: 'var(--nov-success)' }}>
+                  {crossClientEmpty}
+                </span>
+              )}
+            </div>
           )}
 
           <strong style={{ fontSize: '12px' }}>{dict.ops.auditAssets}</strong>

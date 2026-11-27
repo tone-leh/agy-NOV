@@ -217,6 +217,13 @@ export const ES_DICT: UiDictionary = {
       'Limitado al espacio de trabajo por realpath · omite automáticamente .env, claves SSH, .git y node_modules.',
     presetLabel: 'Preajuste de compresión',
     compressionSaved: 'Compresión RTK ahorró {percent}%',
+    gainTitle: 'Ahorro Acumulado de Tokens',
+    gainTokensSaved: 'Tokens Ahorrados Totales',
+    gainEstUsdSaved: 'Ahorro Est. (USD)',
+    gainAvgRatio: 'Compresión Media',
+    gainOpsCount: 'Operaciones Registradas',
+    guardrailBadge: 'Límite <=8.8 KB',
+    nestedOutlineNote: 'Admite métodos anidados de clases, bloques impl de Rust y receivers de Go',
   },
   radar: {
     title: 'Radar de Sesiones y Avisos',
@@ -265,6 +272,12 @@ export const ES_DICT: UiDictionary = {
     ruleBloatTitle: 'Control de Inflación de Reglas (24KB / 20K Tokens)',
     toolBudgetTitle: 'Presupuesto de Herramientas MCP (Límite 100)',
     mcpHealthTitle: 'Salud de Configuración y Servidores MCP',
+    teamPresetTitle: 'Preajuste de Equipo (.agy-nov.json)',
+    teamPresetMissing: 'No se encontró .agy-nov.json (opcional, estrictamente de solo lectura)',
+    teamPresetValid: 'Válido',
+    teamPresetWarnings: 'Advertencias',
+    crossClientTitle: 'Compatibilidad entre Clientes y Prevención de Fallos',
+    crossClientEmpty: 'No se detectaron problemas de configuración entre clientes.',
   },
   panels: {
     review: {
@@ -494,6 +507,13 @@ export const ES_DICT: UiDictionary = {
       stale: 'Desactualizada',
       forget: 'Olvidar',
       emptyMemories: 'Todavía no hay memorias ancladas al código.',
+      progressiveIndexBadge: 'Índice en 3 Capas',
+      privateTagHint:
+        'Envuelve notas sensibles con <private>...</private> para eliminarlas antes de guardar',
+      recallModeIndex: 'L1 Índice',
+      recallModeTimeline: 'L2 Línea Temporal',
+      recallModeDetail: 'L3 Detalle Completo',
+      tokenSavingsNote: 'Índice compacto en SessionStart (~{tokens} tokens)',
     },
     remote: {
       title: 'Móvil e IM Remoto',
@@ -509,6 +529,15 @@ export const ES_DICT: UiDictionary = {
       sendAlert: 'Enviar alerta de prueba',
       dispatchTask: 'Despachar tarea',
       promptPlaceholder: 'Escribe una instrucción para despachar remotamente…',
+      liveStreamTitle: 'Flujo en Vivo (Solo Lectura)',
+      liveStreamHint:
+        'Inspecciona turnos recientes depurados sin escrituras de archivos ni acceso a shell.',
+      tunnelGuideTitle: 'Guía Segura de Túnel Remoto',
+      detectTunnelBtn: 'Detectar Herramientas de Túnel',
+      tunnelNotDetected: 'No instalado',
+      tunnelDetected: 'Instalado',
+      tunnelSafetyNote:
+        'Comprobación CLI local en solo lectura — nunca inicia automáticamente ningún túnel público.',
     },
   },
   quickStart: {

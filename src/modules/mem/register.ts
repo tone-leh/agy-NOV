@@ -38,10 +38,18 @@ export function registerMemModule(
 
   const buildPayload = () => {
     const memories = store.list();
+    const indexText = store.buildSessionStartInjection();
+    const progressiveStats = store.buildProgressiveStats();
+    const indexEntries = store.buildCompactIndexEntries();
     return {
       memories,
       graph: buildMemoryGraph(memories),
-      injectionPreview: store.buildSessionStartInjection(),
+      injectionPreview: indexText,
+      progressiveStats,
+      progressivePreview: {
+        indexText,
+        entries: indexEntries,
+      },
     };
   };
 
@@ -53,7 +61,7 @@ export function registerMemModule(
     {
       title: 'Remember Code-Anchored Fact',
       description:
-        'Store a long-term architectural decision, pitfall, convention, or preference anchored to source file paths (with SHA-256 drift tracking).',
+        'Store a long-term architectural decision, pitfall, convention, or preference anchored to source file paths (with SHA-256 drift tracking, <private> tag stripping, and secret redaction).',
       inputSchema: {
         kind: z.enum(['architecture', 'decision', 'pitfall', 'convention', 'preference']),
         title: z.string().min(2),
@@ -90,43 +98,89 @@ export function registerMemModule(
   );
   modelTools.push(toHandle('mem_remember', rememberTool));
 
-  // 2. Model-visible: bilingual BM25 recall
+  // 2. Model-visible: 3-layer progressive disclosure recall (L1 index / L2 timeline / L3 detail)
   const recallTool = server.registerTool(
     'mem_recall',
     {
       title: 'Recall Long-Term Memories',
-      description: 'Search saved long-term memories using local bilingual (EN + 中文) BM25 ranking.',
+      description:
+        'Search or load long-term memories with 3-layer progressive disclosure: mode="index" (compact L1 catalog without content), mode="timeline" (L2 chronological context window around hits/ids), or mode="detail" (default L3 full content by query or exact ids).',
       inputSchema: {
-        query: z.string(),
+        query: z.string().optional().default(''),
+        mode: z.enum(['index', 'timeline', 'detail']).optional(),
+        ids: z.array(z.string().min(1)).max(20).optional(),
         workspacePath: z.string().optional(),
         limit: z.number().int().min(1).max(30).optional(),
+        window: z.number().int().min(1).max(5).optional(),
       },
     },
-    async ({ query, workspacePath, limit }) => {
-      const hits = store.recall(query, { workspacePath, limit: limit ?? 8, incrementRecall: true });
-      const text = hits.length
-        ? hits
-            .map(
-              (m, i) =>
-                `${i + 1}. [${m.kind.toUpperCase()}${m.drifted ? ' · DRIFTED' : ''}] ${m.title} (score ${m.score})\n   ${m.content}`,
-            )
-            .join('\n')
-        : `No memories matched "${query}".`;
+    async ({ query, mode, ids, workspacePath, limit, window }) => {
+      const effectiveMode = mode ?? 'detail';
+      const result = store.recallLayered({
+        query,
+        mode: effectiveMode,
+        ids,
+        workspacePath,
+        limit: limit ?? 8,
+        window: window ?? 2,
+        incrementRecall: effectiveMode === 'detail',
+      });
+
+      if (effectiveMode === 'index') {
+        return {
+          content: [{ type: 'text', text: result.text }],
+          structuredContent: {
+            mode: 'index',
+            query: result.query,
+            ids: result.ids,
+            totalHits: result.totalHits,
+            matches: result.indexEntries,
+          },
+        };
+      }
+
+      if (effectiveMode === 'timeline') {
+        return {
+          content: [{ type: 'text', text: result.text }],
+          structuredContent: {
+            mode: 'timeline',
+            query: result.query,
+            ids: result.ids,
+            window: result.window,
+            totalHits: result.totalHits,
+            timeline: result.timelineEntries,
+            matches: result.timelineEntries.map((entry) => ({
+              id: entry.id,
+              kind: entry.kind,
+              title: entry.title,
+              pinned: entry.pinned,
+              drifted: entry.drifted,
+              isAnchorHit: entry.isAnchorHit,
+              updatedAt: entry.updatedAt,
+              ...(typeof entry.score === 'number' ? { score: entry.score } : {}),
+            })),
+          },
+        };
+      }
+
       return {
-        content: [{ type: 'text', text }],
+        content: [{ type: 'text', text: result.text }],
         structuredContent: {
-          query,
-          totalHits: hits.length,
-          matches: hits.map((m) => ({
+          mode: 'detail',
+          query: result.query,
+          ids: result.ids,
+          totalHits: result.totalHits,
+          matches: result.detailItems.map((m) => ({
             id: m.id,
             kind: m.kind,
             title: m.title,
-            score: m.score,
+            score: m.score ?? 1,
             pinned: m.pinned,
             drifted: Boolean(m.drifted),
             anchorCount: m.anchors.length,
             tagCount: m.tags.length,
           })),
+          items: result.detailItems,
         },
       };
     },
@@ -151,12 +205,12 @@ export function registerMemModule(
   );
   modelTools.push(toHandle('mem_forget', forgetTool));
 
-  // App-only tools (6)
+  // App-only tools (7)
   server.registerTool(
     'app_mem_get_state',
     {
       title: 'Get Memory State (App Only)',
-      description: 'Fetch memories, graph & injection preview.',
+      description: 'Fetch memories, graph, progressive disclosure stats & compact injection preview.',
       inputSchema: {},
       _meta: APP_ONLY_META,
     },
@@ -178,6 +232,48 @@ export function registerMemModule(
       content: [{ type: 'text', text: 'ok' }],
       structuredContent: { hits: store.recall(query, { limit: 25 }) },
     }),
+  );
+
+  server.registerTool(
+    'app_mem_recall_layered',
+    {
+      title: 'Layered Recall Preview (App Only)',
+      description:
+        'Read-only UI tool to preview 3-layer progressive disclosure (L1 index, L2 timeline, L3 detail) without mutating recall counts.',
+      inputSchema: {
+        query: z.string().optional().default(''),
+        mode: z.enum(['index', 'timeline', 'detail']).optional().default('detail'),
+        ids: z.array(z.string().min(1)).max(20).optional(),
+        limit: z.number().int().min(1).max(30).optional(),
+        window: z.number().int().min(1).max(5).optional(),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ query, mode, ids, limit, window }) => {
+      const result = store.recallLayered({
+        query,
+        mode,
+        ids,
+        limit: limit ?? 25,
+        window: window ?? 2,
+        incrementRecall: false,
+      });
+      return {
+        content: [{ type: 'text', text: result.text }],
+        structuredContent: {
+          mode: result.mode,
+          query: result.query,
+          ids: result.ids,
+          window: result.window,
+          totalHits: result.totalHits,
+          text: result.text,
+          indexEntries: result.indexEntries,
+          timelineEntries: result.timelineEntries,
+          detailItems: result.detailItems,
+          progressiveStats: store.buildProgressiveStats(),
+        },
+      };
+    },
   );
 
   server.registerTool(

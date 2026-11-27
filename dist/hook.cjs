@@ -397,6 +397,100 @@ function isNovLocale(value) {
   return typeof value === "string" && LOCALE_IDS.includes(value);
 }
 
+// src/core/team-config.ts
+var MAX_TEAM_CONFIG_BYTES = 64 * 1024;
+function normalizeCanonicalFlag(arg) {
+  const lower = arg.toLowerCase();
+  const eqIdx = lower.indexOf("=");
+  const flag = eqIdx >= 0 ? lower.slice(0, eqIdx) : lower;
+  if (flag.startsWith("--")) {
+    return `--${flag.slice(2).replace(/[-_]/g, "")}`;
+  }
+  return flag.replace(/_/g, "-");
+}
+var FORBIDDEN_LINTER_COMMON_FLAGS = new Set(
+  [
+    "--eval",
+    "--config",
+    "--config-file",
+    "--config-path",
+    "--plugin",
+    "--plugins",
+    "--plugin-search-dir",
+    "--require",
+    "--import",
+    "--loader",
+    "--experimental-loader",
+    "--preload",
+    "--node-options",
+    "--exec",
+    "--shell",
+    "--script-shell",
+    "--output",
+    "--output-file",
+    "--output-dir",
+    "--out-file",
+    "--out-dir",
+    "--ts-build-info-file",
+    "--declaration-dir",
+    "--rulesdir",
+    "--resolve-plugins-relative-to",
+    "--parser",
+    "--formatter",
+    "--format",
+    "--setup-files",
+    "--setup-files-after-env",
+    "--global-setup",
+    "--global-teardown",
+    "--reporter",
+    "--reporters",
+    "--runner",
+    "--test-runner",
+    "--test-environment",
+    "--test-sequencer",
+    "--snapshot-resolver",
+    "--dependency-extractor",
+    "--module-name-mapper",
+    "--watch-plugins",
+    "--haste",
+    "--transform",
+    "--resolver",
+    "--preset",
+    "--environment",
+    "--projects",
+    "--workspace",
+    "--override-ini",
+    "--confcutdir",
+    "--rootdir",
+    "--basetemp",
+    "--python-executable",
+    "--custom-typeshed-dir",
+    "--cache-dir",
+    "--cache-directory",
+    "--coverage-directory",
+    "--artifacts-path",
+    "--write"
+  ].map(normalizeCanonicalFlag)
+);
+var FORBIDDEN_BUILD_TOOL_CANONICAL_FLAGS = new Set(
+  [
+    "--init-script",
+    "--build-file",
+    "--settings-file",
+    "--settings",
+    "--global-settings",
+    "--file",
+    "--property",
+    "--logger",
+    "--gradle-user-home",
+    "--project-dir",
+    "--artifacts-path",
+    "--output",
+    "--output-dir",
+    "--results-directory"
+  ].map(normalizeCanonicalFlag)
+);
+
 // src/core/config.ts
 function sanitizeDataDirCandidate(candidate) {
   if (!candidate) return void 0;
@@ -1650,6 +1744,11 @@ function buildDemoMemories() {
 
 // src/modules/mem/store.ts
 var MAX_ANCHOR_FILE_BYTES = 2 * 1024 * 1024;
+var MAX_SESSION_START_CHARS = 1200;
+var PRIVATE_CONTENT_PLACEHOLDER = "[PRIVATE_CONTENT_STRIPPED]";
+var PRIVATE_TITLE_PLACEHOLDER = "[PRIVATE_TITLE_STRIPPED]";
+var PRIVATE_OPEN_PREFIX = "<private";
+var PRIVATE_CLOSE_PREFIX = "</private";
 var VALID_MEMORY_KINDS = /* @__PURE__ */ new Set([
   "architecture",
   "decision",
@@ -1681,17 +1780,159 @@ var SECRET_RE = [
     "$1[REDACTED]$3"
   ]
 ];
+function isAsciiWhitespaceCode(code) {
+  return code === 32 || code === 9 || code === 13 || code === 10;
+}
+function asciiLowerCode(code) {
+  return code >= 65 && code <= 90 ? code + 32 : code;
+}
+function startsWithAsciiCaseInsensitive(input, idx, lowerPrefix) {
+  if (idx + lowerPrefix.length > input.length) return false;
+  for (let i = 0; i < lowerPrefix.length; i++) {
+    if (asciiLowerCode(input.charCodeAt(idx + i)) !== lowerPrefix.charCodeAt(i)) {
+      return false;
+    }
+  }
+  return true;
+}
+function matchOpenPrivateTagEnd(input, idx) {
+  if (!startsWithAsciiCaseInsensitive(input, idx, PRIVATE_OPEN_PREFIX)) return -1;
+  let cursor = idx + PRIVATE_OPEN_PREFIX.length;
+  if (cursor >= input.length) return -1;
+  const boundary = input.charCodeAt(cursor);
+  if (boundary === 62) return cursor;
+  if (!isAsciiWhitespaceCode(boundary)) return -1;
+  cursor += 1;
+  while (cursor < input.length) {
+    const code = input.charCodeAt(cursor);
+    if (code === 62) return cursor;
+    if (code === 60) return -1;
+    cursor += 1;
+  }
+  return -1;
+}
+function matchClosePrivateTagEnd(input, idx) {
+  if (!startsWithAsciiCaseInsensitive(input, idx, PRIVATE_CLOSE_PREFIX)) return -1;
+  let cursor = idx + PRIVATE_CLOSE_PREFIX.length;
+  while (cursor < input.length && isAsciiWhitespaceCode(input.charCodeAt(cursor))) {
+    cursor += 1;
+  }
+  if (cursor < input.length && input.charCodeAt(cursor) === 62) {
+    return cursor;
+  }
+  return -1;
+}
+function stripPrivateTags(input) {
+  if (!input || !input.includes("<")) return { cleaned: input, strippedCount: 0 };
+  const chunks = [];
+  let cursor = 0;
+  let strippedCount = 0;
+  while (cursor < input.length) {
+    const ltIdx = input.indexOf("<", cursor);
+    if (ltIdx === -1) {
+      chunks.push(input.slice(cursor));
+      break;
+    }
+    const openEnd = matchOpenPrivateTagEnd(input, ltIdx);
+    if (openEnd === -1) {
+      chunks.push(input.slice(cursor, ltIdx + 1));
+      cursor = ltIdx + 1;
+      continue;
+    }
+    if (ltIdx > cursor) {
+      chunks.push(input.slice(cursor, ltIdx));
+    }
+    let depth = 1;
+    let scan = openEnd + 1;
+    while (scan < input.length && depth > 0) {
+      const nextLt = input.indexOf("<", scan);
+      if (nextLt === -1) {
+        scan = input.length;
+        break;
+      }
+      const nestedOpenEnd = matchOpenPrivateTagEnd(input, nextLt);
+      if (nestedOpenEnd !== -1) {
+        depth += 1;
+        scan = nestedOpenEnd + 1;
+        continue;
+      }
+      const closeEnd = matchClosePrivateTagEnd(input, nextLt);
+      if (closeEnd !== -1) {
+        depth -= 1;
+        scan = closeEnd + 1;
+        continue;
+      }
+      scan = nextLt + 1;
+    }
+    strippedCount += 1;
+    cursor = depth > 0 ? input.length : scan;
+  }
+  if (strippedCount === 0) {
+    return { cleaned: input, strippedCount: 0 };
+  }
+  const cleaned = chunks.join("").replace(/[ \t]{2,}/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n[ \t]+/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  return { cleaned, strippedCount };
+}
+function estimateTokenCount(text) {
+  if (!text) return 0;
+  let cjk = 0;
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (code >= 19968 && code <= 40959 || code >= 12352 && code <= 12543 || code >= 44032 && code <= 55215) {
+      cjk += 1;
+    }
+  }
+  const nonCjk = text.length - cjk;
+  return Math.max(1, Math.ceil(nonCjk / 4 + cjk * 0.7));
+}
 function redactSecrets(input) {
   let out = input;
   for (const [re, rep] of SECRET_RE) out = out.replace(re, rep);
   return out;
 }
 function sanitizeTag(raw) {
-  const trimmed = raw.trim();
-  if (!trimmed) return "";
-  const redacted = redactSecrets(trimmed);
-  if (redacted === trimmed) return trimmed.toLowerCase();
+  const stripped = stripPrivateTags(raw).cleaned.trim();
+  if (!stripped) return "";
+  const redacted = redactSecrets(stripped);
+  if (redacted === stripped) return stripped.toLowerCase();
   return redacted.toLowerCase().replace(/\[redacted(?:_[a-z_]+)?\]/g, (m) => m.toUpperCase());
+}
+function collapseSingleLine(text, maxLen) {
+  const single = text.replace(/\s+/g, " ").trim();
+  if (single.length <= maxLen) return single;
+  return `${single.slice(0, Math.max(1, maxLen - 1)).trimEnd()}\u2026`;
+}
+function formatCompactAnchorList(anchors, maxFiles = 3) {
+  if (anchors.length === 0) return "";
+  const names = anchors.slice(0, maxFiles).map((a) => a.basename);
+  const extra = anchors.length > maxFiles ? `, +${anchors.length - maxFiles}` : "";
+  return ` [${names.join(", ")}${extra}]`;
+}
+function toIndexEntry(m, score) {
+  return {
+    id: m.id,
+    kind: m.kind,
+    title: m.title,
+    pinned: m.pinned,
+    drifted: Boolean(m.drifted),
+    tags: [...m.tags],
+    anchors: m.anchors.map((a) => ({
+      basename: a.basename,
+      ...a.symbol ? { symbol: a.symbol } : {},
+      ...a.driftStatus ? { driftStatus: a.driftStatus } : {}
+    })),
+    updatedAt: m.updatedAt,
+    recallCount: m.recallCount,
+    ...typeof score === "number" ? { score } : {}
+  };
+}
+function formatCompactIndexLine(entry, maxTitleLen = 72) {
+  const title = collapseSingleLine(entry.title, maxTitleLen);
+  const pinMark = entry.pinned ? " \u2605" : "";
+  const driftMark = entry.drifted ? " \xB7 DRIFTED" : "";
+  const scoreMark = typeof entry.score === "number" ? ` (score ${entry.score})` : "";
+  const files = entry.anchors.length > 0 ? ` [${entry.anchors.slice(0, 3).map((a) => a.basename).join(", ")}${entry.anchors.length > 3 ? `, +${entry.anchors.length - 3}` : ""}]` : "";
+  return `- [${entry.id}] (${entry.kind.toUpperCase()}${pinMark}${driftMark}) ${title}${files}${scoreMark}`;
 }
 function isSensitiveFilePath(filePath) {
   const trimmed = filePath.trim();
@@ -1888,13 +2129,13 @@ var MemoryStore = class {
     this.filePath = import_node_path6.default.join(dataDir, "memories.json");
   }
   filePath;
-  demoSeeded = false;
-  ensureDemoSeeded() {
-    if (!this.demoMode || this.demoSeeded) return;
-    this.demoSeeded = true;
-    if (!import_node_fs4.default.existsSync(this.filePath)) {
-      this.writeAll(buildDemoMemories());
-    }
+  demoItems = null;
+  cloneItems(items) {
+    return items.map((m) => ({
+      ...m,
+      tags: [...m.tags],
+      anchors: m.anchors.map((a) => ({ ...a }))
+    }));
   }
   backupCorruptFile(reason) {
     const base = `${this.filePath}.corrupt.${Date.now()}`;
@@ -1912,7 +2153,12 @@ var MemoryStore = class {
     }
   }
   readRaw() {
-    this.ensureDemoSeeded();
+    if (this.demoMode) {
+      if (!this.demoItems) {
+        this.demoItems = buildDemoMemories();
+      }
+      return this.cloneItems(this.demoItems);
+    }
     if (!import_node_fs4.default.existsSync(this.filePath)) return [];
     let rawText;
     try {
@@ -1937,6 +2183,10 @@ var MemoryStore = class {
     return parsed.map((entry, idx) => normalizeMemoryItem(entry, idx)).filter((item) => item !== null);
   }
   writeAll(items) {
+    if (this.demoMode) {
+      this.demoItems = this.cloneItems(items);
+      return;
+    }
     ensurePrivateDir2(this.dataDir);
     const tmp = `${this.filePath}.${process.pid}.${import_node_crypto2.default.randomBytes(4).toString("hex")}.tmp`;
     try {
@@ -2020,7 +2270,8 @@ var MemoryStore = class {
     const anchors = (input.anchors ?? []).filter((a) => a && typeof a.filePath === "string" && a.filePath.trim().length > 0).map((a) => {
       const rawPath = a.filePath.trim();
       const abs = import_node_path6.default.isAbsolute(rawPath) ? import_node_path6.default.resolve(rawPath) : import_node_path6.default.resolve(inspectWorkspace ?? process.cwd(), rawPath);
-      const cleanSymbol = a.symbol ? redactSecrets(a.symbol.trim()) : void 0;
+      const strippedSymbol = a.symbol ? stripPrivateTags(a.symbol).cleaned.trim() : "";
+      const cleanSymbol = strippedSymbol ? redactSecrets(strippedSymbol) : void 0;
       const inspected = inspectAnchorFile(abs, inspectWorkspace);
       const driftStatus = inspected.status === "ok" ? "fresh" : inspected.status === "skipped" ? "skipped" : "untracked";
       return {
@@ -2032,8 +2283,14 @@ var MemoryStore = class {
         driftStatus
       };
     });
-    const cleanTitle = redactSecrets(input.title.trim());
-    const cleanContent = redactSecrets(input.content.trim());
+    const titleStripped = stripPrivateTags(input.title);
+    const cleanTitle = redactSecrets(
+      titleStripped.cleaned.trim() || (titleStripped.strippedCount > 0 ? PRIVATE_TITLE_PLACEHOLDER : "(Untitled memory)")
+    );
+    const contentStripped = stripPrivateTags(input.content);
+    const cleanContent = redactSecrets(
+      contentStripped.cleaned.trim() || (contentStripped.strippedCount > 0 ? PRIVATE_CONTENT_PLACEHOLDER : "")
+    );
     const tags = Array.from(new Set((input.tags ?? []).map((t) => sanitizeTag(t)).filter(Boolean)));
     const existingIdx = input.id ? items.findIndex((m) => m.id === input.id) : items.findIndex(
       (m) => m.title.toLowerCase() === cleanTitle.toLowerCase() && (m.workspacePath ?? "") === (resolvedWorkspace ?? "")
@@ -2108,6 +2365,25 @@ var MemoryStore = class {
     this.writeAll(next);
     return true;
   }
+  getByIds(ids, opts = {}) {
+    const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
+    if (uniqueIds.length === 0) return [];
+    const all = this.list({ workspacePath: opts.workspacePath });
+    const byId = new Map(all.map((m) => [m.id, m]));
+    const matched = uniqueIds.map((id) => byId.get(id)).filter((m) => m !== void 0);
+    if (opts.incrementRecall && matched.length > 0) {
+      const raw = this.readRaw();
+      const matchedSet = new Set(matched.map((m) => m.id));
+      for (const m of raw) {
+        if (matchedSet.has(m.id)) {
+          m.recallCount = (m.recallCount ?? 0) + 1;
+        }
+      }
+      this.writeAll(raw);
+      return matched.map((m) => ({ ...m, recallCount: (m.recallCount ?? 0) + 1 }));
+    }
+    return matched;
+  }
   recall(query, opts = {}) {
     const limit = opts.limit ?? 10;
     const all = this.list({ workspacePath: opts.workspacePath });
@@ -2156,21 +2432,237 @@ var MemoryStore = class {
         if (hitIds.has(m.id)) m.recallCount = (m.recallCount ?? 0) + 1;
       }
       this.writeAll(raw);
+      return hits.map((h) => ({ ...h, recallCount: (h.recallCount ?? 0) + 1 }));
     }
     return hits;
   }
-  buildSessionStartInjection(workspacePaths = [], maxItems = 8) {
+  buildCompactIndexEntries(workspacePaths = [], maxItems = 12) {
     const ws = workspacePaths[0];
-    const candidates = this.list({ workspacePath: ws }).filter((m) => !m.drifted).slice(0, maxItems);
-    if (candidates.length === 0) return "";
-    const lines = [
-      `[Agy Mem \u2014 Persistent Workspace Memory (${candidates.length} active)]`,
-      ...candidates.map((m) => {
-        const anchorTxt = m.anchors.length ? ` [files: ${m.anchors.map((a) => a.basename).join(", ")}]` : "";
-        return `- (${m.kind.toUpperCase()}${m.pinned ? " \u2605" : ""}) **${m.title}**: ${m.content}${anchorTxt}`;
+    return this.list({ workspacePath: ws }).filter((m) => !m.drifted).slice(0, maxItems).map((m) => toIndexEntry(m));
+  }
+  buildSessionStartInjection(workspacePaths = [], maxItems = 12) {
+    const entries = this.buildCompactIndexEntries(workspacePaths, maxItems);
+    if (entries.length === 0) return "";
+    const header = `[Agy Mem \u2014 Progressive Index (${entries.length} active \xB7 L1)]`;
+    const footer = 'Call mem_recall(mode="detail", ids=["<id>"]) for full content or mode="timeline" for nearby context.';
+    const lines = [header];
+    let usedLen = header.length + 1 + footer.length;
+    let included = 0;
+    for (const entry of entries) {
+      const line = formatCompactIndexLine(entry);
+      const nextLen = usedLen + 1 + line.length;
+      if (nextLen <= MAX_SESSION_START_CHARS) {
+        lines.push(line);
+        usedLen = nextLen;
+        included += 1;
+      } else if (included === 0) {
+        const available = Math.max(24, MAX_SESSION_START_CHARS - usedLen - 1);
+        lines.push(collapseSingleLine(line, available));
+        included += 1;
+        break;
+      } else {
+        break;
+      }
+    }
+    const omitted = entries.length - included;
+    if (omitted > 0) {
+      const moreLine = `(+${omitted} more indexed; query with mem_recall(mode="index", query="..."))`;
+      if (usedLen + 1 + moreLine.length <= MAX_SESSION_START_CHARS) {
+        lines.push(moreLine);
+      }
+    }
+    lines.push(footer);
+    const out = lines.join("\n");
+    return out.length <= MAX_SESSION_START_CHARS ? out : out.slice(0, MAX_SESSION_START_CHARS);
+  }
+  buildProgressiveStats(workspacePaths, maxItems = 12) {
+    const ws = workspacePaths?.[0];
+    const active = this.list({ workspacePath: ws }).filter((m) => !m.drifted);
+    if (active.length === 0) {
+      return {
+        activeCount: 0,
+        compactIndexChars: 0,
+        compactIndexTokens: 0,
+        fullDumpTokens: 0,
+        savedTokens: 0,
+        savedPercent: 0
+      };
+    }
+    const compactIndex = this.buildSessionStartInjection(workspacePaths ?? [], maxItems);
+    const fullDumpText = [
+      `[Agy Mem \u2014 Persistent Workspace Memory (${active.length} active)]`,
+      ...active.map((m) => {
+        const anchorTxt = formatCompactAnchorList(m.anchors, m.anchors.length);
+        const tagTxt = m.tags.length ? ` [tags: ${m.tags.join(", ")}]` : "";
+        return `- [${m.id}] (${m.kind.toUpperCase()}${m.pinned ? " \u2605" : ""}) **${m.title}**: ${m.content}${anchorTxt}${tagTxt}`;
       })
-    ];
-    return lines.join("\n").slice(0, 2400);
+    ].join("\n");
+    const compactIndexChars = compactIndex.length;
+    const compactIndexTokens = estimateTokenCount(compactIndex);
+    const fullDumpTokens = estimateTokenCount(fullDumpText);
+    const savedTokens = Math.max(0, fullDumpTokens - compactIndexTokens);
+    const savedPercent = fullDumpTokens > 0 ? Math.round(savedTokens / fullDumpTokens * 100) : 0;
+    return {
+      activeCount: active.length,
+      compactIndexChars,
+      compactIndexTokens,
+      fullDumpTokens,
+      savedTokens,
+      savedPercent
+    };
+  }
+  recallLayered(opts = {}) {
+    const mode = opts.mode ?? "detail";
+    const query = (opts.query ?? "").trim();
+    const ids = Array.from(new Set((opts.ids ?? []).map((id) => id.trim()).filter(Boolean)));
+    const limit = opts.limit ?? 8;
+    const windowSize = Math.min(5, Math.max(1, Math.floor(opts.window ?? 2)));
+    if (mode === "index") {
+      const entries = ids.length > 0 ? this.getByIds(ids, { workspacePath: opts.workspacePath, incrementRecall: false }).map(
+        (m) => toIndexEntry(m)
+      ) : this.recall(query, {
+        workspacePath: opts.workspacePath,
+        limit,
+        incrementRecall: false
+      }).map((m) => toIndexEntry(m, m.score));
+      const text2 = entries.length ? [
+        `[Agy Mem \xB7 L1 Index (${entries.length} ${entries.length === 1 ? "match" : "matches"})]`,
+        ...entries.map((entry) => formatCompactIndexLine(entry)),
+        'Call mem_recall(mode="detail", ids=["<id>"]) to load full memory content.'
+      ].join("\n") : ids.length > 0 ? `No memories found for ids: ${ids.join(", ")}.` : `No memories matched "${query}".`;
+      return {
+        mode,
+        query,
+        ids,
+        window: windowSize,
+        totalHits: entries.length,
+        text: text2,
+        indexEntries: entries,
+        timelineEntries: [],
+        detailItems: []
+      };
+    }
+    if (mode === "timeline") {
+      const chronological = this.list({ workspacePath: opts.workspacePath }).sort(
+        (a, b) => b.updatedAt.localeCompare(a.updatedAt) || b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id)
+      );
+      const indexById = /* @__PURE__ */ new Map();
+      chronological.forEach((m, idx) => indexById.set(m.id, idx));
+      const anchorIndices = /* @__PURE__ */ new Set();
+      const anchorHitIds = /* @__PURE__ */ new Set();
+      const scoreMap = /* @__PURE__ */ new Map();
+      if (ids.length > 0) {
+        for (const id of ids) {
+          const idx = indexById.get(id);
+          if (idx !== void 0) {
+            anchorIndices.add(idx);
+            anchorHitIds.add(id);
+          }
+        }
+      } else if (query) {
+        const hits = this.recall(query, {
+          workspacePath: opts.workspacePath,
+          limit,
+          incrementRecall: false
+        });
+        for (const h of hits) {
+          const idx = indexById.get(h.id);
+          if (idx !== void 0) {
+            anchorIndices.add(idx);
+            anchorHitIds.add(h.id);
+            scoreMap.set(h.id, h.score);
+          }
+        }
+      } else {
+        const count = Math.min(limit, chronological.length);
+        for (let i = 0; i < count; i++) {
+          anchorIndices.add(i);
+        }
+      }
+      const includedIndices = /* @__PURE__ */ new Set();
+      if (ids.length > 0 || query) {
+        for (const anchorIdx of anchorIndices) {
+          const start = Math.max(0, anchorIdx - windowSize);
+          const end = Math.min(chronological.length - 1, anchorIdx + windowSize);
+          for (let i = start; i <= end; i++) {
+            includedIndices.add(i);
+          }
+        }
+      } else {
+        for (const idx of anchorIndices) {
+          includedIndices.add(idx);
+        }
+      }
+      const orderedIndices = Array.from(includedIndices).sort((a, b) => a - b);
+      const timelineEntries = orderedIndices.map((idx) => {
+        const m = chronological[idx];
+        const score = scoreMap.get(m.id);
+        return {
+          id: m.id,
+          kind: m.kind,
+          title: m.title,
+          excerpt: collapseSingleLine(m.content, 120),
+          pinned: m.pinned,
+          drifted: Boolean(m.drifted),
+          tags: [...m.tags],
+          anchorFiles: m.anchors.map((a) => a.basename),
+          ...m.sourceConversationId ? { sourceConversationId: m.sourceConversationId } : {},
+          createdAt: m.createdAt,
+          updatedAt: m.updatedAt,
+          recallCount: m.recallCount,
+          isAnchorHit: anchorHitIds.has(m.id),
+          ...typeof score === "number" ? { score } : {}
+        };
+      });
+      const text2 = timelineEntries.length ? [
+        `[Agy Mem \xB7 L2 Timeline (${timelineEntries.length} items, window=\xB1${windowSize})]`,
+        ...timelineEntries.map((entry) => {
+          const marker = entry.isAnchorHit ? "\u2605 HIT" : "\xB7 ctx";
+          const filesTxt = entry.anchorFiles.length ? ` [files: ${entry.anchorFiles.slice(0, 3).join(", ")}]` : "";
+          const convTxt = entry.sourceConversationId ? ` (session:${entry.sourceConversationId.slice(0, 12)})` : "";
+          const scoreTxt = typeof entry.score === "number" ? ` score=${entry.score}` : "";
+          return `- ${entry.updatedAt} ${marker} [${entry.id}] (${entry.kind.toUpperCase()}${entry.pinned ? " \u2605" : ""}${entry.drifted ? " \xB7 DRIFTED" : ""}) ${entry.title}${filesTxt}${convTxt}${scoreTxt}
+  ${entry.excerpt}`;
+        }),
+        'Call mem_recall(mode="detail", ids=["<id>"]) to load full memory content.'
+      ].join("\n") : ids.length > 0 ? `No memories found for ids: ${ids.join(", ")}.` : `No memories matched "${query}".`;
+      return {
+        mode,
+        query,
+        ids,
+        window: windowSize,
+        totalHits: timelineEntries.length,
+        text: text2,
+        indexEntries: [],
+        timelineEntries,
+        detailItems: []
+      };
+    }
+    const detailItems = ids.length > 0 ? this.getByIds(ids, {
+      workspacePath: opts.workspacePath,
+      incrementRecall: Boolean(opts.incrementRecall)
+    }).map((m) => ({ ...m, score: 1 })) : this.recall(query, {
+      workspacePath: opts.workspacePath,
+      limit,
+      incrementRecall: Boolean(opts.incrementRecall)
+    });
+    const text = detailItems.length ? detailItems.map((m, i) => {
+      const anchorTxt = formatCompactAnchorList(m.anchors, 4);
+      const scoreTxt = typeof m.score === "number" ? ` (score ${m.score})` : "";
+      return `${i + 1}. [${m.id}] [${m.kind.toUpperCase()}${m.pinned ? " \u2605" : ""}${m.drifted ? " \xB7 DRIFTED" : ""}] ${m.title}${anchorTxt}${scoreTxt}
+   ${m.content}`;
+    }).join("\n") : ids.length > 0 ? `No memories found for ids: ${ids.join(", ")}.` : `No memories matched "${query}".`;
+    return {
+      mode,
+      query,
+      ids,
+      window: windowSize,
+      totalHits: detailItems.length,
+      text,
+      indexEntries: [],
+      timelineEntries: [],
+      detailItems
+    };
   }
 };
 
@@ -2247,7 +2739,7 @@ function handleMemSessionStartHook(payload, rootDataDir) {
     }
     const workspacePaths = payload.workspacePaths.length > 0 ? payload.workspacePaths : payload.workspaceRoot ? [payload.workspaceRoot] : [];
     const store = new MemoryStore(dataDir, false, workspacePaths[0]);
-    const injected = store.buildSessionStartInjection(workspacePaths, 8);
+    const injected = store.buildSessionStartInjection(workspacePaths, 12);
     if (!injected) return {};
     return {
       injectSteps: [
@@ -2265,7 +2757,8 @@ function handleMemSessionStartHook(payload, rootDataDir) {
 function handleMemStopHook(payload, rootDataDir) {
   try {
     const editedFiles = extractEditedFilesFromTranscript(payload.transcriptPath);
-    const userPrompt = (payload.lastUserInput ?? "").replace(/\s+/g, " ").trim();
+    const strippedInput = stripPrivateTags(payload.lastUserInput ?? "").cleaned;
+    const userPrompt = strippedInput.replace(/\s+/g, " ").trim();
     if (editedFiles.length === 0 || userPrompt.length < 16) {
       return;
     }

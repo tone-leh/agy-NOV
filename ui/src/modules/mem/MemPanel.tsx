@@ -12,6 +12,7 @@ export interface NovModulePanelProps {
 
 type MemoryKind = 'architecture' | 'decision' | 'pitfall' | 'convention' | 'preference';
 type MemSubTab = 'cards' | 'graph' | 'add' | 'injection';
+type MemoryRecallMode = 'index' | 'timeline' | 'detail';
 
 interface CodeAnchor {
   filePath: string;
@@ -37,6 +38,54 @@ interface MemoryItem {
   recallCount: number;
   drifted?: boolean;
   score?: number;
+}
+
+interface MemoryIndexEntry {
+  id: string;
+  kind: MemoryKind;
+  title: string;
+  pinned: boolean;
+  drifted: boolean;
+  tags: string[];
+  anchors: Array<{
+    basename: string;
+    symbol?: string;
+    driftStatus?: CodeAnchor['driftStatus'];
+  }>;
+  updatedAt: string;
+  recallCount: number;
+  score?: number;
+}
+
+interface MemoryTimelineEntry {
+  id: string;
+  kind: MemoryKind;
+  title: string;
+  excerpt: string;
+  pinned: boolean;
+  drifted: boolean;
+  tags: string[];
+  anchorFiles: string[];
+  sourceConversationId?: string;
+  createdAt: string;
+  updatedAt: string;
+  recallCount: number;
+  isAnchorHit: boolean;
+  score?: number;
+}
+
+interface MemoryProgressiveStats {
+  activeCount: number;
+  compactIndexChars: number;
+  compactIndexTokens: number;
+  fullDumpTokens: number;
+  savedTokens: number;
+  savedPercent: number;
+}
+
+interface MemoryProgressivePreview {
+  indexText: string;
+  entries: MemoryIndexEntry[];
 }
 
 interface GraphNode {
@@ -67,6 +116,21 @@ interface MemPayload {
   memories?: MemoryItem[];
   graph?: MemoryGraphPayload;
   injectionPreview?: string;
+  progressiveStats?: MemoryProgressiveStats;
+  progressivePreview?: MemoryProgressivePreview;
+}
+
+interface LayeredRecallPayload {
+  mode?: MemoryRecallMode;
+  query?: string;
+  ids?: string[];
+  window?: number;
+  totalHits?: number;
+  text?: string;
+  indexEntries?: MemoryIndexEntry[];
+  timelineEntries?: MemoryTimelineEntry[];
+  detailItems?: Array<MemoryItem & { score?: number }>;
+  progressiveStats?: MemoryProgressiveStats;
 }
 
 interface MemSearchPayload {
@@ -91,7 +155,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
   onNotify,
   incomingEvent,
 }) => {
-  const { dict } = useNovI18n();
+  const { dict, t } = useNovI18n();
   const memDict = dict.panels.mem;
 
   const [tab, setTab] = useState<MemSubTab>('cards');
@@ -99,8 +163,13 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
     memories: MemoryItem[];
     graph: MemoryGraphPayload;
     injectionPreview: string;
+    progressiveStats?: MemoryProgressiveStats;
+    progressivePreview?: MemoryProgressivePreview;
   } | null>(null);
   const [query, setQuery] = useState('');
+  const [recallMode, setRecallMode] = useState<MemoryRecallMode>('detail');
+  const [focusedIds, setFocusedIds] = useState<string[]>([]);
+  const [layeredResult, setLayeredResult] = useState<LayeredRecallPayload | null>(null);
   const [searchHits, setSearchHits] = useState<Array<MemoryItem & { score?: number }> | null>(null);
   const [searching, setSearching] = useState(false);
   const [filterKind, setFilterKind] = useState<string>('all');
@@ -117,6 +186,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
 
   const loadedOnceRef = useRef(false);
   const fetchSeqRef = useRef(0);
+  const layeredSeqRef = useRef(0);
   const lastEventRef = useRef<typeof incomingEvent>(null);
   const toastTimerRef = useRef<number | null>(null);
 
@@ -144,10 +214,57 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
     setData({
       memories: res.memories,
       graph: res.graph ?? { nodes: [], edges: [] },
-      injectionPreview: res.injectionPreview ?? '',
+      injectionPreview: res.progressivePreview?.indexText ?? res.injectionPreview ?? '',
+      progressiveStats: res.progressiveStats,
+      progressivePreview: res.progressivePreview,
     });
     loadedOnceRef.current = true;
   }, []);
+
+  const runLayeredRecall = useCallback(
+    async (mode: MemoryRecallMode, rawQuery: string, ids: string[] = []) => {
+      const seq = ++layeredSeqRef.current;
+      const trimmed = rawQuery.trim();
+      setSearching(true);
+      setErrorMsg(null);
+      try {
+        const res = await bridge.callTool<LayeredRecallPayload>('app_mem_recall_layered', {
+          query: trimmed,
+          mode,
+          ...(ids.length > 0 ? { ids } : {}),
+          limit: 25,
+          window: 2,
+        });
+        if (seq !== layeredSeqRef.current) return;
+        setLayeredResult(res);
+        if (mode === 'detail') {
+          if (trimmed || ids.length > 0) {
+            setSearchHits(Array.isArray(res.detailItems) ? res.detailItems : []);
+          } else {
+            setSearchHits(null);
+          }
+        }
+      } catch (err) {
+        if (seq !== layeredSeqRef.current) return;
+        if (mode === 'detail' && trimmed && ids.length === 0) {
+          try {
+            const fallback = await bridge.callTool<MemSearchPayload>('app_mem_search', {
+              query: trimmed,
+            });
+            if (seq !== layeredSeqRef.current) return;
+            setSearchHits(Array.isArray(fallback.hits) ? fallback.hits : []);
+            return;
+          } catch {
+            // surface original error below
+          }
+        }
+        setErrorMsg(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (seq === layeredSeqRef.current) setSearching(false);
+      }
+    },
+    [bridge],
+  );
 
   const refresh = useCallback(async () => {
     const seq = ++fetchSeqRef.current;
@@ -202,51 +319,127 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
     }
   }, [incomingEvent, active, applyPayload, refresh]);
 
+  const handleSelectRecallMode = (nextMode: MemoryRecallMode) => {
+    setRecallMode(nextMode);
+    if (nextMode !== 'detail') {
+      setFocusedIds([]);
+    }
+    void runLayeredRecall(nextMode, query, nextMode === 'detail' ? focusedIds : []);
+  };
+
+  const handleInspectById = (id: string, targetMode: MemoryRecallMode = 'detail') => {
+    setRecallMode(targetMode);
+    setFocusedIds(targetMode === 'detail' ? [id] : []);
+    void runLayeredRecall(targetMode, targetMode === 'detail' ? '' : query, [id]);
+  };
+
   const handleServerSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const trimmed = query.trim();
-    if (!trimmed) {
+    setFocusedIds([]);
+    if (!trimmed && recallMode === 'detail') {
       setSearchHits(null);
+      setLayeredResult(null);
       return;
     }
-    setSearching(true);
-    setErrorMsg(null);
-    try {
-      const res = await bridge.callTool<MemSearchPayload>('app_mem_search', { query: trimmed });
-      setSearchHits(Array.isArray(res.hits) ? res.hits : []);
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSearching(false);
-    }
+    await runLayeredRecall(recallMode, trimmed, []);
   };
 
   const handleClearSearch = () => {
     setQuery('');
+    setFocusedIds([]);
     setSearchHits(null);
+    if (recallMode === 'detail') {
+      setLayeredResult(null);
+    } else {
+      void runLayeredRecall(recallMode, '', []);
+    }
   };
+
+  const matchesKindFilter = useCallback(
+    (item: { kind: MemoryKind; pinned: boolean; drifted?: boolean }) => {
+      if (filterKind === 'pinned' && !item.pinned) return false;
+      if (filterKind === 'drifted' && !item.drifted) return false;
+      if (
+        filterKind !== 'all' &&
+        filterKind !== 'pinned' &&
+        filterKind !== 'drifted' &&
+        item.kind !== filterKind
+      ) {
+        return false;
+      }
+      return true;
+    },
+    [filterKind],
+  );
 
   const filtered = useMemo(() => {
     const baseList = searchHits !== null ? searchHits : data?.memories ?? [];
     const q = searchHits !== null ? '' : query.trim().toLowerCase();
     return baseList.filter((m) => {
-      if (filterKind === 'pinned' && !m.pinned) return false;
-      if (filterKind === 'drifted' && !m.drifted) return false;
-      if (
-        filterKind !== 'all' &&
-        filterKind !== 'pinned' &&
-        filterKind !== 'drifted' &&
-        m.kind !== filterKind
-      ) {
-        return false;
-      }
+      if (!matchesKindFilter(m)) return false;
       if (q) {
         const hay = `${m.title} ${m.content} ${m.tags.join(' ')} ${m.anchors.map((a) => a.filePath).join(' ')}`.toLowerCase();
         return hay.includes(q);
       }
       return true;
     });
-  }, [data?.memories, searchHits, filterKind, query]);
+  }, [data?.memories, searchHits, matchesKindFilter, query]);
+
+  const indexEntries = useMemo<MemoryIndexEntry[]>(() => {
+    const rawEntries: MemoryIndexEntry[] =
+      layeredResult?.mode === 'index' && Array.isArray(layeredResult.indexEntries)
+        ? layeredResult.indexEntries
+        : (data?.memories ?? []).map((m) => ({
+            id: m.id,
+            kind: m.kind,
+            title: m.title,
+            pinned: m.pinned,
+            drifted: Boolean(m.drifted),
+            tags: m.tags,
+            anchors: m.anchors.map((a) => ({
+              basename: a.basename,
+              symbol: a.symbol,
+              driftStatus: a.driftStatus,
+            })),
+            updatedAt: m.updatedAt,
+            recallCount: m.recallCount,
+            score: m.score,
+          }));
+    const q = layeredResult?.mode === 'index' ? '' : query.trim().toLowerCase();
+    return rawEntries.filter((entry) => {
+      if (!matchesKindFilter(entry)) return false;
+      if (q) {
+        const hay = `${entry.id} ${entry.title} ${entry.tags.join(' ')} ${entry.anchors.map((a) => a.basename).join(' ')}`.toLowerCase();
+        return hay.includes(q);
+      }
+      return true;
+    });
+  }, [layeredResult, data?.memories, matchesKindFilter, query]);
+
+  const timelineEntries = useMemo<MemoryTimelineEntry[]>(() => {
+    const rawEntries: MemoryTimelineEntry[] =
+      layeredResult?.mode === 'timeline' && Array.isArray(layeredResult.timelineEntries)
+        ? layeredResult.timelineEntries
+        : [...(data?.memories ?? [])]
+            .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+            .map((m) => ({
+              id: m.id,
+              kind: m.kind,
+              title: m.title,
+              excerpt: m.content.replace(/\s+/g, ' ').trim().slice(0, 120),
+              pinned: m.pinned,
+              drifted: Boolean(m.drifted),
+              tags: m.tags,
+              anchorFiles: m.anchors.map((a) => a.basename),
+              sourceConversationId: m.sourceConversationId,
+              createdAt: m.createdAt,
+              updatedAt: m.updatedAt,
+              recallCount: m.recallCount,
+              isAnchorHit: false,
+            }));
+    return rawEntries.filter((entry) => matchesKindFilter(entry));
+  }, [layeredResult, data?.memories, matchesKindFilter]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,6 +466,10 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
       });
       applyPayload(res);
       setSearchHits(null);
+      setFocusedIds([]);
+      if (recallMode !== 'detail') {
+        void runLayeredRecall(recallMode, query, []);
+      }
       setNewTitle('');
       setNewContent('');
       setNewTags('');
@@ -288,8 +485,8 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
     try {
       const res = await bridge.callTool<MemPayload>('app_mem_toggle_pin', { id });
       applyPayload(res);
-      if (searchHits !== null && query.trim()) {
-        await handleServerSearch();
+      if (recallMode !== 'detail' || searchHits !== null || focusedIds.length > 0) {
+        await runLayeredRecall(recallMode, query, focusedIds);
       }
     } catch (err) {
       notify(`Failed to toggle pin: ${err instanceof Error ? err.message : String(err)}`);
@@ -300,8 +497,8 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
     try {
       const res = await bridge.callTool<MemPayload>('app_mem_reverify_drift', { id });
       applyPayload(res);
-      if (searchHits !== null && query.trim()) {
-        await handleServerSearch();
+      if (recallMode !== 'detail' || searchHits !== null || focusedIds.length > 0) {
+        await runLayeredRecall(recallMode, query, focusedIds);
       }
       notify('Re-verified file anchor hashes');
     } catch (err) {
@@ -315,6 +512,14 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
       applyPayload(res);
       if (searchHits !== null) {
         setSearchHits((prev) => (prev ? prev.filter((item) => item.id !== id) : null));
+      }
+      if (focusedIds.includes(id)) {
+        const nextIds = focusedIds.filter((itemId) => itemId !== id);
+        setFocusedIds(nextIds);
+        if (nextIds.length === 0) setSearchHits(null);
+      }
+      if (recallMode !== 'detail') {
+        void runLayeredRecall(recallMode, query, []);
       }
       if (selectedNodeId === id) setSelectedNodeId(null);
       notify('Deleted memory card');
@@ -369,6 +574,10 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
   const memories = data?.memories ?? [];
   const driftedCount = memories.filter((m) => m.drifted).length;
   const pinnedCount = memories.filter((m) => m.pinned).length;
+  const progressiveStats = data?.progressiveStats;
+  const indexPreviewText = data?.progressivePreview?.indexText ?? data?.injectionPreview ?? '';
+  const estimatedPreviewTokens =
+    progressiveStats?.compactIndexTokens ?? Math.ceil(indexPreviewText.length / 4);
 
   return (
     <div className="mod-mem">
@@ -377,6 +586,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
           <span className="mem-logo">MG</span>
           <span>{memDict.title}</span>
           <span className="mem-badge is-purple">{dict.badgeOffline}</span>
+          <span className="mem-badge is-info">{memDict.progressiveIndexBadge}</span>
         </div>
         <button
           type="button"
@@ -460,19 +670,26 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);
-                    if (!e.target.value.trim()) setSearchHits(null);
+                    if (!e.target.value.trim()) {
+                      setSearchHits(null);
+                      setFocusedIds([]);
+                      if (recallMode !== 'detail') {
+                        void runLayeredRecall(recallMode, '', []);
+                      }
+                    }
                   }}
                 />
                 <button
                   type="submit"
                   className="mem-btn is-primary"
-                  disabled={searching || !query.trim()}
+                  disabled={searching || (recallMode === 'detail' && !query.trim())}
                 >
                   {searching ? dict.common.loading : dict.common.run}
                 </button>
-                {searchHits !== null && (
+                {(searchHits !== null || focusedIds.length > 0 || query.trim().length > 0) && (
                   <button type="button" className="mem-btn" onClick={handleClearSearch}>
-                    {dict.common.clear} ({searchHits.length})
+                    {dict.common.clear}
+                    {searchHits !== null ? ` (${searchHits.length})` : ''}
                   </button>
                 )}
                 <select
@@ -492,91 +709,257 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                 </select>
               </form>
 
-              {filtered.length === 0 ? (
-                <div className="mem-card mem-muted">{memDict.emptyMemories}</div>
-              ) : (
-                filtered.map((m) => (
-                  <div key={m.id} className={`mem-item-card ${m.drifted ? 'is-drifted' : ''}`}>
-                    <div className="mem-row is-between">
-                      <div className="mem-row">
-                        <span
-                          className="mem-badge"
-                          style={{ color: KIND_COLOR[m.kind], borderColor: KIND_COLOR[m.kind] }}
-                        >
-                          {m.kind.toUpperCase()}
-                        </span>
-                        <strong>{m.title}</strong>
-                        {typeof m.score === 'number' && (
-                          <span className="mem-badge is-good">BM25 {m.score.toFixed(2)}</span>
-                        )}
-                        {m.pinned && <span className="mem-badge is-info">★ PINNED</span>}
-                        {m.drifted ? (
-                          <span className="mem-badge is-warn">⚠ {memDict.stale}</span>
-                        ) : (
-                          <span className="mem-badge is-good">✓ {memDict.fresh}</span>
-                        )}
+              <div className="mem-row is-between">
+                <div className="mem-tabs" role="group" aria-label={memDict.progressiveIndexBadge}>
+                  <button
+                    type="button"
+                    aria-pressed={recallMode === 'index'}
+                    className={`mem-tab ${recallMode === 'index' ? 'is-active' : ''}`}
+                    onClick={() => handleSelectRecallMode('index')}
+                  >
+                    {memDict.recallModeIndex}
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={recallMode === 'timeline'}
+                    className={`mem-tab ${recallMode === 'timeline' ? 'is-active' : ''}`}
+                    onClick={() => handleSelectRecallMode('timeline')}
+                  >
+                    {memDict.recallModeTimeline}
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={recallMode === 'detail'}
+                    className={`mem-tab ${recallMode === 'detail' ? 'is-active' : ''}`}
+                    onClick={() => handleSelectRecallMode('detail')}
+                  >
+                    {memDict.recallModeDetail}
+                  </button>
+                </div>
+                {focusedIds.length > 0 && (
+                  <div className="mem-row">
+                    <span className="mem-badge is-info">ID: {focusedIds.join(', ')}</span>
+                    <button
+                      type="button"
+                      className="mem-btn"
+                      onClick={() => {
+                        setFocusedIds([]);
+                        setSearchHits(null);
+                      }}
+                    >
+                      {dict.common.clear}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {recallMode === 'index' &&
+                (indexEntries.length === 0 ? (
+                  <div className="mem-card mem-muted">{memDict.emptyMemories}</div>
+                ) : (
+                  <div className="mem-stack">
+                    {indexEntries.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className={`mem-item-card ${entry.drifted ? 'is-drifted' : ''}`}
+                      >
+                        <div className="mem-row is-between">
+                          <div className="mem-row">
+                            <span className="mem-badge">{entry.id}</span>
+                            <span
+                              className="mem-badge"
+                              style={{
+                                color: KIND_COLOR[entry.kind],
+                                borderColor: KIND_COLOR[entry.kind],
+                              }}
+                            >
+                              {entry.kind.toUpperCase()}
+                            </span>
+                            <strong>{entry.title}</strong>
+                            {typeof entry.score === 'number' && (
+                              <span className="mem-badge is-good">BM25 {entry.score.toFixed(2)}</span>
+                            )}
+                            {entry.pinned && <span className="mem-badge is-info">★</span>}
+                            {entry.drifted ? (
+                              <span className="mem-badge is-warn">⚠ {memDict.stale}</span>
+                            ) : (
+                              <span className="mem-badge is-good">✓ {memDict.fresh}</span>
+                            )}
+                          </div>
+                          <div className="mem-row">
+                            {entry.anchors.slice(0, 3).map((a) => (
+                              <span key={`${entry.id}:${a.basename}`} className="mem-badge">
+                                📄 {a.basename}
+                              </span>
+                            ))}
+                            <button
+                              type="button"
+                              className="mem-btn"
+                              onClick={() => handleInspectById(entry.id, 'timeline')}
+                            >
+                              {memDict.recallModeTimeline}
+                            </button>
+                            <button
+                              type="button"
+                              className="mem-btn is-primary"
+                              onClick={() => handleInspectById(entry.id, 'detail')}
+                            >
+                              {memDict.recallModeDetail}
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="mem-row">
-                        <button
-                          type="button"
-                          className="mem-btn is-primary"
-                          onClick={() => void handleInjectContext(m.title, m.content)}
-                        >
-                          {memDict.injectContext}
-                        </button>
-                        <button
-                          type="button"
-                          className="mem-btn"
-                          onClick={() => void handleTogglePin(m.id)}
-                        >
-                          {m.pinned ? 'Unpin' : 'Pin'}
-                        </button>
-                        {m.drifted && (
+                    ))}
+                  </div>
+                ))}
+
+              {recallMode === 'timeline' &&
+                (timelineEntries.length === 0 ? (
+                  <div className="mem-card mem-muted">{memDict.emptyMemories}</div>
+                ) : (
+                  <div className="mem-stack">
+                    {timelineEntries.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className={`mem-item-card ${entry.drifted ? 'is-drifted' : ''}`}
+                      >
+                        <div className="mem-row is-between">
+                          <div className="mem-row">
+                            <span className="mem-badge">{entry.updatedAt.slice(0, 19).replace('T', ' ')}</span>
+                            {entry.isAnchorHit && <span className="mem-badge is-info">★ HIT</span>}
+                            <span className="mem-badge">{entry.id}</span>
+                            <span
+                              className="mem-badge"
+                              style={{
+                                color: KIND_COLOR[entry.kind],
+                                borderColor: KIND_COLOR[entry.kind],
+                              }}
+                            >
+                              {entry.kind.toUpperCase()}
+                            </span>
+                            <strong>{entry.title}</strong>
+                            {typeof entry.score === 'number' && (
+                              <span className="mem-badge is-good">BM25 {entry.score.toFixed(2)}</span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className="mem-btn is-primary"
+                            onClick={() => handleInspectById(entry.id, 'detail')}
+                          >
+                            {memDict.recallModeDetail}
+                          </button>
+                        </div>
+                        <div className="mem-muted">{entry.excerpt}</div>
+                        <div className="mem-row">
+                          {entry.anchorFiles.map((file) => (
+                            <span key={`${entry.id}:${file}`} className="mem-badge">
+                              📄 {file}
+                            </span>
+                          ))}
+                          {entry.sourceConversationId && (
+                            <span className="mem-badge is-purple">
+                              session:{entry.sourceConversationId.slice(0, 12)}
+                            </span>
+                          )}
+                          {entry.tags.map((tag) => (
+                            <span key={`${entry.id}:#${tag}`} className="mem-badge">
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+
+              {recallMode === 'detail' &&
+                (filtered.length === 0 ? (
+                  <div className="mem-card mem-muted">{memDict.emptyMemories}</div>
+                ) : (
+                  filtered.map((m) => (
+                    <div key={m.id} className={`mem-item-card ${m.drifted ? 'is-drifted' : ''}`}>
+                      <div className="mem-row is-between">
+                        <div className="mem-row">
+                          <span
+                            className="mem-badge"
+                            style={{ color: KIND_COLOR[m.kind], borderColor: KIND_COLOR[m.kind] }}
+                          >
+                            {m.kind.toUpperCase()}
+                          </span>
+                          <strong>{m.title}</strong>
+                          <span className="mem-badge">{m.id}</span>
+                          {typeof m.score === 'number' && (
+                            <span className="mem-badge is-good">BM25 {m.score.toFixed(2)}</span>
+                          )}
+                          {m.pinned && <span className="mem-badge is-info">★ PINNED</span>}
+                          {m.drifted ? (
+                            <span className="mem-badge is-warn">⚠ {memDict.stale}</span>
+                          ) : (
+                            <span className="mem-badge is-good">✓ {memDict.fresh}</span>
+                          )}
+                        </div>
+                        <div className="mem-row">
+                          <button
+                            type="button"
+                            className="mem-btn is-primary"
+                            onClick={() => void handleInjectContext(m.title, m.content)}
+                          >
+                            {memDict.injectContext}
+                          </button>
                           <button
                             type="button"
                             className="mem-btn"
-                            onClick={() => void handleReverifyDrift(m.id)}
+                            onClick={() => void handleTogglePin(m.id)}
                           >
-                            Verify
+                            {m.pinned ? 'Unpin' : 'Pin'}
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          className="mem-btn"
-                          aria-label={`${memDict.forget}: ${m.title}`}
-                          onClick={() => void handleDeleteMemory(m.id)}
-                        >
-                          {memDict.forget}
-                        </button>
+                          {m.drifted && (
+                            <button
+                              type="button"
+                              className="mem-btn"
+                              onClick={() => void handleReverifyDrift(m.id)}
+                            >
+                              Verify
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="mem-btn"
+                            aria-label={`${memDict.forget}: ${m.title}`}
+                            onClick={() => void handleDeleteMemory(m.id)}
+                          >
+                            {memDict.forget}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="mem-content">{m.content}</div>
+                      <div className="mem-row">
+                        {m.anchors.map((a) => (
+                          <button
+                            key={`${a.filePath}:${a.symbol ?? ''}`}
+                            type="button"
+                            className={`mem-anchor-chip ${
+                              a.driftStatus === 'drifted' || a.driftStatus === 'missing'
+                                ? 'is-drifted'
+                                : ''
+                            }`}
+                            title={`${a.filePath} (${a.driftStatus ?? 'tracked'}) — click to open in side pane`}
+                            onClick={() => void handleOpenAnchor(a)}
+                          >
+                            📄 {a.basename}
+                            {a.symbol ? `::${a.symbol}` : ''}
+                          </button>
+                        ))}
+                        {m.tags.map((tag) => (
+                          <span key={tag} className="mem-badge">
+                            #{tag}
+                          </span>
+                        ))}
                       </div>
                     </div>
-                    <div className="mem-content">{m.content}</div>
-                    <div className="mem-row">
-                      {m.anchors.map((a) => (
-                        <button
-                          key={`${a.filePath}:${a.symbol ?? ''}`}
-                          type="button"
-                          className={`mem-anchor-chip ${
-                            a.driftStatus === 'drifted' || a.driftStatus === 'missing'
-                              ? 'is-drifted'
-                              : ''
-                          }`}
-                          title={`${a.filePath} (${a.driftStatus ?? 'tracked'}) — click to open in side pane`}
-                          onClick={() => void handleOpenAnchor(a)}
-                        >
-                          📄 {a.basename}
-                          {a.symbol ? `::${a.symbol}` : ''}
-                        </button>
-                      ))}
-                      {m.tags.map((t) => (
-                        <span key={t} className="mem-badge">
-                          #{t}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))
-              )}
+                  ))
+                ))}
             </div>
           )}
 
@@ -589,8 +972,8 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
               <svg viewBox="0 0 680 400" className="mem-graph-svg">
                 {data.graph.edges.map((e, idx) => {
                   const s = data.graph.nodes.find((n) => n.id === e.source);
-                  const t = data.graph.nodes.find((n) => n.id === e.target);
-                  if (!s || !t) return null;
+                  const tgt = data.graph.nodes.find((n) => n.id === e.target);
+                  if (!s || !tgt) return null;
                   const hi =
                     selectedNodeId !== null &&
                     (e.source === selectedNodeId || e.target === selectedNodeId);
@@ -599,8 +982,8 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                       key={idx}
                       x1={s.x}
                       y1={s.y}
-                      x2={t.x}
-                      y2={t.y}
+                      x2={tgt.x}
+                      y2={tgt.y}
                       stroke={e.kind === 'anchors' ? '#38bdf8' : '#a78bfa'}
                       strokeOpacity={hi ? 0.95 : 0.3}
                       strokeWidth={hi ? 2.2 : 1.2}
@@ -736,6 +1119,10 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
               />
+              <div className="mem-row" role="note">
+                <span className="mem-badge is-purple">&lt;private&gt;</span>
+                <span className="mem-muted">{memDict.privateTagHint}</span>
+              </div>
               <input
                 className="mem-input"
                 placeholder="Tags (comma-separated, e.g. redis, checkout)"
@@ -765,22 +1152,39 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
           {tab === 'injection' && (
             <div className="mem-card mem-stack">
               <div className="mem-row is-between">
-                <strong>{memDict.tabInjection}</strong>
-                {data.injectionPreview && (
+                <div className="mem-row">
+                  <strong>{memDict.tabInjection}</strong>
+                  <span className="mem-badge is-info">{memDict.progressiveIndexBadge}</span>
+                </div>
+                {indexPreviewText && (
                   <button
                     type="button"
                     className="mem-btn is-primary"
                     onClick={() =>
-                      void handleInjectContext('SessionStart Injection', data.injectionPreview)
+                      void handleInjectContext('SessionStart Injection', indexPreviewText)
                     }
                   >
                     {memDict.injectContext}
                   </button>
                 )}
               </div>
-              <div className="mem-prebox">
-                {data.injectionPreview || memDict.emptyMemories}
+              <div className="mem-row">
+                <span className="mem-badge is-info">
+                  {t(memDict.tokenSavingsNote, { tokens: estimatedPreviewTokens })}
+                </span>
+                {progressiveStats && progressiveStats.fullDumpTokens > 0 && (
+                  <span className="mem-badge is-good">
+                    -{progressiveStats.savedPercent}% (-{progressiveStats.savedTokens} /{' '}
+                    {progressiveStats.fullDumpTokens} tok)
+                  </span>
+                )}
+                {progressiveStats && (
+                  <span className="mem-muted">
+                    {progressiveStats.activeCount} active · {progressiveStats.compactIndexChars} chars
+                  </span>
+                )}
               </div>
+              <div className="mem-prebox">{indexPreviewText || memDict.emptyMemories}</div>
             </div>
           )}
         </>

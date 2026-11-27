@@ -1742,7 +1742,7 @@ export function createDemoOpenApiSpec(filePath = 'api/openapi.yaml'): ParsedOpen
     filePath,
     specVersion: '3.1.0',
     title: 'Local Sandbox Dev API',
-    apiVersion: '0.5.0',
+    apiVersion: '0.6.0',
     servers: [
       {
         url: 'http://127.0.0.1:4399',

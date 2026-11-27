@@ -2,6 +2,36 @@
 
 All notable changes to **agy-NOV** will be documented in this file.
 
+## [0.6.0] - 2026-11-27
+
+### Added
+- **Mem 2.0 — 3-Layer Progressive Disclosure & `<private>` Tag Stripping (`mem`):**
+  - Upgraded `SessionStart` memory injection to a compact **L1 Index** (`<= 1,200` chars) to drastically reduce initial context overhead across sessions.
+  - Extended existing `mem_recall` (zero tool-count expansion) with `mode: "index" | "timeline" | "detail"`, `ids[]`, and `window` parameters so agents can browse compact L1 entries, fetch chronological L2 timelines, and load full L3 memory details on demand.
+  - Added linear O(n) `<private>...</private>` tag stripping (with unclosed-tag truncation defense against partial leaks) across memory writes and hooks, plus automatic Stop-hook skipping when a turn contains purely private content.
+- **Turbo 2.5 — Cumulative `gain` Dashboard, `<= 8.8 KB` Anti-Spill Guard & Nested Multi-Indent Outlines (`turbo`):**
+  - Added an in-memory cumulative savings **Gain Dashboard** (`app_turbo_get_gain`) tracking saved tokens and estimated USD savings locally (benchmarked at `$2.50 / 1M` tokens).
+  - Enforced a UTF-8 code-point-safe **`<= 8.8 KB` (`8,800 B`)** anti-spill guardrail across all three model tools (`turbo_batch_search`, `turbo_read_outline`, `turbo_compact_output`) to prevent oversized tool outputs from spilling to host temp files.
+  - Upgraded `turbo_read_outline` beyond top-level declarations to capture multi-indent nested symbols: TypeScript/JavaScript class methods & interface members, Python class methods, Go receiver methods, and Rust `impl`/`trait` methods.
+- **Remote 2.0 — Read-Only Mobile PWA Conversation Live Stream & Safe Tunnel Guide (`remote`):**
+  - Enabled tapping any conversation in the Mobile PWA to expand a read-only, redacted live step stream (`GET /api/conversations/:id/stream`) strictly limited to observation without exposing file writes or remote shell access.
+  - Added on-demand read-only `tailscale` and `cloudflared` binary detection in the Remote Hub with copyable safe tunnel command guides (shell-free `execFile`, zero automatic public tunnel spawning; keeps strict four-zero OFF-state isolation while disabled).
+- **Single-File Team Preset `.agy-nov.json` & Ops 2.5 Cross-Client Pitfall Detection (`core`, `ops`, `cli`):**
+  - Added support for an optional single-file workspace team preset `.agy-nov.json` (strictly read-only; never auto-creates clutter directories inside user repos), integrated directly into `agy-nov recommend` for read-only team preset validation.
+  - Upgraded `ops_audit_workspace` (Ops 2.5) to detect Antigravity `#233` unexpanded `${ENV_VAR}` config traps, `#1937` duplicate plugin / duplicate MCP server definitions, and read-only cross-client migration hints for `.claude/`, `.cursor/rules/`, and `.codex/` with zero secret echoing.
+- **Expanded 8-Language Localization & Automated v0.6.0 Regression Coverage:** Expanded the built-in 8-language UI dictionary to **426 keys × 8 locales** covering 100% of all **22 UI components**, and added 4 dedicated v0.6.0 regression test suites (`test/v06-mem-progressive.test.ts`, `test/v06-turbo-gain.test.ts`, `test/v06-remote-live.test.ts`, `test/v06-team-ops.test.ts`) bringing total automated verification to **48 suites / 140 tests**.
+
+### Changed
+- **Preserved 13-Module Architecture, 5 Presets & 47 Model Tools Unchanged:** All 13 toggleable native modules (12 local offline + 1 opt-in `remote`), 5 presets (`minimal` 6 / `core` 12 / `power` 32 / `local-all` 43 / `full` 47), and all 47 canonical model tool names remain 100% backward-compatible with zero tool-count inflation.
+- **CLI `recommend` Team-Preset Integration:** Extended `agy-nov recommend` (8 CLI commands unchanged: `status`, `enable`, `disable`, `preset`, `locale`, `statusline`, `recommend`, `doctor`) to read and statically validate optional workspace `.agy-nov.json` files without disk writes or command execution.
+- **Bundle, UI & Metadata Alignment:** Updated `package.json`, `plugin.json`, `skills/agy-nov/SKILL.md`, `README.md`, `docs/i18n/README.zh-CN.md`, `llms.txt`, and `docs/llms-install.md` to `v0.6.0` (`dist/ui/app.html` `~985 KB`, verified at `985.3 KB`, far below the 10 MiB cap; 426 keys × 8 locales across 22 components).
+
+### Security
+- **Remote 2.0 Read-Only Stream & Tunnel Hardening (`remote`):** Protected `GET /api/conversations/:id/stream` with strict token authentication, regex conversation ID traversal blocking, dual-pass secret/credential redaction, a `256 KiB` file tail cap, and zero-`innerHTML` DOM rendering against XSS; tunnel detection uses shell-free `execFile`, never auto-starts public tunnels, and preserves zero ports / zero polling / zero writes / zero outbound traffic while `remote` stays OFF.
+- **Team Preset `.agy-nov.json` Static Containment (`core`, `cli`):** Enforced strictly read-only parsing with a `64 KiB` size cap, `realpath` workspace containment, `__proto__` / `constructor` / `prototype` prototype-pollution defense, static validation against a strict per-tool 23-executable verify command allowlist with zero automatic execution, and hard refusal to silently enable `remote`.
+- **Mem 2.0 Privacy Stripping & Turbo 2.5 UTF-8 Truncation Safety (`mem`, `turbo`):** Implemented O(n) `<private>` block stripping with unclosed-tag tail truncation to block accidental secret persistence, and enforced code-point-safe UTF-8 slicing at `<= 8.8 KB` (`8,800 B`) to prevent surrogate splitting and host file spilling.
+- **Ops 2.5 Zero-Echo Cross-Client Diagnostics (`ops`):** Inspected `${ENV_VAR}` traps (`#233`), duplicate plugins/MCP servers (`#1937`), and `.claude/` / `.cursor/rules/` / `.codex/` migration cues strictly read-only without echoing any secret values, while preserving 100% Zero ASAR / Zero CDP invariants.
+
 ## [0.5.0] - 2026-11-27
 
 ### Added

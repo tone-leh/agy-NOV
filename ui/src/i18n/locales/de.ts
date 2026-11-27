@@ -218,6 +218,14 @@ export const DE_DICT: UiDictionary = {
       'Strikt über realpath auf den Arbeitsbereich begrenzt · überspringt automatisch .env, SSH-Schlüssel, .git & node_modules.',
     presetLabel: 'Kompressions-Preset',
     compressionSaved: 'RTK-Kompression sparte {percent} %',
+    gainTitle: 'Kumulierte Token-Ersparnis',
+    gainTokensSaved: 'Gesamt gesparte Tokens',
+    gainEstUsdSaved: 'Gesch. Ersparnis (USD)',
+    gainAvgRatio: 'Durchschn. Kompression',
+    gainOpsCount: 'Erfasste Vorgänge',
+    guardrailBadge: '<=8,8 KB Schutzgrenze',
+    nestedOutlineNote:
+      'Unterstützt verschachtelte Klassen-, Rust-impl- und Go-Receiver-Methoden',
   },
   radar: {
     title: 'Sitzungs-Radar & Signal',
@@ -266,6 +274,12 @@ export const DE_DICT: UiDictionary = {
     ruleBloatTitle: 'Regel-Aufblähungsprüfung (24 KB / 20K Tokens)',
     toolBudgetTitle: 'MCP-Tool-Budget (Limit: 100 Tools)',
     mcpHealthTitle: 'MCP-Konfiguration & Serverzustand',
+    teamPresetTitle: 'Team-Voreinstellung (.agy-nov.json)',
+    teamPresetMissing: 'Keine .agy-nov.json gefunden (optional, strikt schreibgeschützt)',
+    teamPresetValid: 'Gültig',
+    teamPresetWarnings: 'Warnungen',
+    crossClientTitle: 'Client-übergreifende Kompatibilität & Fallstrick-Prüfung',
+    crossClientEmpty: 'Keine client-übergreifenden Konfigurationsfallstricke erkannt.',
   },
   panels: {
     review: {
@@ -495,6 +509,13 @@ export const DE_DICT: UiDictionary = {
       stale: 'Veraltet',
       forget: 'Vergessen',
       emptyMemories: 'Noch keine code-verankerten Speichereinträge vorhanden.',
+      progressiveIndexBadge: '3-Ebenen-Index',
+      privateTagHint:
+        'Sensible Notizen mit <private>...</private> umschließen, um sie vor dem Speichern zu entfernen',
+      recallModeIndex: 'L1 Index',
+      recallModeTimeline: 'L2 Zeitachse',
+      recallModeDetail: 'L3 Volldetails',
+      tokenSavingsNote: 'Kompakter SessionStart-Index (~{tokens} Tokens)',
     },
     remote: {
       title: 'Mobil- & IM-Remote',
@@ -510,6 +531,15 @@ export const DE_DICT: UiDictionary = {
       sendAlert: 'Testmeldung senden',
       dispatchTask: 'Aufgabe senden',
       promptPlaceholder: 'Aufgaben-Prompt für den Remote-Versand eingeben…',
+      liveStreamTitle: 'Schreibgeschützter Live-Stream',
+      liveStreamHint:
+        'Letzte bereinigte Züge schreibgeschützt prüfen, ohne Dateischreibvorgänge oder Shell-Zugriff.',
+      tunnelGuideTitle: 'Leitfaden für sichere Remote-Tunnel',
+      detectTunnelBtn: 'Lokale Tunnel-Tools erkennen',
+      tunnelNotDetected: 'Nicht installiert',
+      tunnelDetected: 'Installiert',
+      tunnelSafetyNote:
+        'Nur schreibgeschützte lokale CLI-Prüfung — startet niemals automatisch einen öffentlichen Tunnel.',
     },
   },
   quickStart: {

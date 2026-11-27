@@ -20,8 +20,26 @@ export function renderMobilePwaHtml(): string {
     .pill { font-size:11px; padding:2px 8px; border-radius:99px; font-family:ui-monospace,monospace; background:var(--card2); color:var(--accent); }
     .pill.run { color:var(--good); background:rgba(16,185,129,0.16); }
     .pill.warn { color:var(--warn); background:rgba(245,158,11,0.16); }
+    .pill.ro { color:var(--good); background:rgba(16,185,129,0.14); border:1px solid rgba(16,185,129,0.35); font-size:10px; }
+    .pill.err { color:#fda4af; background:rgba(244,63,94,0.16); }
     .item { background:var(--card2); border:1px solid var(--border); border-radius:11px; padding:10px; margin-bottom:8px; }
     .item-head { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+    .conv-trigger { width:100%; background:transparent; color:inherit; border:none; padding:0; text-align:left; font:inherit; cursor:pointer; }
+    .conv-meta { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:6px; }
+    .btn-mini { background:#0b111b; color:var(--accent); border:1px solid var(--border); border-radius:8px; padding:4px 9px; font-size:11px; font-weight:700; cursor:pointer; }
+    .drawer { margin-top:9px; padding-top:9px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:7px; }
+    .drawer-hdr { display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; }
+    .drawer-badges { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .stream-step { background:#0b111b; border:1px solid var(--border); border-radius:9px; padding:8px; display:flex; flex-direction:column; gap:4px; }
+    .stream-step-head { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+    .role-pill { font-size:10px; font-weight:700; padding:1px 6px; border-radius:99px; font-family:ui-monospace,monospace; text-transform:uppercase; }
+    .role-user { background:rgba(245,158,11,0.18); color:#fcd34d; }
+    .role-assistant { background:rgba(16,185,129,0.18); color:#6ee7b7; }
+    .role-tool { background:rgba(56,189,248,0.18); color:#7dd3fc; }
+    .role-system { background:rgba(148,163,184,0.18); color:#cbd5e1; }
+    .role-error { background:rgba(244,63,94,0.2); color:#fda4af; }
+    .tool-tag { font-size:10px; padding:1px 6px; border-radius:6px; font-family:ui-monospace,monospace; background:var(--card2); color:var(--accent); border:1px solid var(--border); }
+    .stream-summary { font-size:12px; line-height:1.45; color:var(--fg); word-break:break-word; white-space:pre-wrap; }
     .cmd { font-family:ui-monospace,monospace; font-size:12px; color:#fde68a; word-break:break-all; margin:6px 0; background:#0b111b; padding:8px; border-radius:8px; white-space:pre-wrap; }
     .row { display:flex; gap:8px; }
     button { border:none; border-radius:10px; padding:10px 12px; font-weight:700; font-size:13px; cursor:pointer; }
@@ -76,6 +94,9 @@ export function renderMobilePwaHtml(): string {
       const urlToken = params.get('token');
       let token = urlToken || localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY) || '';
       let eventSource = null;
+      let lastConversations = [];
+      const expandedConvs = Object.create(null);
+      const streamStates = Object.create(null);
 
       if (urlToken) {
         try { localStorage.setItem(STORAGE_KEY, urlToken); } catch {}
@@ -205,8 +226,139 @@ export function renderMobilePwaHtml(): string {
         box.replaceChildren.apply(box, nodes);
       }
 
+      function roleClassName(role) {
+        if (role === 'user') return 'role-pill role-user';
+        if (role === 'assistant') return 'role-pill role-assistant';
+        if (role === 'tool') return 'role-pill role-tool';
+        if (role === 'error') return 'role-pill role-error';
+        return 'role-pill role-system';
+      }
+
+      async function loadConversationStream(convId) {
+        const prev = streamStates[convId];
+        streamStates[convId] = {
+          loading: true,
+          error: '',
+          data: prev ? prev.data : null,
+        };
+        renderConvs(lastConversations);
+        try {
+          const res = await fetch('/api/conversations/' + encodeURIComponent(convId) + '/stream?limit=20', {
+            headers: authHeaders(),
+          });
+          if (res.status === 401) {
+            document.getElementById('authCard').style.display = 'block';
+            document.getElementById('statusPill').textContent = 'Locked';
+            streamStates[convId] = { loading: false, error: 'Unauthorized', data: null };
+            renderConvs(lastConversations);
+            return;
+          }
+          if (!res.ok) {
+            let errText = 'Failed to load stream (HTTP ' + String(res.status) + ')';
+            try {
+              const errJson = await res.json();
+              if (errJson && typeof errJson.error === 'string') errText = errJson.error;
+            } catch {}
+            streamStates[convId] = { loading: false, error: errText, data: null };
+            renderConvs(lastConversations);
+            return;
+          }
+          const payload = await res.json();
+          streamStates[convId] = { loading: false, error: '', data: payload };
+          renderConvs(lastConversations);
+        } catch {
+          streamStates[convId] = { loading: false, error: 'Network error while loading stream.', data: null };
+          renderConvs(lastConversations);
+        }
+      }
+
+      function buildStreamDrawer(convId) {
+        const drawer = document.createElement('div');
+        drawer.className = 'drawer';
+
+        const state = streamStates[convId] || { loading: false, error: '', data: null };
+
+        const hdr = document.createElement('div');
+        hdr.className = 'drawer-hdr';
+
+        const badges = document.createElement('div');
+        badges.className = 'drawer-badges';
+        badges.appendChild(createTextElement('span', 'pill ro', 'READ-ONLY'));
+        if (state.data && typeof state.data.totalSteps === 'number') {
+          const modeLabel = state.data.mode === 'demo' ? 'DEMO' : 'LIVE';
+          badges.appendChild(
+            createTextElement('span', 'muted', modeLabel + ' · ' + String(state.data.totalSteps) + ' steps'),
+          );
+        }
+        hdr.appendChild(badges);
+
+        const refreshBtn = createTextElement('button', 'btn-mini', state.loading ? 'Loading…' : 'Refresh');
+        refreshBtn.type = 'button';
+        refreshBtn.disabled = Boolean(state.loading);
+        refreshBtn.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          void loadConversationStream(convId);
+        });
+        hdr.appendChild(refreshBtn);
+        drawer.appendChild(hdr);
+
+        if (state.error) {
+          drawer.appendChild(createTextElement('div', 'err', String(state.error)));
+          return drawer;
+        }
+
+        if (state.loading && !state.data) {
+          drawer.appendChild(createTextElement('div', 'muted', 'Loading redacted live stream…'));
+          return drawer;
+        }
+
+        const events = state.data && Array.isArray(state.data.events) ? state.data.events : [];
+        if (!events.length) {
+          drawer.appendChild(
+            createTextElement('div', 'muted', 'No local transcript steps found yet (read-only).'),
+          );
+          return drawer;
+        }
+
+        events.forEach(function (evItem) {
+          const stepEl = document.createElement('div');
+          stepEl.className = 'stream-step';
+
+          const stepHead = document.createElement('div');
+          stepHead.className = 'stream-step-head';
+          const roleText = String(evItem.role || 'assistant');
+          stepHead.appendChild(createTextElement('span', roleClassName(roleText), roleText.toUpperCase()));
+          if (typeof evItem.stepIndex === 'number') {
+            stepHead.appendChild(createTextElement('span', 'muted', '#' + String(evItem.stepIndex)));
+          }
+          const tools = Array.isArray(evItem.toolNames) ? evItem.toolNames : [];
+          tools.forEach(function (toolName) {
+            stepHead.appendChild(createTextElement('span', 'tool-tag', String(toolName)));
+          });
+          stepEl.appendChild(stepHead);
+
+          stepEl.appendChild(createTextElement('div', 'stream-summary', String(evItem.summary || '')));
+          drawer.appendChild(stepEl);
+        });
+
+        return drawer;
+      }
+
+      function toggleConversationStream(convId) {
+        if (!convId) return;
+        if (expandedConvs[convId]) {
+          delete expandedConvs[convId];
+          renderConvs(lastConversations);
+          return;
+        }
+        expandedConvs[convId] = true;
+        renderConvs(lastConversations);
+        void loadConversationStream(convId);
+      }
+
       function renderConvs(list) {
         const safeList = Array.isArray(list) ? list : [];
+        lastConversations = safeList;
         document.getElementById('convCount').textContent = String(safeList.length);
         const box = document.getElementById('convBox');
         if (!safeList.length) {
@@ -214,8 +366,18 @@ export function renderMobilePwaHtml(): string {
           return;
         }
         const nodes = safeList.slice(0, 10).map(function (c) {
+          const convId = String(c.id || '');
+          const isExpanded = Boolean(convId && expandedConvs[convId]);
           const item = document.createElement('div');
           item.className = 'item';
+
+          const trigger = document.createElement('button');
+          trigger.type = 'button';
+          trigger.className = 'conv-trigger';
+          trigger.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+          trigger.addEventListener('click', function () {
+            toggleConversationStream(convId);
+          });
 
           const head = document.createElement('div');
           head.className = 'item-head';
@@ -227,11 +389,25 @@ export function renderMobilePwaHtml(): string {
           const rawState = String(c.runState || 'IDLE');
           const pillClass = rawState === 'RUN_STATE_RUNNING' ? 'pill run' : 'pill';
           head.appendChild(createTextElement('span', pillClass, rawState.replace('RUN_STATE_', '')));
-          item.appendChild(head);
+          trigger.appendChild(head);
 
           const summaryEl = createTextElement('div', 'muted', String(c.summary || '').slice(0, 110));
           summaryEl.style.marginTop = '4px';
-          item.appendChild(summaryEl);
+          trigger.appendChild(summaryEl);
+
+          const meta = document.createElement('div');
+          meta.className = 'conv-meta';
+          meta.appendChild(createTextElement('span', 'muted', convId ? convId.slice(0, 24) : ''));
+          meta.appendChild(
+            createTextElement('span', 'btn-mini', isExpanded ? 'Hide Live Stream' : 'Live Stream (Read-Only)'),
+          );
+          trigger.appendChild(meta);
+
+          item.appendChild(trigger);
+
+          if (isExpanded) {
+            item.appendChild(buildStreamDrawer(convId));
+          }
           return item;
         });
         box.replaceChildren.apply(box, nodes);

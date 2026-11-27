@@ -3,10 +3,26 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { getModuleDataDir, resolveNovDataDir, sanitizeDataDirCandidate } from '../../core/config.js';
-import type { CodeAnchor, MemoryItem, MemoryKind } from './types.js';
+import type {
+  CodeAnchor,
+  LayeredRecallResult,
+  MemoryIndexEntry,
+  MemoryItem,
+  MemoryKind,
+  MemoryProgressiveStats,
+  MemoryRecallMode,
+  MemoryTimelineEntry,
+  StripPrivateTagsResult,
+} from './types.js';
 import { buildDemoMemories } from './demo-memories.js';
 
 export const MAX_ANCHOR_FILE_BYTES = 2 * 1024 * 1024; // 2 MiB
+export const MAX_SESSION_START_CHARS = 1200;
+export const PRIVATE_CONTENT_PLACEHOLDER = '[PRIVATE_CONTENT_STRIPPED]';
+export const PRIVATE_TITLE_PLACEHOLDER = '[PRIVATE_TITLE_STRIPPED]';
+
+const PRIVATE_OPEN_PREFIX = '<private';
+const PRIVATE_CLOSE_PREFIX = '</private';
 
 const VALID_MEMORY_KINDS = new Set<MemoryKind>([
   'architecture',
@@ -42,6 +58,147 @@ const SECRET_RE: Array<[RegExp, string]> = [
   ],
 ];
 
+function isAsciiWhitespaceCode(code: number): boolean {
+  return code === 0x20 || code === 0x09 || code === 0x0d || code === 0x0a;
+}
+
+function asciiLowerCode(code: number): number {
+  return code >= 0x41 && code <= 0x5a ? code + 0x20 : code;
+}
+
+function startsWithAsciiCaseInsensitive(input: string, idx: number, lowerPrefix: string): boolean {
+  if (idx + lowerPrefix.length > input.length) return false;
+  for (let i = 0; i < lowerPrefix.length; i++) {
+    if (asciiLowerCode(input.charCodeAt(idx + i)) !== lowerPrefix.charCodeAt(i)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function matchOpenPrivateTagEnd(input: string, idx: number): number {
+  if (!startsWithAsciiCaseInsensitive(input, idx, PRIVATE_OPEN_PREFIX)) return -1;
+  let cursor = idx + PRIVATE_OPEN_PREFIX.length;
+  if (cursor >= input.length) return -1;
+  const boundary = input.charCodeAt(cursor);
+  if (boundary === 0x3e /* '>' */) return cursor;
+  if (!isAsciiWhitespaceCode(boundary)) return -1;
+  cursor += 1;
+  while (cursor < input.length) {
+    const code = input.charCodeAt(cursor);
+    if (code === 0x3e /* '>' */) return cursor;
+    if (code === 0x3c /* '<' */) return -1;
+    cursor += 1;
+  }
+  return -1;
+}
+
+function matchClosePrivateTagEnd(input: string, idx: number): number {
+  if (!startsWithAsciiCaseInsensitive(input, idx, PRIVATE_CLOSE_PREFIX)) return -1;
+  let cursor = idx + PRIVATE_CLOSE_PREFIX.length;
+  while (cursor < input.length && isAsciiWhitespaceCode(input.charCodeAt(cursor))) {
+    cursor += 1;
+  }
+  if (cursor < input.length && input.charCodeAt(cursor) === 0x3e /* '>' */) {
+    return cursor;
+  }
+  return -1;
+}
+
+/**
+ * Strip all ASCII case-insensitive <private>...</private> blocks in strict O(n) linear time (zero ReDoS).
+ * Scans directly on raw UTF-16 indices (never reusing .toLowerCase() offsets) so Unicode case-folding
+ * expansion characters (e.g. U+0130 'İ') can never shift offsets or leak secrets.
+ * Supports attributes, multiline, multiple, and nested blocks; any unclosed <private> tag strips through EOF.
+ */
+export function stripPrivateTags(input: string): StripPrivateTagsResult {
+  if (!input || !input.includes('<')) return { cleaned: input, strippedCount: 0 };
+
+  const chunks: string[] = [];
+  let cursor = 0;
+  let strippedCount = 0;
+
+  while (cursor < input.length) {
+    const ltIdx = input.indexOf('<', cursor);
+    if (ltIdx === -1) {
+      chunks.push(input.slice(cursor));
+      break;
+    }
+
+    const openEnd = matchOpenPrivateTagEnd(input, ltIdx);
+    if (openEnd === -1) {
+      chunks.push(input.slice(cursor, ltIdx + 1));
+      cursor = ltIdx + 1;
+      continue;
+    }
+
+    if (ltIdx > cursor) {
+      chunks.push(input.slice(cursor, ltIdx));
+    }
+
+    let depth = 1;
+    let scan = openEnd + 1;
+    while (scan < input.length && depth > 0) {
+      const nextLt = input.indexOf('<', scan);
+      if (nextLt === -1) {
+        // Unclosed <private>: forcibly strip everything through EOF
+        scan = input.length;
+        break;
+      }
+
+      const nestedOpenEnd = matchOpenPrivateTagEnd(input, nextLt);
+      if (nestedOpenEnd !== -1) {
+        depth += 1;
+        scan = nestedOpenEnd + 1;
+        continue;
+      }
+
+      const closeEnd = matchClosePrivateTagEnd(input, nextLt);
+      if (closeEnd !== -1) {
+        depth -= 1;
+        scan = closeEnd + 1;
+        continue;
+      }
+
+      scan = nextLt + 1;
+    }
+
+    strippedCount += 1;
+    cursor = depth > 0 ? input.length : scan;
+  }
+
+  if (strippedCount === 0) {
+    return { cleaned: input, strippedCount: 0 };
+  }
+
+  const cleaned = chunks
+    .join('')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return { cleaned, strippedCount };
+}
+
+export function estimateTokenCount(text: string): number {
+  if (!text) return 0;
+  let cjk = 0;
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (
+      (code >= 0x4e00 && code <= 0x9fff) ||
+      (code >= 0x3040 && code <= 0x30ff) ||
+      (code >= 0xac00 && code <= 0xd7af)
+    ) {
+      cjk += 1;
+    }
+  }
+  const nonCjk = text.length - cjk;
+  return Math.max(1, Math.ceil(nonCjk / 4 + cjk * 0.7));
+}
+
 export function redactSecrets(input: string): string {
   let out = input;
   for (const [re, rep] of SECRET_RE) out = out.replace(re, rep);
@@ -49,13 +206,60 @@ export function redactSecrets(input: string): string {
 }
 
 function sanitizeTag(raw: string): string {
-  const trimmed = raw.trim();
-  if (!trimmed) return '';
-  const redacted = redactSecrets(trimmed);
-  if (redacted === trimmed) return trimmed.toLowerCase();
+  const stripped = stripPrivateTags(raw).cleaned.trim();
+  if (!stripped) return '';
+  const redacted = redactSecrets(stripped);
+  if (redacted === stripped) return stripped.toLowerCase();
   return redacted
     .toLowerCase()
     .replace(/\[redacted(?:_[a-z_]+)?\]/g, (m) => m.toUpperCase());
+}
+
+function collapseSingleLine(text: string, maxLen: number): string {
+  const single = text.replace(/\s+/g, ' ').trim();
+  if (single.length <= maxLen) return single;
+  return `${single.slice(0, Math.max(1, maxLen - 1)).trimEnd()}…`;
+}
+
+function formatCompactAnchorList(anchors: CodeAnchor[], maxFiles = 3): string {
+  if (anchors.length === 0) return '';
+  const names = anchors.slice(0, maxFiles).map((a) => a.basename);
+  const extra = anchors.length > maxFiles ? `, +${anchors.length - maxFiles}` : '';
+  return ` [${names.join(', ')}${extra}]`;
+}
+
+function toIndexEntry(m: MemoryItem, score?: number): MemoryIndexEntry {
+  return {
+    id: m.id,
+    kind: m.kind,
+    title: m.title,
+    pinned: m.pinned,
+    drifted: Boolean(m.drifted),
+    tags: [...m.tags],
+    anchors: m.anchors.map((a) => ({
+      basename: a.basename,
+      ...(a.symbol ? { symbol: a.symbol } : {}),
+      ...(a.driftStatus ? { driftStatus: a.driftStatus } : {}),
+    })),
+    updatedAt: m.updatedAt,
+    recallCount: m.recallCount,
+    ...(typeof score === 'number' ? { score } : {}),
+  };
+}
+
+function formatCompactIndexLine(entry: MemoryIndexEntry, maxTitleLen = 72): string {
+  const title = collapseSingleLine(entry.title, maxTitleLen);
+  const pinMark = entry.pinned ? ' ★' : '';
+  const driftMark = entry.drifted ? ' · DRIFTED' : '';
+  const scoreMark = typeof entry.score === 'number' ? ` (score ${entry.score})` : '';
+  const files =
+    entry.anchors.length > 0
+      ? ` [${entry.anchors
+          .slice(0, 3)
+          .map((a) => a.basename)
+          .join(', ')}${entry.anchors.length > 3 ? `, +${entry.anchors.length - 3}` : ''}]`
+      : '';
+  return `- [${entry.id}] (${entry.kind.toUpperCase()}${pinMark}${driftMark}) ${title}${files}${scoreMark}`;
 }
 
 export function resolveMemDataDir(explicitRootOrDir?: string): string {
@@ -327,7 +531,7 @@ function tokenize(text: string): string[] {
 
 export class MemoryStore {
   private readonly filePath: string;
-  private demoSeeded = false;
+  private demoItems: MemoryItem[] | null = null;
 
   constructor(
     private readonly dataDir: string,
@@ -337,12 +541,12 @@ export class MemoryStore {
     this.filePath = path.join(dataDir, 'memories.json');
   }
 
-  private ensureDemoSeeded(): void {
-    if (!this.demoMode || this.demoSeeded) return;
-    this.demoSeeded = true;
-    if (!fs.existsSync(this.filePath)) {
-      this.writeAll(buildDemoMemories());
-    }
+  private cloneItems(items: MemoryItem[]): MemoryItem[] {
+    return items.map((m) => ({
+      ...m,
+      tags: [...m.tags],
+      anchors: m.anchors.map((a) => ({ ...a })),
+    }));
   }
 
   private backupCorruptFile(reason: string): void {
@@ -365,7 +569,12 @@ export class MemoryStore {
   }
 
   private readRaw(): MemoryItem[] {
-    this.ensureDemoSeeded();
+    if (this.demoMode) {
+      if (!this.demoItems) {
+        this.demoItems = buildDemoMemories();
+      }
+      return this.cloneItems(this.demoItems);
+    }
     if (!fs.existsSync(this.filePath)) return [];
     let rawText: string;
     try {
@@ -396,6 +605,10 @@ export class MemoryStore {
   }
 
   private writeAll(items: MemoryItem[]): void {
+    if (this.demoMode) {
+      this.demoItems = this.cloneItems(items);
+      return;
+    }
     ensurePrivateDir(this.dataDir);
     const tmp = `${this.filePath}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
     try {
@@ -502,7 +715,8 @@ export class MemoryStore {
         const abs = path.isAbsolute(rawPath)
           ? path.resolve(rawPath)
           : path.resolve(inspectWorkspace ?? process.cwd(), rawPath);
-        const cleanSymbol = a.symbol ? redactSecrets(a.symbol.trim()) : undefined;
+        const strippedSymbol = a.symbol ? stripPrivateTags(a.symbol).cleaned.trim() : '';
+        const cleanSymbol = strippedSymbol ? redactSecrets(strippedSymbol) : undefined;
         const inspected = inspectAnchorFile(abs, inspectWorkspace);
         const driftStatus: CodeAnchor['driftStatus'] =
           inspected.status === 'ok'
@@ -520,8 +734,16 @@ export class MemoryStore {
         };
       });
 
-    const cleanTitle = redactSecrets(input.title.trim());
-    const cleanContent = redactSecrets(input.content.trim());
+    const titleStripped = stripPrivateTags(input.title);
+    const cleanTitle = redactSecrets(
+      titleStripped.cleaned.trim() ||
+        (titleStripped.strippedCount > 0 ? PRIVATE_TITLE_PLACEHOLDER : '(Untitled memory)'),
+    );
+    const contentStripped = stripPrivateTags(input.content);
+    const cleanContent = redactSecrets(
+      contentStripped.cleaned.trim() ||
+        (contentStripped.strippedCount > 0 ? PRIVATE_CONTENT_PLACEHOLDER : ''),
+    );
     const tags = Array.from(new Set((input.tags ?? []).map((t) => sanitizeTag(t)).filter(Boolean)));
 
     const existingIdx = input.id
@@ -607,6 +829,34 @@ export class MemoryStore {
     return true;
   }
 
+  getByIds(
+    ids: string[],
+    opts: { workspacePath?: string; incrementRecall?: boolean } = {},
+  ): MemoryItem[] {
+    const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
+    if (uniqueIds.length === 0) return [];
+
+    const all = this.list({ workspacePath: opts.workspacePath });
+    const byId = new Map(all.map((m) => [m.id, m]));
+    const matched = uniqueIds
+      .map((id) => byId.get(id))
+      .filter((m): m is MemoryItem => m !== undefined);
+
+    if (opts.incrementRecall && matched.length > 0) {
+      const raw = this.readRaw();
+      const matchedSet = new Set(matched.map((m) => m.id));
+      for (const m of raw) {
+        if (matchedSet.has(m.id)) {
+          m.recallCount = (m.recallCount ?? 0) + 1;
+        }
+      }
+      this.writeAll(raw);
+      return matched.map((m) => ({ ...m, recallCount: (m.recallCount ?? 0) + 1 }));
+    }
+
+    return matched;
+  }
+
   recall(
     query: string,
     opts: { workspacePath?: string; limit?: number; incrementRecall?: boolean } = {},
@@ -667,25 +917,300 @@ export class MemoryStore {
         if (hitIds.has(m.id)) m.recallCount = (m.recallCount ?? 0) + 1;
       }
       this.writeAll(raw);
+      return hits.map((h) => ({ ...h, recallCount: (h.recallCount ?? 0) + 1 }));
     }
 
     return hits;
   }
 
-  buildSessionStartInjection(workspacePaths: string[] = [], maxItems = 8): string {
+  buildCompactIndexEntries(workspacePaths: string[] = [], maxItems = 12): MemoryIndexEntry[] {
     const ws = workspacePaths[0];
-    const candidates = this.list({ workspacePath: ws })
+    return this.list({ workspacePath: ws })
       .filter((m) => !m.drifted)
-      .slice(0, maxItems);
-    if (candidates.length === 0) return '';
+      .slice(0, maxItems)
+      .map((m) => toIndexEntry(m));
+  }
 
-    const lines = [
-      `[Agy Mem — Persistent Workspace Memory (${candidates.length} active)]`,
-      ...candidates.map((m) => {
-        const anchorTxt = m.anchors.length ? ` [files: ${m.anchors.map((a) => a.basename).join(', ')}]` : '';
-        return `- (${m.kind.toUpperCase()}${m.pinned ? ' ★' : ''}) **${m.title}**: ${m.content}${anchorTxt}`;
+  buildSessionStartInjection(workspacePaths: string[] = [], maxItems = 12): string {
+    const entries = this.buildCompactIndexEntries(workspacePaths, maxItems);
+    if (entries.length === 0) return '';
+
+    const header = `[Agy Mem — Progressive Index (${entries.length} active · L1)]`;
+    const footer =
+      'Call mem_recall(mode="detail", ids=["<id>"]) for full content or mode="timeline" for nearby context.';
+
+    const lines: string[] = [header];
+    let usedLen = header.length + 1 + footer.length;
+    let included = 0;
+
+    for (const entry of entries) {
+      const line = formatCompactIndexLine(entry);
+      const nextLen = usedLen + 1 + line.length;
+      if (nextLen <= MAX_SESSION_START_CHARS) {
+        lines.push(line);
+        usedLen = nextLen;
+        included += 1;
+      } else if (included === 0) {
+        const available = Math.max(24, MAX_SESSION_START_CHARS - usedLen - 1);
+        lines.push(collapseSingleLine(line, available));
+        included += 1;
+        break;
+      } else {
+        break;
+      }
+    }
+
+    const omitted = entries.length - included;
+    if (omitted > 0) {
+      const moreLine = `(+${omitted} more indexed; query with mem_recall(mode="index", query="..."))`;
+      if (usedLen + 1 + moreLine.length <= MAX_SESSION_START_CHARS) {
+        lines.push(moreLine);
+      }
+    }
+
+    lines.push(footer);
+    const out = lines.join('\n');
+    return out.length <= MAX_SESSION_START_CHARS ? out : out.slice(0, MAX_SESSION_START_CHARS);
+  }
+
+  buildProgressiveStats(workspacePaths?: string[], maxItems = 12): MemoryProgressiveStats {
+    const ws = workspacePaths?.[0];
+    const active = this.list({ workspacePath: ws }).filter((m) => !m.drifted);
+    if (active.length === 0) {
+      return {
+        activeCount: 0,
+        compactIndexChars: 0,
+        compactIndexTokens: 0,
+        fullDumpTokens: 0,
+        savedTokens: 0,
+        savedPercent: 0,
+      };
+    }
+
+    const compactIndex = this.buildSessionStartInjection(workspacePaths ?? [], maxItems);
+    const fullDumpText = [
+      `[Agy Mem — Persistent Workspace Memory (${active.length} active)]`,
+      ...active.map((m) => {
+        const anchorTxt = formatCompactAnchorList(m.anchors, m.anchors.length);
+        const tagTxt = m.tags.length ? ` [tags: ${m.tags.join(', ')}]` : '';
+        return `- [${m.id}] (${m.kind.toUpperCase()}${m.pinned ? ' ★' : ''}) **${m.title}**: ${m.content}${anchorTxt}${tagTxt}`;
       }),
-    ];
-    return lines.join('\n').slice(0, 2_400);
+    ].join('\n');
+
+    const compactIndexChars = compactIndex.length;
+    const compactIndexTokens = estimateTokenCount(compactIndex);
+    const fullDumpTokens = estimateTokenCount(fullDumpText);
+    const savedTokens = Math.max(0, fullDumpTokens - compactIndexTokens);
+    const savedPercent = fullDumpTokens > 0 ? Math.round((savedTokens / fullDumpTokens) * 100) : 0;
+
+    return {
+      activeCount: active.length,
+      compactIndexChars,
+      compactIndexTokens,
+      fullDumpTokens,
+      savedTokens,
+      savedPercent,
+    };
+  }
+
+  recallLayered(opts: {
+    query?: string;
+    mode?: MemoryRecallMode;
+    ids?: string[];
+    workspacePath?: string;
+    limit?: number;
+    window?: number;
+    incrementRecall?: boolean;
+  } = {}): LayeredRecallResult {
+    const mode: MemoryRecallMode = opts.mode ?? 'detail';
+    const query = (opts.query ?? '').trim();
+    const ids = Array.from(new Set((opts.ids ?? []).map((id) => id.trim()).filter(Boolean)));
+    const limit = opts.limit ?? 8;
+    const windowSize = Math.min(5, Math.max(1, Math.floor(opts.window ?? 2)));
+
+    if (mode === 'index') {
+      const entries: MemoryIndexEntry[] =
+        ids.length > 0
+          ? this.getByIds(ids, { workspacePath: opts.workspacePath, incrementRecall: false }).map((m) =>
+              toIndexEntry(m),
+            )
+          : this.recall(query, {
+              workspacePath: opts.workspacePath,
+              limit,
+              incrementRecall: false,
+            }).map((m) => toIndexEntry(m, m.score));
+
+      const text = entries.length
+        ? [
+            `[Agy Mem · L1 Index (${entries.length} ${entries.length === 1 ? 'match' : 'matches'})]`,
+            ...entries.map((entry) => formatCompactIndexLine(entry)),
+            'Call mem_recall(mode="detail", ids=["<id>"]) to load full memory content.',
+          ].join('\n')
+        : ids.length > 0
+          ? `No memories found for ids: ${ids.join(', ')}.`
+          : `No memories matched "${query}".`;
+
+      return {
+        mode,
+        query,
+        ids,
+        window: windowSize,
+        totalHits: entries.length,
+        text,
+        indexEntries: entries,
+        timelineEntries: [],
+        detailItems: [],
+      };
+    }
+
+    if (mode === 'timeline') {
+      const chronological = this.list({ workspacePath: opts.workspacePath }).sort(
+        (a, b) =>
+          b.updatedAt.localeCompare(a.updatedAt) ||
+          b.createdAt.localeCompare(a.createdAt) ||
+          a.id.localeCompare(b.id),
+      );
+      const indexById = new Map<string, number>();
+      chronological.forEach((m, idx) => indexById.set(m.id, idx));
+
+      const anchorIndices = new Set<number>();
+      const anchorHitIds = new Set<string>();
+      const scoreMap = new Map<string, number>();
+
+      if (ids.length > 0) {
+        for (const id of ids) {
+          const idx = indexById.get(id);
+          if (idx !== undefined) {
+            anchorIndices.add(idx);
+            anchorHitIds.add(id);
+          }
+        }
+      } else if (query) {
+        const hits = this.recall(query, {
+          workspacePath: opts.workspacePath,
+          limit,
+          incrementRecall: false,
+        });
+        for (const h of hits) {
+          const idx = indexById.get(h.id);
+          if (idx !== undefined) {
+            anchorIndices.add(idx);
+            anchorHitIds.add(h.id);
+            scoreMap.set(h.id, h.score);
+          }
+        }
+      } else {
+        const count = Math.min(limit, chronological.length);
+        for (let i = 0; i < count; i++) {
+          anchorIndices.add(i);
+        }
+      }
+
+      const includedIndices = new Set<number>();
+      if (ids.length > 0 || query) {
+        for (const anchorIdx of anchorIndices) {
+          const start = Math.max(0, anchorIdx - windowSize);
+          const end = Math.min(chronological.length - 1, anchorIdx + windowSize);
+          for (let i = start; i <= end; i++) {
+            includedIndices.add(i);
+          }
+        }
+      } else {
+        for (const idx of anchorIndices) {
+          includedIndices.add(idx);
+        }
+      }
+
+      const orderedIndices = Array.from(includedIndices).sort((a, b) => a - b);
+      const timelineEntries: MemoryTimelineEntry[] = orderedIndices.map((idx) => {
+        const m = chronological[idx];
+        const score = scoreMap.get(m.id);
+        return {
+          id: m.id,
+          kind: m.kind,
+          title: m.title,
+          excerpt: collapseSingleLine(m.content, 120),
+          pinned: m.pinned,
+          drifted: Boolean(m.drifted),
+          tags: [...m.tags],
+          anchorFiles: m.anchors.map((a) => a.basename),
+          ...(m.sourceConversationId ? { sourceConversationId: m.sourceConversationId } : {}),
+          createdAt: m.createdAt,
+          updatedAt: m.updatedAt,
+          recallCount: m.recallCount,
+          isAnchorHit: anchorHitIds.has(m.id),
+          ...(typeof score === 'number' ? { score } : {}),
+        };
+      });
+
+      const text = timelineEntries.length
+        ? [
+            `[Agy Mem · L2 Timeline (${timelineEntries.length} items, window=±${windowSize})]`,
+            ...timelineEntries.map((entry) => {
+              const marker = entry.isAnchorHit ? '★ HIT' : '· ctx';
+              const filesTxt = entry.anchorFiles.length
+                ? ` [files: ${entry.anchorFiles.slice(0, 3).join(', ')}]`
+                : '';
+              const convTxt = entry.sourceConversationId
+                ? ` (session:${entry.sourceConversationId.slice(0, 12)})`
+                : '';
+              const scoreTxt = typeof entry.score === 'number' ? ` score=${entry.score}` : '';
+              return `- ${entry.updatedAt} ${marker} [${entry.id}] (${entry.kind.toUpperCase()}${entry.pinned ? ' ★' : ''}${entry.drifted ? ' · DRIFTED' : ''}) ${entry.title}${filesTxt}${convTxt}${scoreTxt}\n  ${entry.excerpt}`;
+            }),
+            'Call mem_recall(mode="detail", ids=["<id>"]) to load full memory content.',
+          ].join('\n')
+        : ids.length > 0
+          ? `No memories found for ids: ${ids.join(', ')}.`
+          : `No memories matched "${query}".`;
+
+      return {
+        mode,
+        query,
+        ids,
+        window: windowSize,
+        totalHits: timelineEntries.length,
+        text,
+        indexEntries: [],
+        timelineEntries,
+        detailItems: [],
+      };
+    }
+
+    // Layer 3: detail
+    const detailItems: Array<MemoryItem & { score?: number }> =
+      ids.length > 0
+        ? this.getByIds(ids, {
+            workspacePath: opts.workspacePath,
+            incrementRecall: Boolean(opts.incrementRecall),
+          }).map((m) => ({ ...m, score: 1 }))
+        : this.recall(query, {
+            workspacePath: opts.workspacePath,
+            limit,
+            incrementRecall: Boolean(opts.incrementRecall),
+          });
+
+    const text = detailItems.length
+      ? detailItems
+          .map((m, i) => {
+            const anchorTxt = formatCompactAnchorList(m.anchors, 4);
+            const scoreTxt = typeof m.score === 'number' ? ` (score ${m.score})` : '';
+            return `${i + 1}. [${m.id}] [${m.kind.toUpperCase()}${m.pinned ? ' ★' : ''}${m.drifted ? ' · DRIFTED' : ''}] ${m.title}${anchorTxt}${scoreTxt}\n   ${m.content}`;
+          })
+          .join('\n')
+      : ids.length > 0
+        ? `No memories found for ids: ${ids.join(', ')}.`
+        : `No memories matched "${query}".`;
+
+    return {
+      mode,
+      query,
+      ids,
+      window: windowSize,
+      totalHits: detailItems.length,
+      text,
+      indexEntries: [],
+      timelineEntries: [],
+      detailItems,
+    };
   }
 }

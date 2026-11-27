@@ -244,6 +244,12 @@ export interface MemPanelI18n {
   stale: string;
   forget: string;
   emptyMemories: string;
+  progressiveIndexBadge: string;
+  privateTagHint: string;
+  recallModeIndex: string;
+  recallModeTimeline: string;
+  recallModeDetail: string;
+  tokenSavingsNote: string;
 }
 
 export interface RemotePanelI18n {
@@ -259,6 +265,13 @@ export interface RemotePanelI18n {
   sendAlert: string;
   dispatchTask: string;
   promptPlaceholder: string;
+  liveStreamTitle: string;
+  liveStreamHint: string;
+  tunnelGuideTitle: string;
+  detectTunnelBtn: string;
+  tunnelNotDetected: string;
+  tunnelDetected: string;
+  tunnelSafetyNote: string;
 }
 
 export interface PanelsI18n {
@@ -351,6 +364,13 @@ export interface UiDictionary {
     safetyNote: string;
     presetLabel: string;
     compressionSaved: string;
+    gainTitle: string;
+    gainTokensSaved: string;
+    gainEstUsdSaved: string;
+    gainAvgRatio: string;
+    gainOpsCount: string;
+    guardrailBadge: string;
+    nestedOutlineNote: string;
   };
   radar: {
     title: string;
@@ -396,6 +416,12 @@ export interface UiDictionary {
     ruleBloatTitle: string;
     toolBudgetTitle: string;
     mcpHealthTitle: string;
+    teamPresetTitle: string;
+    teamPresetMissing: string;
+    teamPresetValid: string;
+    teamPresetWarnings: string;
+    crossClientTitle: string;
+    crossClientEmpty: string;
   };
   panels: PanelsI18n;
   quickStart: {

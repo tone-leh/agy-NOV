@@ -879,7 +879,7 @@ export function buildOtlpUsagePayload(
         resource: {
           attributes: [
             strAttr('service.name', 'agy-nov-xray'),
-            strAttr('service.version', '0.5.0'),
+            strAttr('service.version', '0.6.0'),
             strAttr('telemetry.sdk.name', 'agy-nov'),
             strAttr('gen_ai.system', 'antigravity'),
             strAttr('agy_nov.session.id', s.id),
@@ -891,7 +891,7 @@ export function buildOtlpUsagePayload(
           {
             scope: {
               name: 'agy-nov.xray.billing',
-              version: '0.5.0',
+              version: '0.6.0',
             },
             metrics,
           },

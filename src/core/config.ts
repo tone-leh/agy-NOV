@@ -219,3 +219,13 @@ export function setNovLocale(rootDataDir: string, locale: NovLocale): NovConfig 
     locale,
   });
 }
+
+export {
+  loadTeamPresetReadOnly,
+  MAX_TEAM_CONFIG_BYTES,
+  TEAM_CONFIG_FILENAME,
+  TEAM_VERIFY_ALLOWED_EXECUTABLES,
+  type TeamPresetAuditResult,
+  type TeamSpecTemplate,
+  type TeamVerifyCommand,
+} from './team-config.js';

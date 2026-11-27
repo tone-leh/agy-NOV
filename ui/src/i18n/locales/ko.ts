@@ -218,6 +218,13 @@ export const KO_DICT: UiDictionary = {
       'realpath 워크스페이스 경계로 엄격 제한 · .env, SSH 키, .git, node_modules 자동 제외.',
     presetLabel: '압축 프리셋',
     compressionSaved: 'RTK 압축으로 {percent}% 절감',
+    gainTitle: '누적 토큰 절감 대시보드',
+    gainTokensSaved: '누적 절감 토큰',
+    gainEstUsdSaved: '추정 절감액 (USD)',
+    gainAvgRatio: '평균 압축률',
+    gainOpsCount: '추적된 작업 수',
+    guardrailBadge: '<=8.8 KB 가드레일',
+    nestedOutlineNote: '중첩 클래스 메서드, Rust impl 및 Go receiver 개요 지원',
   },
   radar: {
     title: '세션 레이더 및 알림음',
@@ -265,6 +272,12 @@ export const KO_DICT: UiDictionary = {
     ruleBloatTitle: '규칙 비대화 점검 (24KB / 20K 토큰)',
     toolBudgetTitle: 'MCP 도구 예산 (100개 한도)',
     mcpHealthTitle: 'MCP 설정 및 서버 상태',
+    teamPresetTitle: '팀 프리셋 (.agy-nov.json)',
+    teamPresetMissing: '.agy-nov.json 파일이 없습니다 (선택 항목, 엄격한 읽기 전용)',
+    teamPresetValid: '유효함',
+    teamPresetWarnings: '경고',
+    crossClientTitle: '크로스 클라이언트 호환성 및 함정 점검',
+    crossClientEmpty: '감지된 크로스 클라이언트 설정 함정이 없습니다.',
   },
   panels: {
     review: {
@@ -491,6 +504,12 @@ export const KO_DICT: UiDictionary = {
       stale: '오래됨',
       forget: '잊기',
       emptyMemories: '저장된 코드 앵커 메모리가 아직 없습니다.',
+      progressiveIndexBadge: '3단계 인덱스',
+      privateTagHint: '민감한 메모를 <private>...</private>로 감싸면 저장 전에 자동 제거됩니다',
+      recallModeIndex: 'L1 인덱스',
+      recallModeTimeline: 'L2 타임라인',
+      recallModeDetail: 'L3 전체 상세',
+      tokenSavingsNote: 'SessionStart 압축 인덱스 (약 {tokens} 토큰)',
     },
     remote: {
       title: '모바일 및 IM 원격',
@@ -506,6 +525,15 @@ export const KO_DICT: UiDictionary = {
       sendAlert: '테스트 알림 보내기',
       dispatchTask: '작업 전달',
       promptPlaceholder: '원격으로 전달할 작업 프롬프트를 입력하세요…',
+      liveStreamTitle: '읽기 전용 실시간 스트림',
+      liveStreamHint:
+        '파일 쓰기나 원격 셸 접근 없이 최근 마스킹된 대화와 도구 실행 흐름을 읽기 전용으로 확인합니다.',
+      tunnelGuideTitle: '안전한 원격 터널 가이드',
+      detectTunnelBtn: '로컬 터널 도구 감지',
+      tunnelNotDetected: '미설치',
+      tunnelDetected: '설치됨',
+      tunnelSafetyNote:
+        '읽기 전용 로컬 CLI 확인만 수행하며 공개 터널을 자동으로 시작하지 않습니다.',
     },
   },
   quickStart: {

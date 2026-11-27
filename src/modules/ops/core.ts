@@ -5,9 +5,13 @@ import {
   countEnabledModelTools,
   createDefaultConfig,
   loadNovConfigReadOnly,
+  loadTeamPresetReadOnly,
   MODULE_IDS,
+  type TeamPresetAuditResult,
 } from '../../core/config.js';
 import { atomicWriteJson } from '../../core/utils.js';
+
+export type { TeamPresetAuditResult };
 
 export type PromptCategory =
   | 'review'
@@ -134,6 +138,17 @@ export interface McpHealthFinding {
   message: string;
 }
 
+export type CrossClientKind = 'antigravity' | 'claude' | 'cursor' | 'codex' | 'shared';
+
+export interface CrossClientFinding {
+  severity: 'info' | 'warn' | 'error';
+  code: string;
+  client: CrossClientKind;
+  file: string;
+  message: string;
+  suggestion?: string;
+}
+
 export interface AuditWorkspaceOptions {
   enabledNovTools?: number;
 }
@@ -158,6 +173,8 @@ export interface WorkspaceAuditReport {
   ruleBloat: RuleBloatAssessment;
   toolBudget: ToolBudgetAssessment;
   mcpHealthFindings: McpHealthFinding[];
+  teamPreset: TeamPresetAuditResult;
+  crossClientFindings: CrossClientFinding[];
 }
 
 const VALID_CATEGORIES = new Set<PromptCategory>([
@@ -670,9 +687,9 @@ const OAUTH_OR_EXPIRING_KEY_RE =
   /oauth|access_?token|refresh_?token|id_?token|bearer|expires|expiry|session_?token/i;
 const JWT_LIKE_RE = /^eyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]*$/;
 const SECRET_VALUE_PATTERN_RE =
-  /\b(?:ghp_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9_]{10,}|gh[ousr]_[A-Za-z0-9]{10,}|sk-(?:proj-|live-|test-)?[A-Za-z0-9_-]{12,}|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20,}|xox[baprs]-[0-9A-Za-z-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})\b/;
+  /(?<![A-Za-z0-9])(?:ghp_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9_]{10,}|gh[ousr]_[A-Za-z0-9]{10,}|sk-(?:proj-|live-|test-|ant-)?[A-Za-z0-9_-]{12,}|sk_(?:live|test)_[A-Za-z0-9_-]{12,}|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20,}|xox[baprs]-[0-9A-Za-z-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}|[Bb][Ee][Aa][Rr][Ee][Rr]\s+[A-Za-z0-9\-._~+/=]{8,})(?![A-Za-z0-9])/;
 const SECRET_VALUE_REDACT_GLOBAL_RE =
-  /\b(?:ghp_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9_]{10,}|gh[ousr]_[A-Za-z0-9]{10,}|sk-(?:proj-|live-|test-)?[A-Za-z0-9_-]{12,}|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20,}|xox[baprs]-[0-9A-Za-z-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}(?:\.[A-Za-z0-9_-]+)?)\b/g;
+  /(?<![A-Za-z0-9])(?:ghp_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9_]{10,}|gh[ousr]_[A-Za-z0-9]{10,}|sk-(?:proj-|live-|test-|ant-)?[A-Za-z0-9_-]{12,}|sk_(?:live|test)_[A-Za-z0-9_-]{12,}|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20,}|xox[baprs]-[0-9A-Za-z-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}(?:\.[A-Za-z0-9_-]+)?|[Bb][Ee][Aa][Rr][Ee][Rr]\s+[A-Za-z0-9\-._~+/=]{8,})(?![A-Za-z0-9])/g;
 const LOCAL_RUNTIME_COMMANDS = new Set([
   'node',
   'tsx',
@@ -824,6 +841,49 @@ function findDuplicateServerKeysInJson(rawText: string): string[] {
   return Array.from(duplicates);
 }
 
+const ENV_VAR_GLOBAL_RE = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)/g;
+
+function extractSafeEnvPlaceholderTokens(value: string): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  ENV_VAR_GLOBAL_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = ENV_VAR_GLOBAL_RE.exec(value)) !== null) {
+    const rawName = (match[1] ?? match[2] ?? '').slice(0, 48);
+    if (!rawName) continue;
+    const token = containsSecretPattern(rawName) ? '${<redacted-var>}' : `\${${rawName}}`;
+    if (!seen.has(token)) {
+      seen.add(token);
+      out.push(token);
+    }
+    if (out.length >= 6) break;
+  }
+  return out;
+}
+
+function sanitizeCrossClientFinding(finding: CrossClientFinding): CrossClientFinding {
+  return {
+    severity: finding.severity,
+    code: finding.code,
+    client: finding.client,
+    file: redactSecretsInMessage(finding.file),
+    message: redactSecretsInMessage(finding.message),
+    ...(finding.suggestion ? { suggestion: redactSecretsInMessage(finding.suggestion) } : {}),
+  };
+}
+
+function isSensitiveCrossClientFile(relPath: string): boolean {
+  if (isSensitiveOpsPath(relPath)) return true;
+  const base = path.posix.basename(relPath.replace(/\\/g, '/')).toLowerCase();
+  return (
+    base === 'auth.json' ||
+    base === 'oauth.json' ||
+    base === 'token.json' ||
+    base === 'tokens.json' ||
+    base === 'history.jsonl'
+  );
+}
+
 interface McpConfigInspectionResult {
   serverCount: number;
   serverNames: string[];
@@ -831,6 +891,7 @@ interface McpConfigInspectionResult {
   activeExternalServers: number;
   estimatedExternalTools: number;
   findings: McpHealthFinding[];
+  crossClientFindings: CrossClientFinding[];
 }
 
 function inspectMcpConfigSafe(
@@ -842,6 +903,7 @@ function inspectMcpConfigSafe(
   seenServerFiles: Map<string, string>,
 ): McpConfigInspectionResult {
   const findings: McpHealthFinding[] = [];
+  const crossClientFindings: CrossClientFinding[] = [];
   const pushFinding = (finding: McpHealthFinding): void => {
     findings.push({
       severity: finding.severity,
@@ -851,6 +913,9 @@ function inspectMcpConfigSafe(
       file: redactSecretsInMessage(finding.file),
       message: redactSecretsInMessage(finding.message),
     });
+  };
+  const pushCrossClientFinding = (finding: CrossClientFinding): void => {
+    crossClientFindings.push(sanitizeCrossClientFinding(finding));
   };
 
   let parsed: Record<string, unknown>;
@@ -869,6 +934,7 @@ function inspectMcpConfigSafe(
         activeExternalServers: 0,
         estimatedExternalTools: 0,
         findings,
+        crossClientFindings,
       };
     }
     parsed = rawParsed as Record<string, unknown>;
@@ -885,6 +951,7 @@ function inspectMcpConfigSafe(
       activeExternalServers: 0,
       estimatedExternalTools: 0,
       findings,
+      crossClientFindings,
     };
   }
 
@@ -895,6 +962,14 @@ function inspectMcpConfigSafe(
       serverName: safeDupName,
       file: relPath,
       message: `Duplicate MCP server key "${safeDupName}" within the same configuration file.`,
+    });
+    pushCrossClientFinding({
+      severity: 'warn',
+      code: 'duplicate-plugin-or-server',
+      client: 'shared',
+      file: relPath,
+      message: `Duplicate MCP server key "${safeDupName}" declared multiple times inside "${relPath}" (#1937).`,
+      suggestion: 'Remove duplicate server keys so the host does not shadow or double-register MCP tools.',
     });
   }
 
@@ -918,6 +993,7 @@ function inspectMcpConfigSafe(
       activeExternalServers: 0,
       estimatedExternalTools: 0,
       findings,
+      crossClientFindings,
     };
   }
 
@@ -930,11 +1006,11 @@ function inspectMcpConfigSafe(
     serverName: string,
     candidate: string,
     sourceLabel: 'command' | 'args',
-  ): void => {
+  ): boolean => {
     const trimmed = candidate.trim();
-    if (!trimmed || trimmed.startsWith('-') || trimmed.includes('://') || trimmed.includes('=')) return;
-    if (UNRESOLVED_PLACEHOLDER_RE.test(trimmed) || ENV_VAR_EMBED_RE.test(trimmed)) return;
-    if (path.isAbsolute(trimmed)) return;
+    if (!trimmed || trimmed.startsWith('-') || trimmed.includes('://') || trimmed.includes('=')) return false;
+    if (UNRESOLVED_PLACEHOLDER_RE.test(trimmed) || ENV_VAR_EMBED_RE.test(trimmed)) return false;
+    if (path.isAbsolute(trimmed)) return false;
 
     const fromConfigDir = path.resolve(configDir, trimmed);
     const fromWorkspaceRoot = path.resolve(realRoot, trimmed);
@@ -948,7 +1024,7 @@ function inspectMcpConfigSafe(
         file: relPath,
         message: `Relative script in ${sourceLabel} escapes workspace boundary (${sanitizeDisplayPath(trimmed)}).`,
       });
-      return;
+      return true;
     }
 
     const existsSafe = (absPath: string): boolean => {
@@ -969,7 +1045,9 @@ function inspectMcpConfigSafe(
         file: relPath,
         message: `Local script referenced in ${sourceLabel} does not exist: ${sanitizeDisplayPath(trimmed)}`,
       });
+      return true;
     }
+    return false;
   };
 
   let envKeyCount = 0;
@@ -978,6 +1056,14 @@ function inspectMcpConfigSafe(
 
   for (const serverName of allKeys) {
     const safeServerName = sanitizeMcpIdentifier(serverName);
+    if (containsSecretPattern(serverName)) {
+      pushFinding({
+        severity: 'warn',
+        serverName: safeServerName,
+        file: relPath,
+        message: `MCP server name contains a hardcoded secret-like token (<redacted-path>).`,
+      });
+    }
     const prevFile = seenServerFiles.get(serverName);
     const isDuplicateAcrossFiles = prevFile !== undefined && prevFile !== relPath;
     if (isDuplicateAcrossFiles) {
@@ -986,6 +1072,14 @@ function inspectMcpConfigSafe(
         serverName: safeServerName,
         file: relPath,
         message: `Duplicate MCP server "${safeServerName}" (already defined in ${prevFile}).`,
+      });
+      pushCrossClientFinding({
+        severity: 'warn',
+        code: 'duplicate-plugin-or-server',
+        client: 'shared',
+        file: relPath,
+        message: `Duplicate MCP server "${safeServerName}" declared in both "${prevFile}" and "${relPath}" (#1937).`,
+        suggestion: 'Consolidate shared MCP servers into a single workspace config or disable duplicates in secondary client configs.',
       });
     } else if (!prevFile) {
       seenServerFiles.set(serverName, relPath);
@@ -1003,6 +1097,14 @@ function inspectMcpConfigSafe(
     }
 
     const def = rawDef as Record<string, unknown>;
+    const envPlaceholderRefs: string[] = [];
+    const recordEnvPlaceholder = (fieldLabel: string, rawVal: string): void => {
+      const tokens = extractSafeEnvPlaceholderTokens(rawVal);
+      if (tokens.length > 0) {
+        envPlaceholderRefs.push(`${fieldLabel} (${tokens.join(', ')})`);
+      }
+    };
+
     const disabled = def.disabled === true || def.enabled === false;
     if (!disabled && !isDuplicateAcrossFiles) {
       activeExternalServers += 1;
@@ -1033,6 +1135,7 @@ function inspectMcpConfigSafe(
     }
 
     if (command) {
+      recordEnvPlaceholder('command', command);
       if (UNRESOLVED_PLACEHOLDER_RE.test(command) || ENV_VAR_EMBED_RE.test(command)) {
         pushFinding({
           severity: 'warn',
@@ -1045,7 +1148,15 @@ function inspectMcpConfigSafe(
         command.startsWith('../') ||
         (!path.isAbsolute(command) && !command.startsWith('@') && (command.includes('/') || SCRIPT_EXT_RE.test(command)))
       ) {
-        checkLocalRelativeScript(safeServerName, command, 'command');
+        const reported = checkLocalRelativeScript(safeServerName, command, 'command');
+        if (!reported && containsSecretPattern(command)) {
+          pushFinding({
+            severity: 'warn',
+            serverName: safeServerName,
+            file: relPath,
+            message: `Server "${safeServerName}" contains a hardcoded secret-like value in "command" (<redacted-path>).`,
+          });
+        }
       } else if (containsSecretPattern(command)) {
         pushFinding({
           severity: 'warn',
@@ -1057,6 +1168,7 @@ function inspectMcpConfigSafe(
     }
 
     if (urlCandidate) {
+      recordEnvPlaceholder('url', urlCandidate);
       if (UNRESOLVED_PLACEHOLDER_RE.test(urlCandidate) || ENV_VAR_EMBED_RE.test(urlCandidate)) {
         pushFinding({
           severity: 'warn',
@@ -1078,10 +1190,12 @@ function inspectMcpConfigSafe(
     const isLocalRuntime = LOCAL_RUNTIME_COMMANDS.has(cmdBase);
     if (Array.isArray(def.args)) {
       let warnedArgPlaceholder = false;
-      for (const rawArg of def.args) {
+      for (let argIdx = 0; argIdx < def.args.length; argIdx += 1) {
+        const rawArg = def.args[argIdx];
         if (typeof rawArg !== 'string') continue;
         const arg = rawArg.trim();
         if (!arg) continue;
+        recordEnvPlaceholder(`args[${argIdx}]`, arg);
         if (UNRESOLVED_PLACEHOLDER_RE.test(arg)) {
           if (!warnedArgPlaceholder) {
             warnedArgPlaceholder = true;
@@ -1104,7 +1218,15 @@ function inspectMcpConfigSafe(
           !path.isAbsolute(arg) &&
           (arg.includes('/') || SCRIPT_EXT_RE.test(arg));
         if (explicitRelative || runtimeScriptCandidate) {
-          checkLocalRelativeScript(safeServerName, arg, 'args');
+          const reported = checkLocalRelativeScript(safeServerName, arg, 'args');
+          if (!reported && containsSecretPattern(arg)) {
+            pushFinding({
+              severity: 'warn',
+              serverName: safeServerName,
+              file: relPath,
+              message: `Server "${safeServerName}" contains a hardcoded secret-like argument in "args" (<redacted-path>).`,
+            });
+          }
         } else if (containsSecretPattern(arg)) {
           pushFinding({
             severity: 'warn',
@@ -1124,6 +1246,8 @@ function inspectMcpConfigSafe(
         if (!val) continue;
         const cleanedKey = k.replace(/[^\w.-]/g, '').slice(0, 64) || 'key';
         const safeKey = sanitizeMcpIdentifier(cleanedKey);
+
+        recordEnvPlaceholder(`${containerName}.${safeKey}`, val);
 
         if (UNRESOLVED_PLACEHOLDER_RE.test(val)) {
           pushFinding({
@@ -1162,6 +1286,20 @@ function inspectMcpConfigSafe(
     inspectKeyValueMap(def.env, 'env', true);
     inspectKeyValueMap(def.headers, 'headers', false);
 
+    if (envPlaceholderRefs.length > 0) {
+      const preview = envPlaceholderRefs.slice(0, 6).join(', ');
+      const suffix = envPlaceholderRefs.length > 6 ? `, +${envPlaceholderRefs.length - 6} more` : '';
+      pushCrossClientFinding({
+        severity: 'warn',
+        code: 'mcp-unexpanded-env',
+        client: 'antigravity',
+        file: relPath,
+        message: `Server "${safeServerName}" references static env placeholder(s) (${preview}${suffix}). Antigravity 2.0 static MCP configs may not auto-expand \${ENV_VAR} across all transports (#233).`,
+        suggestion:
+          'Verify host-level environment injection or use OS keychain / a thin local wrapper script instead of relying on static ${ENV_VAR} expansion in MCP JSON.',
+      });
+    }
+
     // Check top-level OAuth / token expiry hints (strictly redacted)
     const expiryRaw = def.expiresAt ?? def.tokenExpiry ?? def.expires_at;
     if (typeof expiryRaw === 'string' || typeof expiryRaw === 'number') {
@@ -1196,6 +1334,7 @@ function inspectMcpConfigSafe(
     activeExternalServers,
     estimatedExternalTools,
     findings,
+    crossClientFindings,
   };
 }
 
@@ -1364,7 +1503,12 @@ export function auditWorkspaceAssets(
   const assets: WorkspaceAssetEntry[] = [];
   const seenRealPaths = new Set<string>();
   const seenMcpServerFiles = new Map<string, string>();
+  const seenManifestNames = new Map<string, string>();
   const mcpHealthFindings: McpHealthFinding[] = [];
+  const crossClientFindings: CrossClientFinding[] = [];
+  const pushCrossClientFinding = (finding: CrossClientFinding): void => {
+    crossClientFindings.push(sanitizeCrossClientFinding(finding));
+  };
   let skippedSymlinks = 0;
   let skippedSensitive = 0;
   let mcpLiteralEnvCount = 0;
@@ -1458,12 +1602,43 @@ export function auditWorkspaceAssets(
       if (mcpInfo.findings.length > 0) {
         mcpHealthFindings.push(...mcpInfo.findings);
       }
+      if (mcpInfo.crossClientFindings.length > 0) {
+        crossClientFindings.push(...mcpInfo.crossClientFindings);
+      }
       meta = {
         serverCount: mcpInfo.serverCount,
         serverNames: mcpInfo.serverNames,
         literalEnvEntries: mcpInfo.envKeyCount,
         estimatedTools: mcpInfo.estimatedExternalTools,
       };
+    } else if (kind === 'manifest') {
+      try {
+        const parsedManifest = JSON.parse(text) as Record<string, unknown>;
+        if (parsedManifest && typeof parsedManifest === 'object' && !Array.isArray(parsedManifest)) {
+          const rawName = typeof parsedManifest.name === 'string' ? parsedManifest.name.trim() : '';
+          if (rawName) {
+            const normName = rawName.toLowerCase();
+            const safePluginName = sanitizeMcpIdentifier(rawName.slice(0, 80));
+            const prevManifest = seenManifestNames.get(normName);
+            if (prevManifest && prevManifest !== rawRel) {
+              pushCrossClientFinding({
+                severity: 'warn',
+                code: 'duplicate-plugin-or-server',
+                client: 'shared',
+                file: rawRel,
+                message: `Duplicate plugin manifest name "${safePluginName}" declared in both "${prevManifest}" and "${rawRel}" (#1937).`,
+                suggestion:
+                  'Keep one canonical plugin manifest or disambiguate plugin names so Antigravity / Claude hosts do not register duplicate tools.',
+              });
+            } else if (!prevManifest) {
+              seenManifestNames.set(normName, rawRel);
+            }
+            meta = { pluginName: safePluginName };
+          }
+        }
+      } catch {
+        // ignore invalid manifest JSON here
+      }
     }
 
     const chars = text.length;
@@ -1613,6 +1788,147 @@ export function auditWorkspaceAssets(
       inspectFile(fullPath, 'rules');
     }
   });
+
+  // 2.5 Ops 2.5 read-only cross-client migration check (.claude/, .cursor/rules/, .codex/)
+  // Strictly respects walkBounded realpath containment & skips all sensitive paths without echoing file values.
+  const claudeCommands: string[] = [];
+  const claudeRules: string[] = [];
+  const claudeSettings: string[] = [];
+  const cursorRules: string[] = [];
+  const codexFiles: string[] = [];
+
+  const verifySafeCrossClientEntry = (fullPath: string): string | null => {
+    const rel = path.relative(realRoot, fullPath).replace(/\\/g, '/');
+    if (isSensitiveCrossClientFile(rel)) {
+      skippedSensitive += 1;
+      return null;
+    }
+    let realTarget: string;
+    try {
+      realTarget = fs.realpathSync(fullPath);
+    } catch {
+      skippedSymlinks += 1;
+      return null;
+    }
+    if (!isInsideWorkspace(realTarget)) {
+      skippedSymlinks += 1;
+      return null;
+    }
+    const realRel = path.relative(realRoot, realTarget).replace(/\\/g, '/');
+    if (isSensitiveCrossClientFile(realRel)) {
+      skippedSensitive += 1;
+      return null;
+    }
+    try {
+      const st = fs.statSync(realTarget);
+      if (!st.isFile()) return null;
+    } catch {
+      return null;
+    }
+    return rel;
+  };
+
+  walkBounded('.claude', 4, (fullPath) => {
+    const rel = verifySafeCrossClientEntry(fullPath);
+    if (!rel) return;
+    const lower = rel.toLowerCase();
+    if (/^\.claude\/commands\/.+\.(?:md|mdx|txt)$/.test(lower)) {
+      claudeCommands.push(rel);
+    } else if (/^\.claude\/rules\/.+\.(?:md|mdx|txt)$/.test(lower)) {
+      claudeRules.push(rel);
+    } else if (/^\.claude\/settings(?:\.local)?\.json$/.test(lower)) {
+      claudeSettings.push(rel);
+    }
+  });
+
+  walkBounded('.cursor/rules', 4, (fullPath) => {
+    const rel = verifySafeCrossClientEntry(fullPath);
+    if (!rel) return;
+    if (/\.(?:mdc|md|mdx|txt)$/i.test(rel)) {
+      cursorRules.push(rel);
+    }
+  });
+
+  walkBounded('.codex', 4, (fullPath) => {
+    const rel = verifySafeCrossClientEntry(fullPath);
+    if (!rel) return;
+    const lower = rel.toLowerCase();
+    if (
+      lower === '.codex/config.toml' ||
+      /\.(?:md|mdx|txt)$/i.test(lower) ||
+      /^\.codex\/rules\/.+\.toml$/i.test(lower)
+    ) {
+      codexFiles.push(rel);
+    }
+  });
+
+  const formatFilePreview = (list: readonly string[]): string => {
+    const head = list.slice(0, 3).map((p) => sanitizeDisplayPath(p));
+    return list.length > 3 ? `${head.join(', ')}, +${list.length - 3} more` : head.join(', ');
+  };
+
+  if (claudeCommands.length > 0) {
+    pushCrossClientFinding({
+      severity: 'info',
+      code: 'cross-client-commands',
+      client: 'claude',
+      file: claudeCommands.length === 1 ? claudeCommands[0] : '.claude/commands/',
+      message: `Detected ${claudeCommands.length} Claude custom command file(s) (${formatFilePreview(claudeCommands)}).`,
+      suggestion:
+        'Mirror reusable slash commands as skills/*/SKILL.md or Ops Prompt Vault templates so Antigravity and Claude Code stay aligned.',
+    });
+  }
+
+  if (claudeRules.length > 0) {
+    pushCrossClientFinding({
+      severity: 'info',
+      code: 'cross-client-rules',
+      client: 'claude',
+      file: claudeRules.length === 1 ? claudeRules[0] : '.claude/rules/',
+      message: `Detected ${claudeRules.length} Claude rule file(s) (${formatFilePreview(claudeRules)}).`,
+      suggestion:
+        'Consolidate shared engineering rules into root AGENTS.md (or on-demand skills/) so Antigravity and Claude Code share one source of truth.',
+    });
+  }
+
+  if (claudeSettings.length > 0) {
+    pushCrossClientFinding({
+      severity: 'info',
+      code: 'cross-client-rules',
+      client: 'claude',
+      file: claudeSettings.length === 1 ? claudeSettings[0] : '.claude/settings.json',
+      message: `Detected Claude workspace settings (${formatFilePreview(claudeSettings)}); file values are not read or echoed.`,
+      suggestion:
+        'Share neutral team presets and safe verifyCommands via .agy-nov.json while keeping client-specific settings isolated.',
+    });
+  }
+
+  if (cursorRules.length > 0) {
+    pushCrossClientFinding({
+      severity: 'info',
+      code: 'cross-client-rules',
+      client: 'cursor',
+      file: cursorRules.length === 1 ? cursorRules[0] : '.cursor/rules/',
+      message: `Detected ${cursorRules.length} Cursor rule file(s) (${formatFilePreview(cursorRules)}).`,
+      suggestion:
+        'Keep shared workspace rules in AGENTS.md or modular skills/ so Antigravity and Cursor coexist without rule drift.',
+    });
+  }
+
+  if (codexFiles.length > 0) {
+    pushCrossClientFinding({
+      severity: 'info',
+      code: 'cross-client-rules',
+      client: 'codex',
+      file: codexFiles.length === 1 ? codexFiles[0] : '.codex/',
+      message: `Detected ${codexFiles.length} Codex config/rule file(s) (${formatFilePreview(codexFiles)}); configuration values are never echoed.`,
+      suggestion:
+        'Coexist cleanly by using root AGENTS.md as the canonical rule file alongside optional read-only .agy-nov.json team presets.',
+    });
+  }
+
+  // Strictly read-only team preset audit (.agy-nov.json)
+  const teamPreset = loadTeamPresetReadOnly(realRoot);
 
   assets.sort((a, b) => b.estimatedTokens - a.estimatedTokens || a.relPath.localeCompare(b.relPath));
 
@@ -1811,6 +2127,23 @@ export function auditWorkspaceAssets(
     });
   }
 
+  if (teamPreset.found && !teamPreset.valid) {
+    penalty += 10;
+    recommendations.push({
+      level: 'warn',
+      code: 'ops.team-preset-invalid',
+      title: 'Team preset (.agy-nov.json) failed validation',
+      detail: teamPreset.errors.join(' '),
+    });
+  } else if (teamPreset.found && teamPreset.warnings.length > 0) {
+    recommendations.push({
+      level: 'warn',
+      code: 'ops.team-preset-warnings',
+      title: `Team preset (.agy-nov.json) has ${teamPreset.warnings.length} security/schema warning(s)`,
+      detail: teamPreset.warnings.slice(0, 3).join(' '),
+    });
+  }
+
   if (storage.totalBytes > 50 * 1024 * 1024) {
     penalty += 10;
     recommendations.push({
@@ -1850,6 +2183,8 @@ export function auditWorkspaceAssets(
     ruleBloat,
     toolBudget,
     mcpHealthFindings,
+    teamPreset,
+    crossClientFindings,
   };
 }
 
@@ -2000,6 +2335,41 @@ export function createDemoOpsAuditReport(
         serverName: 'docs-search',
         file: '.mcp.json',
         message: 'Server "docs-search" defines a static OAuth/token expiry field (value redacted); verify auto-refresh is enabled.',
+      },
+    ],
+    teamPreset: {
+      found: true,
+      filePath: '.agy-nov.json',
+      valid: true,
+      preset: 'power',
+      enableModules: ['verify', 'ops'],
+      verifyCommands: [
+        { label: 'TypeScript Typecheck', executable: 'npm', args: ['run', 'typecheck'] },
+        { label: 'Unit Tests', executable: 'npm', args: ['test'] },
+      ],
+      specTemplatesCount: 2,
+      warnings: [],
+      errors: [],
+    },
+    crossClientFindings: [
+      {
+        severity: 'warn',
+        code: 'mcp-unexpanded-env',
+        client: 'antigravity',
+        file: '.mcp.json',
+        message:
+          'Server "github" references static env placeholder(s) (env.GITHUB_TOKEN (${GITHUB_TOKEN})). Antigravity 2.0 static MCP configs may not auto-expand ${ENV_VAR} across all transports (#233).',
+        suggestion:
+          'Verify host-level environment injection or use OS keychain / a thin local wrapper script instead of relying on static ${ENV_VAR} expansion in MCP JSON.',
+      },
+      {
+        severity: 'info',
+        code: 'cross-client-rules',
+        client: 'cursor',
+        file: '.cursor/rules/typescript.mdc',
+        message: 'Detected 1 Cursor rule file(s) (.cursor/rules/typescript.mdc).',
+        suggestion:
+          'Keep shared workspace rules in AGENTS.md or modular skills/ so Antigravity and Cursor coexist without rule drift.',
       },
     ],
   };

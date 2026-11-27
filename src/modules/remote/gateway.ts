@@ -22,6 +22,12 @@ import {
 } from './config.js';
 import { broadcastChannels, type ChannelSendOptions } from './channels.js';
 import { ConversationClient } from './conversation-client.js';
+import {
+  clampLiveStreamLimit,
+  InvalidConversationIdError,
+  isValidConversationId,
+  readConversationLiveStream,
+} from './live-stream.js';
 import { renderMobilePwaHtml } from './mobile-pwa.js';
 
 export const MAX_BODY_BYTES = 64 * 1024; // 64 KiB hard limit
@@ -35,6 +41,8 @@ export interface GatewayOptions {
   maxPairFailures?: number;
   now?: () => number;
   channelSendOptions?: ChannelSendOptions;
+  demoMode?: boolean;
+  brainDirs?: string[];
 }
 
 interface PairRateState {
@@ -89,6 +97,8 @@ export class RemoteGateway {
   private readonly maxPairFailures: number;
   private readonly nowFn: () => number;
   private readonly channelSendOptions?: ChannelSendOptions;
+  private readonly demoMode: boolean;
+  private readonly brainDirs?: string[];
 
   constructor(
     private readonly dataDir: string,
@@ -100,6 +110,8 @@ export class RemoteGateway {
     this.maxPairFailures = options.maxPairFailures ?? PAIR_MAX_FAILURES;
     this.nowFn = options.now ?? (() => Date.now());
     this.channelSendOptions = options.channelSendOptions;
+    this.demoMode = Boolean(options.demoMode);
+    this.brainDirs = options.brainDirs;
 
     // Strictly read-only initialization: zero directories created, zero config.json written, zero timers started.
     const loaded = loadConfigReadOnly(dataDir);
@@ -703,6 +715,54 @@ export class RemoteGateway {
           const actor = String(body.actor ?? 'mobile-pwa');
           const updated = this.decideApproval(decodeURIComponent(decideMatch[1]), decision, actor);
           this.writeJson(res, updated ? 200 : 404, { approval: updated });
+          return;
+        }
+
+        // Read-only conversation live stream (strictly after auth check)
+        const rawPathname = (req.url ?? '/').split('?')[0];
+        const streamPathMatch = url.pathname.match(/^\/api\/conversations\/(.*)\/stream$/);
+        const rawStreamPathMatch = rawPathname.match(/^\/api\/conversations\/(.*)\/stream$/);
+        if ((streamPathMatch || rawStreamPathMatch) && req.method === 'GET') {
+          if (!streamPathMatch || (rawStreamPathMatch && rawPathname !== url.pathname)) {
+            this.writeJson(res, 400, { error: 'Invalid conversationId' });
+            return;
+          }
+          let decodedId: string;
+          try {
+            decodedId = decodeURIComponent(streamPathMatch[1]);
+          } catch {
+            this.writeJson(res, 400, { error: 'Invalid conversationId encoding' });
+            return;
+          }
+          if (!isValidConversationId(decodedId)) {
+            this.writeJson(res, 400, {
+              error: 'Invalid conversationId: must match /^[A-Za-z0-9._-]{1,128}$/ without ".."',
+            });
+            return;
+          }
+
+          const rawLimit = url.searchParams.get('limit');
+          const parsedLimit =
+            rawLimit !== null && rawLimit.trim() !== '' ? Number(rawLimit) : undefined;
+          const limit =
+            parsedLimit !== undefined && Number.isFinite(parsedLimit)
+              ? clampLiveStreamLimit(parsedLimit)
+              : undefined;
+
+          try {
+            const stream = readConversationLiveStream(decodedId, {
+              demoMode: this.demoMode,
+              limit,
+              brainDirs: this.brainDirs,
+            });
+            this.writeJson(res, 200, { ...stream, readOnly: true });
+          } catch (err) {
+            if (err instanceof InvalidConversationIdError) {
+              this.writeJson(res, 400, { error: err.message });
+              return;
+            }
+            throw err;
+          }
           return;
         }
 

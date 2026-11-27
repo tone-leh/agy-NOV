@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getModuleDataDir, resolveNovDataDir } from '../../core/config.js';
 import type { NormalizedHookPayload } from '../../core/types.js';
-import { isSensitiveFilePath, MemoryStore } from './store.js';
+import { isSensitiveFilePath, MemoryStore, stripPrivateTags } from './store.js';
 
 export const MAX_TRANSCRIPT_TAIL_BYTES = 256 * 1024; // 256 KiB
 
@@ -107,7 +107,7 @@ export function handleMemSessionStartHook(
           ? [payload.workspaceRoot]
           : [];
     const store = new MemoryStore(dataDir, false, workspacePaths[0]);
-    const injected = store.buildSessionStartInjection(workspacePaths, 8);
+    const injected = store.buildSessionStartInjection(workspacePaths, 12);
     if (!injected) return {};
     return {
       injectSteps: [
@@ -129,7 +129,8 @@ export function handleMemStopHook(
 ): void {
   try {
     const editedFiles = extractEditedFilesFromTranscript(payload.transcriptPath);
-    const userPrompt = (payload.lastUserInput ?? '').replace(/\s+/g, ' ').trim();
+    const strippedInput = stripPrivateTags(payload.lastUserInput ?? '').cleaned;
+    const userPrompt = strippedInput.replace(/\s+/g, ' ').trim();
     if (editedFiles.length === 0 || userPrompt.length < 16) {
       return;
     }

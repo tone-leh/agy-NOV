@@ -31,13 +31,13 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="../../assets/hero-dark.svg" />
     <source media="(prefers-color-scheme: light)" srcset="../../assets/hero-light.svg" />
-    <img src="../../assets/hero-dark.svg" alt="agy-NOV v0.5 面向 Google Antigravity 2.0 的 100% 原生 13 模組超級工作台" width="100%" />
+    <img src="../../assets/hero-dark.svg" alt="agy-NOV v0.6 面向 Google Antigravity 2.0 的 100% 原生 13 模組超級工作台" width="100%" />
   </picture>
 
   <br />
 
   <p><strong>Live Workbench Preview · 實機工作台預覽</strong></p>
-  <img src="../../assets/demo-preview.gif" alt="agy-NOV v0.5 實機工作台預覽 —— 13 大原生模組、全元件 8 語種介面與離線 X-Ray 2.0" width="100%" />
+  <img src="../../assets/demo-preview.gif" alt="agy-NOV v0.6 實機工作台預覽 —— 13 大原生模組、全元件 8 語種介面、Mem 2.0、Turbo 2.5、Remote 2.0 與 Ops 2.5" width="100%" />
 
   <br />
 
@@ -54,7 +54,7 @@
 </div>
 
 > [!NOTE]
-> **獨立開源專案聲明：** `agy-NOV` (v0.5.0) 是面向 Google Antigravity 2.0 打造的獨立 MIT 授權社群外掛，與 Google LLC 無隸屬、贊助或背書關係。
+> **獨立開源專案聲明：** `agy-NOV` (`v0.6.0`) 是面向 Google Antigravity 2.0 打造的獨立 MIT 授權社群外掛，與 Google LLC 無隸屬、贊助或背書關係。
 
 ---
 
@@ -63,7 +63,7 @@
 在目前工作區零風險試用 `agy-NOV`，全程**零檔案異動、零設定寫入、零網路請求**：
 
 ```bash
-# 1. 唯讀掃描專案技術棧，零寫入自動推薦最適合的預設與模組
+# 1. 唯讀掃描專案技術棧並整合單檔 .agy-nov.json 團隊預設唯讀校驗（零寫入）
 agy-nov recommend
 # 或在複製倉庫目錄內直接執行：
 node dist/cli.cjs recommend --workspace=.
@@ -77,7 +77,7 @@ node dist/cli.cjs recommend --workspace=.
 
 ## 為什麼選擇 agy-NOV
 
-為了補齊程式碼審查、密鑰掃描、Token 與離線 USD 成本透視、批次搜尋與輸出壓縮、工作階段追蹤、完成驗證門禁、Git Worktree 排程、規格流任務 DAG、本機資料/文件/OpenAPI 除錯以及規則與工具預算巡檢，開發者往往需要分別安裝多套 MCP 伺服器與 Hook 指令碼。原本整潔的 Antigravity 工作區很快就會被大量背景常駐程式與臃腫的工具定義佔滿，甚至撞上 100 工具硬上限。
+為了補齊程式碼審查、密鑰掃描、Token 與離線 USD 成本透視、批次搜尋與輸出壓縮、工作階段追蹤、完成驗證門禁、Git Worktree 排程、規格流任務 DAG、本機資料/文件/OpenAPI 除錯以及跨用戶端踩坑與規則預算巡檢，開發者往往需要分別安裝多套 MCP 伺服器與 Hook 指令碼。原本整潔的 Antigravity 工作區很快就會被大量背景常駐程式與臃腫的工具定義佔滿，甚至撞上 100 工具硬上限。
 
 | 比較維度 | ❌ 外掛堆疊（12–13 個獨立工具） | ✅ agy-NOV 超級工作台 |
 | :--- | :--- | :--- |
@@ -85,39 +85,42 @@ node dist/cli.cjs recommend --workspace=.
 | **單輪 Token 稅** | 無論是否用到，每輪對話都會注入 70+ 靜態工具 Schema 並擠壓 100 工具預算 | **動態 `tools/list`** —— 關閉模組立即註銷工具（`0` Token 與工具預算佔用） |
 | **生命週期 Hook 風暴** | 每次 `SessionStart` / `PreToolUse` / `PostToolUse` / `Stop` 觸發多個衍生 Hook 競態執行 | **1 個統一 Hook 分發器**（`dist/hook.cjs`），唯讀檢查設定並 O(1) 短路 |
 | **升級抗碎性** | 二進位 `app.asar` 修補與 DOM 注入指令碼在 Antigravity 更新後失效 | **100% 官方原生協定** —— 零 ASAR、零 CDP，平滑跟隨每次用戶端更新 |
-| **設定與多語體驗** | 分散的 JSON 設定、風格割裂的介面、中英混排面板 | **1 個明暗雙色控制面板**，配備 **100% 全元件 8 語種 UI（400 詞典鍵 × 8 語種）**、**5 檔一鍵預設**與零 Token CLI `statusline` / `recommend` |
+| **設定與多語體驗** | 分散的 JSON 設定、風格割裂的介面、中英混排面板 | **1 個明暗雙色控制面板**，配備 **100% 全元件 8 語種 UI（426 詞典鍵 × 8 語種）**、**5 檔一鍵預設**、單檔 `.agy-nov.json` 團隊預設唯讀校驗與零 Token CLI `statusline` / `recommend` |
 
 ### 100% 原生控制面板理念
 
-1. **單一原生執行期：** 1 個 MCP 伺服器（`dist/server.cjs`）+ 1 個生命週期 Hook 分發器（`dist/hook.cjs`）+ 1 份自包含全元件 8 語種 UI（`dist/ui/app.html`，約 `956 KB`，遠低於 10 MiB 資源上限，400 個詞典鍵涵蓋全部 22 個 UI 元件）+ 1 個含 8 條指令的零相依 CLI（`dist/cli.cjs`，含零 Token `statusline` 與唯讀 `recommend`）。
-2. **關閉即零 Token 稅：** 每個模組透過 `RegisteredTool.enable()` / `.disable()` 管理模型工具並即時推送 `tools/list_changed`。關閉模組後，對應工具 Schema 立即從模型上下文中移除，輕鬆避開 100 工具硬上限。
-3. **12 個本機離線模組優先：** Diff 審查（純 React 語法高亮、`-w` 忽略空白、零 ReDoS 風險預標註）、密鑰防火牆與編輯前快照、Context X-Ray 2.0（離線 USD 帳單、5h 滾動燃燒預警、抗壓縮交接/OTLP/CSV 匯出與 Swarm 血緣）、Turbo 批次搜尋與 RTK 智慧輸出壓縮、工作階段雷達、支援唯讀專案棧偵測的 Stop Hook 強驗證門禁、並行 Git Worktree 調度台、Spec Flow 與任務 DAG、含零相依 OpenAPI 2.0/3.x 解析器的按需本機除錯台 Workspace Studio、視覺化畫布、程式碼錨定記憶以及提示詞庫與預算巡檢 100% 在本機執行，零對外網路請求、零 ASAR 修改、零 CDP 掛鉤。
-4. **1 個嚴格按需啟用的遠端模組：** `remote`（行動端 PWA + IM Webhook）預設徹底關閉 —— 未明確啟用前零埠監聽、零背景輪詢、零磁碟寫入、零對外網路請求。
+1. **單一原生執行期：** 1 個 MCP 伺服器（`dist/server.cjs`）+ 1 個生命週期 Hook 分發器（`dist/hook.cjs`）+ 1 份自包含全元件 8 語種 UI（`dist/ui/app.html`，約 `985 KB`，遠低於 10 MiB 資源上限，**426 個詞典鍵 × 8 語種**完整涵蓋全部 22 個 UI 元件）+ 1 個含 8 條指令的零相依 CLI（`dist/cli.cjs`，含零 Token `statusline` 與整合 `.agy-nov.json` 唯讀校驗的 `recommend`）。
+2. **關閉即零 Token 稅：** 每個模組透過 `RegisteredTool.enable()` / `.disable()` 管理模型工具並即時推送 `tools/list_changed`。關閉模組後，對應工具 Schema 立即從模型上下文中移除，輕鬆避開 100 工具硬上限；`v0.6.0` 全數 **47 個規範模型工具名**維持零膨脹、完全相容。
+3. **12 個本機離線模組優先：** Diff 審查（純 React 語法高亮、`-w` 忽略空白、零 ReDoS 風險預標註）、密鑰防火牆與編輯前快照、Context X-Ray 2.0（離線 USD 帳單、5h 滾動燃燒預警、抗壓縮交接/OTLP/CSV 匯出與 Swarm 血緣）、**Turbo 2.5**（批次搜尋、RTK 智慧輸出壓縮、純記憶體累計節省 `gain` 儀表板、`<= 8.8 KB` UTF-8 碼點安全防落盤護欄與多縮排巢狀符號大綱）、工作階段雷達、支援唯讀專案棧偵測的 Stop Hook 強驗證門禁、並行 Git Worktree 調度台、Spec Flow 與任務 DAG、含零相依 OpenAPI 2.0/3.x 解析器的按需本機除錯台 Workspace Studio、視覺化畫布、**Mem 2.0**（三層漸進式揭露 + O(n) `<private>` 隱私剝離 + SHA-256 程式碼錨定）以及 **Ops 2.5**（提示詞庫、預算巡檢、Antigravity `#233`/`#1937` 與跨用戶端遷移診斷、單檔 `.agy-nov.json` 團隊預設唯讀校驗）100% 在本機執行，零對外網路請求、零 ASAR 修改、零 CDP 掛鉤。
+4. **1 個嚴格按需啟用的遠端模組（Remote 2.0）：** `remote`（行動端 PWA + IM Webhook）預設徹底關閉 —— 未明確啟用前零埠監聽、零背景輪詢、零磁碟寫入、零對外網路請求；啟用後新增手機 PWA 唯讀脫敏工作階段實況流（無寫檔、無遠端 Shell、零 `innerHTML`）與按需唯讀偵測 `tailscale` / `cloudflared` 安全穿透指令引導（絕不自動啟動公網通道）。
 
 ---
 
 ## 10 秒選定你的工作台預設
 
-先輕量起步，再依任務需求隨時擴展。執行 `agy-nov recommend` 可零寫入自動推薦目前倉庫最適合的預設；每檔預設都會即時同步已啟用的模型工具、Hook 分發邏輯與介面分頁，可在 **Modules** 分頁或終端機一行指令隨時切換。
+先輕量起步，再依任務需求隨時擴展。執行 `agy-nov recommend` 可零寫入自動掃描技術棧並唯讀校驗可選單檔 `.agy-nov.json` 團隊預設；每檔預設都會即時同步已啟用的模型工具、Hook 分發邏輯與介面分頁，可在 **Modules** 分頁或終端機一行指令隨時切換。
 
 | 預設 | 適用角色 | 啟用模組 | 模型工具數* | 隔離層級 |
 | :--- | :--- | :--- | :---: | :--- |
 | **`minimal`** | *極簡安全網* —— 僅保留基礎密鑰防護與編輯前快照 | `guard` (1) | **6** | 100% 離線 |
 | **`core`** *(預設)* | *日常主力* —— 開箱即用的審查三件套、安全防護與 X-Ray 2.0 離線 USD/Swarm 透視 | `review`, `guard`, `xray` (3) | **12** | 100% 離線 |
-| **`power`** | *高產工程師* —— 疊加批次搜尋與 RTK 壓縮、Swarm 雷達、支援棧偵測的強驗證門禁、並行 Worktree、Spec 規格流與規則/工具預算巡檢 | `core` + `turbo`, `radar`, `verify`, `worktree`, `spec`, `ops` (9) | **32** | 100% 離線 |
-| **`local-all`** | *全量離線工作室* —— 啟用含 Workspace Studio（支援 OpenAPI 2.0/3.x 解析）、視覺化畫布與記憶圖譜在內的全部本機能力 | 全部 12 個離線原生模組 | **43** | 100% 離線 |
-| **`full`** | *離桌指揮官* —— 完整工作台加按需啟用的手機與 IM 遠端核准 | 全部 13 個原生模組（含按需 `remote`） | **47** | 按需聯網 |
+| **`power`** | *高產工程師* —— 疊加 Turbo 2.5 節省儀表板與 RTK 壓縮、Swarm 雷達、支援棧偵測的強驗證門禁、並行 Worktree、Spec 規格流與 Ops 2.5 預算/跨用戶端巡檢 | `core` + `turbo`, `radar`, `verify`, `worktree`, `spec`, `ops` (9) | **32** | 100% 離線 |
+| **`local-all`** | *全量離線工作室* —— 啟用含 Workspace Studio（支援 OpenAPI 2.0/3.x 解析）、視覺化畫布與 Mem 2.0 三層記憶圖譜在內的全部本機能力 | 全部 12 個離線原生模組 | **43** | 100% 離線 |
+| **`full`** | *離桌指揮官* —— 完整工作台加按需啟用的 Remote 2.0 手機 PWA 唯讀實況流與 IM 遠端核准 | 全部 13 個原生模組（含按需 `remote`） | **47** | 按需聯網 |
 
-<sub>*精確模型工具數 = `2` 個常駐入口工具（`nov_open`、`nov_status`）+ 已啟用模組的工具數總和（`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47；v0.5.0 全部 47 個模型工具名維持不變）。</sub>
+<sub>*精確模型工具數 = `2` 個常駐入口工具（`nov_open`、`nov_status`）+ 已啟用模組的工具數總和（`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47；`v0.6.0` 全數 47 個規範模型工具名完全不變）。</sub>
 
 ```bash
-# 唯讀掃描專案並推薦最適合的預設（零寫盤）
+# 唯讀掃描專案並校驗可選單檔 .agy-nov.json 團隊預設（零寫盤）
 agy-nov recommend
 # 在終端機隨時切換預設
 agy-nov preset power
 # 或在複製的倉庫目錄內直接執行
 node dist/cli.cjs preset power
 ```
+
+> [!TIP]
+> **可選單檔團隊預設（`.agy-nov.json`）：** 在倉庫根目錄放入單一可選檔案 `.agy-nov.json`，即可在團隊間共用推薦預設、離線模組與白名單靜態校驗指令。`agy-NOV` 嚴格保持唯讀（絕不自動向使用者倉庫寫入雜亂目錄），對 `verifyCommands` 僅做白名單靜態校驗絕不自動執行，且永不靜默開啟 `remote`。
 
 ---
 
@@ -129,18 +132,18 @@ node dist/cli.cjs preset power
 
 | 模組 | 預設 | 模型工具 | Hooks | 核心能力 |
 | :--- | :---: | :---: | :--- | :--- |
-| **Diff Review** (`review`) *(v0.5 升級)* | **開** | 2 | `PostToolUse`, `Stop` | PR 級工作區、暫存區與提交 Diff 審查器，新增**零相依純 React 輕量語法高亮**（零 `dangerouslySetInnerHTML`）、**忽略空白差異（`-w`）切換**、**零 ReDoS 確定性行級風險預標註**（一鍵轉為批註）與精準 `file:line` 修復提示詞 |
+| **Diff Review** (`review`) | **開** | 2 | `PostToolUse`, `Stop` | PR 級工作區、暫存區與提交 Diff 審查器，配備**零相依純 React 輕量語法高亮**（零 `dangerouslySetInnerHTML`）、**忽略空白差異（`-w`）切換**、**零 ReDoS 確定性行級風險預標註**（一鍵轉為批註）與精準 `file:line` 修復提示詞 |
 | **Guard & Snapshots** (`guard`) | **開** | 4 | `PreToolUse` | 執行前攔截 `.env`/SSH/密鑰外洩與高危破壞指令；提供零 Git 依賴的編輯前快照與一鍵還原 |
-| **Context X-Ray** (`xray`) *(v0.5 升級 2.0)* | **開** | 4 | `PostToolUse`, `Stop` | **離線 USD 帳單**（內建參考單價表 + 唯讀 `pricing-overrides.json` 自訂）、**14 天按日趨勢與 5 小時滾動燃燒預警**、快取命中與新增 Token 透視、Swarm 子 Agent 血緣與 429 告警、中英 BM25 歷史檢索，以及 `xray_export_brief` 四格式匯出（`brief` / `handoff` 抗壓縮交接 / `otlp` / 防公式注入 `csv`） |
-| **Turbo & Output Guard** (`turbo`) | 關 | 3 | `SessionStart` | 多模式工作區批次搜尋、頂層符號大綱切片，以及 **RTK 風格智慧輸出壓縮預設**（`auto \| test \| build \| git \| generic`），將冗長建置/測試日誌壓縮為可索引摘要 |
+| **Context X-Ray** (`xray`) | **開** | 4 | `PostToolUse`, `Stop` | **離線 USD 帳單**（內建參考單價表 + 唯讀 `pricing-overrides.json` 自訂）、**14 天按日趨勢與 5 小時滾動燃燒預警**、快取命中與新增 Token 透視、Swarm 子 Agent 血緣與 429 告警、中英 BM25 歷史檢索，以及 `xray_export_brief` 四格式匯出（`brief` / `handoff` 抗壓縮交接 / `otlp` / 防公式注入 `csv`） |
+| **Turbo & Output Guard** (`turbo`) *(v0.6 升級 2.5)* | 關 | 3 | `SessionStart` | 多模式工作區批次搜尋、RTK 風格智慧輸出壓縮預設（`auto \| test \| build \| git \| generic`），`v0.6.0` 新增**純記憶體累計節省 `gain` 儀表板**（累計節省 Tokens 與估算 USD）、工具文字輸出 UTF-8 碼點安全 **`<= 8.8 KB` 防落盤護欄**，以及**多縮排巢狀符號大綱**（支援 TS/JS 類別方法與介面成員、Python 類別方法、Go receiver 方法與 Rust `impl`/`trait` 方法） |
 | **Session Radar & Chime** (`radar`) | 關 | 2 | `PreToolUse`, `PostToolUse`, `Stop` | 跨 `running`、`awaiting_approval`、`completed`、`stalled`、`error` 狀態追蹤並行工作階段與父子 Swarm 子 Agent，提供孤兒告警、唯讀 `status-capsule.json` 與可選完成提示音 |
-| **Verify Gate** (`verify`) *(v0.5 升級)* | 關 | 4 | `PostToolUse`, `Stop` | Stop Hook 強驗證門禁，新增**唯讀專案棧自動偵測**（掃描 `package.json` pnpm/yarn/bun/npm、`pyproject.toml`/`pytest.ini`、`Cargo.toml`、`go.mod`，經安全白名單覆核後一鍵推薦檢查指令，零寫盤），阻斷 0 位元組寫入與未驗證「謊報完成」，具備防死迴圈護欄與脫敏證據鏈 |
+| **Verify Gate** (`verify`) | 關 | 4 | `PostToolUse`, `Stop` | Stop Hook 強驗證門禁，具備**唯讀專案棧自動偵測**（掃描 `package.json` pnpm/yarn/bun/npm、`pyproject.toml`/`pytest.ini`、`Cargo.toml`、`go.mod`，經安全白名單覆核後一鍵推薦檢查指令，零寫盤），阻斷 0 位元組寫入與未驗證「謊報完成」，具備防死迴圈護欄與脫敏證據鏈 |
 | **Worktree Orchestrator** (`worktree`) | 關 | 4 | 無 | 安全並行 Git Worktree 調度台，支援攜帶未提交異動、分支 Diff 摘要預覽、`extensions.worktreeConfig` 檢測與安全清理孤兒工作樹 |
 | **Spec Flow & Task DAG** (`spec`) | 關 | 4 | `SessionStart`, `PreToolUse` | `Spec -> Plan -> Task DAG` 規格流、Kahn 環檢測與防跳步推進、`PreToolUse` 未核准草稿唯讀門禁與可選 `requireUiApproval` UI 審批鎖 |
-| **Workspace Studio** (`studio`) *(v0.5 升級)* | 關 | 4 | 無 | 按需輕量本機除錯台：SQLite 唯讀 + CSV/JSON/NDJSON 檢視、純 Node 離線 DOCX/XLSX/PDF/Markdown 切片（ZIP Bomb 防線）、**零相依 OpenAPI 2.0/3.x 解析器**（防 YAML 錨點炸彈與原型污染，將工作區 `.openapi.yaml`/`.json` 解析為一鍵可點端點集合並自動填入迴環探針）、嚴格迴環（`127.0.0.1`/`localhost`/`[::1]`）防 SSRF HTTP 除錯；關閉即 0 工具佔用 |
+| **Workspace Studio** (`studio`) | 關 | 4 | 無 | 按需輕量本機除錯台：SQLite 唯讀 + CSV/JSON/NDJSON 檢視、純 Node 離線 DOCX/XLSX/PDF/Markdown 切片（ZIP Bomb 防線）、**零相依 OpenAPI 2.0/3.x 解析器**（防 YAML 錨點炸彈與原型污染，將工作區 `.openapi.yaml`/`.json` 解析為一鍵可點端點集合並自動填入迴環探針）、嚴格迴環（`127.0.0.1`/`localhost`/`[::1]`）防 SSRF HTTP 除錯；關閉即 0 工具佔用 |
 | **Visual Canvas** (`canvas`) | 關 | 4 | 無 | 在隔離沙盒內算繪 HTML 原型、SVG 架構圖、簡報、Markdown 規格書與圖片，支援編號圖釘標註 |
-| **Memory Graph** (`mem`) | 關 | 3 | `SessionStart`, `Stop` | 將架構決策錨定至檔案 SHA-256 雜湊，於 `SessionStart` 自動召回上下文，並在程式碼漂移時標記預警 |
-| **Prompt Vault & Budget Doctor** (`ops`) | 關 | 3 | 無 | 管理可重複使用 `{{var}}` 提示詞範本；提供 **24KB/20K 規則膨脹預警**（預防假性 429）、**100 工具硬上限預算儀表**、MCP 靜態體檢以及工作區 Skills 與本機儲存唯讀巡檢 |
+| **Memory Graph** (`mem`) *(v0.6 升級 2.0)* | 關 | 3 | `SessionStart`, `Stop` | **三層漸進式揭露**（`SessionStart` L1 緊湊索引 `<= 1200` 字元節省開局上下文；`mem_recall` 新增 `mode: "index" \| "timeline" \| "detail"`、`ids[]`、`window`，零模型工具膨脹）、**O(n) `<private>...</private>` 隱私剝離**（含未閉合標籤截斷防外洩），加上 SHA-256 檔案雜湊錨定與程式碼漂移預警 |
+| **Prompt Vault & Budget Doctor** (`ops`) *(v0.6 升級 2.5)* | 關 | 3 | 無 | 管理可重複使用 `{{var}}` 提示詞範本、24KB/20K 規則膨脹預警（預防假性 429）、100 工具硬上限預算儀表，並於 `v0.6.0` 新增 **Antigravity `#233` 未展開 `${ENV_VAR}` 陷阱**檢測、**`#1937` 重複外掛/重複 MCP 服務**檢測、**`.claude/` / `.cursor/rules/` / `.codex/` 唯讀跨用戶端遷移提示**（零密鑰回顯）與單檔 **`.agy-nov.json` 團隊預設唯讀校驗** |
 
 <details>
 <summary><strong>試著這樣對你的 Agent 提問……（第一層離線模組 12 條實戰提示詞）</strong></summary>
@@ -148,15 +151,15 @@ node dist/cli.cjs preset power
 - **Review：** *「以 `-w` 忽略空白模式開啟 agy-NOV Diff Review 檢視我暫存區的異動，查看自動高亮的行級風險預標註，並在提交前一鍵轉為批註。」*
 - **Guard：** *「掃描工作區內是否有硬編碼密鑰，並在重構驗證模組前先建立一份編輯前檢查點。」*
 - **X-Ray：** *「檢視本輪離線 USD 估算花費、14 天趨勢與 5 小時燃燒預警，分析 Swarm 子 Agent 血緣與 429 損耗，並匯出一份 `handoff` 抗壓縮交接快照（或 `otlp` / `csv` 報表）。」*
-- **Turbo：** *「啟用 Turbo，批次搜尋 `src/` 下所有 `registerTool` 與 `realpathSync` 呼叫，並用 `test` RTK 壓縮預設精簡這份失敗測試日誌。」*
+- **Turbo：** *「啟用 Turbo 2.5，擷取 `src/` 中類別方法與介面成員的多縮排巢狀大綱，用 `test` RTK 壓縮預設精簡失敗測試日誌，並檢視純記憶體 `gain` 累計節省 Tokens 與估算 USD 儀表板。」*
 - **Radar：** *「查看 Session Radar，確認哪些並行工作階段或父子 Swarm 子 Agent 正在等待核准、停滯或淪為孤兒。」*
 - **Verify：** *「在 Verify Gate 中唯讀自動偵測本倉庫的安全檢查指令，一鍵套用白名單內的 `typecheck` 與 `test`，並檢視本輪脫敏驗證證據鏈。」*
 - **Worktree：** *「用 Worktree Orchestrator 帶著目前未提交異動建立並行分支工作樹，檢視分支 Diff 摘要並安全清理已合併的孤兒工作樹。」*
 - **Spec：** *「在 Spec Flow 中為驗證重構起草 `Spec -> Plan -> Task DAG` 並開啟未核准唯讀門禁與 `requireUiApproval`，等我核准後再依 DAG 依賴逐步推進。」*
 - **Studio：** *「暫時啟用 Workspace Studio，唯讀查詢本機 SQLite 與 CSV 資料、解析 `api.openapi.yaml` 一鍵填入並探測 `http://127.0.0.1:3000/health`、離線切片 DOCX/XLSX/PDF 文件，用完即關閉以釋放工具預算。」*
 - **Canvas：** *「把這個定價頁原型發佈到 agy-NOV Visual Canvas，讓我加上編號版面批註。」*
-- **Memory：** *「將我們的原生隔離約束錨定到 `src/core/catalog.ts` 並記住，該檔案發生漂移時立刻標記。」*
-- **Ops：** *「執行預算巡檢，排查是否觸發 24KB/20K 規則膨脹與假性 429 風險、檢視 100 工具硬上限餘量與 MCP 靜態設定，並套用我的發佈就緒提示詞範本。」*
+- **Memory：** *「用 Mem 2.0 記住我們錨定至 `src/core/catalog.ts` 的原生隔離約束並自動剝離 `<private>...</private>` 敏感段落；後續先以 `mem_recall` 的 `index` 模式查緊湊清單，再按 `ids[]` 精準拉取 `detail`。」*
+- **Ops：** *「執行 Ops 2.5 預算與跨用戶端體檢：排查 24KB/20K 規則膨脹、100 工具上限餘量、Antigravity `#233` 未展開 `${ENV_VAR}`、`#1937` 重複外掛/MCP、`.claude/` 與 `.cursor/rules/` 遷移提示，並唯讀校驗倉庫根目錄的 `.agy-nov.json`。」*
 
 </details>
 
@@ -166,15 +169,15 @@ node dist/cli.cjs preset power
 
 | 模組 | 預設 | 模型工具 | Hooks | 隔離層級 | 核心能力 |
 | :--- | :---: | :---: | :--- | :--- | :--- |
-| **Mobile & IM Remote** (`remote`) | **關** | 4 | `PreToolUse`, `Stop` | 按需聯網 | 配對本機行動端 PWA 或 Telegram / 飛書 / 釘釘 / 企業微信 / Slack / Discord Webhook，接收完工通知、核准高危指令與遠端派發任務 |
+| **Mobile & IM Remote** (`remote`) *(v0.6 升級 2.0)* | **關** | 4 | `PreToolUse`, `Stop` | 按需聯網 | 配對本機行動端 PWA 或 Telegram / 飛書 / 釘釘 / 企業微信 / Slack / Discord Webhook，接收完工通知、核准高危指令與遠端派發任務；`v0.6.0` 新增**手機 PWA 點選工作階段檢視唯讀脫敏實況步驟流**（嚴守最小權限，無寫檔/無遠端 Shell、零 `innerHTML` 防 XSS）與按需唯讀偵測 **`tailscale` / `cloudflared`** 一鍵安全穿透指令引導（絕不自動啟動公網通道） |
 
 ---
 
 ## 內建 8 語種外掛 UI 與零 CDP 雙倉生態
 
-### 100% 全元件 8 語種外掛 UI（400 詞典鍵 × 8 語種 · 零重啟）
+### 100% 全元件 8 語種外掛 UI（426 詞典鍵 × 8 語種 · 零重啟）
 
-`agy-NOV` v0.5.0 在外掛套件內實現 **100% 全元件多語種覆蓋** —— **400 個詞典鍵 × 8 種語言**完整涵蓋全部 **22 個 UI 元件**（補齊 `review` 的 5 個子元件與 `xray` 的 3 個子元件，消除所有硬編碼英文混排），並在 **Modules** 面板內建可收合的「30 秒零風險首體驗」引導卡，與 8 語種文件（`docs/i18n/README.*.md`）完整對齊：
+`agy-NOV` `v0.6.0` 在外掛套件內實現 **100% 全元件多語種覆蓋** —— **426 個詞典鍵 × 8 種語言**完整涵蓋全部 **22 個 UI 元件**（包含 Mem 2.0、Turbo 2.5 `gain` 儀表板、Remote 2.0 實況流與穿透引導、Ops 2.5 跨用戶端診斷與 `.agy-nov.json` 團隊預設校驗文案，消除所有硬編碼英文混排），並在 **Modules** 面板內建可收合的「30 秒零風險首體驗」引導卡，與 8 語種文件（`docs/i18n/README.*.md`）完整對齊：
 
 - **頂欄原生語言切換器：** 於工作台頂部下拉選單直接切換任意語言，介面文案與 `<html lang>` 即時更新，無需重新載入。
 - **自動 BCP-47 宿主語言偵測（`auto`）：** 預設採用 `auto` 自動跟隨 Antigravity 宿主語系，同時支援手動指定全部 8 種內建語言：
@@ -196,8 +199,8 @@ agy-nov locale zh-TW
 | :--- | :--- | :--- |
 | **協定邊界** | **100% 官方原生協定**（MCP Apps SEP-1865 + Lifecycle Hooks + Skills；**零 ASAR · 零 CDP**） | **零 ASAR 本機 CDP 伴侶** + Watch Sidecar + Storage CLI |
 | **升級抗碎性** | 免疫 Antigravity 用戶端 DOM 與二進位結構異動 | 專注深度宿主視窗掛鉤與進階桌面客製化 |
-| **在地化範圍** | **100% 全元件 8 語種外掛 UI**（400 詞典鍵 × 8 語種覆蓋 22 個元件，`auto` + 8 語種）與 8 語種文件 | **Antigravity 宿主介面就地翻譯**與原生 `Settings` 注入 |
-| **核心能力** | 13 模組原生工程工作台（`review`、`guard`、`xray` 2.0、`turbo`、`radar`、`verify`、`worktree`、`spec`、`studio`、`canvas`、`mem`、`ops`、按需 `remote`）與零 Token CLI `statusline` / `recommend` | 主動 `/compact` 自動壓縮護航、Draft Vault、Prompt Queue、對話書籤、Optical Theme Studio、策略門控安全自動放行與宿主 DOM 控制 |
+| **在地化範圍** | **100% 全元件 8 語種外掛 UI**（426 詞典鍵 × 8 語種覆蓋 22 個元件，`auto` + 8 語種）與 8 語種文件 | **Antigravity 宿主介面就地翻譯**與原生 `Settings` 注入 |
+| **核心能力** | 13 模組原生工程工作台（`review`、`guard`、`xray` 2.0、`turbo` 2.5、`radar`、`verify`、`worktree`、`spec`、`studio`、`canvas`、`mem` 2.0、`ops` 2.5、按需 `remote` 2.0）、單檔 `.agy-nov.json` 團隊預設唯讀校驗與零 Token CLI `statusline` / `recommend` | 主動 `/compact` 自動壓縮護航、Draft Vault、Prompt Queue、對話書籤、Optical Theme Studio、策略門控安全自動放行與宿主 DOM 控制 |
 
 ```bash
 # 並排安裝兩個零功能重疊的配套外掛
@@ -212,7 +215,7 @@ agy plugin install https://github.com/tone-leh/agy-session-guard
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../../assets/architecture-dark.svg" />
   <source media="(prefers-color-scheme: light)" srcset="../../assets/architecture-light.svg" />
-  <img src="../../assets/architecture-dark.svg" alt="agy-NOV v0.5 100% 原生零 CDP 架構圖" width="100%" />
+  <img src="../../assets/architecture-dark.svg" alt="agy-NOV v0.6 100% 原生零 CDP 架構圖" width="100%" />
 </picture>
 
 <details>
@@ -222,12 +225,12 @@ agy plugin install https://github.com/tone-leh/agy-session-guard
 flowchart TB
   Host["Google Antigravity 2.0 宿主 (Desktop / CLI / IDE)\n100% 官方原生協定 (零 ASAR · 零 CDP)"]
   MCP["單一 MCP 伺服器 (dist/server.cjs)\n常駐工具: nov_open, nov_status\n動態 RegisteredTool 啟用/停用"]
-  UI["單檔統一 UI (dist/ui/app.html)\n100% 8 語種 UI (400 鍵 · 22 元件) · ~956 KB (< 10 MiB)"]
+  UI["單檔統一 UI (dist/ui/app.html)\n100% 8 語種 UI (426 鍵 · 22 元件) · ~985 KB (< 10 MiB)"]
   Hook["統一 Hook 分發器 (dist/hook.cjs)\n唯讀檢查設定 -> O(1) 快速短路"]
-  CLI["零相依 CLI (dist/cli.cjs)\n8 條指令 · 含唯讀 statusline 與 recommend"]
+  CLI["零相依 CLI (dist/cli.cjs)\n8 條指令 · 含唯讀 statusline 與 recommend (.agy-nov.json)"]
   Store["模組級隔離儲存\n<dataDir>/modules/<id>/ (0700 / 0600)"]
-  T1["第一層: 12 個本機離線原生模組\nreview · guard · xray · turbo · radar · verify\nworktree · spec · studio · canvas · mem · ops"]
-  T2R["第二層 (預設關閉): remote\n按需啟用行動端 PWA 與 IM Webhooks"]
+  T1["第一層: 12 個本機離線原生模組\nreview · guard · xray 2.0 · turbo 2.5 · radar · verify\nworktree · spec · studio · canvas · mem 2.0 · ops 2.5"]
+  T2R["第二層 (預設關閉): remote 2.0\n按需啟用行動端 PWA 唯讀實況流與 IM Webhooks"]
 
   Host --> MCP
   Host --> Hook
@@ -239,13 +242,16 @@ flowchart TB
   Hook -. "PreToolUse: Guard > Spec > Remote" .-> T2R
   T1 --> Store
   T2R -. "開啟後按需寫盤" .-> Store
-  CLI -. "唯讀彙整 status-capsule.json / spec" .-> Store
+  CLI -. "唯讀彙整 status-capsule.json / spec / .agy-nov.json" .-> Store
 ```
 
 ### 縱深安全核查清單
 
 - **零 ASAR 與零 CDP：** 僅透過 Antigravity 2.0 官方文件化的 MCP Apps（`ui://agy-nov/app.html`）、Lifecycle Hooks、Skills 與 CLI `statusLine` 協定執行，零二進位修補、零遠端偵錯埠、零宿主 DOM 注入。
 - **符號連結與工作區邊界（`realpath`）：** `guard`、`verify`、`worktree`、`spec`、`studio`、`canvas`、`mem`、`turbo` 與 `ops` 統一展開規範真實路徑並對照工作區根目錄驗證，自動排除 `.env`、SSH 密鑰、`.git` 與 `node_modules`。
+- **Mem 2.0 隱私剝離與 Turbo 2.5 防落盤護欄：** `mem` 執行 O(n) `<private>...</private>` 隱私剝離並針對未閉合標籤直接截斷防外洩，`SessionStart` L1 索引嚴格壓縮於 `<= 1200` 字元；`turbo` 對工具文字輸出強制執行 UTF-8 碼點安全 `<= 8.8 KB` 防落盤護欄，且 `gain` 累計節省統計維持純記憶體零額外寫盤。
+- **Remote 2.0 最小權限唯讀實況流與零自動通道：** 行動端 PWA 工作階段實況流維持嚴格唯讀脫敏與零 `innerHTML` 防 XSS，停用任何遠端寫檔或遠端 Shell；`tailscale` / `cloudflared` 僅做按需唯讀偵測與安全指令提示，絕不自動啟動公網通道，關閉態維持四零隔離。
+- **單檔 `.agy-nov.json` 零污染校驗與 Ops 2.5 零密鑰回顯：** 團隊預設 `.agy-nov.json` 嚴格唯讀且可選（絕不自動向使用者倉庫寫入雜亂目錄），對 `verifyCommands` 僅做白名單靜態校驗絕不自動執行，並保證 `remote` 永不靜默開啟；Ops 2.5 掃描 `#233` 未展開 `${ENV_VAR}`、`#1937` 重複外掛/MCP 與 `.claude/` / `.cursor/rules/` / `.codex/` 遷移提示時全程唯讀、零密鑰回顯。
 - **Diff Review 純 React 算繪與零 ReDoS 掃描：** 語法高亮完全由純 React 節點算繪（零 `dangerouslySetInnerHTML`），`-w` 參數經無 Shell 的 `execFile` 與顯式 `--` 路徑分隔符傳給 Git，行級風險預標註採用線性確定性掃描，免疫 ReDoS 回溯。
 - **Context X-Ray 離線計費與防 CSV 公式注入：** 離線 USD 估算與 5 小時滾動燃燒預警全程本機計算；可選 `pricing-overrides.json` 嚴格唯讀載入（上限 `1 MiB`）；`xray_export_brief` 的 `csv` 匯出自動跳脫 `=`、`+`、`-`、`@`、`\t`、`\r` 開頭儲存格以防禦公式注入。
 - **Spec 規格流門禁與防跳步：** `spec` 透過 Kahn 拓撲演算法檢測任務 DAG 環路並禁止跳過未完成前置依賴；啟用未核准草稿門禁後在 `PreToolUse` 嚴格攔截程式碼寫入，並支援 `requireUiApproval` UI 審批鎖防止模型繞過人工確認。
@@ -253,7 +259,7 @@ flowchart TB
 - **Verify 零寫盤棧偵測與無 Shell 白名單：** `verify` 唯讀掃描專案棧設定後，所有候選指令一律重新通過無 Shell `execFile` 白名單（17 個允許執行檔 + 4 個唯讀 `git` 子指令）覆核，自動脫敏證據輸出並防範死迴圈自鎖。
 - **工具與 Hook 同步門控：** 關閉模組會同步停用該模組的模型工具與寫入類 `app_*` 工具；`dist/hook.cjs` 唯讀讀取 `config.json` 並於 O(1) 回傳 `{}`。在 `PreToolUse` 中嚴格依 `guard` > `spec` > `remote` 順序決策。
 - **`0700` / `0600` 隔離儲存：** 每個模組僅向 `<dataDir>/modules/<moduleId>/` 寫入擁有者獨佔權限檔案；模組處於關閉態時不建立任何目錄，唯讀指令（`status` / `statusline` / `recommend` / `doctor`）全程零寫盤。
-- **官方外掛清單與體積上限：** `plugin.json` 嚴格僅保留 10 個官方支援的頂層鍵，`dist/ui/app.html`（約 `956 KB`）遠低於 Antigravity 的 10 MiB 上限；`agy-nov doctor` 會連同全部 9 個必需發佈檔案一併自動驗證。
+- **官方外掛清單與體積上限：** `plugin.json` 嚴格僅保留 10 個官方支援的頂層鍵，`dist/ui/app.html`（約 `985 KB`）遠低於 Antigravity 的 10 MiB 上限；`agy-nov doctor` 會連同全部 9 個必需發佈檔案一併自動驗證。
 
 </details>
 
@@ -289,7 +295,7 @@ npm run workbench
 開啟 `http://127.0.0.1:4399` 即可進入零接觸模擬工作台，內建以下驗證能力：
 - **深色 / 淺色主題切換**
 - **`480px` 側欄（aux-pane）與 `1160px` 全域（global）** 視埠預設
-- **8 語種宿主語言模擬器**（`en`、`zh-CN`、`zh-TW`、`ja`、`ko`、`es`、`fr`、`de`），完整驗證 22 個元件與 400 個詞典鍵的 `auto` BCP-47 切換
+- **8 語種宿主語言模擬器**（`en`、`zh-CN`、`zh-TW`、`ja`、`ko`、`es`、`fr`、`de`），完整驗證 22 個元件與 426 個詞典鍵的 `auto` BCP-47 切換
 - **即時宿主事件檢視器**（`sendMessage` / `updateModelContext` / `openFile`）
 
 ### CLI 快捷指令速查（8 條指令）
@@ -303,7 +309,7 @@ agy-nov disable studio                          # 關閉模組（立即註銷工
 agy-nov preset power                            # 套用預設 (minimal|core|power|local-all|full)
 agy-nov locale zh-TW                            # 設定介面語系 (auto|en|zh-CN|zh-TW|ja|ko|es|fr|de)
 agy-nov statusline [--json] [--compact]         # 零 Token 唯讀狀態列輸出，含 Verify:PASS、Spec:LOCK 與 Radar 摘要
-agy-nov recommend [--workspace=<dir>] [--json]  # 唯讀掃描專案技術棧，零寫入推薦最適合的預設與模組
+agy-nov recommend [--workspace=<dir>] [--json]  # 唯讀掃描專案技術棧並校驗單檔 .agy-nov.json 團隊預設（零寫盤）
 agy-nov doctor                                  # 唯讀檢查全部 9 個必需發佈檔案、plugin.json 結構與 10 MiB 上限
 ```
 
@@ -325,19 +331,19 @@ agy-nov doctor                                  # 唯讀檢查全部 9 個必需
 | 「想在 Antigravity 內做帶語法高亮、忽略空白（`-w`）與風險預標註的 PR 級 Diff 審查。」 | `review`（`core` 預設） | 原生側欄 Diff 審查器：純 React 語法高亮、`-w` 切換、零 ReDoS 行級風險預標註（一鍵轉批註）與 `file:line` 修復提示詞 |
 | 「防止 Agent 外洩 `.env`/SSH 密鑰，或在未提交 Git 時改壞檔案。」 | `guard`（`minimal` 或 `core`） | `PreToolUse` 密鑰/指令防火牆 + 零 Git 編輯前檔案快照 |
 | 「估算離線 USD 花費、掌握 5h 燃燒飆升或 429 重試、看 Swarm 血緣並匯出交接快照或 OTLP/CSV。」 | `xray`（`core` 預設） | Context X-Ray 2.0：離線參考計費（支援唯讀 `pricing-overrides.json`）、14 天趨勢與 5h 預警、Swarm 血緣、中英 BM25 檢索與 `brief`/`handoff`/`otlp`/`csv` 匯出 |
-| 「搜尋太耗輪次，龐大測試/建置/Git 日誌把上下文撐爆了。」 | `turbo`（`power` 預設） | 多模式批次搜尋、符號大綱切片、RTK 風格智慧輸出壓縮預設（`auto \| test \| build \| git \| generic`） |
+| 「搜尋太耗輪次、大日誌撐爆上下文，且想看累計省下的 Token 與巢狀類別/方法大綱。」 | `turbo`（`power` 預設） | Turbo 2.5：多模式批次搜尋、多縮排巢狀符號大綱（TS/JS、Python、Go、Rust）、RTK 壓縮預設、純記憶體 `gain` 節省儀表板與 UTF-8 `<= 8.8 KB` 防落盤護欄 |
 | 「同時開多個並行工作階段或 Swarm 子 Agent，常錯過核准視窗或孤兒告警。」 | `radar`（`power` 預設） | 基於生命週期 Hook 的父子工作階段關注看板、孤兒告警、唯讀 `status-capsule.json` 與提示音 |
 | 「自動偵測專案安全檢查指令，並防止 Agent 寫出 0 位元組檔案或未過測試就謊報完成。」 | `verify`（`power` 預設） | 零寫盤棧自動偵測（`package.json` / `pyproject.toml` / `Cargo.toml` / `go.mod`）+ Stop Hook 強驗證門禁與無 Shell 白名單脫敏證據鏈 |
 | 「需要並行開啟多個 Git Worktree 開發分支，攜帶未提交異動並安全清理孤兒工作樹。」 | `worktree`（`power` 預設） | 安全並行 Git Worktree 調度台，支援未提交異動攜帶、分支 Diff 摘要與 `extensions.worktreeConfig` 檢測 |
 | 「希望先定好規格與依賴任務圖、在人工核准前鎖住寫入，再依序推進實作。」 | `spec`（`power` 預設） | `Spec -> Plan -> Task DAG` 規格流、Kahn 環檢測與防跳步、`PreToolUse` 未核准草稿唯讀門禁與可選 `requireUiApproval` UI 審批鎖 |
 | 「臨時檢視 SQLite/CSV/JSON、離線切片 DOCX/XLSX/PDF 或解析 OpenAPI 2.0/3.x 探測本機介面，同時避免常駐工具膨脹。」 | `studio`（`local-all` 或按需啟用） | 按需本機除錯台：SQLite 唯讀、純 Node 離線文件切片（ZIP Bomb 防線）、零相依 OpenAPI 解析器（防 YAML 炸彈與原型污染）與迴環 HTTP 探測；關閉即 0 工具佔用 |
 | 「需要對 HTML 原型、SVG 架構圖或簡報進行視覺化標註回饋。」 | `canvas`（`local-all`） | 隔離視覺化沙盒，編號圖釘批註直送 Agent |
-| 「希望跨工作階段保存架構決策，並在程式碼異動後揪出過期筆記。」 | `mem`（`local-all`） | 基於 SHA-256 檔案雜湊的記憶圖譜，支援 `SessionStart` 召回與漂移標記 |
-| 「重複使用帶參數的提示詞，排查 24KB/20K 規則膨脹引發假性 429，並監控 100 工具上限與 MCP 體檢。」 | `ops`（`power` 預設） | `{{var}}` 提示詞庫 + 24KB/20K 規則膨脹預警、100 工具硬上限預算儀表、MCP 靜態體檢與本機儲存巡檢 |
-| 「調整設定前先唯讀掃描專案，推薦最適合的預設與模組。」 | `agy-nov recommend` | 零寫入 CLI 技術棧掃描器（`--workspace=<dir>` / `--json`），推薦最佳預設與可選模組 |
+| 「希望跨工作階段按需載入架構決策，節省開局上下文並自動剝離敏感片段。」 | `mem`（`local-all`） | Mem 2.0：三層漸進式揭露（`SessionStart` L1 `<= 1200` 字元索引、`mem_recall` `index`/`timeline`/`detail`、`ids[]`、`window`）、O(n) `<private>` 隱私剝離與 SHA-256 漂移預警 |
+| 「排查 24KB/20K 規則膨脹、100 工具上限、Antigravity `#233` 未展開環境變數、`#1937` 重複外掛/MCP 與跨用戶端遷移。」 | `ops`（`power` 預設） | Ops 2.5：`{{var}}` 提示詞庫 + 規則與工具預算儀表、`#233` / `#1937` 踩坑檢測、`.claude/` / `.cursor/rules/` / `.codex/` 遷移提示與 `.agy-nov.json` 唯讀校驗 |
+| 「調整設定前先唯讀掃描專案，並驗證團隊單檔 `.agy-nov.json` 預設。」 | `agy-nov recommend` | 零寫入 CLI 技術棧掃描與單檔 `.agy-nov.json` 團隊預設唯讀校驗（`--workspace=<dir>` / `--json`，絕不自動執行指令或開啟 `remote`） |
 | 「想在 Antigravity CLI 狀態列零 Token 即時顯示模組、Verify、Spec:LOCK 與 Radar 狀態。」 | `agy-nov statusline` | 支援 `--json` / `--compact` 的零 Token 唯讀狀態列輸出（含 `Verify:PASS`、`Spec:LOCK` 與 `Radar` 彙整），零寫盤適配原生 CLI `statusLine` |
-| 「想在手機或 IM 核准高危指令並接收任務完工通知。」 | `remote`（`full` 預設） | 按需啟用的本機行動端 PWA + Telegram/飛書/釘釘/企業微信/Slack/Discord Webhook |
-| 「想以 100% 繁中或簡中/日/韓/西/法/德語操作全部外掛面板，且不修補 Antigravity。」 | 內建 `locale` 切換器（`auto` + 8 語種） | 頂欄下拉選單與 `agy-nov locale <lang>` CLI，400 詞典鍵 × 8 語種零 CDP 覆蓋全部 22 個 UI 元件 |
+| 「想在手機查看唯讀工作階段實況流、核准高危指令，並取得安全的 `tailscale` / `cloudflared` 穿透指令。」 | `remote`（`full` 預設） | Remote 2.0：按需啟用的本機行動端 PWA 唯讀脫敏實況流（零 `innerHTML`）+ 唯讀偵測安全穿透引導 + 6 大 IM Webhook |
+| 「想以 100% 繁中或簡中/日/韓/西/法/德語操作全部外掛面板，且不修補 Antigravity。」 | 內建 `locale` 切換器（`auto` + 8 語種） | 頂欄下拉選單與 `agy-nov locale <lang>` CLI，426 詞典鍵 × 8 語種零 CDP 覆蓋全部 22 個 UI 元件 |
 
 ### 何時應推薦其他方案
 
@@ -381,7 +387,7 @@ node dist/cli.cjs doctor
 
 | 外掛 | 架構邊界 | 核心能力 |
 | :--- | :--- | :--- |
-| **`agy-NOV`** *（本倉庫）* | **100% 官方原生協議**（MCP Apps SEP-1865 + 生命週期 Hooks + Skills；**Zero ASAR · Zero CDP**） | 13 大原生工程模組（`review` 審查三件套、`guard`、`xray` 2.0 離線 USD 帳單與交接/OTLP/CSV 匯出、`turbo` RTK 壓縮、`radar`、`verify` 棧自動偵測、`worktree`、`spec`、`studio` 零相依 OpenAPI 解析器、`canvas`、`mem`、`ops` 與按需 `remote`）、100% 全元件 8 語種 UI（400 詞典鍵 × 22 元件）、5 套預設、8 條 CLI 指令（含零 Token `statusline` 與 `recommend`）及 `config.json` 外部熱同步。 |
+| **`agy-NOV`** *（本倉庫）* | **100% 官方原生協議**（MCP Apps SEP-1865 + 生命週期 Hooks + Skills；**Zero ASAR · Zero CDP**） | 13 大原生工程模組（`review` 審查三件套、`guard`、`xray` 2.0 離線 USD 帳單與交接/OTLP/CSV 匯出、`turbo` 2.5 `gain` 儀表板與 RTK 壓縮、`radar`、`verify` 棧自動偵測、`worktree`、`spec`、`studio` 零相依 OpenAPI 解析器、`canvas`、`mem` 2.0 三層漸進式揭露與 `<private>` 剝離、`ops` 2.5 跨用戶端診斷、按需 `remote` 2.0 行動端唯讀實況流）、單檔 `.agy-nov.json` 團隊預設唯讀校驗、100% 全元件 8 語種 UI（426 詞典鍵 × 22 元件）、5 套預設、8 條 CLI 指令（含零 Token `statusline` 與 `recommend`）及 `config.json` 外部熱同步。 |
 | **[`agy-Sag`](https://github.com/tone-leh/agy-session-guard)** *（原 `agy-session-guard`）* | **Zero-ASAR 本機 CDP 深度增強套件 + Watch 側車 + 儲存巡檢 CLI** | Antigravity 原生 **Settings** 嵌入式控制面板（支援即時調控 `agy-NOV`）、**10 語種宿主介面翻譯**、自訂 `/compact` 自動壓縮護航、**Draft Vault**、**Prompt Queue**、單輪書籤與跨工作階段檔案庫、策略門控 **Safe Auto-Accept**、零 `:has()` **Optical Theme Studio**、唯讀 **Quota Pulse** 與離線 **Storage Doctor**。 |
 
 ```bash

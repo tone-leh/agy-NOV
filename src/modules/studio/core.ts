@@ -3412,7 +3412,7 @@ export function createDemoStudioService(workspaceRoot: string): DemoStudioServic
         'openapi: 3.1.0',
         'info:',
         '  title: Local Sandbox Dev API',
-        '  version: 0.5.0',
+        '  version: 0.6.0',
         'servers:',
         '  - url: http://127.0.0.1:4399',
         '    description: Local Loopback Dev Server',

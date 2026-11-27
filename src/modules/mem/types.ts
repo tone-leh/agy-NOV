@@ -47,3 +47,70 @@ export interface MemoryGraphPayload {
   nodes: GraphNode[];
   edges: GraphEdge[];
 }
+
+export type MemoryRecallMode = 'index' | 'timeline' | 'detail';
+
+export interface StripPrivateTagsResult {
+  cleaned: string;
+  strippedCount: number;
+}
+
+export interface MemoryIndexEntry {
+  id: string;
+  kind: MemoryKind;
+  title: string;
+  pinned: boolean;
+  drifted: boolean;
+  tags: string[];
+  anchors: Array<{
+    basename: string;
+    symbol?: string;
+    driftStatus?: CodeAnchor['driftStatus'];
+  }>;
+  updatedAt: string;
+  recallCount: number;
+  score?: number;
+}
+
+export interface MemoryTimelineEntry {
+  id: string;
+  kind: MemoryKind;
+  title: string;
+  excerpt: string;
+  pinned: boolean;
+  drifted: boolean;
+  tags: string[];
+  anchorFiles: string[];
+  sourceConversationId?: string;
+  createdAt: string;
+  updatedAt: string;
+  recallCount: number;
+  isAnchorHit: boolean;
+  score?: number;
+}
+
+export interface MemoryProgressiveStats {
+  activeCount: number;
+  compactIndexChars: number;
+  compactIndexTokens: number;
+  fullDumpTokens: number;
+  savedTokens: number;
+  savedPercent: number;
+}
+
+export interface MemoryProgressivePreview {
+  indexText: string;
+  entries: MemoryIndexEntry[];
+}
+
+export interface LayeredRecallResult {
+  mode: MemoryRecallMode;
+  query: string;
+  ids: string[];
+  window: number;
+  totalHits: number;
+  text: string;
+  indexEntries: MemoryIndexEntry[];
+  timelineEntries: MemoryTimelineEntry[];
+  detailItems: Array<MemoryItem & { score?: number }>;
+}

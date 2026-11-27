@@ -217,6 +217,14 @@ export const FR_DICT: UiDictionary = {
       'Confiné à l’espace de travail via realpath · ignore automatiquement .env, clés SSH, .git et node_modules.',
     presetLabel: 'Préréglage de compression',
     compressionSaved: 'Compression RTK : {percent} % économisés',
+    gainTitle: 'Gain Cumulé en Tokens',
+    gainTokensSaved: 'Total de Tokens Économisés',
+    gainEstUsdSaved: 'Économies Est. (USD)',
+    gainAvgRatio: 'Compression Moyenne',
+    gainOpsCount: 'Opérations Suivies',
+    guardrailBadge: 'Garde-fou <=8,8 Ko',
+    nestedOutlineNote:
+      'Prend en charge les méthodes imbriquées de classe, impl Rust et receiver Go',
   },
   radar: {
     title: 'Radar de Sessions et Carillon',
@@ -265,6 +273,13 @@ export const FR_DICT: UiDictionary = {
     ruleBloatTitle: 'Contrôle d’enflure des règles (24 Ko / 20 K tokens)',
     toolBudgetTitle: 'Budget d’outils MCP (limite 100 outils)',
     mcpHealthTitle: 'Santé de la configuration et des serveurs MCP',
+    teamPresetTitle: 'Préréglage d’Équipe (.agy-nov.json)',
+    teamPresetMissing:
+      'Aucun fichier .agy-nov.json trouvé (optionnel, strictement en lecture seule)',
+    teamPresetValid: 'Valide',
+    teamPresetWarnings: 'Avertissements',
+    crossClientTitle: 'Compatibilité Multi-Clients et Détection des Pièges',
+    crossClientEmpty: 'Aucun piège de configuration multi-clients détecté.',
   },
   panels: {
     review: {
@@ -494,6 +509,13 @@ export const FR_DICT: UiDictionary = {
       stale: 'Obsolète',
       forget: 'Oublier',
       emptyMemories: 'Aucune mémoire ancrée au code enregistrée pour le moment.',
+      progressiveIndexBadge: 'Index 3 Niveaux',
+      privateTagHint:
+        'Entourez les notes sensibles de <private>...</private> pour les retirer avant l’enregistrement',
+      recallModeIndex: 'L1 Index',
+      recallModeTimeline: 'L2 Chronologie',
+      recallModeDetail: 'L3 Détail Complet',
+      tokenSavingsNote: 'Index compact au SessionStart (~{tokens} tokens)',
     },
     remote: {
       title: 'Mobile et IM Distant',
@@ -509,6 +531,15 @@ export const FR_DICT: UiDictionary = {
       sendAlert: 'Envoyer une alerte test',
       dispatchTask: 'Envoyer une tâche',
       promptPlaceholder: 'Saisissez une instruction de tâche à envoyer à distance…',
+      liveStreamTitle: 'Flux en Direct (Lecture Seule)',
+      liveStreamHint:
+        'Consultez les tours récents expurgés sans écriture de fichier ni accès shell.',
+      tunnelGuideTitle: 'Guide de Tunnel Distant Sécurisé',
+      detectTunnelBtn: 'Détecter les Outils de Tunnel',
+      tunnelNotDetected: 'Non installé',
+      tunnelDetected: 'Installé',
+      tunnelSafetyNote:
+        'Vérification CLI locale en lecture seule uniquement — ne démarre jamais automatiquement un tunnel public.',
     },
   },
   quickStart: {

@@ -85,6 +85,61 @@ interface RemoteHubPayload {
   publicBaseUrl?: string;
 }
 
+type LiveStreamRole = 'user' | 'assistant' | 'tool' | 'system' | 'error';
+
+interface LiveStreamEvent {
+  stepIndex: number;
+  timestamp: string;
+  role: LiveStreamRole;
+  toolNames: string[];
+  summary: string;
+  truncated: boolean;
+}
+
+interface ConversationStreamPayload {
+  ok?: boolean;
+  error?: string;
+  conversationId?: string;
+  mode?: 'live' | 'demo';
+  readOnly?: boolean;
+  found?: boolean;
+  totalSteps?: number;
+  events?: LiveStreamEvent[];
+}
+
+interface TunnelToolStatus {
+  id: 'tailscale' | 'cloudflared';
+  name: string;
+  binary: string;
+  installed: boolean;
+  version: string | null;
+  recommendedCommand: string;
+  docsUrl: string;
+}
+
+interface DetectTunnelsPayload {
+  ok?: boolean;
+  error?: string;
+  readOnly?: boolean;
+  autoStart?: boolean;
+  localTargetUrl?: string;
+  tools?: TunnelToolStatus[];
+}
+
+interface StreamViewState {
+  loading: boolean;
+  error: string | null;
+  data: ConversationStreamPayload | null;
+}
+
+function getStreamRoleBadgeClass(role: LiveStreamRole): string {
+  if (role === 'error') return 'remote-badge is-danger';
+  if (role === 'assistant') return 'remote-badge is-good';
+  if (role === 'tool') return 'remote-badge is-info';
+  if (role === 'user') return 'remote-badge is-warn';
+  return 'remote-badge';
+}
+
 function isRemoteSubTab(v: unknown): v is RemoteSubTab {
   return v === 'hub' || v === 'channels' || v === 'conversations' || v === 'audit';
 }
@@ -127,6 +182,15 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [pollPausedByError, setPollPausedByError] = useState<boolean>(false);
   const [localToast, setLocalToast] = useState<string | null>(null);
+
+  // Safe Tunnel Guide (strictly on-demand read-only detection)
+  const [tunnelReport, setTunnelReport] = useState<DetectTunnelsPayload | null>(null);
+  const [detectingTunnels, setDetectingTunnels] = useState<boolean>(false);
+  const [tunnelError, setTunnelError] = useState<string | null>(null);
+
+  // Conversation Read-Only Live Stream drawer states
+  const [expandedConvIds, setExpandedConvIds] = useState<Record<string, boolean>>({});
+  const [streamStates, setStreamStates] = useState<Record<string, StreamViewState>>({});
 
   const toastTimerRef = useRef<number | null>(null);
   const fetchSeqRef = useRef<number>(0);
@@ -222,6 +286,16 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
       window.clearInterval(intervalId);
     };
   }, [active, isRunning, pollPausedByError, refresh]);
+
+  // Reset on-demand tunnel & stream views whenever gateway stops
+  useEffect(() => {
+    if (!isRunning) {
+      setTunnelReport(null);
+      setTunnelError(null);
+      setExpandedConvIds({});
+      setStreamStates({});
+    }
+  }, [isRunning]);
 
   // Respond to incoming tool result events without bypassing active gate
   useEffect(() => {
@@ -381,6 +455,84 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
       notify(`Gateway toggle failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setTogglingGateway(false);
+    }
+  };
+
+  const handleDetectTunnels = async () => {
+    if (!isRunning) return;
+    setDetectingTunnels(true);
+    setTunnelError(null);
+    try {
+      const res = await bridge.callTool<DetectTunnelsPayload>('app_remote_detect_tunnels', {});
+      if (res.ok === false || typeof res.error === 'string') {
+        const msg = String(res.error ?? 'Tunnel detection failed');
+        setTunnelError(msg);
+        notify(msg);
+        return;
+      }
+      setTunnelReport(res);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setTunnelError(msg);
+      notify(msg);
+    } finally {
+      setDetectingTunnels(false);
+    }
+  };
+
+  const loadConversationStream = async (conversationId: string) => {
+    if (!isRunning || !conversationId) return;
+    setStreamStates((prev) => ({
+      ...prev,
+      [conversationId]: {
+        loading: true,
+        error: null,
+        data: prev[conversationId]?.data ?? null,
+      },
+    }));
+    try {
+      const res = await bridge.callTool<ConversationStreamPayload>(
+        'app_remote_get_conversation_stream',
+        { conversationId, limit: 20 },
+      );
+      if (res.ok === false || typeof res.error === 'string') {
+        setStreamStates((prev) => ({
+          ...prev,
+          [conversationId]: {
+            loading: false,
+            error: String(res.error ?? 'Failed to load live stream'),
+            data: null,
+          },
+        }));
+        return;
+      }
+      setStreamStates((prev) => ({
+        ...prev,
+        [conversationId]: {
+          loading: false,
+          error: null,
+          data: res,
+        },
+      }));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStreamStates((prev) => ({
+        ...prev,
+        [conversationId]: {
+          loading: false,
+          error: msg,
+          data: null,
+        },
+      }));
+    }
+  };
+
+  const handleToggleConversationStream = (conversationId: string) => {
+    if (!isRunning || !conversationId) return;
+    const nextOpen = !expandedConvIds[conversationId];
+    setExpandedConvIds((prev) => ({ ...prev, [conversationId]: nextOpen }));
+    if (nextOpen) {
+      void loadConversationStream(conversationId);
     }
   };
 
@@ -561,6 +713,75 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                 </div>
               </div>
 
+              <div className="remote-card remote-stack-sm">
+                <div className="remote-row is-between">
+                  <div className="remote-row">
+                    <strong>{rm.tunnelGuideTitle}</strong>
+                    <span className="remote-badge is-good">READ-ONLY</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="remote-btn is-primary"
+                    disabled={!isRunning || detectingTunnels}
+                    onClick={() => void handleDetectTunnels()}
+                  >
+                    {detectingTunnels ? dict.common.loading : rm.detectTunnelBtn}
+                  </button>
+                </div>
+
+                {!isRunning ? (
+                  <div className="remote-muted">{rm.offlineNotice}</div>
+                ) : (
+                  <>
+                    {tunnelError && (
+                      <div className="remote-error" role="alert">
+                        {tunnelError}
+                      </div>
+                    )}
+                    {tunnelReport && Array.isArray(tunnelReport.tools) && (
+                      <div className="remote-stack-sm">
+                        {tunnelReport.localTargetUrl && (
+                          <div className="remote-muted remote-mono">
+                            Target: {tunnelReport.localTargetUrl}
+                          </div>
+                        )}
+                        {tunnelReport.tools.map((tool) => (
+                          <div key={tool.id} className="remote-item remote-stack-sm">
+                            <div className="remote-row is-between">
+                              <div className="remote-row">
+                                <strong>{tool.name}</strong>
+                                <span
+                                  className={`remote-badge ${
+                                    tool.installed ? 'is-good' : 'is-warn'
+                                  }`}
+                                >
+                                  {tool.installed ? rm.tunnelDetected : rm.tunnelNotDetected}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                className="remote-btn"
+                                onClick={() => {
+                                  void navigator.clipboard?.writeText(tool.recommendedCommand);
+                                  notify(dict.common.copied);
+                                }}
+                              >
+                                {dict.common.copy}
+                              </button>
+                            </div>
+                            {tool.version && (
+                              <div className="remote-muted remote-mono">{tool.version}</div>
+                            )}
+                            <div className="remote-codebox">{tool.recommendedCommand}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+                <div className="remote-muted">{rm.tunnelSafetyNote}</div>
+              </div>
+
               <div className="remote-card">
                 <strong style={{ display: 'block', marginBottom: 8 }}>Pending Risky Approvals</strong>
                 {pendingApprovals.length === 0 ? (
@@ -738,29 +959,114 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
               </form>
 
               <div className="remote-card remote-stack-sm">
-                <strong>
-                  {rm.tabConversations} ({conversations.length})
-                </strong>
+                <div className="remote-row is-between">
+                  <strong>
+                    {rm.tabConversations} ({conversations.length})
+                  </strong>
+                  <span className="remote-muted">{rm.liveStreamHint}</span>
+                </div>
                 {conversations.length === 0 ? (
                   <div className="remote-muted">{dict.common.empty}</div>
                 ) : (
-                  conversations.map((c) => (
-                    <div key={c.id} className="remote-item">
-                      <div className="remote-row is-between">
-                        <strong>{c.title}</strong>
-                        <span
-                          className={`remote-badge ${
-                            c.runState === 'RUN_STATE_RUNNING' ? 'is-good' : ''
-                          }`}
-                        >
-                          {c.runState.replace('RUN_STATE_', '')}
-                        </span>
+                  conversations.map((c) => {
+                    const isExpanded = Boolean(expandedConvIds[c.id]);
+                    const st = streamStates[c.id];
+                    const events = st?.data?.events ?? [];
+                    return (
+                      <div key={c.id} className="remote-item remote-stack-sm">
+                        <div className="remote-row is-between">
+                          <strong>{c.title}</strong>
+                          <div className="remote-row">
+                            <span
+                              className={`remote-badge ${
+                                c.runState === 'RUN_STATE_RUNNING' ? 'is-good' : ''
+                              }`}
+                            >
+                              {c.runState.replace('RUN_STATE_', '')}
+                            </span>
+                            <button
+                              type="button"
+                              className="remote-btn"
+                              disabled={!isRunning}
+                              aria-expanded={isExpanded}
+                              onClick={() => handleToggleConversationStream(c.id)}
+                            >
+                              {rm.liveStreamTitle}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="remote-muted">{c.summary}</div>
+
+                        {isExpanded && (
+                          <div
+                            className="remote-stack-sm"
+                            style={{
+                              marginTop: 6,
+                              paddingTop: 8,
+                              borderTop: '1px solid var(--nov-border)',
+                            }}
+                          >
+                            <div className="remote-row is-between">
+                              <div className="remote-row">
+                                <strong>{rm.liveStreamTitle}</strong>
+                                <span className="remote-badge is-good">READ-ONLY</span>
+                                {st?.data && typeof st.data.totalSteps === 'number' && (
+                                  <span className="remote-muted remote-mono">
+                                    {(st.data.mode ?? 'live').toUpperCase()} · {st.data.totalSteps}
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                className="remote-btn"
+                                disabled={!isRunning || Boolean(st?.loading)}
+                                onClick={() => void loadConversationStream(c.id)}
+                              >
+                                {st?.loading ? dict.common.loading : dict.common.refresh}
+                              </button>
+                            </div>
+                            <div className="remote-muted">{rm.liveStreamHint}</div>
+
+                            {st?.error && (
+                              <div className="remote-error" role="alert">
+                                {st.error}
+                              </div>
+                            )}
+                            {st?.loading && !st.data ? (
+                              <div className="remote-muted">{dict.common.loading}</div>
+                            ) : !st?.error && events.length === 0 ? (
+                              <div className="remote-muted">{dict.common.empty}</div>
+                            ) : (
+                              events.map((ev) => (
+                                <div
+                                  key={`${c.id}-${ev.stepIndex}-${ev.timestamp}`}
+                                  className="remote-codebox"
+                                  style={{ display: 'flex', flexDirection: 'column', gap: 4 }}
+                                >
+                                  <div className="remote-row">
+                                    <span className={getStreamRoleBadgeClass(ev.role)}>
+                                      {ev.role.toUpperCase()}
+                                    </span>
+                                    <span className="remote-muted remote-mono">
+                                      #{ev.stepIndex}
+                                    </span>
+                                    {ev.toolNames.map((toolName) => (
+                                      <span key={toolName} className="remote-badge">
+                                        {toolName}
+                                      </span>
+                                    ))}
+                                  </div>
+                                  <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                    {ev.summary}
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <div className="remote-muted" style={{ marginTop: 3 }}>
-                        {c.summary}
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
