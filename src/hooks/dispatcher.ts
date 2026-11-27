@@ -20,15 +20,34 @@ import { handleRadarHook } from '../modules/radar/hook.js';
 import { handleRemotePreToolHook, handleRemoteStopHook } from '../modules/remote/hook.js';
 import { handleReviewHook } from '../modules/review/hook.js';
 import { handleSpecPreToolHook, handleSpecSessionStartHook } from '../modules/spec/hook.js';
-import { handleTurboSessionStartHook } from '../modules/turbo/hook.js';
+import {
+  handleTurboPostToolHook,
+  handleTurboPreToolHook,
+  handleTurboSessionStartHook,
+} from '../modules/turbo/hook.js';
 import { handleVerifyPostToolHook, handleVerifyStopHook } from '../modules/verify/hook.js';
 import { handleXrayHook } from '../modules/xray/hook.js';
 
+export type PreToolDecision = 'allow' | 'ask' | 'force_ask' | 'deny';
+
 export interface UnifiedHookResult {
-  decision?: 'allow' | 'ask' | 'deny';
+  decision?: PreToolDecision;
   reason?: string;
+  overwrite?: Record<string, unknown>;
   injectSteps?: unknown[];
   terminationBehavior?: '' | 'terminate' | 'force_continue';
+}
+
+export interface DispatchNovHookOverrides {
+  guardPreTool?: (
+    payload: NormalizedHookPayload,
+    rootDataDir: string,
+  ) => { decision?: PreToolDecision; reason?: string };
+  remotePreTool?: (
+    payload: NormalizedHookPayload,
+    rootDataDir: string,
+  ) => Promise<{ decision?: PreToolDecision; reason?: string } | undefined>;
+  turboCliEntryPath?: string;
 }
 
 const PRE_INVOCATION_GUARD_WINDOW_MS = 5 * 60 * 1000;
@@ -175,6 +194,7 @@ export async function dispatchNovHook(
   rawInput: unknown,
   fallbackEvent: HookEventName,
   cliDataDir?: string,
+  overrides?: DispatchNovHookOverrides,
 ): Promise<UnifiedHookResult> {
   const payload: NormalizedHookPayload = normalizeHookPayload(rawInput, fallbackEvent);
   const rootDataDir = resolveNovDataDir(sanitizeDataDirCandidate(cliDataDir) ?? payload.pluginData);
@@ -250,7 +270,7 @@ export async function dispatchNovHook(
   }
 
   if (payload.event === 'PreToolUse') {
-    if (!modules.guard && !modules.spec && !modules.remote && !modules.radar) {
+    if (!modules.guard && !modules.spec && !modules.remote && !modules.radar && !modules.turbo) {
       return {};
     }
 
@@ -262,20 +282,27 @@ export async function dispatchNovHook(
       }
     }
 
-    let finalDecision: 'allow' | 'ask' | 'deny' | undefined;
+    let finalDecision: PreToolDecision | undefined;
     const reasons: string[] = [];
 
-    // Guard always takes strict precedence over spec and remote
+    // 1. Guard always takes strict precedence over spec, remote, and turbo
     if (modules.guard) {
       try {
-        const guardRes = handleGuardPreToolHook(payload, rootDataDir);
-        if (guardRes.decision === 'deny') {
-          return { decision: 'deny', reason: guardRes.reason };
+        const guardRunner = overrides?.guardPreTool ?? handleGuardPreToolHook;
+        const guardRes = guardRunner(payload, rootDataDir);
+        const guardDecision: PreToolDecision | undefined = guardRes?.decision;
+        if (guardDecision === 'deny') {
+          return { decision: 'deny', reason: guardRes?.reason };
         }
-        if (guardRes.decision === 'ask') {
-          finalDecision = 'ask';
-          if (guardRes.reason) reasons.push(guardRes.reason);
-        } else if (guardRes.decision === 'allow') {
+        if (guardDecision === 'force_ask') {
+          finalDecision = 'force_ask';
+          if (guardRes?.reason) reasons.push(guardRes.reason);
+        } else if (guardDecision === 'ask') {
+          if (finalDecision !== 'force_ask') {
+            finalDecision = 'ask';
+          }
+          if (guardRes?.reason) reasons.push(guardRes.reason);
+        } else if (guardDecision === 'allow') {
           finalDecision = 'allow';
         }
       } catch {
@@ -283,7 +310,7 @@ export async function dispatchNovHook(
       }
     }
 
-    // Spec write-lock gate blocks workspace mutations while active spec stays in DRAFT
+    // 2. Spec write-lock gate blocks workspace mutations while active spec stays in DRAFT
     if (modules.spec) {
       try {
         const specRes = handleSpecPreToolHook(payload, rootDataDir);
@@ -295,16 +322,24 @@ export async function dispatchNovHook(
       }
     }
 
+    // 3. Remote opt-in gate (deny immediately; ask must never downgrade an existing force_ask)
     if (modules.remote) {
       try {
-        const remoteRes = await handleRemotePreToolHook(payload, rootDataDir);
-        if (remoteRes?.decision === 'deny') {
-          return { decision: 'deny', reason: remoteRes.reason };
+        const remoteRunner = overrides?.remotePreTool ?? handleRemotePreToolHook;
+        const remoteRes = await remoteRunner(payload, rootDataDir);
+        const remoteDecision: PreToolDecision | undefined = remoteRes?.decision;
+        if (remoteDecision === 'deny') {
+          return { decision: 'deny', reason: remoteRes?.reason };
         }
-        if (remoteRes?.decision === 'ask') {
-          finalDecision = 'ask';
-          if (remoteRes.reason) reasons.push(remoteRes.reason);
-        } else if (remoteRes?.decision === 'allow' && !finalDecision) {
+        if (remoteDecision === 'force_ask') {
+          finalDecision = 'force_ask';
+          if (remoteRes?.reason) reasons.push(remoteRes.reason);
+        } else if (remoteDecision === 'ask') {
+          if (finalDecision !== 'force_ask') {
+            finalDecision = 'ask';
+          }
+          if (remoteRes?.reason) reasons.push(remoteRes.reason);
+        } else if (remoteDecision === 'allow' && !finalDecision) {
           finalDecision = 'allow';
         }
       } catch {
@@ -312,9 +347,32 @@ export async function dispatchNovHook(
       }
     }
 
+    if (finalDecision === 'force_ask') {
+      return {
+        decision: 'force_ask',
+        reason: reasons.join(' | ') || 'Mandatory approval required by agy-NOV Guard',
+      };
+    }
     if (finalDecision === 'ask') {
       return { decision: 'ask', reason: reasons.join(' | ') || 'Approval required by agy-NOV' };
     }
+
+    // 4. Turbo Auto-RTK transparent overwrite: strictly ONLY when Guard, Spec, and Remote
+    // produced none of deny / force_ask / ask.
+    if (modules.turbo) {
+      try {
+        const turboRes = handleTurboPreToolHook(payload, rootDataDir, overrides?.turboCliEntryPath);
+        if (turboRes.overwrite && Object.keys(turboRes.overwrite).length > 0) {
+          return {
+            decision: 'allow',
+            overwrite: turboRes.overwrite,
+          };
+        }
+      } catch {
+        // fail-open
+      }
+    }
+
     if (finalDecision === 'allow') {
       return { decision: 'allow' };
     }
@@ -346,6 +404,13 @@ export async function dispatchNovHook(
     if (modules.verify) {
       try {
         handleVerifyPostToolHook(payload, rootDataDir);
+      } catch {
+        // isolate module error
+      }
+    }
+    if (modules.turbo) {
+      try {
+        handleTurboPostToolHook(payload, rootDataDir);
       } catch {
         // isolate module error
       }

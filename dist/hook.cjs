@@ -33,8 +33,8 @@ __export(dispatcher_exports, {
   dispatchNovHook: () => dispatchNovHook
 });
 module.exports = __toCommonJS(dispatcher_exports);
-var import_node_fs16 = __toESM(require("node:fs"), 1);
-var import_node_path17 = __toESM(require("node:path"), 1);
+var import_node_fs17 = __toESM(require("node:fs"), 1);
+var import_node_path18 = __toESM(require("node:path"), 1);
 
 // src/core/config.ts
 var import_node_fs = __toESM(require("node:fs"), 1);
@@ -134,7 +134,7 @@ var MODULE_CATALOG = {
     uiMode: "scroll",
     hasUiTab: true,
     defaultEnabled: false,
-    hooks: ["SessionStart"],
+    hooks: ["SessionStart", "PreToolUse", "PostToolUse"],
     modelToolNames: ["turbo_batch_search", "turbo_read_outline", "turbo_compact_output"]
   },
   radar: {
@@ -599,7 +599,7 @@ var MAX_CONFIG_IMPORT_BYTES = 32 * 1024;
 var import_node_crypto = __toESM(require("node:crypto"), 1);
 var import_node_fs2 = __toESM(require("node:fs"), 1);
 var import_node_path2 = __toESM(require("node:path"), 1);
-var FEED_SNAPSHOT_VERSION = "0.7.0";
+var FEED_SNAPSHOT_VERSION = "0.8.0";
 var FEED_SNAPSHOT_FILENAME = "feed-snapshot.json";
 var MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
 var MAX_FEED_ALERTS = 6;
@@ -896,7 +896,7 @@ function extractGuardSummary(rootDataDir, enabled) {
     const rawDecision = String(rec.decision ?? rec.action ?? rec.outcome ?? "").trim().toLowerCase();
     if (rawDecision === "deny" || rawDecision === "denied" || rawDecision === "block" || rawDecision === "blocked") {
       blockedCount += 1;
-    } else if (rawDecision === "ask") {
+    } else if (rawDecision === "ask" || rawDecision === "force_ask") {
       askCount += 1;
     }
     const tsStr = typeof rec.timestamp === "string" ? rec.timestamp : "";
@@ -1491,6 +1491,68 @@ var import_node_path6 = __toESM(require("node:path"), 1);
 
 // src/modules/guard/policy.ts
 var import_node_path4 = __toESM(require("node:path"), 1);
+var VALID_PERMISSION_MODES = /* @__PURE__ */ new Set([
+  "readonly-audit",
+  "balanced-dev",
+  "strict-gate"
+]);
+var MUTATING_FILE_TOOL_NAMES = /* @__PURE__ */ new Set([
+  "edit_file",
+  "write_file",
+  "write_to_file",
+  "create_file",
+  "patch_file",
+  "apply_patch",
+  "replace_file_content",
+  "multi_replace_file_content",
+  "replace_in_file",
+  "str_replace_editor",
+  "delete_file",
+  "remove_file",
+  "rm_file",
+  "unlink_file",
+  "move_file",
+  "rename_file",
+  "write",
+  "edit",
+  "multi_edit",
+  "multiedit",
+  "notebook_edit",
+  "notebookedit"
+]);
+var COMMAND_EXEC_TOOL_NAMES = /* @__PURE__ */ new Set([
+  "run_command",
+  "run_shell_command",
+  "run_terminal_command",
+  "send_command_input",
+  "exec_command",
+  "bash",
+  "shell",
+  "execute_command"
+]);
+function normalizeGuardToolName(toolName) {
+  const trimmed = toolName.trim().toLowerCase();
+  const sepIdx = Math.max(trimmed.lastIndexOf(":"), trimmed.lastIndexOf("/"));
+  return sepIdx >= 0 ? trimmed.slice(sepIdx + 1) : trimmed;
+}
+function normalizePermissionMode(value) {
+  if (typeof value === "string" && VALID_PERMISSION_MODES.has(value)) {
+    return value;
+  }
+  return "balanced-dev";
+}
+function isMutatingFileToolName(toolName) {
+  return MUTATING_FILE_TOOL_NAMES.has(normalizeGuardToolName(toolName));
+}
+function isCommandExecToolName(toolName) {
+  return COMMAND_EXEC_TOOL_NAMES.has(normalizeGuardToolName(toolName));
+}
+var DECISION_SEVERITY = {
+  allow: 0,
+  ask: 1,
+  force_ask: 2,
+  deny: 3
+};
 var SECRET_PATTERNS = [
   {
     ruleId: "secret.private-key",
@@ -2051,28 +2113,73 @@ function extractWritePayload(args) {
   }
   return parts.join("\n");
 }
+function evaluatePermissionModeGate(toolName, policy, args) {
+  const mode = normalizePermissionMode(policy.permissionMode);
+  if (mode === "balanced-dev") return null;
+  const hasCmd = Boolean(args && extractCommandLine(args));
+  const restricted = isMutatingFileToolName(toolName) || isCommandExecToolName(toolName) || hasCmd;
+  if (!restricted) return null;
+  if (mode === "readonly-audit") {
+    return {
+      decision: "deny",
+      category: "permission-mode",
+      ruleId: "mode.readonly-audit",
+      reason: `Blocked ${toolName}: Guard permission mode is readonly-audit (read-only)`,
+      findings: []
+    };
+  }
+  if (mode === "strict-gate") {
+    return {
+      decision: "force_ask",
+      category: "permission-mode",
+      ruleId: "mode.strict-gate",
+      reason: `Confirmation required for ${toolName}: Guard permission mode is strict-gate`,
+      findings: []
+    };
+  }
+  return null;
+}
+function finalizeEvaluation(highRiskEval, toolName, policy, args) {
+  if (highRiskEval && highRiskEval.decision === "deny") {
+    return highRiskEval;
+  }
+  const modeEval = evaluatePermissionModeGate(toolName, policy, args);
+  if (highRiskEval && modeEval) {
+    if (DECISION_SEVERITY[modeEval.decision] > DECISION_SEVERITY[highRiskEval.decision]) {
+      return {
+        ...highRiskEval,
+        decision: modeEval.decision,
+        reason: `${highRiskEval.reason} (${modeEval.ruleId})`
+      };
+    }
+    return highRiskEval;
+  }
+  if (highRiskEval) return highRiskEval;
+  if (modeEval) return modeEval;
+  return { decision: "allow", category: "safe", reason: "Passed all guardrails", findings: [] };
+}
 function evaluateToolCall(toolName, args, policy, options) {
   if (!policy.enabled) {
     return { decision: "allow", category: "safe", reason: "Guard policy disabled", findings: [] };
   }
-  const lowerTool = toolName.toLowerCase();
+  const lowerTool = toolName.trim().toLowerCase();
   const targetPath = extractTargetPath(args);
   const commandLine = extractCommandLine(args);
+  let highRiskEval = null;
   if (targetPath && policy.protectEnvAndKeys !== "allow") {
     const check = isSensitivePath(targetPath, policy.customProtectedPaths);
     if (check.sensitive) {
-      return {
+      highRiskEval = {
         decision: policy.protectEnvAndKeys,
         category: check.ruleId?.startsWith("custom.") ? "custom" : "sensitive-file",
         ruleId: check.ruleId,
         reason: `Blocked ${toolName} on protected path: ${check.label} (${import_node_path4.default.basename(targetPath)})`,
         findings: []
       };
-    }
-    if (options?.resolvedTargetPath && options.resolvedTargetPath !== targetPath) {
+    } else if (options?.resolvedTargetPath && options.resolvedTargetPath !== targetPath) {
       const realCheck = isSensitivePath(options.resolvedTargetPath, policy.customProtectedPaths);
       if (realCheck.sensitive) {
-        return {
+        highRiskEval = {
           decision: policy.protectEnvAndKeys,
           category: realCheck.ruleId?.startsWith("custom.") ? "custom" : "sensitive-file",
           ruleId: realCheck.ruleId,
@@ -2082,106 +2189,149 @@ function evaluateToolCall(toolName, args, policy, options) {
       }
     }
   }
-  const isMutatingFileTool = /write|edit|replace|patch_file|apply_patch|create_file|patch/.test(lowerTool);
+  if (highRiskEval) {
+    return finalizeEvaluation(highRiskEval, toolName, policy, args);
+  }
+  const isMutatingFileTool = MUTATING_FILE_TOOL_NAMES.has(lowerTool) || /write|edit|replace|patch_file|apply_patch|create_file|patch/.test(lowerTool);
   if (isMutatingFileTool && policy.blockSecretWrites !== "allow") {
     const payload = extractWritePayload(args);
     if (payload) {
       const findings = scanTextForSecrets(payload);
       if (findings.length > 0) {
         const summary = findings.slice(0, 3).map((f) => `${f.label} (${f.preview})`).join(", ");
-        return {
-          decision: policy.blockSecretWrites,
-          category: "secret-leak",
-          ruleId: findings[0].ruleId,
-          reason: `Detected ${findings.length} potential secret(s) in ${toolName} payload: ${summary}`,
-          findings
-        };
+        return finalizeEvaluation(
+          {
+            decision: policy.blockSecretWrites,
+            category: "secret-leak",
+            ruleId: findings[0].ruleId,
+            reason: `Detected ${findings.length} potential secret(s) in ${toolName} payload: ${summary}`,
+            findings
+          },
+          toolName,
+          policy,
+          args
+        );
       }
     }
   }
   if (commandLine) {
     if (policy.blockDestructiveCommands !== "allow") {
       if (isCatastrophicRmCommand(commandLine)) {
-        return {
-          decision: policy.blockDestructiveCommands,
-          category: "destructive-command",
-          ruleId: "cmd.rm-rf-root",
-          reason: "Blocked dangerous command: Catastrophic recursive delete (rm -r/-rf targeting /, ~, $HOME, or system root)",
-          findings: []
-        };
+        return finalizeEvaluation(
+          {
+            decision: policy.blockDestructiveCommands,
+            category: "destructive-command",
+            ruleId: "cmd.rm-rf-root",
+            reason: "Blocked dangerous command: Catastrophic recursive delete (rm -r/-rf targeting /, ~, $HOME, or system root)",
+            findings: []
+          },
+          toolName,
+          policy,
+          args
+        );
       }
       if (hasDangerousSqlCommand(commandLine)) {
-        return {
-          decision: policy.blockDestructiveCommands,
-          category: "destructive-command",
-          ruleId: "cmd.sql-drop",
-          reason: "Blocked dangerous command: Destructive SQL DROP/TRUNCATE statement",
-          findings: []
-        };
+        return finalizeEvaluation(
+          {
+            decision: policy.blockDestructiveCommands,
+            category: "destructive-command",
+            ruleId: "cmd.sql-drop",
+            reason: "Blocked dangerous command: Destructive SQL DROP/TRUNCATE statement",
+            findings: []
+          },
+          toolName,
+          policy,
+          args
+        );
       }
       for (const rule of DESTRUCTIVE_COMMAND_RULES) {
         if (rule.regex.test(commandLine)) {
-          return {
-            decision: policy.blockDestructiveCommands,
-            category: "destructive-command",
-            ruleId: rule.ruleId,
-            reason: `Blocked dangerous command: ${rule.label}`,
-            findings: []
-          };
+          return finalizeEvaluation(
+            {
+              decision: policy.blockDestructiveCommands,
+              category: "destructive-command",
+              ruleId: rule.ruleId,
+              reason: `Blocked dangerous command: ${rule.label}`,
+              findings: []
+            },
+            toolName,
+            policy,
+            args
+          );
         }
       }
     }
     for (const custom of policy.customBlockedCommands) {
       const trimmed = custom.trim();
       if (trimmed && commandLine.toLowerCase().includes(trimmed.toLowerCase())) {
-        return {
-          decision: "deny",
-          category: "custom",
-          ruleId: "custom.command",
-          reason: `Matched custom blocked command pattern: "${trimmed}"`,
-          findings: []
-        };
+        return finalizeEvaluation(
+          {
+            decision: "deny",
+            category: "custom",
+            ruleId: "custom.command",
+            reason: `Matched custom blocked command pattern: "${trimmed}"`,
+            findings: []
+          },
+          toolName,
+          policy,
+          args
+        );
       }
     }
     if (policy.protectEnvAndKeys !== "allow") {
       const hit = detectCommandSensitiveAccess(commandLine, policy.customProtectedPaths);
       if (hit) {
-        return {
-          decision: policy.protectEnvAndKeys,
-          category: hit.category,
-          ruleId: hit.ruleId,
-          reason: `Blocked credential access in shell: ${hit.label}`,
-          findings: []
-        };
+        return finalizeEvaluation(
+          {
+            decision: policy.protectEnvAndKeys,
+            category: hit.category,
+            ruleId: hit.ruleId,
+            reason: `Blocked credential access in shell: ${hit.label}`,
+            findings: []
+          },
+          toolName,
+          policy,
+          args
+        );
       }
     }
     if (policy.askOnNetworkPipes !== "allow") {
       for (const rule of NETWORK_PIPE_RULES) {
         if (rule.regex.test(commandLine)) {
-          return {
-            decision: policy.askOnNetworkPipes,
-            category: "network-pipe",
-            ruleId: rule.ruleId,
-            reason: `Requires confirmation: ${rule.label}`,
-            findings: []
-          };
+          return finalizeEvaluation(
+            {
+              decision: policy.askOnNetworkPipes,
+              category: "network-pipe",
+              ruleId: rule.ruleId,
+              reason: `Requires confirmation: ${rule.label}`,
+              findings: []
+            },
+            toolName,
+            policy,
+            args
+          );
         }
       }
     }
     if (policy.blockSecretWrites !== "allow") {
       const cmdSecrets = scanTextForSecrets(commandLine);
       if (cmdSecrets.length > 0) {
-        return {
-          decision: policy.blockSecretWrites,
-          category: "secret-leak",
-          ruleId: cmdSecrets[0].ruleId,
-          reason: `Command contains inline secret (${cmdSecrets[0].label}: ${cmdSecrets[0].preview})`,
-          findings: cmdSecrets
-        };
+        return finalizeEvaluation(
+          {
+            decision: policy.blockSecretWrites,
+            category: "secret-leak",
+            ruleId: cmdSecrets[0].ruleId,
+            reason: `Command contains inline secret (${cmdSecrets[0].label}: ${cmdSecrets[0].preview})`,
+            findings: cmdSecrets
+          },
+          toolName,
+          policy,
+          args
+        );
       }
     }
   }
-  return { decision: "allow", category: "safe", reason: "Passed all guardrails", findings: [] };
+  return finalizeEvaluation(null, toolName, policy, args);
 }
 
 // src/modules/guard/store.ts
@@ -2192,6 +2342,7 @@ var import_node_path5 = __toESM(require("node:path"), 1);
 // src/modules/guard/types.ts
 var DEFAULT_POLICY = {
   enabled: true,
+  permissionMode: "balanced-dev",
   protectEnvAndKeys: "deny",
   blockSecretWrites: "deny",
   blockDestructiveCommands: "deny",
@@ -2206,6 +2357,10 @@ var DEFAULT_POLICY = {
 // src/modules/guard/store.ts
 var SHA256_HEX_RE = /^[a-f0-9]{64}$/;
 var MAX_SYMLINK_DEPTH = 20;
+var TURN_GROUP_WINDOW_MS = 9e4;
+var TURN_STEP_MAX_GAP = 4;
+var TURN_STEP_MAX_WINDOW_MS = 5 * 6e4;
+var BACKUP_TOOL_NAMES = /* @__PURE__ */ new Set(["pre_restore_backup", "pre_rewind_backup"]);
 function ensureDir(dir) {
   import_node_fs4.default.mkdirSync(dir, { recursive: true, mode: 448 });
   try {
@@ -2296,7 +2451,53 @@ function sha256Buffer(buf) {
 }
 function loadPolicy(dataDir) {
   const stored = readJsonSafe(import_node_path5.default.join(dataDir, "policy.json"), {});
-  return { ...DEFAULT_POLICY, ...stored };
+  return {
+    ...DEFAULT_POLICY,
+    ...stored,
+    permissionMode: normalizePermissionMode(stored.permissionMode)
+  };
+}
+function sanitizeTurnSegment(raw) {
+  const cleaned = raw.trim().replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 64);
+  return cleaned || "session";
+}
+function deriveTurnKey(dataDir, params = {}) {
+  const nowMs = typeof params.nowMs === "number" && Number.isFinite(params.nowMs) ? params.nowMs : Date.now();
+  const convId = typeof params.conversationId === "string" && params.conversationId.trim() ? params.conversationId.trim() : void 0;
+  const stepIdx = typeof params.stepIdx === "number" && Number.isFinite(params.stepIdx) ? params.stepIdx : void 0;
+  const existing = loadSnapshots(dataDir);
+  if (convId) {
+    const recent = existing.find(
+      (s) => !s.isDemo && !s.restoredFromId && !BACKUP_TOOL_NAMES.has(s.toolName) && s.conversationId === convId && typeof s.turnKey === "string" && s.turnKey.length > 0
+    );
+    if (recent?.turnKey) {
+      const prevMs = Date.parse(recent.createdAt);
+      if (Number.isFinite(prevMs)) {
+        const deltaMs = nowMs - prevMs;
+        const withinTimeWindow = deltaMs <= TURN_GROUP_WINDOW_MS && deltaMs >= -5e3;
+        const withinStepWindow = stepIdx !== void 0 && typeof recent.stepIdx === "number" && Math.abs(stepIdx - recent.stepIdx) <= TURN_STEP_MAX_GAP && deltaMs <= TURN_STEP_MAX_WINDOW_MS && deltaMs >= -5e3;
+        if (withinTimeWindow || withinStepWindow) {
+          return recent.turnKey;
+        }
+      }
+    }
+    const windowBucket2 = Math.floor(nowMs / TURN_GROUP_WINDOW_MS);
+    return `turn:${sanitizeTurnSegment(convId)}:${windowBucket2}`;
+  }
+  const recentLocal = existing.find(
+    (s) => !s.isDemo && !s.restoredFromId && !BACKUP_TOOL_NAMES.has(s.toolName) && !s.conversationId && typeof s.turnKey === "string" && s.turnKey.length > 0
+  );
+  if (recentLocal?.turnKey) {
+    const prevMs = Date.parse(recentLocal.createdAt);
+    if (Number.isFinite(prevMs)) {
+      const deltaMs = nowMs - prevMs;
+      if (deltaMs <= TURN_GROUP_WINDOW_MS && deltaMs >= -5e3) {
+        return recentLocal.turnKey;
+      }
+    }
+  }
+  const windowBucket = Math.floor(nowMs / TURN_GROUP_WINDOW_MS);
+  return `turn:workspace:${windowBucket}`;
 }
 function loadSnapshots(dataDir) {
   return readJsonSafe(import_node_path5.default.join(dataDir, "snapshots.json"), []);
@@ -2333,7 +2534,7 @@ function blobPath(dataDir, hash) {
   return import_node_path5.default.join(dataDir, "blobs", `${hash}.blob`);
 }
 function capturePreEditSnapshot(params) {
-  const { dataDir, toolName, reason, policy, workspaceRoot, restoredFromId } = params;
+  const { dataDir, toolName, reason, policy, workspaceRoot, restoredFromId, turnKey, conversationId, stepIdx } = params;
   const realRoot = assertInsideWorkspace(workspaceRoot, workspaceRoot);
   const safePath = assertInsideWorkspace(workspaceRoot, params.filePath);
   assertNotSensitive(params.filePath, safePath, policy.customProtectedPaths, "snapshot");
@@ -2365,21 +2566,33 @@ function capturePreEditSnapshot(params) {
   const isManualCheckpoint = toolName === "guard_create_checkpoint" || toolName === "create_checkpoint";
   const all = loadSnapshots(dataDir);
   const latestForFile = all.find((s) => s.filePath === safePath && !s.isDemo);
-  if (latestForFile && latestForFile.sha256 === sha256 && latestForFile.existed === existed && !isManualCheckpoint && !restoredFromId) {
+  const sameTurn = (latestForFile?.turnKey ?? void 0) === (turnKey ?? void 0);
+  if (latestForFile && sameTurn && latestForFile.sha256 === sha256 && latestForFile.existed === existed && !isManualCheckpoint && !restoredFromId) {
     return latestForFile;
   }
+  let createdMs = Date.now();
+  const newestPrevMs = all.reduce((max, s) => {
+    const t = Date.parse(s.createdAt);
+    return Number.isFinite(t) && t > max ? t : max;
+  }, 0);
+  if (newestPrevMs >= createdMs && newestPrevMs - createdMs < 6e4) {
+    createdMs = newestPrevMs + 1;
+  }
   const record = {
-    id: `snap_${Date.now().toString(36)}_${import_node_crypto2.default.randomBytes(3).toString("hex")}`,
+    id: `snap_${createdMs.toString(36)}_${import_node_crypto2.default.randomBytes(3).toString("hex")}`,
     filePath: safePath,
     relPath,
     toolName,
     reason,
-    createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+    createdAt: new Date(createdMs).toISOString(),
     sha256,
     sizeBytes,
     lineCount,
     existed,
-    restoredFromId
+    ...turnKey ? { turnKey } : {},
+    ...conversationId ? { conversationId } : {},
+    ...typeof stepIdx === "number" && Number.isFinite(stepIdx) ? { stepIdx } : {},
+    ...restoredFromId ? { restoredFromId } : {}
   };
   const sameFile = [record, ...all.filter((s) => s.filePath === safePath)].slice(0, policy.maxSnapshotsPerFile);
   const others = all.filter((s) => s.filePath !== safePath);
@@ -2398,7 +2611,6 @@ function capturePreEditSnapshot(params) {
 }
 
 // src/modules/guard/hook.ts
-var MUTATING_FILE_TOOL_RE = /^(edit_file|write_file|write_to_file|create_file|patch_file|apply_patch|replace_file_content|multi_replace_file_content|delete_file)$/i;
 function handleGuardPreToolHook(payload, rootDataDir) {
   if (payload.event !== "PreToolUse") {
     return { decision: "allow" };
@@ -2428,7 +2640,7 @@ function handleGuardPreToolHook(payload, rootDataDir) {
   } : evaluateToolCall(toolName, toolInput, policy, { resolvedTargetPath });
   const commandLine = extractCommandLine(toolInput);
   const targetDisplay = targetPath ? import_node_path6.default.relative(workspaceRoot, import_node_path6.default.resolve(workspaceRoot, targetPath)) || import_node_path6.default.basename(targetPath) : commandLine ? redactCommand(commandLine).slice(0, 100) : toolName;
-  if (evalResult.decision === "deny" || evalResult.decision === "ask") {
+  if (evalResult.decision === "deny" || evalResult.decision === "ask" || evalResult.decision === "force_ask") {
     const safeReason = redactCommand(evalResult.reason);
     try {
       appendAuditEvent(moduleDataDir, {
@@ -2447,16 +2659,23 @@ function handleGuardPreToolHook(payload, rootDataDir) {
       reason: `[Agy NOV Guard] ${safeReason}`
     };
   }
-  if (policy.enabled && policy.autoSnapshotBeforeEdit && MUTATING_FILE_TOOL_RE.test(toolName) && targetPath) {
+  if (policy.enabled && policy.autoSnapshotBeforeEdit && isMutatingFileToolName(toolName) && targetPath) {
     try {
       const resolvedPath = import_node_path6.default.isAbsolute(targetPath) ? targetPath : import_node_path6.default.resolve(workspaceRoot, targetPath);
+      const turnKey = deriveTurnKey(moduleDataDir, {
+        conversationId: payload.conversationId,
+        stepIdx: payload.stepIdx
+      });
       capturePreEditSnapshot({
         dataDir: moduleDataDir,
         filePath: resolvedPath,
         toolName,
         reason: `Automatic pre-edit snapshot before ${toolName}`,
         policy,
-        workspaceRoot
+        workspaceRoot,
+        turnKey,
+        conversationId: payload.conversationId,
+        stepIdx: payload.stepIdx
       });
     } catch {
     }
@@ -5161,6 +5380,11 @@ function handleSpecSessionStartHook(payload, rootDataDir) {
 }
 
 // src/modules/turbo/hook.ts
+var import_node_fs14 = __toESM(require("node:fs"), 1);
+var import_node_path15 = __toESM(require("node:path"), 1);
+
+// src/modules/turbo/auto-rtk.ts
+var import_node_crypto9 = __toESM(require("node:crypto"), 1);
 var import_node_fs13 = __toESM(require("node:fs"), 1);
 var import_node_path14 = __toESM(require("node:path"), 1);
 
@@ -6024,18 +6248,1002 @@ function buildWorkspaceSnapshot(workspaceRoot) {
   };
 }
 
+// src/modules/turbo/auto-rtk.ts
+var PREFS_FILENAME = "prefs.json";
+var HOTSPOTS_FILENAME = "hotspots.json";
+var MAX_PREFS_BYTES = 64 * 1024;
+var MAX_HOTSPOTS_BYTES = 256 * 1024;
+var MAX_HOTSPOTS_ITEMS = 20;
+var MAX_RAW_LOG_BYTES = 128 * 1024;
+var MAX_COMMAND_LENGTH = 512;
+var MAX_COMMAND_ARGS = 24;
+var MAX_PAYLOAD_B64_LENGTH = 4096;
+var COMPACT_RUN_MAX_BUFFER_BYTES = 8 * 1024 * 1024;
+var SHELL_META_HARD_DENY_RE = /[;&|`$><\r\n()\\\x00-\x1f\x7f]/;
+var UNQUOTED_SHELL_SYNTAX_RE = /[*?[\]{}#]/;
+var SAFE_EXECUTABLE_RE = /^[a-z][a-z0-9-]*$/;
+var SAFE_SHELL_PATH_RE = /^[A-Za-z0-9._/@:+ -]+$/;
+var SAFE_B64URL_RE = /^[A-Za-z0-9_-]+$/;
+var ENV_ASSIGN_TOKEN_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
+var FORBIDDEN_SHELL_EXECUTABLES = /* @__PURE__ */ new Set([
+  "eval",
+  "sh",
+  "bash",
+  "zsh",
+  "dash",
+  "ksh",
+  "fish",
+  "cmd",
+  "powershell",
+  "pwsh",
+  "env",
+  "exec",
+  "source",
+  "node",
+  "agy-nov"
+]);
+var GIT_ALLOWED_SUBCOMMANDS = /* @__PURE__ */ new Set(["status", "diff", "log", "branch", "show"]);
+var GIT_DANGEROUS_SHORT_FLAGS = /* @__PURE__ */ new Set(["-c", "-C", "-o", "-O"]);
+var GIT_DANGEROUS_LONG_FLAG_PREFIXES = [
+  "--config",
+  "--config-env",
+  "--upload-pack",
+  "--receive-pack",
+  "--exec",
+  "--exec-path",
+  "--ext-diff",
+  "--external-diff",
+  "--textconv",
+  "--no-index",
+  "--git-dir",
+  "--work-tree",
+  "--namespace",
+  "--super-prefix",
+  "--output",
+  "--paginate",
+  "--pager",
+  "--difftool",
+  "--alias"
+];
+var GIT_BRANCH_REQUIRED_VALUE_FLAGS = /* @__PURE__ */ new Set([
+  "--contains",
+  "--no-contains",
+  "--format",
+  "--sort",
+  "--points-at"
+]);
+var GIT_BRANCH_OPTIONAL_VALUE_FLAGS = /* @__PURE__ */ new Set([
+  "--merged",
+  "--no-merged",
+  "--color",
+  "--abbrev"
+]);
+var GIT_BRANCH_READONLY_BOOL_FLAGS = /* @__PURE__ */ new Set([
+  "-a",
+  "--all",
+  "-r",
+  "--remotes",
+  "-v",
+  "-vv",
+  "--verbose",
+  "-l",
+  "--list",
+  "--show-current",
+  "--no-color",
+  "--no-abbrev",
+  "-q",
+  "--quiet",
+  "--column",
+  "--no-column",
+  "-i",
+  "--ignore-case"
+]);
+var NPM_ALLOWED_RUN_SCRIPTS = /* @__PURE__ */ new Set(["test", "build", "typecheck", "lint"]);
+var NPM_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "--script-shell",
+  "--prefix",
+  "--userconfig",
+  "--globalconfig",
+  "--cache",
+  "--registry",
+  "--eval",
+  "-e",
+  "-C",
+  "--cwd",
+  "--before",
+  "--shell"
+]);
+var PNPM_YARN_ALLOWED_SCRIPTS = /* @__PURE__ */ new Set(["test", "build", "typecheck", "lint"]);
+var PNPM_YARN_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "--config",
+  "--dir",
+  "-C",
+  "--prefix",
+  "--cwd",
+  "--script-shell",
+  "--registry",
+  "--global",
+  "-g",
+  "--shell"
+]);
+var NPX_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "-c",
+  "--call",
+  "--package",
+  "-p",
+  "--shell",
+  "-y",
+  "--yes"
+]);
+var TSC_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "-b",
+  "--build",
+  "-p",
+  "--project",
+  "--outDir",
+  "--outFile",
+  "--declaration",
+  "--declarationDir",
+  "--emitDeclarationOnly",
+  "--tsBuildInfoFile",
+  "--generateTrace",
+  "--listEmittedFiles",
+  "-w",
+  "--watch",
+  "--init"
+]);
+var VITEST_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "-w",
+  "--watch",
+  "--ui",
+  "-c",
+  "--config",
+  "--configLoader",
+  "--config-loader",
+  "-r",
+  "--root",
+  "--dir",
+  "--outputFile",
+  "--output-file",
+  "--reporter",
+  "--reporters",
+  "--setupFiles",
+  "--setup-files",
+  "--globalSetup",
+  "--global-setup",
+  "--execArgv",
+  "--exec-argv",
+  "--environment",
+  "--browser",
+  "-u",
+  "--update"
+]);
+var JEST_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "-w",
+  "--watch",
+  "--watchAll",
+  "--watch-all",
+  "-u",
+  "--updateSnapshot",
+  "--update-snapshot",
+  "-c",
+  "--config",
+  "--outputFile",
+  "--output-file",
+  "--reporters",
+  "--setupFiles",
+  "--setup-files",
+  "--setupFilesAfterEnv",
+  "--setup-files-after-env",
+  "--runner",
+  "--testRunner",
+  "--test-runner",
+  "--testEnvironment",
+  "--test-environment",
+  "--resolver",
+  "--transform",
+  "--preset",
+  "--rootDir",
+  "--root-dir",
+  "--roots",
+  "--projects",
+  "--watchPlugins",
+  "--watch-plugins",
+  "--globalSetup",
+  "--global-setup",
+  "--globalTeardown",
+  "--global-teardown"
+]);
+var ESLINT_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "--fix",
+  "--fix-dry-run",
+  "--fix-type",
+  "-o",
+  "--output-file",
+  "-c",
+  "--config",
+  "-f",
+  "--format",
+  "--parser",
+  "--plugin",
+  "--rulesdir",
+  "--resolve-plugins-relative-to",
+  "--cache",
+  "--cache-location",
+  "--cache-file"
+]);
+var PYTEST_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "-c",
+  "--confcutdir",
+  "--rootdir",
+  "-o",
+  "--override-ini",
+  "-p",
+  "--basetemp",
+  "--junitxml",
+  "--junit-xml",
+  "--log-file",
+  "--resultlog",
+  "--result-log",
+  "--cache-clear",
+  "--import-mode"
+]);
+var CARGO_ALLOWED_SUBCOMMANDS = /* @__PURE__ */ new Set(["test", "check", "build"]);
+var CARGO_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "--config",
+  "-Z",
+  "--target-dir",
+  "--manifest-path",
+  "--out-dir"
+]);
+var GO_ALLOWED_SUBCOMMANDS = /* @__PURE__ */ new Set(["test", "vet"]);
+var GO_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "-exec",
+  "-toolexec",
+  "-vettool",
+  "-ldflags",
+  "-gcflags",
+  "-gccgoflags",
+  "-asmflags",
+  "-pkgdir",
+  "-outputdir",
+  "-o",
+  "-c",
+  "-C",
+  "-cpuprofile",
+  "-memprofile",
+  "-coverprofile",
+  "-blockprofile",
+  "-mutexprofile",
+  "-trace",
+  "-modfile",
+  "-overlay",
+  "-test.cpuprofile",
+  "-test.memprofile",
+  "-test.coverprofile",
+  "-test.blockprofile",
+  "-test.mutexprofile",
+  "-test.trace",
+  "-test.outputdir"
+]);
+var PASSTHROUGH_ALL_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  ...NPM_DANGEROUS_FLAGS,
+  ...PNPM_YARN_DANGEROUS_FLAGS,
+  ...TSC_DANGEROUS_FLAGS,
+  ...VITEST_DANGEROUS_FLAGS,
+  ...JEST_DANGEROUS_FLAGS,
+  ...ESLINT_DANGEROUS_FLAGS,
+  ...PYTEST_DANGEROUS_FLAGS,
+  ...CARGO_DANGEROUS_FLAGS,
+  ...GO_DANGEROUS_FLAGS,
+  ...[...GO_DANGEROUS_FLAGS].map((flag) => flag.startsWith("-") && !flag.startsWith("--") ? `-${flag}` : flag),
+  "--exec",
+  "-e",
+  "--eval",
+  "-r",
+  "--require",
+  "--import",
+  "--loader"
+]);
+var ESTIMATED_WASTE_BY_PRESET = {
+  test: 2400,
+  build: 1800,
+  git: 1200
+};
+function isPlatformSystemRootSymlink2(segmentPath) {
+  return process.platform === "darwin" && /^\/(?:var|tmp|etc)$/.test(segmentPath);
+}
+function hasUnsafeSymlinkAncestor2(targetPath) {
+  let cur = import_node_path14.default.resolve(targetPath);
+  const root = import_node_path14.default.parse(cur).root;
+  while (true) {
+    if (!isPlatformSystemRootSymlink2(cur)) {
+      try {
+        const st = import_node_fs13.default.lstatSync(cur);
+        if (st.isSymbolicLink()) return true;
+      } catch (err) {
+        const code = err?.code;
+        if (code !== "ENOENT") return true;
+      }
+    }
+    if (cur === root) return false;
+    const parent = import_node_path14.default.dirname(cur);
+    if (parent === cur) return false;
+    cur = parent;
+  }
+}
+function isWithinRealBase2(childReal, baseReal) {
+  if (childReal === baseReal) return true;
+  const prefix = baseReal.endsWith(import_node_path14.default.sep) ? baseReal : `${baseReal}${import_node_path14.default.sep}`;
+  return childReal.startsWith(prefix);
+}
+function resolveSafeExistingDir(dirPath) {
+  if (!dirPath || typeof dirPath !== "string" || dirPath.includes("\0")) return null;
+  const resolved = import_node_path14.default.resolve(dirPath);
+  if (hasUnsafeSymlinkAncestor2(resolved)) return null;
+  try {
+    const st = import_node_fs13.default.lstatSync(resolved);
+    if (st.isSymbolicLink() || !st.isDirectory()) return null;
+    return import_node_fs13.default.realpathSync(resolved);
+  } catch {
+    return null;
+  }
+}
+function ensureSafePrivateDir(dirPath) {
+  if (!dirPath || typeof dirPath !== "string" || dirPath.includes("\0")) {
+    throw new Error("Invalid directory path");
+  }
+  const resolved = import_node_path14.default.resolve(dirPath);
+  if (hasUnsafeSymlinkAncestor2(resolved)) {
+    throw new Error(`Refused symlink directory path: ${dirPath}`);
+  }
+  import_node_fs13.default.mkdirSync(resolved, { recursive: true, mode: 448 });
+  const st = import_node_fs13.default.lstatSync(resolved);
+  if (st.isSymbolicLink() || !st.isDirectory()) {
+    throw new Error(`Refused unsafe target directory: ${dirPath}`);
+  }
+  try {
+    import_node_fs13.default.chmodSync(resolved, 448);
+  } catch {
+  }
+  return import_node_fs13.default.realpathSync(resolved);
+}
+function readSafeJsonFile(dirPath, fileName, maxBytes) {
+  const realDir = resolveSafeExistingDir(dirPath);
+  if (!realDir) return null;
+  const filePath = import_node_path14.default.join(realDir, fileName);
+  try {
+    const st = import_node_fs13.default.lstatSync(filePath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size > maxBytes) {
+      return null;
+    }
+    const realFile = import_node_fs13.default.realpathSync(filePath);
+    if (!isWithinRealBase2(realFile, realDir)) {
+      return null;
+    }
+    return JSON.parse(import_node_fs13.default.readFileSync(realFile, "utf8"));
+  } catch {
+    return null;
+  }
+}
+function atomicWritePrivateFile(dirPath, fileName, content) {
+  const realDir = ensureSafePrivateDir(dirPath);
+  const targetPath = import_node_path14.default.join(realDir, fileName);
+  try {
+    const existing = import_node_fs13.default.lstatSync(targetPath);
+    if (existing.isSymbolicLink() || !existing.isFile()) {
+      throw new Error(`Refused to overwrite symlink or non-regular file: ${fileName}`);
+    }
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      throw err;
+    }
+  }
+  const nonce = import_node_crypto9.default.randomBytes(4).toString("hex");
+  const tmpPath = import_node_path14.default.join(realDir, `.${fileName}.tmp.${process.pid}.${Date.now()}.${nonce}`);
+  try {
+    import_node_fs13.default.writeFileSync(tmpPath, content, { encoding: "utf8", mode: 384, flag: "wx" });
+    try {
+      import_node_fs13.default.chmodSync(tmpPath, 384);
+    } catch {
+    }
+    import_node_fs13.default.renameSync(tmpPath, targetPath);
+    return targetPath;
+  } catch (err) {
+    try {
+      import_node_fs13.default.unlinkSync(tmpPath);
+    } catch {
+    }
+    throw err;
+  }
+}
+function createDefaultTurboPrefs() {
+  return {
+    schemaVersion: 1,
+    autoRtk: false,
+    updatedAt: ""
+  };
+}
+function loadTurboPrefsReadOnly(moduleDataDir) {
+  const raw = readSafeJsonFile(moduleDataDir, PREFS_FILENAME, MAX_PREFS_BYTES);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return createDefaultTurboPrefs();
+  }
+  const obj = raw;
+  return {
+    schemaVersion: 1,
+    autoRtk: obj.autoRtk === true,
+    updatedAt: typeof obj.updatedAt === "string" ? obj.updatedAt : ""
+  };
+}
+function normalizeHotspotRecord(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw;
+  const commandPrefix = typeof obj.commandPrefix === "string" ? obj.commandPrefix.trim().slice(0, 64) : "";
+  if (!commandPrefix) return null;
+  const countNum = Number(obj.count);
+  const count = Number.isFinite(countNum) && countNum > 0 ? Math.floor(countNum) : 0;
+  if (count <= 0) return null;
+  const wasteNum = Number(obj.estimatedWasteTokens);
+  const estimatedWasteTokens = Number.isFinite(wasteNum) && wasteNum >= 0 ? Math.floor(wasteNum) : 0;
+  const lastCommand = typeof obj.lastCommand === "string" ? redactFeedText(obj.lastCommand, 100) : commandPrefix;
+  const lastSeenAt = typeof obj.lastSeenAt === "string" ? obj.lastSeenAt : "";
+  return {
+    commandPrefix,
+    count,
+    lastCommand,
+    estimatedWasteTokens,
+    lastSeenAt
+  };
+}
+function sortHotspots(items) {
+  return [...items].sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return b.lastSeenAt.localeCompare(a.lastSeenAt);
+  }).slice(0, MAX_HOTSPOTS_ITEMS);
+}
+function loadTurboHotspotsReadOnly(moduleDataDir) {
+  const raw = readSafeJsonFile(moduleDataDir, HOTSPOTS_FILENAME, MAX_HOTSPOTS_BYTES);
+  if (!raw) return [];
+  const rawList = Array.isArray(raw) ? raw : typeof raw === "object" && Array.isArray(raw.items) ? raw.items : [];
+  const normalized = [];
+  for (const item of rawList) {
+    const rec = normalizeHotspotRecord(item);
+    if (rec) normalized.push(rec);
+  }
+  return sortHotspots(normalized);
+}
+function tokenizeSimpleSingleCommand(commandLine) {
+  if (typeof commandLine !== "string") {
+    return { ok: false, reason: "non-string command" };
+  }
+  const trimmed = commandLine.trim();
+  if (!trimmed) {
+    return { ok: false, reason: "empty command" };
+  }
+  if (trimmed.length > MAX_COMMAND_LENGTH) {
+    return { ok: false, reason: "command exceeds max length" };
+  }
+  if (SHELL_META_HARD_DENY_RE.test(trimmed)) {
+    return { ok: false, reason: "disallowed shell metacharacter" };
+  }
+  const tokens = [];
+  let current = "";
+  let inToken = false;
+  let quote = null;
+  for (let i = 0; i < trimmed.length; i += 1) {
+    const ch = trimmed[i];
+    if (quote) {
+      if (ch === quote) {
+        quote = null;
+      } else {
+        current += ch;
+      }
+      continue;
+    }
+    if (ch === " ") {
+      if (inToken) {
+        if (!current) return { ok: false, reason: "empty quoted token" };
+        tokens.push(current);
+        current = "";
+        inToken = false;
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      inToken = true;
+      continue;
+    }
+    if (UNQUOTED_SHELL_SYNTAX_RE.test(ch)) {
+      return { ok: false, reason: "disallowed shell glob or syntax character" };
+    }
+    if (!inToken && (ch === "~" || ch === "!")) {
+      return { ok: false, reason: "disallowed shell expansion prefix" };
+    }
+    current += ch;
+    inToken = true;
+  }
+  if (quote !== null) {
+    return { ok: false, reason: "unclosed quote" };
+  }
+  if (inToken) {
+    if (!current) return { ok: false, reason: "empty quoted token" };
+    tokens.push(current);
+  }
+  if (tokens.length === 0) {
+    return { ok: false, reason: "no tokens" };
+  }
+  if (tokens.length - 1 > MAX_COMMAND_ARGS) {
+    return { ok: false, reason: "too many arguments" };
+  }
+  return { ok: true, tokens };
+}
+function getFlagName(arg) {
+  const eqIdx = arg.indexOf("=");
+  return eqIdx >= 0 ? arg.slice(0, eqIdx) : arg;
+}
+function matchesDangerousFlag(arg, blocked, caseInsensitive = false, normalizeDoubleDash = false) {
+  let flag = getFlagName(arg);
+  if (normalizeDoubleDash && flag.startsWith("--") && flag.length > 2) {
+    flag = flag.slice(1);
+  }
+  const flagLower = flag.toLowerCase();
+  for (const item of blocked) {
+    if (caseInsensitive ? item.toLowerCase() === flagLower : item === flag) {
+      return true;
+    }
+    if (!normalizeDoubleDash && item.length === 2 && item[0] === "-" && item[1] !== "-") {
+      if (arg.length > 2 && arg[0] === "-" && arg[1] !== "-") {
+        const argShort = arg.slice(0, 2);
+        if (caseInsensitive ? argShort.toLowerCase() === item.toLowerCase() : argShort === item) {
+          return true;
+        }
+        if (/^-[A-Za-z]{2,}$/.test(arg)) {
+          const cluster = caseInsensitive ? arg.slice(1).toLowerCase() : arg.slice(1);
+          const targetChar = caseInsensitive ? item[1].toLowerCase() : item[1];
+          if (cluster.includes(targetChar)) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+function validateGitArgs(args) {
+  if (args.length === 0) {
+    return { ok: false, reason: "missing git subcommand" };
+  }
+  const sub = args[0];
+  if (!GIT_ALLOWED_SUBCOMMANDS.has(sub)) {
+    return { ok: false, reason: "disallowed git subcommand" };
+  }
+  const rest = args.slice(1);
+  for (const arg of rest) {
+    const flagName = getFlagName(arg);
+    const lowerFlag = flagName.toLowerCase();
+    if (GIT_DANGEROUS_SHORT_FLAGS.has(flagName)) {
+      return { ok: false, reason: `disallowed git flag ${flagName}` };
+    }
+    if (/^-[cCoO].+/.test(arg)) {
+      return { ok: false, reason: `disallowed git short flag ${arg.slice(0, 2)}` };
+    }
+    if (GIT_DANGEROUS_LONG_FLAG_PREFIXES.some(
+      (prefix) => lowerFlag === prefix || lowerFlag.startsWith(`${prefix}=`)
+    )) {
+      return { ok: false, reason: `disallowed git flag ${flagName}` };
+    }
+  }
+  if (sub === "branch") {
+    for (let i = 0; i < rest.length; i += 1) {
+      const arg = rest[i];
+      if (!arg.startsWith("-")) {
+        return { ok: false, reason: "git branch positional argument rejected" };
+      }
+      const eqIdx = arg.indexOf("=");
+      const flagName = eqIdx >= 0 ? arg.slice(0, eqIdx) : arg;
+      if (GIT_BRANCH_READONLY_BOOL_FLAGS.has(arg)) {
+        continue;
+      }
+      if (GIT_BRANCH_OPTIONAL_VALUE_FLAGS.has(flagName)) {
+        continue;
+      }
+      if (GIT_BRANCH_REQUIRED_VALUE_FLAGS.has(flagName)) {
+        if (eqIdx < 0) {
+          if (i + 1 < rest.length && !rest[i + 1].startsWith("-")) {
+            i += 1;
+          } else {
+            return { ok: false, reason: `git branch ${flagName} missing required value` };
+          }
+        }
+        continue;
+      }
+      return { ok: false, reason: `disallowed git branch flag ${arg}` };
+    }
+  }
+  return {
+    ok: true,
+    executable: "git",
+    args: [...args],
+    preset: "git",
+    commandPrefix: `git ${sub}`
+  };
+}
+function validateSafeTokens(executable, args) {
+  if (typeof executable !== "string" || !Array.isArray(args)) {
+    return { ok: false, reason: "invalid token types" };
+  }
+  if (args.length > MAX_COMMAND_ARGS) {
+    return { ok: false, reason: "too many arguments" };
+  }
+  let totalLen = executable.length;
+  if (!SAFE_EXECUTABLE_RE.test(executable) || FORBIDDEN_SHELL_EXECUTABLES.has(executable)) {
+    return { ok: false, reason: "disallowed executable" };
+  }
+  if (ENV_ASSIGN_TOKEN_RE.test(executable) || SHELL_META_HARD_DENY_RE.test(executable)) {
+    return { ok: false, reason: "unsafe executable token" };
+  }
+  for (const arg of args) {
+    if (typeof arg !== "string" || arg.length === 0) {
+      return { ok: false, reason: "invalid argument token" };
+    }
+    if (SHELL_META_HARD_DENY_RE.test(arg)) {
+      return { ok: false, reason: "unsafe argument metacharacter" };
+    }
+    totalLen += 1 + arg.length;
+    if (totalLen > MAX_COMMAND_LENGTH) {
+      return { ok: false, reason: "command exceeds max length" };
+    }
+  }
+  if (executable === "git") {
+    return validateGitArgs(args);
+  }
+  if (executable === "npm") {
+    if (args.length === 0) return { ok: false, reason: "missing npm subcommand" };
+    const startIdx = args[0] === "run" ? 2 : 1;
+    for (let i = 0; i < args.length; i += 1) {
+      const arg = args[i];
+      if (matchesDangerousFlag(arg, NPM_DANGEROUS_FLAGS, true)) {
+        return { ok: false, reason: `disallowed npm flag ${arg}` };
+      }
+      if (i >= startIdx && arg !== "--" && matchesDangerousFlag(arg, PASSTHROUGH_ALL_DANGEROUS_FLAGS, true)) {
+        return { ok: false, reason: `disallowed npm passthrough flag ${arg}` };
+      }
+    }
+    if (args[0] === "test") {
+      return {
+        ok: true,
+        executable: "npm",
+        args: [...args],
+        preset: "test",
+        commandPrefix: "npm test"
+      };
+    }
+    if (args[0] === "run" && args.length >= 2 && NPM_ALLOWED_RUN_SCRIPTS.has(args[1])) {
+      const script = args[1];
+      return {
+        ok: true,
+        executable: "npm",
+        args: [...args],
+        preset: script === "test" ? "test" : "build",
+        commandPrefix: `npm run ${script}`
+      };
+    }
+    return { ok: false, reason: "disallowed npm subcommand" };
+  }
+  if (executable === "pnpm" || executable === "yarn") {
+    if (args.length === 0 || !PNPM_YARN_ALLOWED_SCRIPTS.has(args[0])) {
+      return { ok: false, reason: `disallowed ${executable} subcommand` };
+    }
+    const rest = args.slice(1);
+    for (let i = 0; i < rest.length; i += 1) {
+      const arg = rest[i];
+      if (matchesDangerousFlag(arg, PNPM_YARN_DANGEROUS_FLAGS, true)) {
+        return { ok: false, reason: `disallowed ${executable} flag ${arg}` };
+      }
+      if (arg !== "--" && matchesDangerousFlag(arg, PASSTHROUGH_ALL_DANGEROUS_FLAGS, true)) {
+        return { ok: false, reason: `disallowed ${executable} passthrough flag ${arg}` };
+      }
+    }
+    return {
+      ok: true,
+      executable,
+      args: [...args],
+      preset: args[0] === "test" ? "test" : "build",
+      commandPrefix: `${executable} ${args[0]}`
+    };
+  }
+  if (executable === "npx") {
+    if (args.length === 0) return { ok: false, reason: "missing npx target" };
+    const tool = args[0];
+    const rest = args.slice(1);
+    for (const arg of rest) {
+      if (matchesDangerousFlag(arg, NPX_DANGEROUS_FLAGS, true)) {
+        return { ok: false, reason: `disallowed npx flag ${arg}` };
+      }
+    }
+    if (tool === "tsc") {
+      let hasNoEmitTrue = false;
+      for (let i = 0; i < rest.length; i += 1) {
+        const arg = rest[i];
+        const lower = arg.toLowerCase();
+        if (lower === "--noemit=false" || lower === "--noemit=0") {
+          return { ok: false, reason: "tsc --noEmit=false is disallowed" };
+        }
+        if (lower === "--noemit") {
+          const next = rest[i + 1]?.toLowerCase();
+          if (next === "false" || next === "0") {
+            return { ok: false, reason: "tsc --noEmit false is disallowed" };
+          }
+          hasNoEmitTrue = true;
+        } else if (lower === "--noemit=true") {
+          hasNoEmitTrue = true;
+        }
+        if (matchesDangerousFlag(arg, TSC_DANGEROUS_FLAGS, true)) {
+          return { ok: false, reason: `disallowed tsc flag ${arg}` };
+        }
+      }
+      if (!hasNoEmitTrue) {
+        return { ok: false, reason: "npx tsc requires --noEmit" };
+      }
+      return {
+        ok: true,
+        executable: "npx",
+        args: [...args],
+        preset: "build",
+        commandPrefix: "npx tsc --noEmit"
+      };
+    }
+    if (tool === "vitest") {
+      for (const arg of rest) {
+        if (matchesDangerousFlag(arg, VITEST_DANGEROUS_FLAGS, true)) {
+          return { ok: false, reason: `disallowed vitest flag ${arg}` };
+        }
+      }
+      return {
+        ok: true,
+        executable: "npx",
+        args: [...args],
+        preset: "test",
+        commandPrefix: "npx vitest"
+      };
+    }
+    if (tool === "jest") {
+      for (const arg of rest) {
+        if (matchesDangerousFlag(arg, JEST_DANGEROUS_FLAGS, true)) {
+          return { ok: false, reason: `disallowed jest flag ${arg}` };
+        }
+      }
+      return {
+        ok: true,
+        executable: "npx",
+        args: [...args],
+        preset: "test",
+        commandPrefix: "npx jest"
+      };
+    }
+    if (tool === "eslint") {
+      for (const arg of rest) {
+        if (matchesDangerousFlag(arg, ESLINT_DANGEROUS_FLAGS, true)) {
+          return { ok: false, reason: `disallowed eslint flag ${arg}` };
+        }
+      }
+      return {
+        ok: true,
+        executable: "npx",
+        args: [...args],
+        preset: "build",
+        commandPrefix: "npx eslint"
+      };
+    }
+    return { ok: false, reason: "disallowed npx tool" };
+  }
+  if (executable === "pytest") {
+    for (const arg of args) {
+      if (matchesDangerousFlag(arg, PYTEST_DANGEROUS_FLAGS, true)) {
+        return { ok: false, reason: `disallowed pytest flag ${arg}` };
+      }
+    }
+    return {
+      ok: true,
+      executable: "pytest",
+      args: [...args],
+      preset: "test",
+      commandPrefix: "pytest"
+    };
+  }
+  if (executable === "cargo") {
+    if (args.length === 0 || !CARGO_ALLOWED_SUBCOMMANDS.has(args[0])) {
+      return { ok: false, reason: "disallowed cargo subcommand" };
+    }
+    for (const arg of args.slice(1)) {
+      if (matchesDangerousFlag(arg, CARGO_DANGEROUS_FLAGS, false)) {
+        return { ok: false, reason: `disallowed cargo flag ${arg}` };
+      }
+    }
+    return {
+      ok: true,
+      executable: "cargo",
+      args: [...args],
+      preset: args[0] === "test" ? "test" : "build",
+      commandPrefix: `cargo ${args[0]}`
+    };
+  }
+  if (executable === "go") {
+    if (args.length === 0 || !GO_ALLOWED_SUBCOMMANDS.has(args[0])) {
+      return { ok: false, reason: "disallowed go subcommand" };
+    }
+    for (const arg of args.slice(1)) {
+      if (matchesDangerousFlag(arg, GO_DANGEROUS_FLAGS, false, true)) {
+        return { ok: false, reason: `disallowed go flag ${arg}` };
+      }
+    }
+    return {
+      ok: true,
+      executable: "go",
+      args: [...args],
+      preset: args[0] === "test" ? "test" : "build",
+      commandPrefix: `go ${args[0]}`
+    };
+  }
+  return { ok: false, reason: "command not in Auto-RTK whitelist" };
+}
+function parseSafeAutoRtkCommand(commandLine) {
+  const tokenized = tokenizeSimpleSingleCommand(commandLine);
+  if (!tokenized.ok) {
+    return { ok: false, reason: tokenized.reason };
+  }
+  const [executable, ...args] = tokenized.tokens;
+  if (ENV_ASSIGN_TOKEN_RE.test(executable)) {
+    return { ok: false, reason: "environment variable prefix rejected" };
+  }
+  return validateSafeTokens(executable, args);
+}
+function isSafePathForShellArg(candidate) {
+  if (typeof candidate !== "string") return false;
+  if (!candidate || candidate.length > 512) return false;
+  if (candidate !== candidate.trim() || /[\x00-\x1f\x7f]/.test(candidate)) return false;
+  if (SHELL_META_HARD_DENY_RE.test(candidate)) return false;
+  if (candidate.includes("'") || candidate.includes('"')) return false;
+  return SAFE_SHELL_PATH_RE.test(candidate);
+}
+function quoteSafePosixArg(value) {
+  return `'${value}'`;
+}
+function resolveDefaultCliEntryPath() {
+  const argvEntry = typeof process.argv[1] === "string" && process.argv[1] ? process.argv[1] : "";
+  const argvDir = argvEntry ? import_node_path14.default.dirname(import_node_path14.default.resolve(argvEntry)) : "";
+  const candidates = [
+    argvDir ? import_node_path14.default.resolve(argvDir, "cli.cjs") : "",
+    argvDir ? import_node_path14.default.resolve(argvDir, "../dist/cli.cjs") : "",
+    import_node_path14.default.resolve(process.cwd(), "dist/cli.cjs")
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    try {
+      if (import_node_fs13.default.existsSync(candidate)) {
+        return candidate;
+      }
+    } catch {
+    }
+  }
+  return import_node_path14.default.resolve(process.cwd(), "dist/cli.cjs");
+}
+function buildAutoRtkOverwriteCommand(cliEntryPath, parsed, rootDataDir) {
+  if (!isSafePathForShellArg(cliEntryPath)) {
+    return null;
+  }
+  const resolvedCli = import_node_path14.default.resolve(cliEntryPath);
+  if (!isSafePathForShellArg(resolvedCli)) {
+    return null;
+  }
+  const rechecked = validateSafeTokens(parsed.executable, parsed.args);
+  if (!rechecked.ok) {
+    return null;
+  }
+  const payloadJson = JSON.stringify({
+    v: 1,
+    executable: rechecked.executable,
+    args: rechecked.args,
+    preset: rechecked.preset
+  });
+  const payloadB64 = Buffer.from(payloadJson, "utf8").toString("base64url");
+  if (!SAFE_B64URL_RE.test(payloadB64) || payloadB64.length > MAX_PAYLOAD_B64_LENGTH) {
+    return null;
+  }
+  const parts = [
+    "node",
+    quoteSafePosixArg(resolvedCli),
+    "compact-run",
+    `--payload=${payloadB64}`
+  ];
+  if (rootDataDir !== void 0 && rootDataDir !== "") {
+    if (!isSafePathForShellArg(rootDataDir)) {
+      return null;
+    }
+    const resolvedDataDir = import_node_path14.default.resolve(rootDataDir);
+    if (!isSafePathForShellArg(resolvedDataDir)) {
+      return null;
+    }
+    parts.push(`--data-dir=${quoteSafePosixArg(resolvedDataDir)}`);
+  }
+  return parts.join(" ");
+}
+function recordTurboHotspot(moduleDataDir, commandLine, rootDataDir) {
+  if (typeof commandLine !== "string" || !commandLine.trim()) return null;
+  if (/\bcompact-run\b/.test(commandLine) && commandLine.includes("--payload=")) {
+    return null;
+  }
+  const realRoot = resolveSafeExistingDir(rootDataDir);
+  if (!realRoot) return null;
+  const parsed = parseSafeAutoRtkCommand(commandLine);
+  if (!parsed.ok) return null;
+  const existing = loadTurboHotspotsReadOnly(moduleDataDir);
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const safeLastCommand = redactFeedText(commandLine, 100);
+  const wasteIncrement = ESTIMATED_WASTE_BY_PRESET[parsed.preset];
+  const byPrefix = /* @__PURE__ */ new Map();
+  for (const item of existing) {
+    byPrefix.set(item.commandPrefix, { ...item });
+  }
+  const prev = byPrefix.get(parsed.commandPrefix);
+  if (prev) {
+    prev.count += 1;
+    prev.lastCommand = safeLastCommand;
+    prev.estimatedWasteTokens += wasteIncrement;
+    prev.lastSeenAt = nowIso;
+  } else {
+    byPrefix.set(parsed.commandPrefix, {
+      commandPrefix: parsed.commandPrefix,
+      count: 1,
+      lastCommand: safeLastCommand,
+      estimatedWasteTokens: wasteIncrement,
+      lastSeenAt: nowIso
+    });
+  }
+  const nextItems = sortHotspots(Array.from(byPrefix.values()));
+  try {
+    atomicWritePrivateFile(
+      moduleDataDir,
+      HOTSPOTS_FILENAME,
+      `${JSON.stringify({ schemaVersion: 1, updatedAt: nowIso, items: nextItems }, null, 2)}
+`
+    );
+    return nextItems;
+  } catch {
+    return null;
+  }
+}
+
 // src/modules/turbo/hook.ts
+var RUN_COMMAND_TOOL_RE = /^run_command$/i;
+function extractRunCommandInput(payload) {
+  if (!payload.toolName || !RUN_COMMAND_TOOL_RE.test(payload.toolName.trim())) {
+    return null;
+  }
+  const toolInput = payload.toolInput;
+  if (!toolInput || typeof toolInput !== "object") {
+    return null;
+  }
+  if (typeof toolInput.CommandLine === "string" && toolInput.CommandLine.trim()) {
+    return { cmdKey: "CommandLine", commandLine: toolInput.CommandLine };
+  }
+  if (typeof toolInput.command === "string" && toolInput.command.trim()) {
+    return { cmdKey: "command", commandLine: toolInput.command };
+  }
+  return null;
+}
 function handleTurboSessionStartHook(payload, _rootDataDir) {
   try {
     const candidate = payload.workspaceRoot ?? payload.workspacePaths[0] ?? payload.cwd;
     if (!candidate || typeof candidate !== "string" || candidate.includes("\0")) {
       return {};
     }
-    const resolved = import_node_path14.default.resolve(candidate);
-    if (!import_node_fs13.default.existsSync(resolved)) {
+    const resolved = import_node_path15.default.resolve(candidate);
+    if (!import_node_fs14.default.existsSync(resolved)) {
       return {};
     }
-    const stat = import_node_fs13.default.statSync(resolved);
+    const stat = import_node_fs14.default.statSync(resolved);
     if (!stat.isDirectory()) {
       return {};
     }
@@ -6057,15 +7265,62 @@ ${snapshot.markdown}`
     return {};
   }
 }
+function handleTurboPreToolHook(payload, rootDataDir, cliEntryPath) {
+  try {
+    if (payload.event !== "PreToolUse") {
+      return {};
+    }
+    const moduleDataDir = getModuleDataDir(rootDataDir, "turbo");
+    const prefs = loadTurboPrefsReadOnly(moduleDataDir);
+    if (prefs.autoRtk !== true) {
+      return {};
+    }
+    const extracted = extractRunCommandInput(payload);
+    if (!extracted) {
+      return {};
+    }
+    const parsed = parseSafeAutoRtkCommand(extracted.commandLine);
+    if (!parsed.ok) {
+      return {};
+    }
+    const resolvedCliEntry = typeof cliEntryPath === "string" && cliEntryPath.trim() ? cliEntryPath : resolveDefaultCliEntryPath();
+    const rewrittenCmd = buildAutoRtkOverwriteCommand(resolvedCliEntry, parsed, rootDataDir);
+    if (!rewrittenCmd) {
+      return {};
+    }
+    return {
+      decision: "allow",
+      overwrite: {
+        [extracted.cmdKey]: rewrittenCmd
+      }
+    };
+  } catch {
+    return {};
+  }
+}
+function handleTurboPostToolHook(payload, rootDataDir) {
+  try {
+    if (payload.event !== "PostToolUse") {
+      return;
+    }
+    const extracted = extractRunCommandInput(payload);
+    if (!extracted) {
+      return;
+    }
+    const moduleDataDir = getModuleDataDir(rootDataDir, "turbo");
+    recordTurboHotspot(moduleDataDir, extracted.commandLine, rootDataDir);
+  } catch {
+  }
+}
 
 // src/modules/verify/hook.ts
-var import_node_crypto10 = __toESM(require("node:crypto"), 1);
+var import_node_crypto11 = __toESM(require("node:crypto"), 1);
 
 // src/modules/verify/core.ts
 var import_node_child_process2 = require("node:child_process");
-var import_node_crypto9 = __toESM(require("node:crypto"), 1);
-var import_node_fs14 = __toESM(require("node:fs"), 1);
-var import_node_path15 = __toESM(require("node:path"), 1);
+var import_node_crypto10 = __toESM(require("node:crypto"), 1);
+var import_node_fs15 = __toESM(require("node:fs"), 1);
+var import_node_path16 = __toESM(require("node:path"), 1);
 var ALLOWED_VERIFY_EXECUTABLES = /* @__PURE__ */ new Set([
   "npm",
   "pnpm",
@@ -6279,7 +7534,7 @@ function redactVerifyOutput(input) {
   return out;
 }
 function getVerifyStatePath(moduleDataDir) {
-  return import_node_path15.default.join(moduleDataDir, "state.json");
+  return import_node_path16.default.join(moduleDataDir, "state.json");
 }
 function clampCommandTimeout(raw) {
   if (typeof raw !== "number" || !Number.isFinite(raw)) {
@@ -6525,7 +7780,7 @@ function validateCargoArgs(id, args) {
   }
   return null;
 }
-function validateGitArgs(id, args) {
+function validateGitArgs2(id, args) {
   const subcommand = args[0];
   if (!subcommand || !ALLOWED_GIT_SUBCOMMANDS.has(subcommand)) {
     return `Command "${id}" git subcommand "${subcommand ?? ""}" is not allowed (permitted read-only subcommands: ${[...ALLOWED_GIT_SUBCOMMANDS].join(", ")}).`;
@@ -6636,7 +7891,7 @@ function validateVerifyCommand(raw) {
   } else if (executable === "cargo") {
     toolError = validateCargoArgs(id, args);
   } else if (executable === "git") {
-    toolError = validateGitArgs(id, args);
+    toolError = validateGitArgs2(id, args);
   } else if (LINTER_TESTER_EXECUTABLES.has(executable)) {
     toolError = validateLinterOrTesterArgs(id, executable, args);
   } else {
@@ -6781,11 +8036,11 @@ function normalizeEvidenceFromDisk(raw) {
 }
 function loadVerifyStateReadOnly(moduleDataDir) {
   const statePath = getVerifyStatePath(moduleDataDir);
-  if (!import_node_fs14.default.existsSync(statePath)) {
+  if (!import_node_fs15.default.existsSync(statePath)) {
     return createDefaultVerifyState();
   }
   try {
-    const raw = JSON.parse(import_node_fs14.default.readFileSync(statePath, "utf8"));
+    const raw = JSON.parse(import_node_fs15.default.readFileSync(statePath, "utf8"));
     const policy = normalizePolicyFromDisk(raw.policy);
     const sessions = {};
     if (raw.sessions && typeof raw.sessions === "object" && !Array.isArray(raw.sessions)) {
@@ -6835,33 +8090,33 @@ function resolveRealPathWithMissingTail2(inputPath, depth = 0) {
   if (depth > MAX_SYMLINK_DEPTH2) {
     throw new Error(`Too many levels of symbolic links: ${inputPath}`);
   }
-  const resolved = import_node_path15.default.resolve(inputPath);
+  const resolved = import_node_path16.default.resolve(inputPath);
   const missingSegments = [];
   let current = resolved;
   while (true) {
     try {
-      const realBase = import_node_fs14.default.realpathSync(current);
-      return missingSegments.length > 0 ? import_node_path15.default.join(realBase, ...missingSegments.reverse()) : realBase;
+      const realBase = import_node_fs15.default.realpathSync(current);
+      return missingSegments.length > 0 ? import_node_path16.default.join(realBase, ...missingSegments.reverse()) : realBase;
     } catch (err) {
       const code = err?.code;
       if (code !== "ENOENT" && code !== "ENOTDIR") {
         throw err;
       }
       try {
-        const lstat = import_node_fs14.default.lstatSync(current);
+        const lstat = import_node_fs15.default.lstatSync(current);
         if (lstat.isSymbolicLink()) {
-          const linkTarget = import_node_fs14.default.readlinkSync(current);
-          const resolvedLink = import_node_path15.default.resolve(import_node_path15.default.dirname(current), linkTarget);
-          const nextTarget = missingSegments.length > 0 ? import_node_path15.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
+          const linkTarget = import_node_fs15.default.readlinkSync(current);
+          const resolvedLink = import_node_path16.default.resolve(import_node_path16.default.dirname(current), linkTarget);
+          const nextTarget = missingSegments.length > 0 ? import_node_path16.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
           return resolveRealPathWithMissingTail2(nextTarget, depth + 1);
         }
       } catch {
       }
-      const parent = import_node_path15.default.dirname(current);
+      const parent = import_node_path16.default.dirname(current);
       if (parent === current) {
         return resolved;
       }
-      missingSegments.push(import_node_path15.default.basename(current));
+      missingSegments.push(import_node_path16.default.basename(current));
       current = parent;
     }
   }
@@ -6872,16 +8127,16 @@ function inspectWorkspaceFile(workspaceRoot, targetPath) {
   }
   try {
     const realRoot = resolveRealPathWithMissingTail2(workspaceRoot);
-    const candidate = import_node_path15.default.isAbsolute(targetPath) ? targetPath : import_node_path15.default.resolve(workspaceRoot, targetPath);
+    const candidate = import_node_path16.default.isAbsolute(targetPath) ? targetPath : import_node_path16.default.resolve(workspaceRoot, targetPath);
     const realTarget = resolveRealPathWithMissingTail2(candidate);
-    const rootPrefix = realRoot.endsWith(import_node_path15.default.sep) ? realRoot : `${realRoot}${import_node_path15.default.sep}`;
+    const rootPrefix = realRoot.endsWith(import_node_path16.default.sep) ? realRoot : `${realRoot}${import_node_path16.default.sep}`;
     if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
       return { inside: false };
     }
     if (realTarget === realRoot) {
       return { inside: false };
     }
-    const relPath = import_node_path15.default.relative(realRoot, realTarget).split(import_node_path15.default.sep).join("/");
+    const relPath = import_node_path16.default.relative(realRoot, realTarget).split(import_node_path16.default.sep).join("/");
     if (!relPath || relPath === "." || relPath.startsWith("../")) {
       return { inside: false };
     }
@@ -6889,7 +8144,7 @@ function inspectWorkspaceFile(workspaceRoot, targetPath) {
     let isFile = false;
     let isEmpty = false;
     try {
-      const stat = import_node_fs14.default.statSync(realTarget);
+      const stat = import_node_fs15.default.statSync(realTarget);
       exists = true;
       isFile = stat.isFile();
       isEmpty = isFile && stat.size === 0;
@@ -6971,8 +8226,8 @@ function executeVerifyCommand(command, workspaceRoot, options = {}) {
   );
   let resolvedCwd;
   try {
-    resolvedCwd = import_node_fs14.default.realpathSync(import_node_path15.default.resolve(workspaceRoot));
-    if (!import_node_fs14.default.statSync(resolvedCwd).isDirectory()) {
+    resolvedCwd = import_node_fs15.default.realpathSync(import_node_path16.default.resolve(workspaceRoot));
+    if (!import_node_fs15.default.statSync(resolvedCwd).isDirectory()) {
       throw new Error("Workspace root is not a directory.");
     }
   } catch (err) {
@@ -7216,7 +8471,7 @@ async function runVerifyCommands(commands, workspaceRoot, options = {}) {
   };
 }
 function createEvidenceId(prefix = "ver") {
-  return `${prefix}-${Date.now().toString(36)}-${import_node_crypto9.default.randomBytes(3).toString("hex")}`;
+  return `${prefix}-${Date.now().toString(36)}-${import_node_crypto10.default.randomBytes(3).toString("hex")}`;
 }
 function formatFailureTailSnippet(outputTail, maxLines = 4, maxChars = 280) {
   const lines = redactVerifyOutput(outputTail).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
@@ -7274,7 +8529,7 @@ function deriveVerifyConversationId(payload) {
   }
   const seed = payload.workspaceRoot ?? payload.workspacePaths[0] ?? payload.cwd;
   if (seed) {
-    const hash = import_node_crypto10.default.createHash("sha256").update(seed).digest("hex").slice(0, 10);
+    const hash = import_node_crypto11.default.createHash("sha256").update(seed).digest("hex").slice(0, 10);
     return `ws-${hash}`;
   }
   return "default-session";
@@ -7629,9 +8884,9 @@ async function handleVerifyStopHook(payload, rootDataDir) {
 }
 
 // src/modules/xray/hook.ts
-var import_node_crypto11 = __toESM(require("node:crypto"), 1);
-var import_node_fs15 = __toESM(require("node:fs"), 1);
-var import_node_path16 = __toESM(require("node:path"), 1);
+var import_node_crypto12 = __toESM(require("node:crypto"), 1);
+var import_node_fs16 = __toESM(require("node:fs"), 1);
+var import_node_path17 = __toESM(require("node:path"), 1);
 function formatErrorValue2(err) {
   if (err === void 0 || err === null || err === "") return void 0;
   if (typeof err === "string") return err;
@@ -7648,11 +8903,11 @@ function handleXrayHook(payload, rootDataDir) {
   const now = (/* @__PURE__ */ new Date()).toISOString();
   try {
     ensurePrivateDir(moduleDataDir);
-    const statePath = import_node_path16.default.join(moduleDataDir, "live-state.json");
+    const statePath = import_node_path17.default.join(moduleDataDir, "live-state.json");
     let state = { recentEvents: [] };
-    if (import_node_fs15.default.existsSync(statePath)) {
+    if (import_node_fs16.default.existsSync(statePath)) {
       try {
-        const parsed = JSON.parse(import_node_fs15.default.readFileSync(statePath, "utf8"));
+        const parsed = JSON.parse(import_node_fs16.default.readFileSync(statePath, "utf8"));
         state = {
           ...parsed,
           recentEvents: Array.isArray(parsed.recentEvents) ? parsed.recentEvents : []
@@ -7678,10 +8933,10 @@ function handleXrayHook(payload, rootDataDir) {
     if (state.recentEvents.length > 50) {
       state.recentEvents = state.recentEvents.slice(-50);
     }
-    const tmpPath = `${statePath}.${process.pid}.${import_node_crypto11.default.randomBytes(4).toString("hex")}.tmp`;
-    import_node_fs15.default.writeFileSync(tmpPath, `${JSON.stringify(state, null, 2)}
+    const tmpPath = `${statePath}.${process.pid}.${import_node_crypto12.default.randomBytes(4).toString("hex")}.tmp`;
+    import_node_fs16.default.writeFileSync(tmpPath, `${JSON.stringify(state, null, 2)}
 `, { encoding: "utf8", mode: 384 });
-    import_node_fs15.default.renameSync(tmpPath, statePath);
+    import_node_fs16.default.renameSync(tmpPath, statePath);
   } catch {
   }
 }
@@ -7691,20 +8946,20 @@ var PRE_INVOCATION_GUARD_WINDOW_MS = 5 * 60 * 1e3;
 var MAX_PRE_INVOCATION_FILE_BYTES = 2 * 1024 * 1024;
 function readJsonStrictReadOnly(rootDataDir, moduleId, fileName) {
   try {
-    const rootStat = import_node_fs16.default.lstatSync(rootDataDir);
+    const rootStat = import_node_fs17.default.lstatSync(rootDataDir);
     if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) return null;
-    const modulesRoot = import_node_path17.default.join(rootDataDir, "modules");
-    const modsStat = import_node_fs16.default.lstatSync(modulesRoot);
+    const modulesRoot = import_node_path18.default.join(rootDataDir, "modules");
+    const modsStat = import_node_fs17.default.lstatSync(modulesRoot);
     if (modsStat.isSymbolicLink() || !modsStat.isDirectory()) return null;
     const modDir = getModuleDataDir(rootDataDir, moduleId);
-    const modStat = import_node_fs16.default.lstatSync(modDir);
+    const modStat = import_node_fs17.default.lstatSync(modDir);
     if (modStat.isSymbolicLink() || !modStat.isDirectory()) return null;
-    const filePath = import_node_path17.default.join(modDir, fileName);
-    const fileStat = import_node_fs16.default.lstatSync(filePath);
+    const filePath = import_node_path18.default.join(modDir, fileName);
+    const fileStat = import_node_fs17.default.lstatSync(filePath);
     if (fileStat.isSymbolicLink() || !fileStat.isFile() || fileStat.size > MAX_PRE_INVOCATION_FILE_BYTES) {
       return null;
     }
-    return JSON.parse(import_node_fs16.default.readFileSync(filePath, "utf8"));
+    return JSON.parse(import_node_fs17.default.readFileSync(filePath, "utf8"));
   } catch {
     return null;
   }
@@ -7798,7 +9053,7 @@ function refreshFeedSnapshotBestEffort(rootDataDir, config) {
   } catch {
   }
 }
-async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
+async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir, overrides) {
   const payload = normalizeHookPayload(rawInput, fallbackEvent);
   const rootDataDir = resolveNovDataDir(sanitizeDataDirCandidate(cliDataDir) ?? payload.pluginData);
   const config = loadNovConfigReadOnly(rootDataDir);
@@ -7861,7 +9116,7 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
     }
   }
   if (payload.event === "PreToolUse") {
-    if (!modules.guard && !modules.spec && !modules.remote && !modules.radar) {
+    if (!modules.guard && !modules.spec && !modules.remote && !modules.radar && !modules.turbo) {
       return {};
     }
     if (modules.radar) {
@@ -7874,14 +9129,21 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
     const reasons = [];
     if (modules.guard) {
       try {
-        const guardRes = handleGuardPreToolHook(payload, rootDataDir);
-        if (guardRes.decision === "deny") {
-          return { decision: "deny", reason: guardRes.reason };
+        const guardRunner = overrides?.guardPreTool ?? handleGuardPreToolHook;
+        const guardRes = guardRunner(payload, rootDataDir);
+        const guardDecision = guardRes?.decision;
+        if (guardDecision === "deny") {
+          return { decision: "deny", reason: guardRes?.reason };
         }
-        if (guardRes.decision === "ask") {
-          finalDecision = "ask";
-          if (guardRes.reason) reasons.push(guardRes.reason);
-        } else if (guardRes.decision === "allow") {
+        if (guardDecision === "force_ask") {
+          finalDecision = "force_ask";
+          if (guardRes?.reason) reasons.push(guardRes.reason);
+        } else if (guardDecision === "ask") {
+          if (finalDecision !== "force_ask") {
+            finalDecision = "ask";
+          }
+          if (guardRes?.reason) reasons.push(guardRes.reason);
+        } else if (guardDecision === "allow") {
           finalDecision = "allow";
         }
       } catch {
@@ -7898,21 +9160,46 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
     }
     if (modules.remote) {
       try {
-        const remoteRes = await handleRemotePreToolHook(payload, rootDataDir);
-        if (remoteRes?.decision === "deny") {
-          return { decision: "deny", reason: remoteRes.reason };
+        const remoteRunner = overrides?.remotePreTool ?? handleRemotePreToolHook;
+        const remoteRes = await remoteRunner(payload, rootDataDir);
+        const remoteDecision = remoteRes?.decision;
+        if (remoteDecision === "deny") {
+          return { decision: "deny", reason: remoteRes?.reason };
         }
-        if (remoteRes?.decision === "ask") {
-          finalDecision = "ask";
-          if (remoteRes.reason) reasons.push(remoteRes.reason);
-        } else if (remoteRes?.decision === "allow" && !finalDecision) {
+        if (remoteDecision === "force_ask") {
+          finalDecision = "force_ask";
+          if (remoteRes?.reason) reasons.push(remoteRes.reason);
+        } else if (remoteDecision === "ask") {
+          if (finalDecision !== "force_ask") {
+            finalDecision = "ask";
+          }
+          if (remoteRes?.reason) reasons.push(remoteRes.reason);
+        } else if (remoteDecision === "allow" && !finalDecision) {
           finalDecision = "allow";
         }
       } catch {
       }
     }
+    if (finalDecision === "force_ask") {
+      return {
+        decision: "force_ask",
+        reason: reasons.join(" | ") || "Mandatory approval required by agy-NOV Guard"
+      };
+    }
     if (finalDecision === "ask") {
       return { decision: "ask", reason: reasons.join(" | ") || "Approval required by agy-NOV" };
+    }
+    if (modules.turbo) {
+      try {
+        const turboRes = handleTurboPreToolHook(payload, rootDataDir, overrides?.turboCliEntryPath);
+        if (turboRes.overwrite && Object.keys(turboRes.overwrite).length > 0) {
+          return {
+            decision: "allow",
+            overwrite: turboRes.overwrite
+          };
+        }
+      } catch {
+      }
     }
     if (finalDecision === "allow") {
       return { decision: "allow" };
@@ -7941,6 +9228,12 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
     if (modules.verify) {
       try {
         handleVerifyPostToolHook(payload, rootDataDir);
+      } catch {
+      }
+    }
+    if (modules.turbo) {
+      try {
+        handleTurboPostToolHook(payload, rootDataDir);
       } catch {
       }
     }
@@ -7998,7 +9291,7 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
 }
 function readStdinText() {
   try {
-    return import_node_fs16.default.readFileSync(0, "utf8");
+    return import_node_fs17.default.readFileSync(0, "utf8");
   } catch {
     return "";
   }

@@ -18,6 +18,7 @@ import {
 } from '../src/core/config.js';
 import {
   buildFeedSnapshot,
+  FEED_SNAPSHOT_VERSION,
   getFeedSnapshotPath,
   MAX_FEED_SNAPSHOT_BYTES,
   redactFeedText,
@@ -76,7 +77,7 @@ test('feed snapshot: missing dataDir stays 100% read-only with zero dir/file cre
     const cfg = createDefaultConfig();
     const snap = buildFeedSnapshot(missingDir, cfg);
     assert.equal(snap.schemaVersion, 1);
-    assert.equal(snap.version, '0.7.0');
+    assert.equal(snap.version, FEED_SNAPSHOT_VERSION);
     assert.equal(snap.totalModules, 13);
     assert.equal(snap.toolBudgetLimit, 100);
     assert.equal(snap.enabledCount, 3);
@@ -225,7 +226,7 @@ test('feed snapshot: strict redaction, <=64KB cap, explicit modules/* paths, and
 
     const parsed = JSON.parse(rawFeed);
     assert.equal(parsed.schemaVersion, 1);
-    assert.equal(parsed.version, '0.7.0');
+    assert.equal(parsed.version, FEED_SNAPSHOT_VERSION);
     assert.deepEqual(parsed.paths, {
       configFile: 'config.json',
       feedFile: 'feed-snapshot.json',
@@ -392,7 +393,7 @@ test('PreInvocation hook: O(1) short-circuit when modules off, zero-token user_m
     assert.equal(fs.existsSync(feedPath), true, 'Stop hook should best-effort refresh feed-snapshot.json when dataDir exists');
     const refreshedFeed = JSON.parse(fs.readFileSync(feedPath, 'utf8'));
     assert.equal(refreshedFeed.schemaVersion, 1);
-    assert.equal(refreshedFeed.version, '0.7.0');
+    assert.equal(refreshedFeed.version, FEED_SNAPSHOT_VERSION);
   } finally {
     fs.rmSync(parent, { recursive: true, force: true });
   }
@@ -427,7 +428,7 @@ test('v0.7.0 App-only hub/config tools & strict 47-tool model budget invariant',
     assert.equal(hubLiveSc.snapshot.exposedModelTools, 12);
     assert.equal(hubLiveSc.snapshot.config.startupView, 'hub');
     assert.equal(hubLiveSc.feed.schemaVersion, 1);
-    assert.equal(hubLiveSc.feed.version, '0.7.0');
+    assert.equal(hubLiveSc.feed.version, FEED_SNAPSHOT_VERSION);
     assert.equal(hubLiveSc.feed.paths.feedFile, 'feed-snapshot.json');
     assert.equal(hubLiveSc.teamPreset.found, false);
 
@@ -655,7 +656,7 @@ test('CLI doctor reports Feed Snapshot status strictly read-only without creatin
         child.on('close', (code) => resolve({ code, stdout, stderr }));
       },
     );
-    assert.match(out.stdout, /agy-NOV Doctor \(v0\.7\.0/);
+    assert.match(out.stdout, new RegExp(`agy-NOV Doctor \\(v${FEED_SNAPSHOT_VERSION.replace(/\./g, '\\.')}`));
     assert.match(out.stdout, /Feed Snapshot:/);
     assert.equal(fs.existsSync(missingDataDir), false, 'CLI doctor must never create missing dataDir');
   } finally {

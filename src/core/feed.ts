@@ -13,7 +13,7 @@ import {
   type PresetId,
 } from './config.js';
 
-export const FEED_SNAPSHOT_VERSION = '0.7.0' as const;
+export const FEED_SNAPSHOT_VERSION = '0.8.0' as const;
 export const FEED_SNAPSHOT_FILENAME = 'feed-snapshot.json' as const;
 export const MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
 export const MAX_FEED_ALERTS = 6;
@@ -131,7 +131,7 @@ export interface NovFeedAlert {
 
 export interface NovFeedSnapshot {
   schemaVersion: 1;
-  version: '0.7.0';
+  version: typeof FEED_SNAPSHOT_VERSION;
   generatedAt: string;
   preset: PresetId | 'custom';
   locale: NovLocale;
@@ -491,7 +491,7 @@ function extractGuardSummary(rootDataDir: string, enabled: boolean): NovFeedGuar
       .toLowerCase();
     if (rawDecision === 'deny' || rawDecision === 'denied' || rawDecision === 'block' || rawDecision === 'blocked') {
       blockedCount += 1;
-    } else if (rawDecision === 'ask') {
+    } else if (rawDecision === 'ask' || rawDecision === 'force_ask') {
       askCount += 1;
     }
 

@@ -2,7 +2,7 @@
   <img src="../../assets/logo.svg" width="88" height="88" alt="agy-NOV Logo" />
   <h1>agy-NOV</h1>
   <p><strong>面向 Google Antigravity 2.0 的 100% 原生模块化超级工作台。</strong></p>
-  <p><em>单个插件，4+1 功能域 IA 与四级统一设置中心，13 大可开关能力（含 Spec 2.0 行内审阅台）、5 类官方 Hook（含零 Token <code>PreInvocation</code> 视觉回执）、全组件 8 语种界面与零 Token CLI <code>statusline</code> / <code>recommend</code>。零 ASAR、零 CDP，关闭模块即零 Token 消耗。</em></p>
+  <p><em>单个插件，4+1 功能域 IA 与四级统一设置中心，13 大可开关能力（含 Turbo 3.0 Auto-RTK 省流代理 / 离线依赖契约 / 符号引用 / 脱敏 Context Pack、Guard 2.5 轮次整组 Rewind 与 3 档权限模式、Spec 2.0 行内审阅台）、5 类官方 Hook（含零 Token <code>PreInvocation</code> 视觉回执与 <code>PreToolUse.overwrite</code> / <code>force_ask</code>）、全组件 8 语种界面与 9 条零依赖 CLI 命令。零 ASAR、零 CDP，关闭模块即零 Token 消耗。</em></p>
 
   <p>
     <a href="../../README.md">English</a> ·
@@ -18,7 +18,7 @@
   <p><sub>本文为英文主文档 <a href="../../README.md">README.md</a> 的简体中文译本；命令、模块 ID 与配置规范以英文原版为准。</sub></p>
 
   <p>
-    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v0.7.0"><img src="https://img.shields.io/badge/Version-v0.7.0-0284c7?style=flat-square" alt="版本: v0.7.0" /></a>
+    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v0.8.0"><img src="https://img.shields.io/badge/Version-v0.8.0-0284c7?style=flat-square" alt="版本: v0.8.0" /></a>
     <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tone-leh/agy-NOV/ci.yml?branch=main&style=flat-square&label=CI" alt="CI 状态" /></a>
     <a href="../../LICENSE"><img src="https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square" alt="License: MIT" /></a>
     <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node-%3E%3D20-16a34a?style=flat-square" alt="Node >= 20" /></a>
@@ -29,7 +29,7 @@
   <br />
 
   <p><strong>实机工作台预览</strong></p>
-  <img src="../../assets/demo-preview.gif" alt="agy-NOV v0.7.0 实机工作台预览 —— 4+1 功能域 IA 与总览 Hub、四级统一设置中心、Spec 2.0 行内审阅台、5 类官方 Hook（PreInvocation）、双星只读快照与全组件 8 语种界面" width="100%" />
+  <img src="../../assets/demo-preview.gif" alt="agy-NOV v0.8.0 实机工作台预览 —— 4+1 功能域 IA 与总览 Hub、四级统一设置中心、Turbo 3.0 Auto-RTK 与 Context Pack、Guard 2.5 轮次 Rewind 与 3 档权限模式、Spec 2.0 行内审阅台、5 类官方 Hook 与全组件 8 语种界面" width="100%" />
 
   <br />
 
@@ -46,7 +46,7 @@
 </div>
 
 > [!NOTE]
-> **独立开源项目声明：** `agy-NOV` (v0.7.0) 是面向 Google Antigravity 2.0 打造的独立 MIT 协议社区插件，与 Google LLC 无隶属、赞助或背书关系。
+> **独立开源项目声明：** `agy-NOV` (v0.8.0) 是面向 Google Antigravity 2.0 打造的独立 MIT 协议社区插件，与 Google LLC 无隶属、赞助或背书关系。
 
 ---
 
@@ -81,10 +81,10 @@ node dist/cli.cjs recommend --workspace=.
 
 ### 100% 原生控制面板理念
 
-1. **单一原生运行时：** 1 个 MCP 服务（`dist/server.cjs`）+ 1 个覆盖全部 **5 类官方 Hook**（`SessionStart`、`PreToolUse`、`PostToolUse`、`PreInvocation`、`Stop`）的统一分发器（`dist/hook.cjs`）+ 1 份自包含全组件 8 语种双主题 UI（`dist/ui/app.html`，约 `1.1 MB`，实测 `1,112.7 KB`，远低于 10 MiB 资源上限，**491 个词典键**覆盖含 `HubPanel`、`SettingsHub` 在内的全部 **24 个 UI 组件**）+ 1 个含 8 条命令的零依赖 CLI（`dist/cli.cjs`）。
-2. **关闭即零 Token 税：** 每个模块通过 `RegisteredTool.enable()` / `.disable()` 管理模型工具并实时推送 `tools/list_changed`。v0.7.0 保持 **47 个规范模型工具名完全不变**（含 `spec` 的 4 个工具），新增的 Hub 与四级设置中心治理工具全部标记为 App-only（`visibility: ['app']`），零模型上下文膨胀。
-3. **4+1 功能域 IA 与 12 个本地离线模块优先：** 由 **L0 工作流总览 Hub**（6 节点流水线状态条 + 告警卡 + `Cmd/Ctrl+K` 快捷跳转）统领 4 大功能域 —— 核心护航 `core`（`review`、`guard`、`xray`）、工程闭环 `pipeline`（**Spec 2.0** Plannotator 级行内审阅台 / Brownfield Delta Spec / 最近 8 版快照 / 纯 TS 行级 LCS Diff / 一键归档入 `mem`、`worktree`、`verify`、`turbo` 2.5、`mem` 2.0）、按需工具箱 `toolbox`（`radar`、`studio`、`canvas`、`ops` 2.5）与隔离外联 `connectivity`（`remote` 2.0）。全部 12 个第一层模块 100% 本地离线运行，零外发网络请求、零 ASAR 修改、零 CDP 钩子。
-4. **双星只读聚合快照与 1 个严格按需远程模块（`Remote 2.0`）：** 新增事件驱动 `<dataDir>/feed-snapshot.json`（`0600` 原子写入、`< 64 KiB`、线性 O(n) 全量脱敏、缺失 `dataDir` 严格零写盘），为配套 `agy-Sag` 提供零端口只读聚合状态源；`remote` 默认彻底关闭，未显式启用前保持零端口监听、零后台轮询、零磁盘写入、零外发网络请求的四零隔离。
+1. **单一原生运行时：** 1 个 MCP 服务（`dist/server.cjs`）+ 1 个覆盖全部 **5 类官方 Hook**（`SessionStart`、`PreToolUse`、`PostToolUse`、`PreInvocation`、`Stop`）的统一分发器（`dist/hook.cjs`）+ 1 份自包含全组件 8 语种双主题 UI（`dist/ui/app.html`，约 `1.2 MB`，实测 `1,201.2 KB`，远低于 10 MiB 资源上限，全 8 语种完整覆盖含 `HubPanel`、`SettingsHub`、`TurboPanel` 3.0 与 `GuardPanel` 2.5 在内的全部 **24 个 UI 组件**）+ 1 个含 **9 条命令**的零依赖 CLI（`dist/cli.cjs`，新增 Auto-RTK `compact-run`）。
+2. **关闭即零 Token 税：** 每个模块通过 `RegisteredTool.enable()` / `.disable()` 管理模型工具并实时推送 `tools/list_changed`。v0.8.0 严格锁定 **47 个规范模型工具名完全不变**（`turbo` 严格保持 3 个模型工具、`guard` 严格保持 4 个模型工具），新增的 Hub、四级设置中心、脱敏 Context Pack、轮次 Rewind 与偏好治理动作全部标记为 App-only（`visibility: ['app']`），零模型上下文膨胀。
+3. **4+1 功能域 IA 与 12 个本地离线模块优先：** 由 **L0 工作流总览 Hub**（6 节点流水线状态条 + 告警卡 + `Cmd/Ctrl+K` 快捷跳转）统领 4 大功能域 —— 核心护航 `core`（`review`、**Guard 2.5** 轮次级整组 Rewind 与 3 档协议级权限模式、`xray` 2.0）、工程闭环 `pipeline`（**Spec 2.0** Plannotator 级行内审阅台 / Brownfield Delta Spec / 最近 8 版快照 / 纯 TS 行级 LCS Diff / 一键归档入 `mem`、`worktree`、`verify`、**Turbo 3.0** 按需 Auto-RTK `PreToolUse.overwrite` 省流代理 / 离线锁定版本依赖契约 / 轻量跨文件符号引用 / 脱敏 Context Pack、`mem` 2.0）、按需工具箱 `toolbox`（`radar`、`studio`、`canvas`、`ops` 2.5）与隔离外联 `connectivity`（`remote` 2.0）。全部 12 个第一层模块 100% 本地离线运行，零外发网络请求、零 ASAR 修改、零 CDP 钩子。
+4. **双星只读聚合快照与 1 个严格按需远程模块（`Remote 2.0`）：** 事件驱动 `<dataDir>/feed-snapshot.json`（`0600` 原子写入、`< 64 KiB`、线性 O(n) 全量脱敏、缺失 `dataDir` 严格零写盘）为配套 `agy-Sag` 提供零端口只读聚合状态源；`remote` 默认彻底关闭，未显式启用前保持零端口监听、零后台轮询、零磁盘写入、零外发网络请求的四零隔离。
 
 ---
 
@@ -94,13 +94,13 @@ node dist/cli.cjs recommend --workspace=.
 
 | 预设 | 适用角色 | 启用模块 | 模型工具数* | 隔离级别 |
 | :--- | :--- | :--- | :---: | :--- |
-| **`minimal`** | *极简安全网* —— 仅保留基础密钥防护与编辑前快照 | `guard` (1) | **6** | 100% 离线 |
-| **`core`** *(默认)* | *日常主力* —— 开箱即用的核心护航域（审阅三件套、安全防护与 X-Ray 2.0 离线 USD/Swarm 透视） | `review`, `guard`, `xray` (3) | **12** | 100% 离线 |
-| **`power`** | *高产工程师* —— 核心护航叠加 **Spec 2.0** 行内审阅与 Delta Spec、Turbo 2.5 `gain` 与 `<= 8.8 KB` 护栏、Swarm 雷达、支持栈探测的强验证门禁、并行 Worktree 与 Ops 2.5 `#233`/`#1937` 跨客户端体检 | `core` + `turbo`, `radar`, `verify`, `worktree`, `spec`, `ops` (9) | **32** | 100% 离线 |
+| **`minimal`** | *极简安全网* —— Guard 2.5 密钥防护、轮次级整组 Rewind 与 3 档协议级权限模式 | `guard` (1) | **6** | 100% 离线 |
+| **`core`** *(默认)* | *日常主力* —— 开箱即用的核心护航域（审阅三件套、**Guard 2.5** 轮次 Rewind 与 3 档权限模式、X-Ray 2.0 离线 USD/Swarm 透视） | `review`, `guard`, `xray` (3) | **12** | 100% 离线 |
+| **`power`** | *高产工程师* —— 核心护航叠加 **Turbo 3.0**（按需 Auto-RTK、离线依赖契约、符号引用与脱敏 Context Pack）、**Spec 2.0** 行内审阅与 Delta Spec、Swarm 雷达、支持栈探测的强验证门禁、并行 Worktree 与 Ops 2.5 `#233`/`#1937` 跨客户端体检 | `core` + `turbo`, `radar`, `verify`, `worktree`, `spec`, `ops` (9) | **32** | 100% 离线 |
 | **`local-all`** | *全量离线工作室* —— 启用含 Mem 2.0 渐进式披露、Spec 2.0 一键归档入 Mem、Workspace Studio（支持 OpenAPI 2.0/3.x 解析）与可视化画布在内的全部本地能力 | 全部 12 个离线原生模块 | **43** | 100% 离线 |
 | **`full`** | *离桌指挥官* —— 完整工作台加按需启用的 Remote 2.0 手机只读会话实况流、安全穿透引导与 IM 远程审批 | 全部 13 个原生模块（含按需 `remote`） | **47** | 按需联网 |
 
-<sub>*精确模型工具数 = `2` 个常驻入口工具（`nov_open`、`nov_status`）+ 已启用模块的工具数之和（`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47；v0.7.0 全部 47 个规范模型工具名完全不变，Hub 与设置中心管理动作均为 App-only 工具）。</sub>
+<sub>*精确模型工具数 = `2` 个常驻入口工具（`nov_open`、`nov_status`）+ 已启用模块的工具数之和（`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47；v0.8.0 全部 47 个规范模型工具名严格不变，Hub、设置中心、Context Pack 与轮次 Rewind 管理动作均为 App-only 工具）。</sub>
 
 ```bash
 # 只读扫描项目并校验可选 .agy-nov.json 团队预设（零写盘）
@@ -125,12 +125,12 @@ node dist/cli.cjs preset power
 | 模块 | 功能域 | 默认 | 模型工具 | Hooks | 核心能力 |
 | :--- | :---: | :---: | :---: | :--- | :--- |
 | **Diff Review** (`review`) | `core` | **开** | 2 | `PostToolUse`, `Stop` | PR 级工作区、暂存区与提交 Diff 审阅器，配备零依赖纯 React 轻量语法高亮（零 `dangerouslySetInnerHTML`）、忽略空白差异（`-w`）切换、零 ReDoS 确定性行级风险预标注（一键转为批注）与精准 `file:line` 修复提示词 |
-| **Guard & Snapshots** (`guard`) | `core` | **开** | 4 | `PreToolUse`, `PreInvocation` | 执行前拦截 `.env`/SSH/密钥泄露与高危破坏命令；提供零 Git 依赖的编辑前快照与一键回滚；近期拦截通过 `PreInvocation` 输出零 Token 视觉回执 |
+| **Guard & Snapshots** (`guard`) *(v0.8 升级 2.5)* | `core` | **开** | 4 | `PreToolUse`, `PreInvocation` | **Guard 2.5** 执行前拦截 `.env`/SSH/密钥泄露与高危破坏命令；按会话与轮次（`turnKey`）自动归组零 Git 编辑前快照（同轮多次修改同一文件回滚至**首次修改前**原始状态），支持整轮多文件 Diff 预览、All-or-Nothing 边界安全预检、`pre-rewind` 备份与内联二次确认一键整组回滚；新增 3 档协议级 `permissionMode`（`readonly-audit` 阻断全部写与命令、`balanced-dev` 默认均衡、`strict-gate` 经官方 `PreToolUse` `force_ask` 强制人工确认写与命令，高危仍硬 `deny`）；近期拦截经 `PreInvocation` 输出零 Token 视觉回执 |
 | **Context X-Ray** (`xray`) | `core` | **开** | 4 | `PostToolUse`, `Stop` | 离线 USD 账单（内置参考单价表 + 只读 `pricing-overrides.json` 自定义）、14 天按日趋势与 5 小时滚动燃烧预警、缓存命中与新增 Token 透视、Swarm 子 Agent 血缘与 429 告警、中英 BM25 历史检索，以及 `xray_export_brief` 四格式导出（`brief` / `handoff` 抗压缩交接 / `otlp` / 防公式注入 `csv`） |
-| **Spec Flow & Plannotator** (`spec`) *(v0.7 升级 2.0)* | `pipeline` | 关 | 4 | `SessionStart`, `PreToolUse`, `PreInvocation` | **Spec 2.0 Plannotator 级方案行内审阅台** + `Spec -> Plan -> Task DAG`：支持 **`full` / Brownfield `delta`**（`ADDED`/`MODIFIED`/`REMOVED`）双模式、自动修订版本号与**最近 8 版历史快照**、零依赖**纯 TS 行级 LCS Diff**（超 600 行自动线性降级）、行内 **`Comment`/`Strike`/`Replace`** 批注与一键结构化打回 Agent、**一键归档沉淀入 `mem`**（自动 `<private>` 隐私剥离与密钥脱敏）、Kahn 环检测与防跳步、`PreToolUse` 未审批草稿写锁、`requireUiApproval` UI 审批锁与零 Token `PreInvocation` 写锁视觉回执 |
+| **Spec Flow & Plannotator** (`spec`) *(2.0)* | `pipeline` | 关 | 4 | `SessionStart`, `PreToolUse`, `PreInvocation` | **Spec 2.0 Plannotator 级方案行内审阅台** + `Spec -> Plan -> Task DAG`：支持 **`full` / Brownfield `delta`**（`ADDED`/`MODIFIED`/`REMOVED`）双模式、自动修订版本号与**最近 8 版历史快照**、零依赖**纯 TS 行级 LCS Diff**（超 600 行自动线性降级）、行内 **`Comment`/`Strike`/`Replace`** 批注与一键结构化打回 Agent、**一键归档沉淀入 `mem`**（自动 `<private>` 隐私剥离与密钥脱敏）、Kahn 环检测与防跳步、`PreToolUse` 未审批草稿写锁、`requireUiApproval` UI 审批锁与零 Token `PreInvocation` 写锁视觉回执 |
 | **Worktree Orchestrator** (`worktree`) | `pipeline` | 关 | 4 | 无 | 安全并行 Git Worktree 调度台，支持携带未提交修改、分支 Diff 摘要预览、`extensions.worktreeConfig` 检测与安全清理孤儿工作树 |
 | **Verify Gate** (`verify`) | `pipeline` | 关 | 4 | `PostToolUse`, `Stop` | Stop Hook 强验证门禁，配备只读项目栈自动探测（扫描 `package.json` pnpm/yarn/bun/npm、`pyproject.toml`/`pytest.ini`、`Cargo.toml`、`go.mod`，经安全白名单复核后一键推荐检查命令，零写盘），阻断 0 字节写入与未验证“谎报完成”，配备防死循环护栏与脱敏证据链 |
-| **Turbo & Output Guard** (`turbo`) *(2.5)* | `pipeline` | 关 | 3 | `SessionStart` | 多模式批量检索、多缩进嵌套符号大纲（支持 TS/JS 类方法与接口成员、Python 类方法、Go receiver 方法与 Rust `impl`/`trait` 方法）、RTK 智能压缩预设（`auto \| test \| build \| git \| generic`）、三大模型工具 UTF-8 码点安全 `<= 8.8 KB`（`8,800 B`）防落盘护栏，以及纯内存累计节省 `gain` 仪表盘（`$2.50/1M` 基准，`app_turbo_get_gain`） |
+| **Turbo & Output Guard** (`turbo`) *(v0.8 升级 3.0)* | `pipeline` | 关 | 3 | `SessionStart`, `PreToolUse`, `PostToolUse` | **Turbo 3.0** 新增按需 **Auto-RTK 省流代理**（默认关闭 `autoRtk: false`；开启后对严格白名单单命令通过官方 `PreToolUse.overwrite` 改写为无 Shell `agy-nov compact-run`，非零退出保留完整错误堆栈、原始退出码与 `0600` 脱敏 `last-raw.log`，`PostToolUse` 自动记录高噪声命令热点）、**离线锁定版本依赖契约检索**（`turbo_read_outline` `depPackage` 离线只读解析本地 `node_modules/.d.ts` 含 barrel re-export、Python `.venv/.pyi`、Go `go.mod` 与 Rust `Cargo.lock`，严守 `realpath` 防逃逸与 `<= 8.8 KB` 预算）、**轻量跨文件符号引用**（`turbo_batch_search` `mode: "references"` 严格 O(n) 词法定位 `definitions`/`imports`/`usages`，零常驻 LSP）与**脱敏 Context Pack**（`app_turbo_build_context_pack` 支持目录/安全 glob/`fromGitDiff` + Token 预算 + O(n) 脱敏），继续提供多缩进嵌套大纲、RTK 预设、`<= 8.8 KB` 护栏与纯内存 `gain` 仪表盘 —— 严格保持 **3** 个模型工具 |
 | **Memory Graph** (`mem`) *(2.0)* | `pipeline` | 关 | 3 | `SessionStart`, `PreInvocation`, `Stop` | SHA-256 代码锚定记忆图谱，提供三层渐进式披露：`SessionStart` 注入 L1 紧凑索引（`<= 1,200` 字符），`mem_recall` 支持 `mode: "index" \| "timeline" \| "detail"`、`ids[]`、`window`（零工具数膨胀），内置 O(n) `<private>...</private>` 隐私剥离（含未闭合截断防泄露，Stop Hook 纯私有跳过）、代码漂移预警与零 Token `PreInvocation` 漂移视觉回执 |
 | **Session Radar & Chime** (`radar`) | `toolbox` | 关 | 2 | `PreToolUse`, `PostToolUse`, `Stop` | 跨 `running`、`awaiting_approval`、`completed`、`stalled`、`error` 状态追踪并行会话与父子 Swarm 子 Agent，提供孤儿告警、只读 `status-capsule.json` 与可选完成提示音 |
 | **Workspace Studio** (`studio`) | `toolbox` | 关 | 4 | 无 | 按需轻量本地调试台：SQLite 只读 + CSV/JSON/NDJSON 检视、纯 Node 离线 DOCX/XLSX/PDF/Markdown 切片（ZIP Bomb 防线）、零依赖 OpenAPI 2.0/3.x 解析器（防 YAML 锚点炸弹与原型污染，将工作区 `.openapi.yaml`/`.json` 解析为一键可点接口集合并自动填充回环探针）、严格回环（`127.0.0.1`/`localhost`/`[::1]`）防 SSRF HTTP 调试；关闭即 0 工具占用 |
@@ -141,12 +141,12 @@ node dist/cli.cjs preset power
 <summary><strong>试着这样对你的 Agent 提问……（第一层离线模块 12 条实战提示词）</strong></summary>
 
 - **Review：** *“以 `-w` 忽略空白模式打开 agy-NOV Diff Review 查看我暂存区的改动，查看自动高亮的行级风险预标注，并在提交前一键转为批注。”*
-- **Guard：** *“扫描工作区里是否存在硬编码密钥，并在重构鉴权前先创建一份编辑前检查点。”*
+- **Guard 2.5：** *“扫描工作区硬编码密钥，把 Guard 切到 `strict-gate`（或先切到 `readonly-audit` 零写入巡检），在重构鉴权前建一份编辑前检查点；若整轮改偏，帮我预览整轮多文件 Diff 并一键整组 Rewind 回滚到首次修改前状态。”*
 - **X-Ray：** *“查看本轮离线 USD 估算花费、14 天趋势与 5 小时燃烧预警，分析 Swarm 子 Agent 血缘与 429 损耗，并导出一份 `handoff` 抗压缩交接快照（或 `otlp` / `csv` 报告）。”*
 - **Spec 2.0：** *“在 Spec 2.0 中为存量鉴权改造起草一份 Brownfield `delta` 规格（`ADDED`/`MODIFIED`/`REMOVED`）与任务 DAG，开启未审批写锁与 UI 审批锁；等我在行内审阅台对照行级 LCS Diff 批注 `Comment`/`Strike`/`Replace` 并通过后推进任务，完工后一键归档沉淀到 `mem`。”*
 - **Worktree：** *“用 Worktree Orchestrator 带着当前未提交修改新建并行分支工作树，查看分支 Diff 摘要并安全清理已合并的孤儿工作树。”*
 - **Verify：** *“在 Verify Gate 中只读自动探测本仓库的安全检查命令，一键应用白名单内的 `typecheck` 与 `test`，并查看本轮脱敏验证证据链。”*
-- **Turbo 2.5：** *“开启 Turbo，用 `turbo_read_outline` 提取 `src/` 中的类方法与接口成员嵌套大纲，在 `<= 8.8 KB` 防落盘护栏下用 `test` 预设压缩测试日志，并在 Gain 仪表盘查看累计节省的 Tokens 与 USD。”*
+- **Turbo 3.0：** *“开启 Turbo，用 `turbo_read_outline(depPackage="zod")` 离线查看本地锁定版本的依赖契约签名，用 `turbo_batch_search(mode="references")` 定位跨文件 `definitions`/`imports`/`usages`，在 TurboPanel 打包一份 `fromGitDiff` 脱敏 Context Pack，并检查高噪声命令热点决定是否一键开启 Auto-RTK。”*
 - **Mem 2.0：** *“把我们的原生隔离约束锚定到 `src/core/catalog.ts` 并记住（自动剥离 `<private>` 隐私段）；新会话先加载 L1 紧凑索引，需要时通过 `mem_recall` 依次展开 `index` -> `timeline` -> `detail`。”*
 - **Radar：** *“查看 Session Radar，确认哪些并行会话或父子 Swarm 子 Agent 正在等待审批、停滞或成为孤儿。”*
 - **Studio：** *“临时启用 Workspace Studio，只读查询本地 SQLite 与 CSV 数据、解析 `api.openapi.yaml` 一键填充并探测 `http://127.0.0.1:3000/health`、离线切片 DOCX/XLSX/PDF 文档，完成后关闭以释放工具预算。”*
@@ -169,19 +169,19 @@ node dist/cli.cjs preset power
 
 ### 4+1 功能域 IA、宽窄双态自适应导航与四级统一设置中心
 
-`agy-NOV` v0.7.0 正式确立清晰可扩展的 **4+1 信息架构**（权威规格见 [`docs/PRODUCT-IA.md`](../PRODUCT-IA.md)）：
+`agy-NOV` v0.8.0 延续并扩展清晰可扩展的 **4+1 信息架构**（权威规格见 [`docs/PRODUCT-IA.md`](../PRODUCT-IA.md)）：
 
 - **L0 工作流总览首页（`HubPanel`）与 `⌘K` 命令面板：** 汇总 6 节点流水线状态条与高优先级告警卡（Guard 拦截、Spec 草稿写锁、Verify 门禁、Mem 漂移、Radar 阻塞、X-Ray 燃烧预警），按下 `Cmd/Ctrl+K` 随时直达任意功能域与模块。
 - **单包宽窄双态自适应导航：** `< 720px` 窄侧栏（`aux_pane`）自动切换为 4 控件清爽顶栏与分域下拉切换器，把可视面积留给当前工作区；`>= 720px` 全宽视图（`global`）切换为 `204px` 左侧分组侧栏。
 - **四级统一设置中心（`SettingsHub`）：**
   - **S1：** 全局模式 / 即时搜索 / 5 档预设速切 / 100 工具预算进度条。
   - **S2：** 4 大功能域 13 模块唯一总开关矩阵。
-  - **S3：** 仅对已启用模块按需展开的策略抽屉（覆盖 `guard` / `verify` / `spec` / `radar` / `remote`）。
+  - **S3：** 仅对已启用模块按需展开的策略抽屉（现覆盖 **6 个可配策略模块**：`guard` 含 3 档 `permissionMode`、`turbo` 含按需 `autoRtk` 开关与热点摘要、`verify`、`spec`、`radar`、`remote`）。
   - **S4：** 默认折叠的高级治理区，支持脱敏 JSON 配置导出、白名单校验导入（拦截原型链污染且拒绝静默开启 `remote`）、内联二次确认重置默认，以及 `.agy-nov.json` 与双星 Feed 状态检视。
 
-### 100% 全组件 8 语种插件 UI（491 词典键 × 8 语种 · 24 组件 · 零重启）
+### 100% 全组件 8 语种插件 UI（491 核心词典键 + v0.8 全语种控件 × 8 语种 · 24 组件 · 零重启）
 
-`agy-NOV` v0.7.0 在插件包内实现 **100% 全组件多语种覆盖** —— **491 个词典键 × 8 种语言**完整覆盖含 `HubPanel` 与 `SettingsHub` 在内的全部 **24 个 UI 组件**（`dist/ui/app.html` 约 `1.1 MB`，实测 `1,112.7 KB`，消除硬编码英文混排），与 8 语种文档（`docs/i18n/README.*.md`）完整对齐：
+`agy-NOV` v0.8.0 在插件包内实现 **100% 全组件多语种覆盖** —— **491 核心词典键叠加 v0.8 全 8 语种控件**（覆盖 Auto-RTK、依赖契约、Context Pack、轮次 Rewind 与 3 档权限模式）完整覆盖含 `HubPanel` 与 `SettingsHub` 在内的全部 **24 个 UI 组件**（`dist/ui/app.html` 约 `1.2 MB`，实测 `1,201.2 KB`，消除硬编码英文混排），与 8 语种文档（`docs/i18n/README.*.md`）完整对齐：
 
 - **顶栏与设置中心原生语言切换器：** 直接选择任意语言，界面文案与 `<html lang>` 实时更新，无需重载。
 - **自动 BCP-47 宿主语言检测（`auto`）：** 默认采用 `auto` 自动跟随 Antigravity 宿主语言，同时支持手动指定全部 8 种内置语言：
@@ -201,10 +201,10 @@ agy-nov locale zh-CN
 
 | 对比维度 | **`agy-NOV`**（本仓库） | **[`agy-Sag`](https://github.com/tone-leh/agy-session-guard)**（配套仓库） |
 | :--- | :--- | :--- |
-| **协议边界** | **100% 官方原生协议**（MCP Apps SEP-1865 + **5 类官方 Hook** 含 `PreInvocation` + Skills；**零 ASAR · 零 CDP**） | **零 ASAR 本地 CDP 伴侣** + Watch Sidecar + Storage CLI |
+| **协议边界** | **100% 官方原生协议**（MCP Apps SEP-1865 + **5 类官方 Hook** 含 `PreInvocation`、`PreToolUse.overwrite` 与 `force_ask` + Skills；**零 ASAR · 零 CDP**） | **零 ASAR 本地 CDP 伴侣** + Watch Sidecar + Storage CLI |
 | **升级抗碎性** | 免疫 Antigravity 客户端 DOM 与二进制结构变更 | 专注深度宿主窗口钩子与进阶桌面定制 |
-| **本地化范围** | **100% 全组件 8 语种插件 UI**（491 词典键 × 8 语种覆盖 24 个组件，`auto` + 8 语种）与 8 语种文档 | **Antigravity 宿主界面就地汉化/翻译**与原生 `Settings` 注入 |
-| **核心能力** | 4+1 功能域 IA（L0 总览 Hub + `⌘K` + `< 720px`/`>= 720px` 自适应导航 + 四级设置中心）、13 模块原生工程工作台（Spec 2.0 行内审阅与 Brownfield Delta Spec、Mem 2.0、Turbo 2.5、Remote 2.0、Ops 2.5、X-Ray 2.0、Studio OpenAPI 解析等）、`feed-snapshot.json` 零端口只读快照与零 Token CLI `statusline` / `recommend` | 主动 `/compact` 自动压缩护航、Draft Vault、Prompt Queue、对话书签、Optical Theme Studio、策略门控安全自动放行与宿主 DOM 控制 |
+| **本地化范围** | **100% 全组件 8 语种插件 UI**（491 核心词典键 + v0.8 全语种控件覆盖 24 个组件，`auto` + 8 语种）与 8 语种文档 | **Antigravity 宿主界面就地汉化/翻译**与原生 `Settings` 注入 |
+| **核心能力** | 4+1 功能域 IA（L0 总览 Hub + `⌘K` + `< 720px`/`>= 720px` 自适应导航 + 四级设置中心）、13 模块原生工程工作台（**Turbo 3.0** 按需 Auto-RTK / 离线依赖契约 / 符号引用 / 脱敏 Context Pack、**Guard 2.5** 轮次 Rewind 与 3 档权限模式、Spec 2.0 行内审阅与 Brownfield Delta Spec、Mem 2.0、Remote 2.0、Ops 2.5、X-Ray 2.0、Studio OpenAPI 解析等）、`feed-snapshot.json` 零端口只读快照与 **9 条 CLI 命令**（含 `statusline`、`recommend`、`compact-run`） | 主动 `/compact` 自动压缩护航、Draft Vault、Prompt Queue、对话书签、Optical Theme Studio、策略门控安全自动放行与宿主 DOM 控制 |
 
 ```bash
 # 并排安装两个零功能重叠的配套插件
@@ -219,36 +219,36 @@ agy plugin install https://github.com/tone-leh/agy-session-guard
 ```mermaid
 flowchart TB
   subgraph L1["第一层 · Google Antigravity 2.0 宿主 (Desktop / CLI / IDE)"]
-    Host["100% 官方原生协议 (零 ASAR · 零 CDP)\nMCP Apps SEP-1865 · 5 类官方 Hook (含 PreInvocation) · 沙盒 ui:// · CLI statusLine"]
+    Host["100% 官方原生协议 (零 ASAR · 零 CDP)\nMCP Apps SEP-1865 · 5 类官方 Hook (含 PreInvocation / overwrite / force_ask) · 沙盒 ui:// · CLI statusLine"]
     Sag["可选配套伴侣 · agy-Sag\nconfig.json 原子热同步 · 只读消费 feed-snapshot.json"]
   end
 
-  subgraph L2["第二层 · agy-NOV v0.7.0 纯原生运行时核心"]
-    MCP["单一 MCP 服务 (dist/server.cjs)\n动态 tools/list: 6 / 12 / 32 / 43 / 47 + App-only Hub/设置工具 · 关闭即零 Token 税"]
-    Hook["统一 5 类 Hook 分发器 (dist/hook.cjs)\nSessionStart · PreToolUse · PostToolUse · PreInvocation (零 Token 视觉回执) · Stop\n只读配置检查 -> O(1) 短路 · Guard > Spec > Remote"]
-    UI["单文件 8 语种统一 UI (dist/ui/app.html)\n4+1 IA · 总览 Hub + 四级设置中心 + Cmd/Ctrl+K · <720px / >=720px 自适应\n491 键 × 8 语种 (24 个组件) · 深浅双主题 · ~1.1 MB (< 10 MiB)"]
-    CLI["零 Token 原生 CLI (dist/cli.cjs)\n8 条命令 · 含只读 statusline、recommend (.agy-nov.json) 与 doctor"]
+  subgraph L2["第二层 · agy-NOV v0.8.0 纯原生运行时核心"]
+    MCP["单一 MCP 服务 (dist/server.cjs)\n动态 tools/list: 6 / 12 / 32 / 43 / 47 + App-only Hub/设置/打包/Rewind 工具 · 关闭即零 Token 税"]
+    Hook["统一 5 类 Hook 分发器 (dist/hook.cjs)\nSessionStart · PreToolUse · PostToolUse · PreInvocation (零 Token 视觉回执) · Stop\n只读配置检查 -> O(1) 短路 · Guard (deny/force_ask) > Spec > Remote > Turbo Auto-RTK"]
+    UI["单文件 8 语种统一 UI (dist/ui/app.html)\n4+1 IA · 总览 Hub + 四级设置中心 (S3 覆盖 6 模块) + Cmd/Ctrl+K · <720px / >=720px 自适应\n全组件 8 语种 (24 个组件) · 深浅双主题 · ~1.2 MB (< 10 MiB)"]
+    CLI["零 Token 原生 CLI (dist/cli.cjs)\n9 条命令 · 含只读 statusline、recommend (.agy-nov.json)、compact-run 与 doctor"]
   end
 
   subgraph L3["第三层 · 4 大功能域 (13 模块) 与零端口契约存储"]
-    T1["Tier 1 · 12 个本地离线原生模块 (0 端口 · 0 外发 · 至多 43 工具)\ncore: review · guard · xray 2.0\npipeline: spec 2.0 · worktree · verify · turbo 2.5 · mem 2.0\ntoolbox: radar · studio · canvas · ops 2.5"]
+    T1["Tier 1 · 12 个本地离线原生模块 (0 端口 · 0 外发 · 至多 43 工具)\ncore: review · guard 2.5 (轮次 Rewind 与 3 档权限) · xray 2.0\npipeline: spec 2.0 · worktree · verify · turbo 3.0 (Auto-RTK/依赖契约/引用/Context Pack) · mem 2.0\ntoolbox: radar · studio · canvas · ops 2.5"]
     T2R["Tier 2 · connectivity 域 (默认关闭 · 四零隔离)\nremote 2.0：移动端 PWA 只读实况流、安全穿透引导与 6 路 IM 通知"]
     Store["模块隔离存储与双星聚合快照 (0700 / 0600)\n<dataDir>/config.json · feed-snapshot.json (<64 KiB, O(n) 脱敏)\n<dataDir>/modules/<id>/ · realpath 边界 · 缺失 dataDir 严格零写盘"]
   end
 
   Host --> MCP
   Host --> Hook
-  Host -. "CLI statusLine / recommend" .-> CLI
+  Host -. "CLI statusLine / recommend / compact-run" .-> CLI
   Sag -. "config.json 热同步 / feed-snapshot.json" .-> Store
   Sag -. "config.json 热同步" .-> MCP
   MCP --> UI
   MCP --> T1
   MCP -. "仅按需启用" .-> T2R
   Hook --> T1
-  Hook -. "PreToolUse: Guard > Spec > Remote" .-> T2R
+  Hook -. "PreToolUse: Guard > Spec > Remote > Turbo" .-> T2R
   T1 --> Store
   T2R -. "开启后按需写盘" .-> Store
-  CLI -. "只读聚合" .-> Store
+  CLI -. "只读聚合 / compact-run" .-> Store
 ```
 
 <details>
@@ -261,7 +261,9 @@ flowchart TB
 - **四级统一设置中心治理与安全导入导出：** S4 JSON 导出仅输出白名单字段（零密钥、零本机路径）；配置导入执行严格白名单校验、拦截 `__proto__` / `constructor` / `prototype` 原型链污染，并强制拒绝静默开启 `remote`；重置默认需经内联二次确认（`confirm: true`）。
 - **Spec 2.0 行内审阅、Brownfield Delta Spec 与归档安全：** `spec` 通过 Kahn 拓扑算法检测任务 DAG 环路并禁止跳过未完成前置依赖；启用未审批草稿门禁后在 `PreToolUse` 严格拦截代码写入，并支持 `requireUiApproval` UI 审批锁防止模型绕过人工确认。纯 TS 行级 LCS Diff 超过 600 行自动线性降级以防 CPU 抖动，历史快照上限保留最近 8 版，一键归档入 `mem` 时自动执行 `<private>` 隐私剥离与密钥脱敏。
 - **Mem 2.0 隐私剥离与开局预算控制：** O(n) `<private>...</private>` 剥离器在写入与 Hook 阶段过滤敏感片段（遇到未闭合 `<private>` 自动截断尾部防泄露），纯私有回合在 Stop Hook 自动跳过；`SessionStart` 仅注入 `<= 1,200` 字符的 L1 紧凑索引，零新增模型工具。
-- **Turbo 2.5 UTF-8 防落盘与纯内存 Gain：** `turbo_batch_search`、`turbo_read_outline`、`turbo_compact_output` 全部执行 UTF-8 码点安全 `<= 8.8 KB`（`8,800 B`）截断护栏，避免触发宿主落盘；累计节省统计（`app_turbo_get_gain`，`$2.50/1M` 基准）完全运行在内存中。
+- **Auto-RTK 零 Shell 代理与 `compact-run` 防线（`turbo`、`hooks`、`cli`）：** Auto-RTK 默认严格关闭（`autoRtk: false`）。用户显式开启后，`PreToolUse.overwrite` 仅对严格白名单单命令（测试、构建与只读 Git 查询）生效，硬拒绝全部 Shell 元字符、控制字节、通配符、环境变量赋值前缀与 Shell/解释器可执行文件（`sh`/`bash`/`zsh`/`node`/`eval` 等），内部通过无 Shell `spawnSync`（`shell: false`）执行；非零退出保留完整错误堆栈（至少尾部 60 行）与原始退出码，并将脱敏原始输出写入 `0600` 权限的 `last-raw.log`（`<= 128 KiB`）；且严格排在 `guard`、`spec`、`remote` 均放行之后才触发。
+- **Turbo 3.0 离线依赖契约、O(n) 符号引用与脱敏 Context Pack（`turbo`）：** `turbo_read_outline`（`depPackage`）强制将路径约束在工作区依赖目录规范 `realpath` 内（`node_modules/.d.ts` 含深度 `<= 2` / 最多 8 文件的 barrel re-export、Python `.venv/.pyi`、Go `go.mod` 与 Rust `Cargo.lock`），三大模型工具统一实施 UTF-8 码点安全 `<= 8.8 KB`（`8,800 B`）防落盘截断；`turbo_batch_search`（`mode: "references"`）采用严格 O(n) 词法边界扫描并设文件数/命中数/耗时上限；`app_turbo_build_context_pack` 严守 `realpath` 边界、跳过敏感/二进制/符号链接文件、支持 `256`–`32,000` Token 预算并执行线性 O(n) 密钥脱敏；累计节省统计（`app_turbo_get_gain`，`$2.50/1M` 基准）完全运行在内存中。
+- **Guard 2.5 轮次级整组 Rewind 与 3 档协议级权限模式（`guard`、`hooks`）：** 轮次级分组快照（`turnKey`）在整组回滚前执行 All-or-Nothing 工作区边界与符号链接安全预检，自动保留 `pre-rewind` 备份并要求内联二次确认，确保同轮多次修改同一文件时准确还原至首次修改前状态。协议级 `permissionMode` 提供 3 档防线：`readonly-audit` 硬 `deny` 阻断全部写文件与命令执行、`balanced-dev` 维持默认均衡防线、`strict-gate` 经官方 `PreToolUse` `force_ask` 强制人工确认写与命令操作（`ask` 永不降级 `force_ask`，高危规则仍硬 `deny`）。
 - **Remote 2.0 只读实况流与穿透防线：** `GET /api/conversations/:id/stream` 强制令牌鉴权、会话 ID 正则防路径穿越、双重密钥脱敏、`256 KiB` 尾部读取上限与零 `innerHTML` 防 XSS，严格遵循最小权限（不开放写文件或远程 Shell）；`tailscale`/`cloudflared` 检测仅调用无 Shell `execFile`，绝不自动拉起公网隧道；关闭态严格维持四零隔离。
 - **单文件 `.agy-nov.json` 团队预设与 Ops 2.5 零回显审计：** `.agy-nov.json` 严格只读（绝不向用户仓库自动建目录），实施 `64 KiB` 体积上限、`realpath` 工作区边界、`__proto__`/`constructor`/`prototype` 原型污染防御、23 项校验命令白名单静态检查（绝不自动执行），且永不静默开启 `remote`。Ops 2.5 检测 `#233` 未展开 `${ENV_VAR}` 陷阱、`#1937` 重复插件/重复 MCP 服务与 `.claude/`/`.cursor/rules/`/`.codex/` 跨客户端迁移提示全程只读、零密钥回显。
 - **符号链接与工作区边界（`realpath`）：** `guard`、`verify`、`worktree`、`spec`、`studio`、`canvas`、`mem`、`turbo` 与 `ops` 统一将路径展开为规范真实路径并对照工作区根目录校验，自动排除 `.env`、SSH 密钥、`.git` 与 `node_modules`。
@@ -269,9 +271,9 @@ flowchart TB
 - **Context X-Ray 离线计费与防 CSV 公式注入：** 离线 USD 估算与 5 小时滚动燃烧预警全程本地计算；可选 `pricing-overrides.json` 严格只读加载（上限 `1 MiB`）；`xray_export_brief` 的 `csv` 导出自动转义 `=`、`+`、`-`、`@`、`\t`、`\r` 开头单元格以防御公式注入。
 - **Workspace Studio 离线、OpenAPI 炸弹与防 SSRF 护栏：** `studio` 采用 SQLite 严格只读模式、纯 Node 离线 DOCX/XLSX/PDF 切片（内置 ZIP Bomb 上限防线），零依赖 OpenAPI 2.0/3.x 解析器阻断 YAML 锚点炸弹与 `__proto__`/`constructor`/`prototype` 原型污染（`2 MiB` 文件、`20,000` 行、`24` 层深度、`200` 接口上限），HTTP 探测仅允许回环地址（`127.0.0.1` / `localhost` / `[::1]`）并阻断非回环重定向，关闭后释放全部 4 个工具配额。
 - **Verify 零写盘栈探测与无 Shell 白名单：** `verify` 只读扫描项目栈配置后，所有候选命令一律重新通过无 Shell `execFile` 白名单（17 个允许可执行文件 + 4 个只读 `git` 子命令）复核，并自动脱敏证据输出与阻断循环自锁。
-- **工具与 5 类 Hook 同步门控：** 关闭模块时会同步停用该模块的模型工具与写操作 `app_*` 工具；`dist/hook.cjs` 只读读取 `config.json` 并在 O(1) 返回 `{}`。在 `PreToolUse` 中严格按 `guard` > `spec` > `remote` 顺序决策。
+- **工具与 5 类 Hook 同步门控：** 关闭模块时会同步停用该模块的模型工具与写操作 `app_*` 工具；`dist/hook.cjs` 只读读取 `config.json` 并在 O(1) 返回 `{}`。在 `PreToolUse` 中严格按 `guard`（`deny`/`force_ask`/`ask`）> `spec` > `remote` > `turbo` Auto-RTK（`overwrite`）顺序决策。
 - **`0700` / `0600` 隔离存储：** 每个模块仅向 `<dataDir>/modules/<moduleId>/` 写入属主独占权限文件；模块处于关闭态时不创建任何目录，只读命令（`status` / `statusline` / `recommend` / `doctor`）与 `PreInvocation` 全程零写盘。
-- **官方插件清单与体积上限：** `plugin.json` 严格只保留 10 个官方支持的顶层字段，`dist/ui/app.html`（约 `1.1 MB`，实测 `1,112.7 KB`）远低于 Antigravity 的 10 MiB 上限；`agy-nov doctor` 会连同全部 9 个必需发布文件一并自动校验。
+- **官方插件清单与体积上限：** `plugin.json` 严格只保留 10 个官方支持的顶层字段，`dist/ui/app.html`（约 `1.2 MB`，实测 `1,201.2 KB`）远低于 Antigravity 的 10 MiB 上限；`agy-nov doctor` 会连同全部 9 个必需发布文件一并自动校验。
 
 </details>
 
@@ -308,10 +310,10 @@ npm run workbench
 - **暗黑 / 浅色主题切换**
 - **宽窄双态视口预设**：`< 720px`（`480px` 侧栏 4 控件顶栏 + 分组下拉）与 `>= 720px`（`1160px` 全局 `204px` 左侧分组栏）
 - **L0 工作流总览 Hub、四级统一设置中心与 `Cmd/Ctrl+K` 命令面板**
-- **8 语种宿主语言仿真器**（`en`、`zh-CN`、`zh-TW`、`ja`、`ko`、`es`、`fr`、`de`），完整检验 **24 个 UI 组件**与 **491 个词典键**的 `auto` BCP-47 切换
+- **8 语种宿主语言仿真器**（`en`、`zh-CN`、`zh-TW`、`ja`、`ko`、`es`、`fr`、`de`），完整检验全部 **24 个 UI 组件**（含 v0.8.0 Turbo 3.0 与 Guard 2.5 控件）的 `auto` BCP-47 切换
 - **实时宿主事件监视器**（`sendMessage` / `updateModelContext` / `openFile`）
 
-### CLI 快捷命令速查（8 条命令）
+### CLI 快捷命令速查（9 条命令）
 
 若已将命令加入 `PATH` 可直接执行 `agy-nov <command>`，在仓库目录内则使用 `node dist/cli.cjs <command>`：
 
@@ -324,6 +326,7 @@ agy-nov locale zh-CN                            # 设置界面语言 (auto|en|zh
 agy-nov statusline [--json] [--compact]         # 零 Token 只读状态栏输出，含 Verify:PASS、Spec:LOCK 与 Radar 摘要
 agy-nov recommend [--workspace=<dir>] [--json]  # 只读扫描项目技术栈并校验可选 .agy-nov.json 团队预设（零写入）
 agy-nov doctor                                  # 只读检查全部 9 个必需发布文件、plugin.json 结构与 10 MiB 上限
+agy-nov compact-run --payload=<base64url>       # 由 Auto-RTK PreToolUse.overwrite 内部调用的无 Shell 压缩执行器（保留退出码与 0600 last-raw.log）
 ```
 
 ---
@@ -346,9 +349,9 @@ agy-nov doctor                                  # 只读检查全部 9 个必需
 | “希望在窄侧栏和全宽面板下都能清爽管理全部工具，并拥有统一总览首页、设置中心与 `⌘K` 跳转。” | 4+1 功能域 IA（`Hub` + `SettingsHub`） | L0 总览 Hub（6 节点流水线状态条 + 告警卡）、`< 720px`/`>= 720px` 宽窄双态自适应导航、`Cmd/Ctrl+K` 面板与四级设置中心（S1–S4），零新增模型工具 |
 | “希望像 Plannotator 一样在方案上做行内审阅、支持存量代码库 Delta Spec、对比历史版本并沉淀进长期记忆。” | `spec`（`power` 预设） | **Spec 2.0**：`full`/`delta`（`ADDED`/`MODIFIED`/`REMOVED`）双模式、最近 8 版快照、纯 TS 行级 LCS Diff（超 600 行线性降级）、行内 `Comment`/`Strike`/`Replace` 批注一键打回 Agent、一键归档入 `mem`、Kahn 环检测、`PreToolUse` 写锁、`requireUiApproval` 与零 Token `PreInvocation` 写锁回执 |
 | “想在 Antigravity 内做带语法高亮、忽略空白（`-w`）和风险预标注的 PR 级 Diff 审阅。” | `review`（`core` 预设） | 原生侧栏 Diff 审阅器：纯 React 语法高亮、`-w` 切换、零 ReDoS 行级风险预标注（一键转批注）与 `file:line` 修复提示词 |
-| “防止 Agent 泄露 `.env`/SSH 密钥，或在未提交 Git 时改坏文件。” | `guard`（`minimal` 或 `core`） | `PreToolUse` 密钥/命令防火墙 + 零 Git 编辑前文件快照 + 近期拦截零 Token `PreInvocation` 视觉回执 |
+| “防止 Agent 泄露 `.env`/SSH 密钥、强制只读审计或写入人工确认，或在整轮改偏时一键整组回滚多文件。” | `guard`（`minimal` 或 `core`） | **Guard 2.5**：`PreToolUse` 密钥/命令防火墙、3 档协议级 `permissionMode`（`readonly-audit` / `balanced-dev` / `strict-gate` 经官方 `force_ask` 强确认）、轮次级分组快照（同轮多改回滚至首次修改前，支持整轮 Diff 预览、All-or-Nothing 边界预检、`pre-rewind` 备份与内联二次确认）+ 近期拦截零 Token `PreInvocation` 回执 |
 | “估算离线 USD 花费、捕获 5h 燃烧飙升或 429 重试、查 Swarm 血缘，并导出交接快照或 OTLP/CSV。” | `xray`（`core` 预设） | Context X-Ray 2.0：离线参考计费（支持只读 `pricing-overrides.json`）、14 天趋势与 5h 预警、Swarm 血缘、中英 BM25 检索与 `brief`/`handoff`/`otlp`/`csv` 导出 |
-| “量化累计节省的 Tokens 与费用、防止过大输出落盘，并提取类/接口/trait 嵌套方法大纲。” | `turbo`（`power` 预设） | Turbo 2.5：纯内存累计 `gain` 仪表盘（`$2.50/1M`，`app_turbo_get_gain`）、三大工具 UTF-8 安全 `<= 8.8 KB` 防落盘护栏、多缩进嵌套大纲（TS/JS、Python、Go、Rust）与 RTK 日志压缩 |
+| “透明压缩高噪声测试/构建/Git 输出、离线查锁定版本依赖签名、零常驻 LSP 查跨文件符号引用，或生成脱敏 Context Pack。” | `turbo`（`power` 预设） | **Turbo 3.0**：按需 Auto-RTK `PreToolUse.overwrite` 代理（默认关闭 `autoRtk: false`、零 Shell、`PostToolUse` 热点发现与 `compact-run`）、离线锁定版本依赖契约（`turbo_read_outline` `depPackage` 覆盖 Node/Python/Go/Rust）、O(n) 跨文件符号引用（`turbo_batch_search` `mode: "references"`）、脱敏 Context Pack（`app_turbo_build_context_pack`）、`<= 8.8 KB` 护栏与纯内存 `gain` 仪表盘 —— 严格保持 **3** 个模型工具 |
 | “同时开多个并行会话或 Swarm 子 Agent，常错过审批弹窗或孤儿告警。” | `radar`（`power` 预设） | 基于生命周期 Hook 的父子会话注意看板、孤儿告警、只读 `status-capsule.json` 与完成提示音 |
 | “自动探测项目安全检查命令，并防止 Agent 写出 0 字节文件或未过测试就谎报完成。” | `verify`（`power` 预设） | 零写盘栈自动探测（`package.json` / `pyproject.toml` / `Cargo.toml` / `go.mod`）+ Stop Hook 强验证门禁与无 Shell 白名单脱敏证据链 |
 | “需要并行开启多个 Git Worktree 开发分支，携带未提交修改并安全清理孤儿工作树。” | `worktree`（`power` 预设） | 安全并行 Git Worktree 调度台，支持未提交改动携带、分支 Diff 摘要与 `extensions.worktreeConfig` 检测 |
@@ -398,14 +401,14 @@ agy-nov doctor                                  # 只读检查全部 9 个必需
 
 ```bash
 npm run typecheck
-npm test                      # 55 suites / 163 tests（含 3 个 v0.7.0 回归套件）
+npm test                      # 67 suites / 187 tests（含 3 个 v0.8.0 回归套件）
 node dist/cli.cjs status
 node dist/cli.cjs statusline --json
 node dist/cli.cjs recommend --json
 node dist/cli.cjs doctor
 ```
 
-*Agent 护栏：* 在启用 `remote`（或应用 `full` 预设）之前，务必征得用户明确同意；遵守 `spec` 的 `requireUiApproval`，将 `.agy-nov.json` 团队预设保持严格只读（绝不自动执行命令或静默开启 `remote`，设置中心导入亦强制禁止静默开启 `remote`）；仓库测试期间严禁直接写入 `~/.gemini/config/plugins/`。
+*Agent 护栏：* 在启用 `remote`（或应用 `full` 预设）之前，务必征得用户明确同意；Auto-RTK（`autoRtk: false`）须由用户显式开启；遵守 Guard 2.5 的 `permissionMode`（`readonly-audit` / `strict-gate`）与 `spec` 的 `requireUiApproval`；将 `.agy-nov.json` 团队预设保持严格只读（绝不自动执行命令或静默开启 `remote`，设置中心导入亦强制禁止静默开启 `remote`）；仓库测试期间严禁直接写入 `~/.gemini/config/plugins/`。
 
 </details>
 
@@ -420,7 +423,7 @@ node dist/cli.cjs doctor
 
 | 插件 | 架构边界 | 核心能力 |
 | :--- | :--- | :--- |
-| **`agy-NOV`** *（本仓库）* | **100% 官方原生协议**（MCP Apps SEP-1865 + **5 类官方 Hook** 含 `PreInvocation` + Skills；**Zero ASAR · Zero CDP**） | 4+1 功能域 IA（L0 总览 Hub + `⌘K` + `< 720px`/`>= 720px` 自适应导航 + 四级统一设置中心）、13 大原生工程模块（Spec 2.0 行内审阅与 Brownfield Delta Spec / 归档入 `mem`、Mem 2.0、Turbo 2.5、Remote 2.0、Ops 2.5、`.agy-nov.json` 团队预设、`review`、`guard`、`xray` 2.0、`radar`、`verify`、`worktree`、`studio`、`canvas`）、100% 全组件 8 语种 UI（491 词典键 × 24 组件，`~1.1 MB`）、5 套预设、8 条 CLI 命令、`config.json` 外部热同步及 `feed-snapshot.json` 双星契约。 |
+| **`agy-NOV`** *（本仓库）* | **100% 官方原生协议**（MCP Apps SEP-1865 + **5 类官方 Hook** 含 `PreInvocation`、`PreToolUse.overwrite` 与 `force_ask` + Skills；**Zero ASAR · Zero CDP**） | 4+1 功能域 IA（L0 总览 Hub + `⌘K` + `< 720px`/`>= 720px` 自适应导航 + 四级统一设置中心，S3 覆盖 6 模块）、13 大原生工程模块（**Turbo 3.0** 按需 Auto-RTK / 离线依赖契约 / 符号引用 / 脱敏 Context Pack、**Guard 2.5** 轮次 Rewind 与 3 档权限模式、Spec 2.0 行内审阅与 Brownfield Delta Spec / 归档入 `mem`、Mem 2.0、Remote 2.0、Ops 2.5、`.agy-nov.json` 团队预设、`review`、`xray` 2.0、`radar`、`verify`、`worktree`、`studio`、`canvas`）、100% 全组件 8 语种 UI（24 组件，`~1.2 MB`）、5 套预设、**9 条 CLI 命令**（含 `statusline`、`recommend`、`compact-run`）、`config.json` 外部热同步及 `feed-snapshot.json` 双星契约。 |
 | **[`agy-Sag`](https://github.com/tone-leh/agy-session-guard)** *（原 `agy-session-guard`）* | **Zero-ASAR 本机 CDP 深度增强套件 + Watch 侧车 + 存储体检 CLI** | Antigravity 原生 **Settings** 嵌入式控制面板（支持实时调控 `agy-NOV` 并消费 `feed-snapshot.json`）、**10 语种宿主界面翻译**、自定义 `/compact` 自动防爆与滚动盾、**Draft Vault**、**Prompt Queue**、单轮书签与跨会话档案库、策略门控 **Safe Auto-Accept**、零 `:has()` **Optical Theme Studio**、只读 **Quota Pulse** 与离线 **Storage Doctor**。 |
 
 ```bash

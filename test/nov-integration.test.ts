@@ -496,9 +496,12 @@ test('plugin.json contains only official Antigravity manifest keys', () => {
   for (const key of Object.keys(manifest)) {
     assert.ok(allowed.has(key), `Unexpected top-level key in plugin.json: ${key}`);
   }
+  const pkgVersion = JSON.parse(
+    fs.readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf8'),
+  ).version;
   assert.equal(manifest.name, 'agy-nov');
   assert.equal(manifest.displayName, 'agy-NOV');
-  assert.equal(manifest.version, '0.7.0');
+  assert.equal(manifest.version, pkgVersion);
 });
 
 test('security regressions: Guard symlink blocking (H-1), snake_case target_file (M-1), and unexpanded ${PLUGIN_DATA} fallback (H-2)', async () => {

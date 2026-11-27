@@ -776,6 +776,10 @@ describe('v0.2.0 Unified McpServer registration, zero-write init & live enable/d
           'app_turbo_read_outline',
           'app_turbo_compact_output',
           'app_turbo_query_chunk',
+          'app_turbo_get_prefs',
+          'app_turbo_update_prefs',
+          'app_turbo_inspect_dep',
+          'app_turbo_build_context_pack',
           // radar (2 model + 4 app)
           'radar_get_board',
           'radar_ack_session',

@@ -1,11 +1,21 @@
 import path from 'node:path';
 import { getModuleDataDir } from '../../core/config.js';
 import type { NormalizedHookPayload } from '../../core/types.js';
-import { evaluateToolCall, extractCommandLine, extractTargetPath, redactCommand } from './policy.js';
-import { appendAuditEvent, capturePreEditSnapshot, loadPolicy, resolveRealPathWithMissingTail } from './store.js';
-
-const MUTATING_FILE_TOOL_RE =
-  /^(edit_file|write_file|write_to_file|create_file|patch_file|apply_patch|replace_file_content|multi_replace_file_content|delete_file)$/i;
+import {
+  evaluateToolCall,
+  extractCommandLine,
+  extractTargetPath,
+  isMutatingFileToolName,
+  redactCommand,
+} from './policy.js';
+import {
+  appendAuditEvent,
+  capturePreEditSnapshot,
+  deriveTurnKey,
+  loadPolicy,
+  resolveRealPathWithMissingTail,
+} from './store.js';
+import type { GuardDecision } from './types.js';
 
 /**
  * Pure PreToolUse hook handler for the Guard module.
@@ -16,7 +26,7 @@ const MUTATING_FILE_TOOL_RE =
 export function handleGuardPreToolHook(
   payload: NormalizedHookPayload,
   rootDataDir: string,
-): { decision: 'allow' | 'ask' | 'deny'; reason?: string } {
+): { decision: GuardDecision; reason?: string } {
   if (payload.event !== 'PreToolUse') {
     return { decision: 'allow' };
   }
@@ -27,7 +37,7 @@ export function handleGuardPreToolHook(
   const toolInput = payload.toolInput ?? {};
   const policy = loadPolicy(moduleDataDir);
 
-  // 1. Evaluate deterministic security policy (including resolved symlink target)
+  // 1. Evaluate deterministic security policy (including resolved symlink target & 3-tier permission mode)
   const targetPath = extractTargetPath(toolInput);
   let resolvedTargetPath: string | undefined;
   let symlinkLoopBlocked = false;
@@ -56,7 +66,11 @@ export function handleGuardPreToolHook(
       ? redactCommand(commandLine).slice(0, 100)
       : toolName;
 
-  if (evalResult.decision === 'deny' || evalResult.decision === 'ask') {
+  if (
+    evalResult.decision === 'deny' ||
+    evalResult.decision === 'ask' ||
+    evalResult.decision === 'force_ask'
+  ) {
     const safeReason = redactCommand(evalResult.reason);
     try {
       appendAuditEvent(moduleDataDir, {
@@ -77,10 +91,14 @@ export function handleGuardPreToolHook(
     };
   }
 
-  // 2. Capture automatic pre-edit snapshot before mutating workspace files
-  if (policy.enabled && policy.autoSnapshotBeforeEdit && MUTATING_FILE_TOOL_RE.test(toolName) && targetPath) {
+  // 2. Capture automatic pre-edit snapshot before mutating workspace files (grouped by conversation turn)
+  if (policy.enabled && policy.autoSnapshotBeforeEdit && isMutatingFileToolName(toolName) && targetPath) {
     try {
       const resolvedPath = path.isAbsolute(targetPath) ? targetPath : path.resolve(workspaceRoot, targetPath);
+      const turnKey = deriveTurnKey(moduleDataDir, {
+        conversationId: payload.conversationId,
+        stepIdx: payload.stepIdx,
+      });
       capturePreEditSnapshot({
         dataDir: moduleDataDir,
         filePath: resolvedPath,
@@ -88,6 +106,9 @@ export function handleGuardPreToolHook(
         reason: `Automatic pre-edit snapshot before ${toolName}`,
         policy,
         workspaceRoot,
+        turnKey,
+        conversationId: payload.conversationId,
+        stepIdx: payload.stepIdx,
       });
     } catch {
       // Never break user workflow if snapshot storage is temporarily unavailable or path is outside workspace

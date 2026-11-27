@@ -2,6 +2,43 @@
 
 All notable changes to **agy-NOV** will be documented in this file.
 
+## [0.8.0] - 2026-11-27
+
+### Added
+- **Auto-RTK Transparent `PreToolUse.overwrite` Proxy & `PostToolUse` Hotspot Discovery (`turbo`, `hooks`, `cli`):**
+  - Added an opt-in transparent token-saving command proxy strictly disabled by default (`autoRtk: false` in `<dataDir>/modules/turbo/prefs.json`).
+  - When explicitly enabled, `PreToolUse` rewrites strictly allowlisted single commands (test runners, build/typecheck/lint scripts, and read-only Git queries — zero shell metacharacters, zero `shell: true`) via official `PreToolUse.overwrite` into `agy-nov compact-run --payload=<base64url>` (`src/modules/turbo/auto-rtk.ts`).
+  - Non-zero exits preserve complete error stacks (minimum 60-line failure tail), propagate the exact original exit code, and persist redacted raw output to owner-only `0600` `<dataDir>/modules/turbo/last-raw.log` (`<= 128 KiB`).
+  - Added `PostToolUse` noisy-command hotspot detection (`hotspots.json`, capped at 20 prefixes) surfaced in both `TurboPanel` and the **Settings Hub S3** drawer for one-click Auto-RTK activation.
+  - Added the **9th CLI command** `agy-nov compact-run --payload=<base64url>` (`status`, `enable`, `disable`, `preset`, `locale`, `statusline`, `recommend`, `doctor`, `compact-run`) and App-only preference controls (`app_turbo_get_prefs`, `app_turbo_update_prefs`).
+- **Turbo 3.0 — Offline Locked Dependency Contracts, Lightweight Cross-File Symbol References & Redacted Context Pack (`turbo`):**
+  - Extended `turbo_read_outline` with `depPackage` (and App-only `app_turbo_inspect_dep`) for 100% offline read-only signature lookup across workspace-locked `node_modules/.d.ts` (including barrel re-exports up to depth 2 / 8 files), Python `.venv/.pyi`, Go `go.mod`, and Rust `Cargo.lock` — strictly enforcing `realpath` containment and UTF-8 code-point-safe `<= 8.8 KB` output caps (`src/modules/turbo/dep-contract.ts`).
+  - Extended `turbo_batch_search` with `mode: "references"` for strictly O(n) lexical-boundary cross-file lookup categorizing `definitions`, `imports`, and `usages` without any resident LSP server (`src/modules/turbo/references.ts`).
+  - Added App-only `app_turbo_build_context_pack` (`src/modules/turbo/context-pack.ts`) to assemble directory, safe-glob (up to 16 patterns), or `fromGitDiff` slices with configurable token budgets (`256`–`32,000`, default `8,000`), automatic sensitive/binary/symlink skipping, and linear O(n) secret redaction.
+  - Zero model-tool expansion: `turbo` remains strictly at **3** canonical model tools (`turbo_batch_search`, `turbo_read_outline`, `turbo_compact_output`).
+- **Guard 2.5 — Turn-Grouped Snapshot Rewind & 3-Tier Protocol Permission Modes (`guard`, `hooks`, `ui`):**
+  - Grouped pre-edit snapshots automatically by session and turn (`turnKey`), guaranteeing that reverting a turn where a file was edited multiple times restores the original state captured **before the first edit** in that turn.
+  - Added multi-file turn diff preview (`app_guard_get_turn_diff`), All-or-Nothing workspace-boundary and symlink preflight validation, automatic `pre-rewind` backup checkpoints, and inline double-confirmation one-click full-turn rollback (`app_guard_restore_turn`).
+  - Added 3 protocol-level `permissionMode` tiers persisted in `0600` `policy.json` and wired directly into `GuardPanel` and **Settings Hub S3**:
+    - `readonly-audit`: hard `deny` blocking all mutating file tools and command execution tools.
+    - `balanced-dev`: default balanced safety firewall.
+    - `strict-gate`: enforces mandatory human confirmation via official `PreToolUse` `force_ask` on all file writes and command executions while keeping critical secret/destructive rules at hard `deny` (`ask` can never downgrade `force_ask`).
+  - Zero model-tool expansion: `guard` remains strictly at **4** canonical model tools (`guard_status`, `guard_list_snapshots`, `guard_create_checkpoint`, `guard_scan_secrets`).
+- **Full 8-Language Localization & Automated v0.8.0 Regression Suite (`ui`, `test`):**
+  - Updated all 8 bundled UI languages (`en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `es`, `fr`, `de`) across `TurboPanel`, `GuardPanel`, and `SettingsHub` S3 drawers (now covering 6 configurable strategy modules: `guard`, `turbo`, `verify`, `spec`, `radar`, `remote`).
+  - Added 3 dedicated v0.8.0 automated test suites (`test/v08-auto-rtk.test.ts`, `test/v08-turbo-contracts-pack.test.ts`, `test/v08-guard-rewind-modes.test.ts`), raising total automated verification to **67 suites / 187 tests**.
+
+### Changed
+- **Preserved 13-Module Architecture, 5 Presets & 47 Model Tools Unchanged:** All 13 toggleable native modules (12 local offline + 1 opt-in `remote`), 5 presets (`minimal` 6 / `core` 12 / `power` 32 / `local-all` 43 / `full` 47), and all 47 canonical model tool names remain 100% backward-compatible with zero tool-slot inflation.
+- **Expanded `turbo` Hook Wiring & Strict `PreToolUse` Precedence:** Extended `turbo` hooks from `SessionStart` to `SessionStart`, `PreToolUse`, and `PostToolUse` while enforcing strict `PreToolUse` precedence: `guard` (`deny` / `force_ask` / `ask`) > `spec` (`deny`) > `remote` (`deny` / `force_ask` / `ask`) > `turbo` Auto-RTK (`overwrite`, invoked exclusively when all higher gates remain clean).
+- **Bundle, CLI, Feed & Docs Alignment:** Updated `package.json`, `plugin.json`, `src/core/feed.ts`, `src/server/cli.ts` (9 CLI commands), `skills/agy-nov/SKILL.md`, `README.md`, all 7 localized `docs/i18n/README.*.md` files, `llms.txt`, and `docs/llms-install.md` to `v0.8.0` (`dist/ui/app.html` `~1.2 MB`, measured `1,201.2 KB`, far below the 10 MiB cap).
+
+### Security
+- **Auto-RTK Zero-Shell & Fail-Safe Hardening (`turbo`, `cli`, `hooks`):** Auto-RTK stays strictly `false` by default, rejects all shell metacharacters, control bytes, glob wildcards, env-assignment prefixes, and shell/interpreter binaries (`sh`, `bash`, `zsh`, `node`, `eval`, etc.), validates allowlisted command prefixes and safe flags, runs via shell-free `spawnSync` (`shell: false`), preserves original non-zero exit codes with failure stacks, and writes redacted `last-raw.log` at mode `0600` (`<= 128 KiB`).
+- **Turbo 3.0 Offline Containment (`turbo`):** `depPackage` inspection enforces canonical `realpath` confinement inside workspace dependency directories with strict file-size and re-export depth limits (`<= 8.8 KB` UTF-8 safe output); `references` scanning enforces O(n) lexical tokenization with file/hit/time caps; Context Pack enforces `realpath` boundaries, skips sensitive/binary/symlink files, and runs linear O(n) secret redaction.
+- **Guard 2.5 Rewind Atomicity & Protocol Mode Integrity (`guard`, `hooks`):** Turn-grouped rewind runs All-or-Nothing preflight boundary and symlink verification across every target file before mutating disk, records `pre-rewind` safety backups, and requires inline double confirmation; `strict-gate` emits official `force_ask` that cannot be downgraded by lower `ask` decisions while high-risk rules remain hard `deny`.
+- **Zero-Touch Invariants Preserved:** Maintained 100% Zero ASAR / Zero CDP boundaries, four-zero OFF-state isolation for `remote`, and zero-write guarantees for read-only CLI commands (`status`, `statusline`, `recommend`, `doctor`) and `PreInvocation`.
+
 ## [0.7.0] - 2026-11-27
 
 ### Added

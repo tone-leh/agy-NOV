@@ -26,8 +26,8 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/server/cli.ts
 var cli_exports = {};
 module.exports = __toCommonJS(cli_exports);
-var import_node_fs3 = __toESM(require("node:fs"), 1);
-var import_node_path4 = __toESM(require("node:path"), 1);
+var import_node_fs5 = __toESM(require("node:fs"), 1);
+var import_node_path7 = __toESM(require("node:path"), 1);
 
 // src/core/config.ts
 var import_node_fs2 = __toESM(require("node:fs"), 1);
@@ -160,7 +160,7 @@ var MODULE_CATALOG = {
     uiMode: "scroll",
     hasUiTab: true,
     defaultEnabled: false,
-    hooks: ["SessionStart"],
+    hooks: ["SessionStart", "PreToolUse", "PostToolUse"],
     modelToolNames: ["turbo_batch_search", "turbo_read_outline", "turbo_compact_output"]
   },
   radar: {
@@ -1777,8 +1777,198 @@ var MAX_SOURCE_FILE_BYTES = 2 * 1024 * 1024;
 function getFeedSnapshotPath(rootDataDir) {
   return import_node_path3.default.join(rootDataDir, FEED_SNAPSHOT_FILENAME);
 }
+function isAsciiSpace(code) {
+  return code === 32 || code === 9 || code === 13 || code === 10;
+}
+function asciiLower(code) {
+  return code >= 65 && code <= 90 ? code + 32 : code;
+}
+function startsWithAsciiCI(input, idx, lowerPrefix) {
+  if (idx + lowerPrefix.length > input.length) return false;
+  for (let i = 0; i < lowerPrefix.length; i += 1) {
+    if (asciiLower(input.charCodeAt(idx + i)) !== lowerPrefix.charCodeAt(i)) {
+      return false;
+    }
+  }
+  return true;
+}
+function matchPrivateOpenEnd(input, idx) {
+  if (!startsWithAsciiCI(input, idx, "<private")) return -1;
+  let cur = idx + 8;
+  if (cur >= input.length) return -1;
+  const ch = input.charCodeAt(cur);
+  if (ch === 62) return cur;
+  if (!isAsciiSpace(ch)) return -1;
+  cur += 1;
+  while (cur < input.length) {
+    const code = input.charCodeAt(cur);
+    if (code === 62) return cur;
+    if (code === 60) return -1;
+    cur += 1;
+  }
+  return -1;
+}
+function matchPrivateCloseEnd(input, idx) {
+  if (!startsWithAsciiCI(input, idx, "</private")) return -1;
+  let cur = idx + 9;
+  while (cur < input.length && isAsciiSpace(input.charCodeAt(cur))) {
+    cur += 1;
+  }
+  return cur < input.length && input.charCodeAt(cur) === 62 ? cur : -1;
+}
+function stripPrivateBlocksLinear(input) {
+  if (!input.includes("<")) return input;
+  const chunks = [];
+  let cur = 0;
+  while (cur < input.length) {
+    const lt = input.indexOf("<", cur);
+    if (lt === -1) {
+      chunks.push(input.slice(cur));
+      break;
+    }
+    const openEnd = matchPrivateOpenEnd(input, lt);
+    if (openEnd === -1) {
+      chunks.push(input.slice(cur, lt + 1));
+      cur = lt + 1;
+      continue;
+    }
+    if (lt > cur) chunks.push(input.slice(cur, lt));
+    let depth = 1;
+    let scan = openEnd + 1;
+    while (scan < input.length && depth > 0) {
+      const nextLt = input.indexOf("<", scan);
+      if (nextLt === -1) {
+        scan = input.length;
+        break;
+      }
+      const nestedOpen = matchPrivateOpenEnd(input, nextLt);
+      if (nestedOpen !== -1) {
+        depth += 1;
+        scan = nestedOpen + 1;
+        continue;
+      }
+      const closeEnd = matchPrivateCloseEnd(input, nextLt);
+      if (closeEnd !== -1) {
+        depth -= 1;
+        scan = closeEnd + 1;
+        continue;
+      }
+      scan = nextLt + 1;
+    }
+    chunks.push("[REDACTED_PRIVATE]");
+    cur = depth > 0 ? input.length : scan;
+  }
+  return chunks.join("");
+}
+function stripPemPrivateKeysLinear(input) {
+  const beginMarker = "-----BEGIN ";
+  if (!input.includes(beginMarker)) return input;
+  const chunks = [];
+  let cur = 0;
+  while (cur < input.length) {
+    const start = input.indexOf(beginMarker, cur);
+    if (start === -1) {
+      chunks.push(input.slice(cur));
+      break;
+    }
+    const headerEnd = input.indexOf("-----", start + beginMarker.length);
+    if (headerEnd === -1) {
+      chunks.push(input.slice(cur));
+      break;
+    }
+    const label = input.slice(start + beginMarker.length, headerEnd);
+    if (!/^[A-Z0-9 _-]{0,48}PRIVATE KEY(?: BLOCK)?$/i.test(label)) {
+      chunks.push(input.slice(cur, headerEnd + 5));
+      cur = headerEnd + 5;
+      continue;
+    }
+    if (start > cur) chunks.push(input.slice(cur, start));
+    chunks.push("[REDACTED_PRIVATE_KEY]");
+    const endPrefix = "-----END ";
+    const searchFrom = headerEnd + 5;
+    let endIdx = input.indexOf(endPrefix, searchFrom);
+    let closedAt = -1;
+    while (endIdx !== -1) {
+      const footerEnd = input.indexOf("-----", endIdx + endPrefix.length);
+      if (footerEnd === -1) break;
+      const endLabel = input.slice(endIdx + endPrefix.length, footerEnd);
+      if (/^[A-Z0-9 _-]{0,48}PRIVATE KEY(?: BLOCK)?$/i.test(endLabel)) {
+        closedAt = footerEnd + 5;
+        break;
+      }
+      endIdx = input.indexOf(endPrefix, footerEnd + 5);
+    }
+    cur = closedAt === -1 ? input.length : closedAt;
+  }
+  return chunks.join("");
+}
+var LINEAR_REDACT_PATTERNS = [
+  // IM webhook URLs
+  [/https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/_-]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/(?:discord\.com|discordapp\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9_-]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/open\.(?:feishu\.cn|larksuite\.com)\/open-apis\/bot\/v2\/hook\/[A-Za-z0-9_-]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/oapi\.dingtalk\.com\/robot\/send\?[^\s"'<>]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/qyapi\.weixin\.qq\.com\/cgi-bin\/webhook\/send\?[^\s"'<>]+/gi, "[REDACTED_WEBHOOK]"],
+  // URL embedded credentials and sensitive query params
+  [/(https?:\/\/[^:\s/@]+:)([^@\s/]+)(@)/gi, "$1[REDACTED]$3"],
+  [/([?&](?:token|access_token|api[_-]?key|key|secret|sign|sig|pin|code)=)([^&#\s"'<>]+)/gi, "$1[REDACTED]"],
+  // Authorization headers (including custom schemes like Token / ApiKey / Digest / HMAC) & JWTs
+  [
+    /\b(Authorization[ \t]*:[ \t]*(?:Bearer|Basic|Token|ApiKey|Digest|HMAC)[ \t]+)([^\s"',;}{]+)/gi,
+    "$1[REDACTED]"
+  ],
+  [/\bBearer[ \t]+[A-Za-z0-9\-._~+/]+=*/gi, "Bearer [REDACTED]"],
+  [/\bBasic[ \t]+[A-Za-z0-9+/]+=*/gi, "Basic [REDACTED]"],
+  [/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, "[REDACTED_JWT]"],
+  // Telegram bot tokens & cloud/provider API keys
+  [/\b\d{6,12}:[A-Za-z0-9_-]{20,}\b/g, "[REDACTED_BOT_TOKEN]"],
+  [
+    /\b(?:sk-proj-|sk-ant-|sk_(?:live|test)_|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[baprs]-|AKIA|ASIA|npm_|hf_|pypi-)[A-Za-z0-9_-]{10,}\b/g,
+    "[REDACTED_KEY]"
+  ],
+  // Uppercase environment variable secret assignments (e.g. OPENAI_API_KEY=..., MY_TOKEN=...)
+  [
+    /\b([A-Z][A-Z0-9_]{1,40}_(?:KEY|SECRET|TOKEN|PASSWORD|PASSWD|WEBHOOK|PIN|AUTH|CREDENTIAL|CREDENTIALS)[ \t]*=[ \t]*["']?)([^\s"',;}{]+)(["']?)/g,
+    "$1[REDACTED]$3"
+  ],
+  // Key-value secret/token/pairing-code assignments
+  [
+    /(["']?(?:api[_-]?key|apikey|access[_-]?token|auth[_-]?token|bot[_-]?token|pairing[_-]?token|pairing[_-]?pin|pairing[_ -]?code|pair[_-]?code|passcode|signing[_-]?secret|client[_-]?secret|private[_-]?key|csrf[_-]?token|webhook[_-]?url|webhook|secret|token|password|passwd|authorization|pin)["']?[ \t]*[:=][ \t]*["']?)([^\s"',;}{]{4,})(["']?)/gi,
+    "$1[REDACTED]$3"
+  ]
+];
+function redactGenericWebhookUrlsLinear(input) {
+  return input.replace(
+    /https?:\/\/[^\s"'<>]+/gi,
+    (match) => match.toLowerCase().includes("webhook") ? "[REDACTED_WEBHOOK]" : match
+  );
+}
+function truncateUtf16Safe(input, maxLen) {
+  if (maxLen <= 0 || input.length <= maxLen) return input;
+  let end = Math.max(1, maxLen - 1);
+  if (end > 0) {
+    const code = input.charCodeAt(end - 1);
+    if (code >= 55296 && code <= 56319) {
+      end = Math.max(0, end - 1);
+    }
+  }
+  return `${input.slice(0, end).trimEnd()}\u2026`;
+}
+function redactFeedText(input, maxLen = 180) {
+  if (typeof input !== "string" || !input) return "";
+  let out = stripPrivateBlocksLinear(input);
+  out = stripPemPrivateKeysLinear(out);
+  out = redactGenericWebhookUrlsLinear(out);
+  for (const [pattern, replacement] of LINEAR_REDACT_PATTERNS) {
+    out = out.replace(pattern, replacement);
+  }
+  out = out.replace(/[\x00-\x1f\x7f]+/g, " ").replace(/\s+/g, " ").trim();
+  return truncateUtf16Safe(out, maxLen);
+}
 
 // src/core/utils.ts
+var import_node_fs3 = __toESM(require("node:fs"), 1);
+var import_node_path4 = __toESM(require("node:path"), 1);
 function parseCliFlag(argv, flag) {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -1794,9 +1984,1694 @@ function parseCliFlag(argv, flag) {
 function hasCliFlag(argv, flag) {
   return argv.includes(flag);
 }
+function ensurePrivateDir(dirPath) {
+  import_node_fs3.default.mkdirSync(dirPath, { recursive: true, mode: 448 });
+  try {
+    import_node_fs3.default.chmodSync(dirPath, 448);
+  } catch {
+  }
+}
+function atomicWriteJson(filePath, data) {
+  ensurePrivateDir(import_node_path4.default.dirname(filePath));
+  const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}`;
+  import_node_fs3.default.writeFileSync(tmpPath, `${JSON.stringify(data, null, 2)}
+`, { mode: 384 });
+  import_node_fs3.default.renameSync(tmpPath, filePath);
+}
+
+// src/modules/turbo/auto-rtk.ts
+var import_node_child_process = require("node:child_process");
+var import_node_crypto2 = __toESM(require("node:crypto"), 1);
+var import_node_fs4 = __toESM(require("node:fs"), 1);
+var import_node_path6 = __toESM(require("node:path"), 1);
+
+// src/modules/turbo/core.ts
+var import_node_crypto = __toESM(require("node:crypto"), 1);
+var import_node_path5 = __toESM(require("node:path"), 1);
+var TURBO_MAX_FILE_BYTES = 512 * 1024;
+var TURBO_MAX_OUTLINE_FILE_BYTES = 1024 * 1024;
+var TURBO_MAX_COMPACTED_CHUNKS = 24;
+var ANSI_ESCAPE_RE = /\x1b(?:\[[0-9;?]*[A-Za-z]|\][^\x07\x1b]*(?:\x07|\x1b\\))/g;
+var ERROR_LINE_RE = /\b(?:error|err!|fail|failed|failure|exception|fatal|panic|traceback|assertionerror|typeerror|syntaxerror|referenceerror|enoent|eacces|ts\d{4})\b|^\s*(?:✗|✖|×|FAIL\b)/i;
+var WARN_LINE_RE = /\b(?:warn|warning|deprecated)\b|^\s*⚠/i;
+function stripAnsiSequences(text) {
+  return text.replace(ANSI_ESCAPE_RE, "");
+}
+function cleanLogLine(line) {
+  const noAnsi = stripAnsiSequences(line);
+  if (!noAnsi.includes("\r")) return noAnsi;
+  const segments = noAnsi.split("\r");
+  for (let i = segments.length - 1; i >= 0; i -= 1) {
+    if (segments[i].length > 0) return segments[i];
+  }
+  return "";
+}
+function normalizeDiagKey(line) {
+  return line.trim().replace(/\b\d+\b/g, "#").replace(/\s+/g, " ").slice(0, 120);
+}
+var TEST_PASS_LINE_RE = /^\s*(?:(?:✔|✓)\s+(?!built in\b|\d+\s+modules?\s+transformed\b)\S|ok\s+\d+(?:\s|-|$)|PASS(?:\s+\S|\s*$)|---\s+PASS:|test\s+.+\.\.\.\s+ok\s*$|.+::.+PASSED(?:\s+\[\s*\d+%\])?\s*$)/;
+var TEST_FAIL_START_RE = /^\s*(?:FAIL(?:\s|:|$)|not ok\s+\d+|---\s+FAIL:|(?:✖|✗|×)\s+|AssertionError\b|Error:|TypeError:|SyntaxError:|ReferenceError:|Traceback\b|FAILURES\b|short test summary|thread '[^']*' panicked|panicked at|E\s{3,})|\.\.\.\s+FAILED\s*$|\bFAILED(?:\s+\[\s*\d+%\])?\s*$/;
+var TEST_STACK_OR_DIFF_RE = /^\s*(?:at\s+\S|File\s+"|Expected\b|Received\b|Actual\b|expected\b|actual\b|stack:|[-+]\s|\|\s|\d+\s*\||>?\s*\d+\s*\||[~^]{2,}|Difference:)/;
+var TEST_SUMMARY_LINE_RE = /^\s*(?:Tests:|Test Suites:|Test Files\b|Snapshots:|Time:|Duration\b|Start at\b|Summary:|Ran\s+\d+\s+tests?|test result:|ℹ\s+(?:tests|suites|pass|fail|cancelled|skipped|todo|duration_ms)\b|={3,}.*(?:passed|failed|error).*={3,}|FAILED\s*\(|exitCode=|exit code\b)/i;
+var TEST_VERBOSE_NOISE_RE = /^\s*(?:info\s+\[|debug\s+\[|\[(?:info|debug)\]|#\s*Subtest:)/i;
+var BUILD_NOISE_LINE_RE = /transforming\s*\(\d+\)|\b\d+\s+modules?\s+transformed\b|^\s*(?:transforming\b|Compiling\s+|Checking\s+|Downloading\s+|Unpacking\s+|Resolving\s+|Fetching\s+|Updating\s+|Fresh\s+|Copying\s+|Bundling\s+|Generating\s+|Rendering\s+chunks|Computing\s+gzip|reify:|npm\s+(?:timing|http)\b|info\s+\[|debug\s+\[|\[(?:info|debug)\]|\[\d+\/\d+\]\s+(?:Building|Compiling|Resolving|Fetching|Linking)|\d{1,3}%\s+(?:building|sealing|emitting|compiling|hashing|asset))/i;
+var BUILD_FILE_LOC_RE = /[A-Za-z0-9_./-]+\.[A-Za-z0-9]+(?:\(\d+,\d+\)|:\d+:\d+)/;
+var BUILD_DIAG_CONTEXT_RE = /^\s*(?:\d+\s*\||\|\s|[~^]{2,}|-->\s+|=\s*(?:note|help):|at\s+\S)/;
+var BUILD_SUMMARY_LINE_RE = /(?:✓|✔)?\s*built in\s+\d|^\s*(?:Finished\s+|Found\s+\d+\s+errors?|Compiled\s+|Build\s+(?:succeeded|failed|complete)|Done in\s+|added\s+\d+\s+packages|found\s+\d+\s+vulnerabilities|Summary:|FAILED\b|dist\/\S+\s+[\d.]+\s*(?:kB|KB|MB|B)\b|webpack\b.*compiled)/i;
+var LOCK_OR_GENERATED_PATH_RE = /(?:^|\/)(?:package-lock\.json|pnpm-lock\.yaml|yarn\.lock|Cargo\.lock|Gemfile\.lock|poetry\.lock|composer\.lock|go\.sum|Podfile\.lock|uv\.lock|flake\.lock|bun\.lock|bun\.lockb)$|(?:^|\/)(?:dist|build|vendor|generated)\/|\.(?:min\.js|min\.css|bundle\.js|map|snap|pb\.go)$|\.generated\.[^/]+$/i;
+function detectOutputPreset(text) {
+  const raw = typeof text === "string" ? text : String(text ?? "");
+  if (!raw.trim()) return "generic";
+  const rawLines = raw.split(/\r?\n/);
+  const sampleLines = [];
+  if (rawLines.length <= 800) {
+    for (const l of rawLines) sampleLines.push(cleanLogLine(l));
+  } else {
+    for (let i = 0; i < 600; i += 1) sampleLines.push(cleanLogLine(rawLines[i]));
+    for (let i = rawLines.length - 200; i < rawLines.length; i += 1) {
+      sampleLines.push(cleanLogLine(rawLines[i]));
+    }
+  }
+  let gitScore = 0;
+  let testScore = 0;
+  let buildScore = 0;
+  let gitDiffHeaders = 0;
+  let gitHunks = 0;
+  let gitMetaHits = 0;
+  let testPassHits = 0;
+  let testStrongHits = 0;
+  let buildNoiseHits = 0;
+  let buildStrongHits = 0;
+  for (const rawLine of sampleLines) {
+    if (!rawLine) continue;
+    const line = rawLine.length > 512 ? rawLine.slice(0, 512) : rawLine;
+    if (/^diff --git\s+/.test(line)) {
+      gitDiffHeaders += 1;
+      gitScore += 6;
+    } else if (/^@@\s+-\d+(?:,\d+)?\s+\+\d+(?:,\d+)?\s+@@/.test(line)) {
+      gitHunks += 1;
+      if (gitHunks <= 4) gitScore += 4;
+    } else if (/^commit\s+[0-9a-f]{7,40}\b/.test(line)) {
+      gitMetaHits += 1;
+      if (gitMetaHits <= 4) gitScore += 3;
+    } else if (/^(?:index\s+[0-9a-f]{7,}\.\.[0-9a-f]{7,}|---\s+a\/|\+\+\+\s+b\/)/.test(line) || /^\s*(?:modified|new file|deleted|renamed):\s+\S/.test(line) || /\b\d+\s+files?\s+changed,\s+\d+\s+(?:insertions?|deletions?)/.test(line)) {
+      gitMetaHits += 1;
+      if (gitMetaHits <= 6) gitScore += 2;
+    }
+    if (/^\s*(?:---\s+(?:FAIL|PASS):|Tests:|Test Suites:|Test Files\b|TAP version \d+|ℹ\s+(?:pass|fail|tests)\b|test result:\s*(?:ok|FAILED))/.test(
+      line
+    ) || /\b(?:pytest|cargo test)\b/i.test(line)) {
+      testStrongHits += 1;
+      if (testStrongHits <= 6) testScore += 4;
+    } else if (/^\s*(?:PASS|FAIL)\s+\S/.test(line) || /^\s*not ok\s+\d+/.test(line)) {
+      testStrongHits += 1;
+      if (testStrongHits <= 6) testScore += 3;
+    } else if (TEST_PASS_LINE_RE.test(line) || /^\s*(?:✖|✗)\s+\S/.test(line)) {
+      testPassHits += 1;
+      if (testPassHits <= 6) testScore += 2;
+    }
+    if (/\berror\s+TS\d{4}\b|\bTS\d{4}:/.test(line) || /transforming\s*\(\d+\)|\b\d+\s+modules?\s+transformed\b|(?:✓|✔)?\s*built in\s+\d/.test(line) || /\b(?:vite|esbuild|webpack|eslint)\b/i.test(line)) {
+      buildStrongHits += 1;
+      if (buildStrongHits <= 6) buildScore += 4;
+    } else if (/^\s*(?:Compiling|Checking|Finished|Bundling)\s+\S/.test(line) || /\bwarning:\s+\S/i.test(line) || BUILD_FILE_LOC_RE.test(line) && /\b(?:error|warning)\b/i.test(line)) {
+      buildNoiseHits += 1;
+      if (buildNoiseHits <= 6) buildScore += 2;
+    }
+  }
+  if (gitDiffHeaders > 0) {
+    return "git";
+  }
+  const best = Math.max(gitScore, testScore, buildScore);
+  if (best < 3) return "generic";
+  if (gitScore >= testScore && gitScore >= buildScore) return "git";
+  if (testScore >= buildScore) return "test";
+  return "build";
+}
+var TURBO_DEFAULT_MAX_COMPACT_LINES = 180;
+var TURBO_MIN_COMPACT_LINES = 20;
+var TURBO_MAX_COMPACT_LINES = 300;
+var TURBO_MAX_COMPACT_BYTES = 48 * 1024;
+function capCompactedLines(lines, maxLines = TURBO_DEFAULT_MAX_COMPACT_LINES, maxBytes = TURBO_MAX_COMPACT_BYTES) {
+  const cap = Math.max(
+    TURBO_MIN_COMPACT_LINES,
+    Math.min(
+      Math.floor(Number.isFinite(maxLines) ? maxLines : TURBO_DEFAULT_MAX_COMPACT_LINES),
+      TURBO_MAX_COMPACT_LINES
+    )
+  );
+  const byteLimit = Math.max(
+    2048,
+    Math.floor(Number.isFinite(maxBytes) ? maxBytes : TURBO_MAX_COMPACT_BYTES)
+  );
+  const clipLine = (l) => l.length > 240 ? l.slice(0, 240) : l;
+  const calcBytes = (arr) => Buffer.byteLength(arr.join("\n"), "utf8");
+  if (lines.length <= cap) {
+    const bounded = lines.map(clipLine);
+    if (calcBytes(bounded) <= byteLimit) {
+      return bounded;
+    }
+  }
+  const buildCapped = (budget2) => {
+    const contentBudget = Math.max(2, budget2 - 1);
+    const headKeep = Math.max(1, Math.floor(contentBudget * 0.6));
+    const tailKeep = Math.max(1, contentBudget - headKeep);
+    const omitted = lines.length - headKeep - tailKeep;
+    if (omitted <= 0) {
+      return lines.map(clipLine);
+    }
+    const marker = `... [truncated ${omitted} additional diagnostic lines; query full indexed log via chunkId]`;
+    return [
+      ...lines.slice(0, headKeep).map(clipLine),
+      marker,
+      ...lines.slice(lines.length - tailKeep).map(clipLine)
+    ];
+  };
+  let budget = Math.min(cap, Math.max(3, lines.length - 1));
+  let result = buildCapped(budget);
+  while (calcBytes(result) > byteLimit && budget > 3) {
+    const nextBudget = Math.max(3, Math.floor(budget * 0.75));
+    if (nextBudget >= budget) break;
+    budget = nextBudget;
+    result = buildCapped(budget);
+  }
+  return result;
+}
+function compactTestOutputLines(cleanedLines, maxLines = TURBO_DEFAULT_MAX_COMPACT_LINES) {
+  const out = [];
+  let passingRun = [];
+  let noiseRun = [];
+  let inFailureBlock = false;
+  let failureBlankStreak = 0;
+  const flushPassing = () => {
+    if (passingRun.length === 0) return;
+    if (passingRun.length === 1) {
+      out.push(passingRun[0].slice(0, 240));
+    } else {
+      out.push(`... [collapsed ${passingRun.length} passing test lines]`);
+    }
+    passingRun = [];
+  };
+  const flushNoise = () => {
+    if (noiseRun.length === 0) return;
+    if (noiseRun.length <= 2) {
+      for (const l of noiseRun) out.push(l.slice(0, 240));
+    } else {
+      out.push(`... [collapsed ${noiseRun.length} verbose log lines]`);
+    }
+    noiseRun = [];
+  };
+  for (let i = 0; i < cleanedLines.length; i += 1) {
+    const line = cleanedLines[i];
+    const probe = line.length > 512 ? line.slice(0, 512) : line;
+    const trimmed = probe.trim();
+    if (TEST_SUMMARY_LINE_RE.test(probe)) {
+      flushPassing();
+      flushNoise();
+      inFailureBlock = false;
+      failureBlankStreak = 0;
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (TEST_FAIL_START_RE.test(probe)) {
+      flushPassing();
+      flushNoise();
+      inFailureBlock = true;
+      failureBlankStreak = 0;
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (inFailureBlock) {
+      if (TEST_PASS_LINE_RE.test(probe)) {
+        inFailureBlock = false;
+        failureBlankStreak = 0;
+        passingRun.push(line);
+        continue;
+      }
+      if (!trimmed) {
+        failureBlankStreak += 1;
+        if (failureBlankStreak <= 2) {
+          out.push("");
+        } else {
+          inFailureBlock = false;
+        }
+        continue;
+      }
+      if (TEST_VERBOSE_NOISE_RE.test(probe) && !ERROR_LINE_RE.test(probe)) {
+        inFailureBlock = false;
+        failureBlankStreak = 0;
+        noiseRun.push(line);
+        continue;
+      }
+      failureBlankStreak = 0;
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (TEST_PASS_LINE_RE.test(probe)) {
+      flushNoise();
+      passingRun.push(line);
+      continue;
+    }
+    if (!trimmed) {
+      if (passingRun.length === 0 && noiseRun.length === 0 && out.length > 0 && out[out.length - 1] !== "") {
+        out.push("");
+      }
+      continue;
+    }
+    if (ERROR_LINE_RE.test(probe) || WARN_LINE_RE.test(probe) || TEST_STACK_OR_DIFF_RE.test(probe)) {
+      flushPassing();
+      flushNoise();
+      if (ERROR_LINE_RE.test(probe)) {
+        inFailureBlock = true;
+        failureBlankStreak = 0;
+      }
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (i < 3) {
+      flushPassing();
+      flushNoise();
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (TEST_VERBOSE_NOISE_RE.test(probe)) {
+      flushPassing();
+      noiseRun.push(line);
+      continue;
+    }
+    if (passingRun.length > 0) {
+      flushPassing();
+    }
+    noiseRun.push(line);
+  }
+  flushPassing();
+  flushNoise();
+  return capCompactedLines(out, maxLines);
+}
+function compactBuildOutputLines(cleanedLines, maxLines = TURBO_DEFAULT_MAX_COMPACT_LINES) {
+  const out = [];
+  let noiseRun = [];
+  let diagFollowRemaining = 0;
+  const flushNoise = () => {
+    if (noiseRun.length === 0) return;
+    if (noiseRun.length === 1) {
+      out.push(noiseRun[0].slice(0, 240));
+    } else {
+      out.push(`... [collapsed ${noiseRun.length} build progress lines]`);
+    }
+    noiseRun = [];
+  };
+  for (let i = 0; i < cleanedLines.length; i += 1) {
+    const line = cleanedLines[i];
+    const probe = line.length > 512 ? line.slice(0, 512) : line;
+    const trimmed = probe.trim();
+    const isErrorOrWarn = ERROR_LINE_RE.test(probe) || WARN_LINE_RE.test(probe) || /^\s*\d+:\d+\s+(?:error|warning)\b/i.test(probe) || BUILD_FILE_LOC_RE.test(probe) && !BUILD_NOISE_LINE_RE.test(probe);
+    if (isErrorOrWarn) {
+      flushNoise();
+      out.push(line.slice(0, 240));
+      diagFollowRemaining = 3;
+      continue;
+    }
+    if (diagFollowRemaining > 0) {
+      if (trimmed && (BUILD_DIAG_CONTEXT_RE.test(probe) || /^\s{2,}\S/.test(probe)) && !BUILD_NOISE_LINE_RE.test(probe)) {
+        flushNoise();
+        out.push(line.slice(0, 240));
+        diagFollowRemaining -= 1;
+        continue;
+      }
+      diagFollowRemaining = 0;
+    }
+    if (BUILD_SUMMARY_LINE_RE.test(probe)) {
+      flushNoise();
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (BUILD_NOISE_LINE_RE.test(probe)) {
+      noiseRun.push(line);
+      continue;
+    }
+    if (!trimmed) {
+      if (noiseRun.length === 0 && out.length > 0 && out[out.length - 1] !== "") {
+        out.push("");
+      }
+      continue;
+    }
+    if (i < 2 || i >= cleanedLines.length - 3) {
+      flushNoise();
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    noiseRun.push(line);
+  }
+  flushNoise();
+  return capCompactedLines(out, maxLines);
+}
+function extractGitDiffPath(diffHeaderLine) {
+  const m = /^diff --git\s+"?a\/(.+?)"?\s+"?b\/(.+?)"?\s*$/.exec(diffHeaderLine);
+  if (m) return m[2];
+  return diffHeaderLine;
+}
+function compactGitOutputLines(cleanedLines, maxLines = TURBO_DEFAULT_MAX_COMPACT_LINES) {
+  const hasDiff = cleanedLines.some((l) => l.startsWith("diff --git "));
+  if (!hasDiff) {
+    const out2 = [];
+    let listRun = [];
+    const flushList = () => {
+      if (listRun.length === 0) return;
+      if (listRun.length <= 20) {
+        for (const l of listRun) out2.push(l.slice(0, 240));
+      } else {
+        for (const l of listRun.slice(0, 12)) out2.push(l.slice(0, 240));
+        out2.push(`... [collapsed ${listRun.length - 16} git file status lines]`);
+        for (const l of listRun.slice(-4)) out2.push(l.slice(0, 240));
+      }
+      listRun = [];
+    };
+    for (const line of cleanedLines) {
+      if (/^\s*(?:modified|new file|deleted|renamed|untracked):\s+/.test(line) || /^\t\S/.test(line)) {
+        listRun.push(line);
+      } else {
+        flushList();
+        out2.push(line.slice(0, 240));
+      }
+    }
+    flushList();
+    return capCompactedLines(out2, maxLines);
+  }
+  const out = [];
+  const preamble = [];
+  const blocks = [];
+  let current = null;
+  let inBody = false;
+  for (const line of cleanedLines) {
+    if (line.startsWith("diff --git ")) {
+      current = {
+        headerLine: line,
+        filePath: extractGitDiffPath(line),
+        metaLines: [],
+        bodyLines: []
+      };
+      blocks.push(current);
+      inBody = false;
+      continue;
+    }
+    if (!current) {
+      preamble.push(line);
+      continue;
+    }
+    if (!inBody && (line.startsWith("index ") || line.startsWith("--- ") || line.startsWith("+++ ") || line.startsWith("new file mode") || line.startsWith("deleted file mode") || line.startsWith("old mode") || line.startsWith("new mode") || line.startsWith("similarity index") || line.startsWith("rename from") || line.startsWith("rename to") || line.startsWith("Binary files"))) {
+      current.metaLines.push(line);
+    } else {
+      inBody = true;
+      current.bodyLines.push(line);
+    }
+  }
+  for (const line of preamble.slice(0, 25)) {
+    out.push(line.slice(0, 240));
+  }
+  if (preamble.length > 25) {
+    out.push(`... [collapsed ${preamble.length - 25} git preamble lines]`);
+  }
+  for (let bIdx = 0; bIdx < blocks.length; bIdx += 1) {
+    const block = blocks[bIdx];
+    out.push(block.headerLine.slice(0, 240));
+    for (const m of block.metaLines) {
+      out.push(m.slice(0, 240));
+    }
+    if (block.bodyLines.length === 0) continue;
+    let added = 0;
+    let removed = 0;
+    for (const l of block.bodyLines) {
+      if (l.startsWith("+") && !l.startsWith("+++")) added += 1;
+      else if (l.startsWith("-") && !l.startsWith("---")) removed += 1;
+    }
+    const isLockOrGenerated = LOCK_OR_GENERATED_PATH_RE.test(block.filePath);
+    if (isLockOrGenerated || block.bodyLines.length > 200 || bIdx >= 35) {
+      const kindLabel = isLockOrGenerated ? "lockfile/generated diff" : "large file diff";
+      out.push(`... [collapsed ${kindLabel}: ${block.bodyLines.length} lines (+${added} / -${removed})]`);
+      continue;
+    }
+    const hunks = [];
+    let currentHunk = [];
+    for (const l of block.bodyLines) {
+      if (l.startsWith("@@ ")) {
+        if (currentHunk.length > 0) hunks.push(currentHunk);
+        currentHunk = [l];
+      } else {
+        currentHunk.push(l);
+      }
+    }
+    if (currentHunk.length > 0) hunks.push(currentHunk);
+    for (const hunk of hunks) {
+      if (hunk.length <= 36) {
+        for (const l of hunk) out.push(l.slice(0, 240));
+      } else {
+        const keepHead = 12;
+        const keepTail = 6;
+        const middle = hunk.slice(keepHead, hunk.length - keepTail);
+        let midAdd = 0;
+        let midDel = 0;
+        for (const ml of middle) {
+          if (ml.startsWith("+")) midAdd += 1;
+          else if (ml.startsWith("-")) midDel += 1;
+        }
+        for (const l of hunk.slice(0, keepHead)) out.push(l.slice(0, 240));
+        out.push(`... [collapsed ${middle.length} hunk lines (+${midAdd} / -${midDel})]`);
+        for (const l of hunk.slice(-keepTail)) out.push(l.slice(0, 240));
+      }
+    }
+  }
+  return capCompactedLines(out, maxLines);
+}
+var CompactedChunkStore = class {
+  entries = /* @__PURE__ */ new Map();
+  maxEntries;
+  totalCompactions = 0;
+  totalSavedTokens = 0;
+  totalRawBytes = 0;
+  constructor(maxEntries = TURBO_MAX_COMPACTED_CHUNKS) {
+    this.maxEntries = Math.max(1, maxEntries);
+  }
+  compact(dataDir, label, rawText, opts = {}) {
+    const safeLabel = (label || "output").replace(/[\r\n\t\x00-\x1f]/g, " ").trim().slice(0, 80) || "output";
+    const raw = typeof rawText === "string" ? rawText : String(rawText ?? "");
+    const rawLines = raw.split(/\r?\n/);
+    const lines = rawLines.map(cleanLogLine);
+    const totalLines = lines.length;
+    const linesBefore = totalLines;
+    const rawBytes = Buffer.byteLength(raw, "utf8");
+    const estimatedRawTokens = Math.ceil(raw.length / 4);
+    const headCount = Math.max(1, Math.min(opts.headLines ?? 12, 50));
+    const tailCount = Math.max(1, Math.min(opts.tailLines ?? 15, 50));
+    const maxErrorLines = Math.max(1, Math.min(opts.maxErrorLines ?? 20, 60));
+    const maxCompactedLines = typeof opts.maxErrorLines === "number" && Number.isFinite(opts.maxErrorLines) ? Math.max(
+      TURBO_MIN_COMPACT_LINES,
+      Math.min(Math.floor(opts.maxErrorLines), TURBO_MAX_COMPACT_LINES)
+    ) : TURBO_DEFAULT_MAX_COMPACT_LINES;
+    const chunkLines = Math.max(10, Math.min(opts.chunkLines ?? 40, 200));
+    const requestedPreset = opts.preset ?? "auto";
+    const detectedPreset = requestedPreset === "auto" ? detectOutputPreset(raw) : requestedPreset;
+    const diagMap = /* @__PURE__ */ new Map();
+    let errorCount = 0;
+    let warningCount = 0;
+    for (let i = 0; i < lines.length; i += 1) {
+      const text = lines[i].trim();
+      if (!text) continue;
+      let severity = null;
+      if (ERROR_LINE_RE.test(text)) {
+        severity = "error";
+        errorCount += 1;
+      } else if (WARN_LINE_RE.test(text)) {
+        severity = "warning";
+        warningCount += 1;
+      }
+      if (!severity) continue;
+      const key = `${severity}:${normalizeDiagKey(text)}`;
+      const existing = diagMap.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        diagMap.set(key, {
+          line: i + 1,
+          severity,
+          count: 1,
+          text: text.slice(0, 180)
+        });
+      }
+    }
+    const diagnostics = Array.from(diagMap.values()).sort((a, b) => {
+      if (a.severity !== b.severity) return a.severity === "error" ? -1 : 1;
+      if (b.count !== a.count) return b.count - a.count;
+      return a.line - b.line;
+    }).slice(0, maxErrorLines);
+    const bodySections = [];
+    if (detectedPreset === "test") {
+      bodySections.push(...compactTestOutputLines(lines, maxCompactedLines));
+    } else if (detectedPreset === "build") {
+      bodySections.push(...compactBuildOutputLines(lines, maxCompactedLines));
+    } else if (detectedPreset === "git") {
+      bodySections.push(...compactGitOutputLines(lines, maxCompactedLines));
+    } else {
+      const headSlice = lines.slice(0, Math.min(headCount, totalLines));
+      const tailStart = Math.max(headSlice.length, totalLines - tailCount);
+      const tailSlice = tailStart < totalLines ? lines.slice(tailStart) : [];
+      const omittedMid = Math.max(0, tailStart - headSlice.length);
+      if (diagnostics.length > 0) {
+        bodySections.push("--- Errors & Warnings (aggregated) ---");
+        for (const d of diagnostics) {
+          const repeat = d.count > 1 ? ` (x${d.count})` : "";
+          bodySections.push(`[${d.severity.toUpperCase()} L${d.line}]${repeat} ${d.text}`);
+        }
+      }
+      bodySections.push(`--- Head (L1-L${headSlice.length}) ---`);
+      bodySections.push(
+        headSlice.map((l, idx) => `${idx + 1} | ${l.slice(0, 220)}`).join("\n")
+      );
+      if (omittedMid > 0) {
+        bodySections.push(`... (${omittedMid} middle lines indexed in memory; query via chunkId) ...`);
+      }
+      if (tailSlice.length > 0) {
+        bodySections.push(`--- Tail (L${tailStart + 1}-L${totalLines}) ---`);
+        bodySections.push(
+          tailSlice.map((l, idx) => `${tailStart + idx + 1} | ${l.slice(0, 220)}`).join("\n")
+        );
+      }
+    }
+    const buildSummary = (pct) => {
+      const header = `[Turbo Compact] ${safeLabel} [preset=${detectedPreset}, saved ${pct}%] \u2014 ${totalLines} lines, ${rawBytes} bytes (~${estimatedRawTokens} tokens), errors=${errorCount}, warnings=${warningCount}`;
+      return [header, ...bodySections].join("\n");
+    };
+    const draftText = buildSummary(0);
+    const draftBytes = Buffer.byteLength(draftText, "utf8");
+    const draftRatio = rawBytes > 0 ? Number((1 - Math.min(draftBytes, rawBytes) / rawBytes).toFixed(3)) : 0;
+    const draftSavedPct = Math.max(0, Math.min(100, Math.round(draftRatio * 100)));
+    let summaryText = buildSummary(draftSavedPct);
+    let summaryBytes = Buffer.byteLength(summaryText, "utf8");
+    let compressionRatio = rawBytes > 0 ? Number((1 - Math.min(summaryBytes, rawBytes) / rawBytes).toFixed(3)) : 0;
+    let savedPercent = Math.max(0, Math.min(100, Math.round(compressionRatio * 100)));
+    if (savedPercent !== draftSavedPct) {
+      summaryText = buildSummary(savedPercent);
+      summaryBytes = Buffer.byteLength(summaryText, "utf8");
+      compressionRatio = rawBytes > 0 ? Number((1 - Math.min(summaryBytes, rawBytes) / rawBytes).toFixed(3)) : 0;
+      savedPercent = Math.max(0, Math.min(100, Math.round(compressionRatio * 100)));
+    }
+    const linesAfter = summaryText.split(/\r?\n/).length;
+    const estimatedSummaryTokens = Math.ceil(summaryText.length / 4);
+    const estimatedSavedTokens = Math.max(0, estimatedRawTokens - estimatedSummaryTokens);
+    const chunkCount = Math.max(1, Math.ceil(totalLines / chunkLines));
+    const chunkId = `chk_${Date.now().toString(36)}_${import_node_crypto.default.randomBytes(3).toString("hex")}`;
+    const createdAt = (/* @__PURE__ */ new Date()).toISOString();
+    const meta = {
+      chunkId,
+      label: safeLabel,
+      createdAt,
+      totalLines,
+      rawBytes,
+      estimatedRawTokens,
+      estimatedSummaryTokens,
+      estimatedSavedTokens,
+      chunkCount,
+      errorCount,
+      warningCount,
+      detectedPreset,
+      savedPercent
+    };
+    if (this.entries.size >= this.maxEntries) {
+      const oldestKey = this.entries.keys().next().value;
+      if (oldestKey !== void 0) {
+        this.entries.delete(oldestKey);
+      }
+    }
+    this.entries.set(chunkId, { meta, lines, chunkLines, summaryText });
+    this.totalCompactions += 1;
+    this.totalSavedTokens += estimatedSavedTokens;
+    this.totalRawBytes += rawBytes;
+    if (opts.persistStats && dataDir) {
+      try {
+        atomicWriteJson(import_node_path5.default.join(dataDir, "stats.json"), {
+          schemaVersion: 1,
+          totalCompactions: this.totalCompactions,
+          totalSavedTokens: this.totalSavedTokens,
+          totalRawBytes: this.totalRawBytes,
+          updatedAt: createdAt
+        });
+      } catch {
+      }
+    }
+    return {
+      ...meta,
+      summaryBytes,
+      compressionRatio,
+      diagnostics,
+      summaryText,
+      detectedPreset,
+      linesBefore,
+      linesAfter,
+      savedPercent
+    };
+  }
+  query(chunkId, query, limit = 10) {
+    const cleanQuery = (query || "").trim();
+    const entry = this.entries.get(chunkId);
+    if (!entry) {
+      return {
+        found: false,
+        chunkId,
+        query: cleanQuery,
+        totalHits: 0,
+        matches: []
+      };
+    }
+    this.entries.delete(chunkId);
+    this.entries.set(chunkId, entry);
+    const maxHits = Math.max(1, Math.min(limit, 50));
+    const tokens = cleanQuery.toLowerCase().split(/\s+/).filter(Boolean);
+    const matches = [];
+    let totalHits = 0;
+    for (let i = 0; i < entry.lines.length; i += 1) {
+      const lower = entry.lines[i].toLowerCase();
+      const matched = tokens.length === 0 ? true : tokens.every((tok) => lower.includes(tok));
+      if (!matched) continue;
+      totalHits += 1;
+      if (matches.length < maxHits) {
+        const ctxStart = Math.max(0, i - 1);
+        const ctxEnd = Math.min(entry.lines.length - 1, i + 1);
+        const snippet = entry.lines.slice(ctxStart, ctxEnd + 1).map((l, offset) => `${ctxStart + offset + 1} | ${l.slice(0, 220)}`).join("\n");
+        matches.push({
+          chunkIndex: Math.floor(i / entry.chunkLines),
+          startLine: ctxStart + 1,
+          endLine: ctxEnd + 1,
+          matchedLine: i + 1,
+          snippet
+        });
+      }
+    }
+    return {
+      found: true,
+      chunkId,
+      label: entry.meta.label,
+      totalLines: entry.meta.totalLines,
+      query: cleanQuery,
+      totalHits,
+      matches
+    };
+  }
+  listChunks() {
+    return Array.from(this.entries.values()).map((e) => ({ ...e.meta })).reverse();
+  }
+  getStats() {
+    return {
+      indexedChunks: this.entries.size,
+      maxChunks: this.maxEntries,
+      totalCompactions: this.totalCompactions,
+      totalSavedTokens: this.totalSavedTokens,
+      totalRawBytes: this.totalRawBytes
+    };
+  }
+  clear() {
+    this.entries.clear();
+  }
+};
+var defaultCompactedChunkStore = new CompactedChunkStore(TURBO_MAX_COMPACTED_CHUNKS);
+
+// src/modules/turbo/auto-rtk.ts
+var PREFS_FILENAME = "prefs.json";
+var LAST_RAW_LOG_FILENAME = "last-raw.log";
+var MAX_PREFS_BYTES = 64 * 1024;
+var MAX_HOTSPOTS_BYTES = 256 * 1024;
+var MAX_RAW_LOG_BYTES = 128 * 1024;
+var MAX_COMMAND_LENGTH = 512;
+var MAX_COMMAND_ARGS = 24;
+var MAX_PAYLOAD_B64_LENGTH = 4096;
+var COMPACT_RUN_TIMEOUT_MS = 12e4;
+var COMPACT_RUN_MAX_BUFFER_BYTES = 8 * 1024 * 1024;
+var FAILURE_TAIL_MIN_LINES = 60;
+var SHELL_META_HARD_DENY_RE = /[;&|`$><\r\n()\\\x00-\x1f\x7f]/;
+var SAFE_EXECUTABLE_RE = /^[a-z][a-z0-9-]*$/;
+var SAFE_B64URL_RE = /^[A-Za-z0-9_-]+$/;
+var ENV_ASSIGN_TOKEN_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
+var FORBIDDEN_SHELL_EXECUTABLES2 = /* @__PURE__ */ new Set([
+  "eval",
+  "sh",
+  "bash",
+  "zsh",
+  "dash",
+  "ksh",
+  "fish",
+  "cmd",
+  "powershell",
+  "pwsh",
+  "env",
+  "exec",
+  "source",
+  "node",
+  "agy-nov"
+]);
+var GIT_ALLOWED_SUBCOMMANDS = /* @__PURE__ */ new Set(["status", "diff", "log", "branch", "show"]);
+var GIT_DANGEROUS_SHORT_FLAGS = /* @__PURE__ */ new Set(["-c", "-C", "-o", "-O"]);
+var GIT_DANGEROUS_LONG_FLAG_PREFIXES = [
+  "--config",
+  "--config-env",
+  "--upload-pack",
+  "--receive-pack",
+  "--exec",
+  "--exec-path",
+  "--ext-diff",
+  "--external-diff",
+  "--textconv",
+  "--no-index",
+  "--git-dir",
+  "--work-tree",
+  "--namespace",
+  "--super-prefix",
+  "--output",
+  "--paginate",
+  "--pager",
+  "--difftool",
+  "--alias"
+];
+var GIT_BRANCH_REQUIRED_VALUE_FLAGS = /* @__PURE__ */ new Set([
+  "--contains",
+  "--no-contains",
+  "--format",
+  "--sort",
+  "--points-at"
+]);
+var GIT_BRANCH_OPTIONAL_VALUE_FLAGS = /* @__PURE__ */ new Set([
+  "--merged",
+  "--no-merged",
+  "--color",
+  "--abbrev"
+]);
+var GIT_BRANCH_READONLY_BOOL_FLAGS = /* @__PURE__ */ new Set([
+  "-a",
+  "--all",
+  "-r",
+  "--remotes",
+  "-v",
+  "-vv",
+  "--verbose",
+  "-l",
+  "--list",
+  "--show-current",
+  "--no-color",
+  "--no-abbrev",
+  "-q",
+  "--quiet",
+  "--column",
+  "--no-column",
+  "-i",
+  "--ignore-case"
+]);
+var NPM_ALLOWED_RUN_SCRIPTS = /* @__PURE__ */ new Set(["test", "build", "typecheck", "lint"]);
+var NPM_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "--script-shell",
+  "--prefix",
+  "--userconfig",
+  "--globalconfig",
+  "--cache",
+  "--registry",
+  "--eval",
+  "-e",
+  "-C",
+  "--cwd",
+  "--before",
+  "--shell"
+]);
+var PNPM_YARN_ALLOWED_SCRIPTS = /* @__PURE__ */ new Set(["test", "build", "typecheck", "lint"]);
+var PNPM_YARN_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "--config",
+  "--dir",
+  "-C",
+  "--prefix",
+  "--cwd",
+  "--script-shell",
+  "--registry",
+  "--global",
+  "-g",
+  "--shell"
+]);
+var NPX_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "-c",
+  "--call",
+  "--package",
+  "-p",
+  "--shell",
+  "-y",
+  "--yes"
+]);
+var TSC_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "-b",
+  "--build",
+  "-p",
+  "--project",
+  "--outDir",
+  "--outFile",
+  "--declaration",
+  "--declarationDir",
+  "--emitDeclarationOnly",
+  "--tsBuildInfoFile",
+  "--generateTrace",
+  "--listEmittedFiles",
+  "-w",
+  "--watch",
+  "--init"
+]);
+var VITEST_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "-w",
+  "--watch",
+  "--ui",
+  "-c",
+  "--config",
+  "--configLoader",
+  "--config-loader",
+  "-r",
+  "--root",
+  "--dir",
+  "--outputFile",
+  "--output-file",
+  "--reporter",
+  "--reporters",
+  "--setupFiles",
+  "--setup-files",
+  "--globalSetup",
+  "--global-setup",
+  "--execArgv",
+  "--exec-argv",
+  "--environment",
+  "--browser",
+  "-u",
+  "--update"
+]);
+var JEST_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "-w",
+  "--watch",
+  "--watchAll",
+  "--watch-all",
+  "-u",
+  "--updateSnapshot",
+  "--update-snapshot",
+  "-c",
+  "--config",
+  "--outputFile",
+  "--output-file",
+  "--reporters",
+  "--setupFiles",
+  "--setup-files",
+  "--setupFilesAfterEnv",
+  "--setup-files-after-env",
+  "--runner",
+  "--testRunner",
+  "--test-runner",
+  "--testEnvironment",
+  "--test-environment",
+  "--resolver",
+  "--transform",
+  "--preset",
+  "--rootDir",
+  "--root-dir",
+  "--roots",
+  "--projects",
+  "--watchPlugins",
+  "--watch-plugins",
+  "--globalSetup",
+  "--global-setup",
+  "--globalTeardown",
+  "--global-teardown"
+]);
+var ESLINT_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "--fix",
+  "--fix-dry-run",
+  "--fix-type",
+  "-o",
+  "--output-file",
+  "-c",
+  "--config",
+  "-f",
+  "--format",
+  "--parser",
+  "--plugin",
+  "--rulesdir",
+  "--resolve-plugins-relative-to",
+  "--cache",
+  "--cache-location",
+  "--cache-file"
+]);
+var PYTEST_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "-c",
+  "--confcutdir",
+  "--rootdir",
+  "-o",
+  "--override-ini",
+  "-p",
+  "--basetemp",
+  "--junitxml",
+  "--junit-xml",
+  "--log-file",
+  "--resultlog",
+  "--result-log",
+  "--cache-clear",
+  "--import-mode"
+]);
+var CARGO_ALLOWED_SUBCOMMANDS = /* @__PURE__ */ new Set(["test", "check", "build"]);
+var CARGO_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "--config",
+  "-Z",
+  "--target-dir",
+  "--manifest-path",
+  "--out-dir"
+]);
+var GO_ALLOWED_SUBCOMMANDS = /* @__PURE__ */ new Set(["test", "vet"]);
+var GO_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  "-exec",
+  "-toolexec",
+  "-vettool",
+  "-ldflags",
+  "-gcflags",
+  "-gccgoflags",
+  "-asmflags",
+  "-pkgdir",
+  "-outputdir",
+  "-o",
+  "-c",
+  "-C",
+  "-cpuprofile",
+  "-memprofile",
+  "-coverprofile",
+  "-blockprofile",
+  "-mutexprofile",
+  "-trace",
+  "-modfile",
+  "-overlay",
+  "-test.cpuprofile",
+  "-test.memprofile",
+  "-test.coverprofile",
+  "-test.blockprofile",
+  "-test.mutexprofile",
+  "-test.trace",
+  "-test.outputdir"
+]);
+var PASSTHROUGH_ALL_DANGEROUS_FLAGS = /* @__PURE__ */ new Set([
+  ...NPM_DANGEROUS_FLAGS,
+  ...PNPM_YARN_DANGEROUS_FLAGS,
+  ...TSC_DANGEROUS_FLAGS,
+  ...VITEST_DANGEROUS_FLAGS,
+  ...JEST_DANGEROUS_FLAGS,
+  ...ESLINT_DANGEROUS_FLAGS,
+  ...PYTEST_DANGEROUS_FLAGS,
+  ...CARGO_DANGEROUS_FLAGS,
+  ...GO_DANGEROUS_FLAGS,
+  ...[...GO_DANGEROUS_FLAGS].map((flag) => flag.startsWith("-") && !flag.startsWith("--") ? `-${flag}` : flag),
+  "--exec",
+  "-e",
+  "--eval",
+  "-r",
+  "--require",
+  "--import",
+  "--loader"
+]);
+function isPlatformSystemRootSymlink(segmentPath) {
+  return process.platform === "darwin" && /^\/(?:var|tmp|etc)$/.test(segmentPath);
+}
+function hasUnsafeSymlinkAncestor(targetPath) {
+  let cur = import_node_path6.default.resolve(targetPath);
+  const root = import_node_path6.default.parse(cur).root;
+  while (true) {
+    if (!isPlatformSystemRootSymlink(cur)) {
+      try {
+        const st = import_node_fs4.default.lstatSync(cur);
+        if (st.isSymbolicLink()) return true;
+      } catch (err) {
+        const code = err?.code;
+        if (code !== "ENOENT") return true;
+      }
+    }
+    if (cur === root) return false;
+    const parent = import_node_path6.default.dirname(cur);
+    if (parent === cur) return false;
+    cur = parent;
+  }
+}
+function isWithinRealBase(childReal, baseReal) {
+  if (childReal === baseReal) return true;
+  const prefix = baseReal.endsWith(import_node_path6.default.sep) ? baseReal : `${baseReal}${import_node_path6.default.sep}`;
+  return childReal.startsWith(prefix);
+}
+function resolveSafeExistingDir(dirPath) {
+  if (!dirPath || typeof dirPath !== "string" || dirPath.includes("\0")) return null;
+  const resolved = import_node_path6.default.resolve(dirPath);
+  if (hasUnsafeSymlinkAncestor(resolved)) return null;
+  try {
+    const st = import_node_fs4.default.lstatSync(resolved);
+    if (st.isSymbolicLink() || !st.isDirectory()) return null;
+    return import_node_fs4.default.realpathSync(resolved);
+  } catch {
+    return null;
+  }
+}
+function ensureSafePrivateDir(dirPath) {
+  if (!dirPath || typeof dirPath !== "string" || dirPath.includes("\0")) {
+    throw new Error("Invalid directory path");
+  }
+  const resolved = import_node_path6.default.resolve(dirPath);
+  if (hasUnsafeSymlinkAncestor(resolved)) {
+    throw new Error(`Refused symlink directory path: ${dirPath}`);
+  }
+  import_node_fs4.default.mkdirSync(resolved, { recursive: true, mode: 448 });
+  const st = import_node_fs4.default.lstatSync(resolved);
+  if (st.isSymbolicLink() || !st.isDirectory()) {
+    throw new Error(`Refused unsafe target directory: ${dirPath}`);
+  }
+  try {
+    import_node_fs4.default.chmodSync(resolved, 448);
+  } catch {
+  }
+  return import_node_fs4.default.realpathSync(resolved);
+}
+function readSafeJsonFile(dirPath, fileName, maxBytes) {
+  const realDir = resolveSafeExistingDir(dirPath);
+  if (!realDir) return null;
+  const filePath = import_node_path6.default.join(realDir, fileName);
+  try {
+    const st = import_node_fs4.default.lstatSync(filePath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size > maxBytes) {
+      return null;
+    }
+    const realFile = import_node_fs4.default.realpathSync(filePath);
+    if (!isWithinRealBase(realFile, realDir)) {
+      return null;
+    }
+    return JSON.parse(import_node_fs4.default.readFileSync(realFile, "utf8"));
+  } catch {
+    return null;
+  }
+}
+function atomicWritePrivateFile(dirPath, fileName, content) {
+  const realDir = ensureSafePrivateDir(dirPath);
+  const targetPath = import_node_path6.default.join(realDir, fileName);
+  try {
+    const existing = import_node_fs4.default.lstatSync(targetPath);
+    if (existing.isSymbolicLink() || !existing.isFile()) {
+      throw new Error(`Refused to overwrite symlink or non-regular file: ${fileName}`);
+    }
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      throw err;
+    }
+  }
+  const nonce = import_node_crypto2.default.randomBytes(4).toString("hex");
+  const tmpPath = import_node_path6.default.join(realDir, `.${fileName}.tmp.${process.pid}.${Date.now()}.${nonce}`);
+  try {
+    import_node_fs4.default.writeFileSync(tmpPath, content, { encoding: "utf8", mode: 384, flag: "wx" });
+    try {
+      import_node_fs4.default.chmodSync(tmpPath, 384);
+    } catch {
+    }
+    import_node_fs4.default.renameSync(tmpPath, targetPath);
+    return targetPath;
+  } catch (err) {
+    try {
+      import_node_fs4.default.unlinkSync(tmpPath);
+    } catch {
+    }
+    throw err;
+  }
+}
+function createDefaultTurboPrefs() {
+  return {
+    schemaVersion: 1,
+    autoRtk: false,
+    updatedAt: ""
+  };
+}
+function loadTurboPrefsReadOnly(moduleDataDir) {
+  const raw = readSafeJsonFile(moduleDataDir, PREFS_FILENAME, MAX_PREFS_BYTES);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return createDefaultTurboPrefs();
+  }
+  const obj = raw;
+  return {
+    schemaVersion: 1,
+    autoRtk: obj.autoRtk === true,
+    updatedAt: typeof obj.updatedAt === "string" ? obj.updatedAt : ""
+  };
+}
+function getFlagName(arg) {
+  const eqIdx = arg.indexOf("=");
+  return eqIdx >= 0 ? arg.slice(0, eqIdx) : arg;
+}
+function matchesDangerousFlag(arg, blocked, caseInsensitive = false, normalizeDoubleDash = false) {
+  let flag = getFlagName(arg);
+  if (normalizeDoubleDash && flag.startsWith("--") && flag.length > 2) {
+    flag = flag.slice(1);
+  }
+  const flagLower = flag.toLowerCase();
+  for (const item of blocked) {
+    if (caseInsensitive ? item.toLowerCase() === flagLower : item === flag) {
+      return true;
+    }
+    if (!normalizeDoubleDash && item.length === 2 && item[0] === "-" && item[1] !== "-") {
+      if (arg.length > 2 && arg[0] === "-" && arg[1] !== "-") {
+        const argShort = arg.slice(0, 2);
+        if (caseInsensitive ? argShort.toLowerCase() === item.toLowerCase() : argShort === item) {
+          return true;
+        }
+        if (/^-[A-Za-z]{2,}$/.test(arg)) {
+          const cluster = caseInsensitive ? arg.slice(1).toLowerCase() : arg.slice(1);
+          const targetChar = caseInsensitive ? item[1].toLowerCase() : item[1];
+          if (cluster.includes(targetChar)) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+function validateGitArgs2(args) {
+  if (args.length === 0) {
+    return { ok: false, reason: "missing git subcommand" };
+  }
+  const sub = args[0];
+  if (!GIT_ALLOWED_SUBCOMMANDS.has(sub)) {
+    return { ok: false, reason: "disallowed git subcommand" };
+  }
+  const rest = args.slice(1);
+  for (const arg of rest) {
+    const flagName = getFlagName(arg);
+    const lowerFlag = flagName.toLowerCase();
+    if (GIT_DANGEROUS_SHORT_FLAGS.has(flagName)) {
+      return { ok: false, reason: `disallowed git flag ${flagName}` };
+    }
+    if (/^-[cCoO].+/.test(arg)) {
+      return { ok: false, reason: `disallowed git short flag ${arg.slice(0, 2)}` };
+    }
+    if (GIT_DANGEROUS_LONG_FLAG_PREFIXES.some(
+      (prefix) => lowerFlag === prefix || lowerFlag.startsWith(`${prefix}=`)
+    )) {
+      return { ok: false, reason: `disallowed git flag ${flagName}` };
+    }
+  }
+  if (sub === "branch") {
+    for (let i = 0; i < rest.length; i += 1) {
+      const arg = rest[i];
+      if (!arg.startsWith("-")) {
+        return { ok: false, reason: "git branch positional argument rejected" };
+      }
+      const eqIdx = arg.indexOf("=");
+      const flagName = eqIdx >= 0 ? arg.slice(0, eqIdx) : arg;
+      if (GIT_BRANCH_READONLY_BOOL_FLAGS.has(arg)) {
+        continue;
+      }
+      if (GIT_BRANCH_OPTIONAL_VALUE_FLAGS.has(flagName)) {
+        continue;
+      }
+      if (GIT_BRANCH_REQUIRED_VALUE_FLAGS.has(flagName)) {
+        if (eqIdx < 0) {
+          if (i + 1 < rest.length && !rest[i + 1].startsWith("-")) {
+            i += 1;
+          } else {
+            return { ok: false, reason: `git branch ${flagName} missing required value` };
+          }
+        }
+        continue;
+      }
+      return { ok: false, reason: `disallowed git branch flag ${arg}` };
+    }
+  }
+  return {
+    ok: true,
+    executable: "git",
+    args: [...args],
+    preset: "git",
+    commandPrefix: `git ${sub}`
+  };
+}
+function validateSafeTokens(executable, args) {
+  if (typeof executable !== "string" || !Array.isArray(args)) {
+    return { ok: false, reason: "invalid token types" };
+  }
+  if (args.length > MAX_COMMAND_ARGS) {
+    return { ok: false, reason: "too many arguments" };
+  }
+  let totalLen = executable.length;
+  if (!SAFE_EXECUTABLE_RE.test(executable) || FORBIDDEN_SHELL_EXECUTABLES2.has(executable)) {
+    return { ok: false, reason: "disallowed executable" };
+  }
+  if (ENV_ASSIGN_TOKEN_RE.test(executable) || SHELL_META_HARD_DENY_RE.test(executable)) {
+    return { ok: false, reason: "unsafe executable token" };
+  }
+  for (const arg of args) {
+    if (typeof arg !== "string" || arg.length === 0) {
+      return { ok: false, reason: "invalid argument token" };
+    }
+    if (SHELL_META_HARD_DENY_RE.test(arg)) {
+      return { ok: false, reason: "unsafe argument metacharacter" };
+    }
+    totalLen += 1 + arg.length;
+    if (totalLen > MAX_COMMAND_LENGTH) {
+      return { ok: false, reason: "command exceeds max length" };
+    }
+  }
+  if (executable === "git") {
+    return validateGitArgs2(args);
+  }
+  if (executable === "npm") {
+    if (args.length === 0) return { ok: false, reason: "missing npm subcommand" };
+    const startIdx = args[0] === "run" ? 2 : 1;
+    for (let i = 0; i < args.length; i += 1) {
+      const arg = args[i];
+      if (matchesDangerousFlag(arg, NPM_DANGEROUS_FLAGS, true)) {
+        return { ok: false, reason: `disallowed npm flag ${arg}` };
+      }
+      if (i >= startIdx && arg !== "--" && matchesDangerousFlag(arg, PASSTHROUGH_ALL_DANGEROUS_FLAGS, true)) {
+        return { ok: false, reason: `disallowed npm passthrough flag ${arg}` };
+      }
+    }
+    if (args[0] === "test") {
+      return {
+        ok: true,
+        executable: "npm",
+        args: [...args],
+        preset: "test",
+        commandPrefix: "npm test"
+      };
+    }
+    if (args[0] === "run" && args.length >= 2 && NPM_ALLOWED_RUN_SCRIPTS.has(args[1])) {
+      const script = args[1];
+      return {
+        ok: true,
+        executable: "npm",
+        args: [...args],
+        preset: script === "test" ? "test" : "build",
+        commandPrefix: `npm run ${script}`
+      };
+    }
+    return { ok: false, reason: "disallowed npm subcommand" };
+  }
+  if (executable === "pnpm" || executable === "yarn") {
+    if (args.length === 0 || !PNPM_YARN_ALLOWED_SCRIPTS.has(args[0])) {
+      return { ok: false, reason: `disallowed ${executable} subcommand` };
+    }
+    const rest = args.slice(1);
+    for (let i = 0; i < rest.length; i += 1) {
+      const arg = rest[i];
+      if (matchesDangerousFlag(arg, PNPM_YARN_DANGEROUS_FLAGS, true)) {
+        return { ok: false, reason: `disallowed ${executable} flag ${arg}` };
+      }
+      if (arg !== "--" && matchesDangerousFlag(arg, PASSTHROUGH_ALL_DANGEROUS_FLAGS, true)) {
+        return { ok: false, reason: `disallowed ${executable} passthrough flag ${arg}` };
+      }
+    }
+    return {
+      ok: true,
+      executable,
+      args: [...args],
+      preset: args[0] === "test" ? "test" : "build",
+      commandPrefix: `${executable} ${args[0]}`
+    };
+  }
+  if (executable === "npx") {
+    if (args.length === 0) return { ok: false, reason: "missing npx target" };
+    const tool = args[0];
+    const rest = args.slice(1);
+    for (const arg of rest) {
+      if (matchesDangerousFlag(arg, NPX_DANGEROUS_FLAGS, true)) {
+        return { ok: false, reason: `disallowed npx flag ${arg}` };
+      }
+    }
+    if (tool === "tsc") {
+      let hasNoEmitTrue = false;
+      for (let i = 0; i < rest.length; i += 1) {
+        const arg = rest[i];
+        const lower = arg.toLowerCase();
+        if (lower === "--noemit=false" || lower === "--noemit=0") {
+          return { ok: false, reason: "tsc --noEmit=false is disallowed" };
+        }
+        if (lower === "--noemit") {
+          const next = rest[i + 1]?.toLowerCase();
+          if (next === "false" || next === "0") {
+            return { ok: false, reason: "tsc --noEmit false is disallowed" };
+          }
+          hasNoEmitTrue = true;
+        } else if (lower === "--noemit=true") {
+          hasNoEmitTrue = true;
+        }
+        if (matchesDangerousFlag(arg, TSC_DANGEROUS_FLAGS, true)) {
+          return { ok: false, reason: `disallowed tsc flag ${arg}` };
+        }
+      }
+      if (!hasNoEmitTrue) {
+        return { ok: false, reason: "npx tsc requires --noEmit" };
+      }
+      return {
+        ok: true,
+        executable: "npx",
+        args: [...args],
+        preset: "build",
+        commandPrefix: "npx tsc --noEmit"
+      };
+    }
+    if (tool === "vitest") {
+      for (const arg of rest) {
+        if (matchesDangerousFlag(arg, VITEST_DANGEROUS_FLAGS, true)) {
+          return { ok: false, reason: `disallowed vitest flag ${arg}` };
+        }
+      }
+      return {
+        ok: true,
+        executable: "npx",
+        args: [...args],
+        preset: "test",
+        commandPrefix: "npx vitest"
+      };
+    }
+    if (tool === "jest") {
+      for (const arg of rest) {
+        if (matchesDangerousFlag(arg, JEST_DANGEROUS_FLAGS, true)) {
+          return { ok: false, reason: `disallowed jest flag ${arg}` };
+        }
+      }
+      return {
+        ok: true,
+        executable: "npx",
+        args: [...args],
+        preset: "test",
+        commandPrefix: "npx jest"
+      };
+    }
+    if (tool === "eslint") {
+      for (const arg of rest) {
+        if (matchesDangerousFlag(arg, ESLINT_DANGEROUS_FLAGS, true)) {
+          return { ok: false, reason: `disallowed eslint flag ${arg}` };
+        }
+      }
+      return {
+        ok: true,
+        executable: "npx",
+        args: [...args],
+        preset: "build",
+        commandPrefix: "npx eslint"
+      };
+    }
+    return { ok: false, reason: "disallowed npx tool" };
+  }
+  if (executable === "pytest") {
+    for (const arg of args) {
+      if (matchesDangerousFlag(arg, PYTEST_DANGEROUS_FLAGS, true)) {
+        return { ok: false, reason: `disallowed pytest flag ${arg}` };
+      }
+    }
+    return {
+      ok: true,
+      executable: "pytest",
+      args: [...args],
+      preset: "test",
+      commandPrefix: "pytest"
+    };
+  }
+  if (executable === "cargo") {
+    if (args.length === 0 || !CARGO_ALLOWED_SUBCOMMANDS.has(args[0])) {
+      return { ok: false, reason: "disallowed cargo subcommand" };
+    }
+    for (const arg of args.slice(1)) {
+      if (matchesDangerousFlag(arg, CARGO_DANGEROUS_FLAGS, false)) {
+        return { ok: false, reason: `disallowed cargo flag ${arg}` };
+      }
+    }
+    return {
+      ok: true,
+      executable: "cargo",
+      args: [...args],
+      preset: args[0] === "test" ? "test" : "build",
+      commandPrefix: `cargo ${args[0]}`
+    };
+  }
+  if (executable === "go") {
+    if (args.length === 0 || !GO_ALLOWED_SUBCOMMANDS.has(args[0])) {
+      return { ok: false, reason: "disallowed go subcommand" };
+    }
+    for (const arg of args.slice(1)) {
+      if (matchesDangerousFlag(arg, GO_DANGEROUS_FLAGS, false, true)) {
+        return { ok: false, reason: `disallowed go flag ${arg}` };
+      }
+    }
+    return {
+      ok: true,
+      executable: "go",
+      args: [...args],
+      preset: args[0] === "test" ? "test" : "build",
+      commandPrefix: `go ${args[0]}`
+    };
+  }
+  return { ok: false, reason: "command not in Auto-RTK whitelist" };
+}
+function stripNestedPrivateBlocksLinear(input) {
+  if (!input.includes("<")) return input;
+  const openTag = "<private";
+  const closeTag = "</private";
+  const chunks = [];
+  let cursor = 0;
+  let i = 0;
+  let depth = 0;
+  const len = input.length;
+  const isAsciiTagMatch = (pos, expected) => {
+    if (pos + expected.length > len) return false;
+    for (let k = 0; k < expected.length; k += 1) {
+      let c = input.charCodeAt(pos + k);
+      if (c >= 65 && c <= 90) c += 32;
+      if (c !== expected.charCodeAt(k)) return false;
+    }
+    return true;
+  };
+  while (i < len) {
+    if (input.charCodeAt(i) === 60) {
+      if (isAsciiTagMatch(i, openTag)) {
+        const after = i + openTag.length;
+        const ch = after < len ? input.charCodeAt(after) : -1;
+        if (ch === 62 || ch === 32 || ch === 9 || ch === 10 || ch === 13 || ch === 47) {
+          const endBracket = input.indexOf(">", after);
+          if (endBracket !== -1) {
+            const selfClosing = input.charCodeAt(endBracket - 1) === 47;
+            if (depth === 0) {
+              if (i > cursor) chunks.push(input.slice(cursor, i));
+              chunks.push("[REDACTED_PRIVATE]");
+            }
+            if (!selfClosing) depth += 1;
+            else if (depth === 0) cursor = endBracket + 1;
+            i = endBracket + 1;
+            continue;
+          }
+        }
+      } else if (depth > 0 && isAsciiTagMatch(i, closeTag)) {
+        const after = i + closeTag.length;
+        const ch = after < len ? input.charCodeAt(after) : -1;
+        if (ch === 62 || ch === 32 || ch === 9 || ch === 10 || ch === 13) {
+          const endBracket = input.indexOf(">", after);
+          if (endBracket !== -1) {
+            depth -= 1;
+            i = endBracket + 1;
+            if (depth === 0) cursor = i;
+            continue;
+          }
+        }
+      }
+    }
+    i += 1;
+  }
+  if (depth === 0 && cursor < len) {
+    chunks.push(input.slice(cursor));
+  }
+  return chunks.join("");
+}
+function stripMultilinePemAndPrivateLinear(input) {
+  let out = stripNestedPrivateBlocksLinear(input);
+  const beginMarker = "-----BEGIN ";
+  if (out.includes(beginMarker)) {
+    const chunks = [];
+    let cur = 0;
+    while (cur < out.length) {
+      const start = out.indexOf(beginMarker, cur);
+      if (start === -1) {
+        chunks.push(out.slice(cur));
+        break;
+      }
+      const headerEnd = out.indexOf("-----", start + beginMarker.length);
+      if (headerEnd === -1) {
+        chunks.push(out.slice(cur));
+        break;
+      }
+      const label = out.slice(start + beginMarker.length, headerEnd);
+      if (!/^[A-Z0-9 _-]{0,48}PRIVATE KEY(?: BLOCK)?$/i.test(label)) {
+        chunks.push(out.slice(cur, headerEnd + 5));
+        cur = headerEnd + 5;
+        continue;
+      }
+      if (start > cur) chunks.push(out.slice(cur, start));
+      chunks.push("[REDACTED_PRIVATE_KEY]");
+      const endPrefix = "-----END ";
+      let endIdx = out.indexOf(endPrefix, headerEnd + 5);
+      let closedAt = -1;
+      while (endIdx !== -1) {
+        const footerEnd = out.indexOf("-----", endIdx + endPrefix.length);
+        if (footerEnd === -1) break;
+        const endLabel = out.slice(endIdx + endPrefix.length, footerEnd);
+        if (/^[A-Z0-9 _-]{0,48}PRIVATE KEY(?: BLOCK)?$/i.test(endLabel)) {
+          closedAt = footerEnd + 5;
+          break;
+        }
+        endIdx = out.indexOf(endPrefix, footerEnd + 5);
+      }
+      cur = closedAt === -1 ? out.length : closedAt;
+    }
+    out = chunks.join("");
+  }
+  return out;
+}
+function stripAnsiEscapeCodes(input) {
+  return input.replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, "").replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "");
+}
+function sliceTailUtf8Bytes(input, maxBytes) {
+  const buf = Buffer.from(input, "utf8");
+  if (buf.length <= maxBytes) return input;
+  let offset = buf.length - maxBytes;
+  while (offset < buf.length && (buf[offset] & 192) === 128) {
+    offset += 1;
+  }
+  const sliced = buf.subarray(offset).toString("utf8");
+  const firstNl = sliced.indexOf("\n");
+  if (firstNl > 0 && firstNl < 256) {
+    return sliced.slice(firstNl + 1);
+  }
+  return sliced;
+}
+function redactRawLogTail(rawText, maxBytes = MAX_RAW_LOG_BYTES) {
+  const cleaned = stripAnsiEscapeCodes(rawText);
+  const windowText = sliceTailUtf8Bytes(cleaned, maxBytes * 2);
+  const blockStripped = stripMultilinePemAndPrivateLinear(windowText);
+  const lines = blockStripped.split(/\r?\n/);
+  const redactedLines = lines.map((line) => line.length === 0 ? "" : redactFeedText(line, 4096));
+  const joined = `${redactedLines.join("\n")}
+`;
+  return sliceTailUtf8Bytes(joined, maxBytes);
+}
+function writeRedactedRawLogIfDataDirExists(rootDataDir, rawOutput) {
+  if (!rootDataDir) return void 0;
+  const realRoot = resolveSafeExistingDir(rootDataDir);
+  if (!realRoot) return void 0;
+  try {
+    const modulesDir = import_node_path6.default.join(realRoot, "modules");
+    const turboDir = import_node_path6.default.join(modulesDir, "turbo");
+    const redactedTail = redactRawLogTail(rawOutput, MAX_RAW_LOG_BYTES);
+    return atomicWritePrivateFile(turboDir, LAST_RAW_LOG_FILENAME, redactedTail);
+  } catch {
+    return void 0;
+  }
+}
+function decodeAndRevalidatePayload(payloadB64) {
+  if (typeof payloadB64 !== "string" || payloadB64.length === 0 || payloadB64.length > MAX_PAYLOAD_B64_LENGTH || !SAFE_B64URL_RE.test(payloadB64)) {
+    return null;
+  }
+  let parsedJson;
+  try {
+    const decoded = Buffer.from(payloadB64, "base64url").toString("utf8");
+    parsedJson = JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+  if (!parsedJson || typeof parsedJson !== "object" || Array.isArray(parsedJson)) {
+    return null;
+  }
+  const obj = parsedJson;
+  if (typeof obj.executable !== "string" || !Array.isArray(obj.args)) {
+    return null;
+  }
+  const rawArgs = [];
+  for (const item of obj.args) {
+    if (typeof item !== "string") return null;
+    rawArgs.push(item);
+  }
+  const validated = validateSafeTokens(obj.executable, rawArgs);
+  if (!validated.ok) {
+    return null;
+  }
+  return validated;
+}
+function executeSafeCompactRun(input) {
+  const validated = decodeAndRevalidatePayload(input.payloadB64);
+  if (!validated) {
+    const msg = "[agy-NOV Auto-RTK] Rejected unsafe or non-whitelisted compact-run payload.";
+    return {
+      exitCode: 126,
+      output: msg,
+      rawTokens: 0,
+      summaryTokens: Math.ceil(msg.length / 4),
+      savedTokens: 0
+    };
+  }
+  const execCwd = typeof input.cwd === "string" && input.cwd.trim() ? import_node_path6.default.resolve(input.cwd) : process.cwd();
+  const cmdLabel = [validated.executable, ...validated.args].join(" ").slice(0, 80);
+  const child = (0, import_node_child_process.spawnSync)(validated.executable, validated.args, {
+    cwd: execCwd,
+    shell: false,
+    timeout: COMPACT_RUN_TIMEOUT_MS,
+    maxBuffer: COMPACT_RUN_MAX_BUFFER_BYTES,
+    encoding: "utf8"
+  });
+  let exitCode;
+  if (typeof child.status === "number") {
+    exitCode = child.status;
+  } else if (child.error) {
+    const errCode = child.error.code;
+    if (errCode === "ENOENT") exitCode = 127;
+    else if (errCode === "ETIMEDOUT") exitCode = 124;
+    else exitCode = 1;
+  } else if (child.signal) {
+    exitCode = 128;
+  } else {
+    exitCode = 1;
+  }
+  const stdout = typeof child.stdout === "string" ? child.stdout : "";
+  const stderr = typeof child.stderr === "string" ? child.stderr : "";
+  let combinedRaw = "";
+  if (stdout && stderr) {
+    combinedRaw = stdout.endsWith("\n") ? `${stdout}${stderr}` : `${stdout}
+${stderr}`;
+  } else {
+    combinedRaw = stdout || stderr;
+  }
+  if (!combinedRaw && child.error) {
+    combinedRaw = child.error.message;
+  }
+  const rawTokens = Math.ceil(combinedRaw.length / 4);
+  const store = new CompactedChunkStore(1);
+  let bodyText;
+  if (!combinedRaw.trim()) {
+    bodyText = `[Turbo Auto-RTK] ${cmdLabel} [preset=${validated.preset}, exit=${exitCode}] (no output)`;
+  } else {
+    const compacted = store.compact(void 0, cmdLabel, combinedRaw, {
+      preset: validated.preset,
+      maxErrorLines: 60,
+      tailLines: 50,
+      persistStats: false
+    });
+    bodyText = compacted.summaryText;
+    if (exitCode !== 0) {
+      const cleanedLines = stripAnsiEscapeCodes(combinedRaw).split(/\r?\n/);
+      let lastNonEmptyIdx = cleanedLines.length - 1;
+      while (lastNonEmptyIdx >= 0 && cleanedLines[lastNonEmptyIdx].trim() === "") {
+        lastNonEmptyIdx -= 1;
+      }
+      const effectiveLines = lastNonEmptyIdx >= 0 ? cleanedLines.slice(0, lastNonEmptyIdx + 1) : [];
+      const tailSlice = effectiveLines.slice(-FAILURE_TAIL_MIN_LINES);
+      const nonEmptyTail = tailSlice.filter((l) => l.trim().length > 0);
+      const missingAnyTailLine = nonEmptyTail.some((line) => !bodyText.includes(line));
+      if (missingAnyTailLine && tailSlice.length > 0) {
+        bodyText = [
+          bodyText,
+          `--- Preserved Failure Tail (exitCode=${exitCode}, last ${tailSlice.length} lines) ---`,
+          ...tailSlice
+        ].join("\n");
+      }
+    }
+  }
+  const rawLogPath = writeRedactedRawLogIfDataDirExists(input.dataDir, combinedRaw);
+  const footerLine = rawLogPath ? `[Auto-RTK] exit=${exitCode} \xB7 raw tail (redacted, <=128 KiB): ${rawLogPath}` : `[Auto-RTK] exit=${exitCode}`;
+  const finalOutput = `${bodyText}
+${footerLine}`;
+  const summaryTokens = Math.ceil(finalOutput.length / 4);
+  const savedTokens = Math.max(0, rawTokens - summaryTokens);
+  return {
+    exitCode,
+    output: finalOutput,
+    rawTokens,
+    summaryTokens,
+    savedTokens,
+    ...rawLogPath ? { rawLogPath } : {}
+  };
+}
 
 // src/server/cli.ts
-var CLI_VERSION = "0.7.0";
+var CLI_VERSION = "0.8.0";
 function printHelp() {
   console.log(`agy-NOV CLI (v${CLI_VERSION}) \u2014 The 100% Native Modular Super-Workbench for Antigravity 2.0
 
@@ -1809,12 +3684,13 @@ Usage:
   agy-nov statusline [--json] [--compact] [--data-dir=<dir>]    Zero-token read-only status line for Antigravity CLI
   agy-nov recommend [--workspace=<dir>] [--json]                Read-only project scanner recommending preset & modules
   agy-nov doctor [--data-dir=<dir>]                             Verify plugin bundle, manifests & config health (read-only)
+  agy-nov compact-run --payload=<b64> [--data-dir=<dir>]        Auto-RTK whitelisted shell-free compact command runner
 `);
 }
 function readJsonSilent(filePath) {
   try {
-    if (!import_node_fs3.default.existsSync(filePath)) return null;
-    const raw = JSON.parse(import_node_fs3.default.readFileSync(filePath, "utf8"));
+    if (!import_node_fs5.default.existsSync(filePath)) return null;
+    const raw = JSON.parse(import_node_fs5.default.readFileSync(filePath, "utf8"));
     return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : null;
   } catch {
     return null;
@@ -1827,7 +3703,7 @@ function buildStatusLine(dataDir, compact) {
   const network = cfg.modules.remote ? "opt-in-remote" : "offline";
   let verifySummary;
   if (cfg.modules.verify) {
-    const verifyState = readJsonSilent(import_node_path4.default.join(getModuleDataDir(dataDir, "verify"), "state.json"));
+    const verifyState = readJsonSilent(import_node_path7.default.join(getModuleDataDir(dataDir, "verify"), "state.json"));
     const rawEvidence = Array.isArray(verifyState?.evidence) ? verifyState.evidence : [];
     const validEvidence = rawEvidence.filter(
       (e) => Boolean(e) && typeof e === "object" && !Array.isArray(e)
@@ -1852,7 +3728,7 @@ function buildStatusLine(dataDir, compact) {
   }
   let specSummary;
   if (cfg.modules.spec) {
-    const specState = readJsonSilent(import_node_path4.default.join(getModuleDataDir(dataDir, "spec"), "state.json"));
+    const specState = readJsonSilent(import_node_path7.default.join(getModuleDataDir(dataDir, "spec"), "state.json"));
     const activeId = typeof specState?.activeSpecId === "string" ? specState.activeSpecId : void 0;
     let activeDoc;
     if (activeId && Array.isArray(specState?.specs)) {
@@ -1885,7 +3761,7 @@ function buildStatusLine(dataDir, compact) {
   let radarSummary;
   if (cfg.modules.radar) {
     const radarDir = getModuleDataDir(dataDir, "radar");
-    const capsule = readJsonSilent(import_node_path4.default.join(radarDir, "status-capsule.json"));
+    const capsule = readJsonSilent(import_node_path7.default.join(radarDir, "status-capsule.json"));
     const counts = capsule && capsule.counts && typeof capsule.counts === "object" ? capsule.counts : null;
     if (counts) {
       radarSummary = {
@@ -1898,7 +3774,7 @@ function buildStatusLine(dataDir, compact) {
         unread: Number(counts.unread ?? 0) || 0
       };
     } else {
-      const board = readJsonSilent(import_node_path4.default.join(radarDir, "board.json"));
+      const board = readJsonSilent(import_node_path7.default.join(radarDir, "board.json"));
       const sessionsRaw = board?.sessions;
       const list = sessionsRaw && typeof sessionsRaw === "object" && !Array.isArray(sessionsRaw) ? Object.values(sessionsRaw).filter(
         (s) => Boolean(s) && typeof s === "object" && !Array.isArray(s)
@@ -1916,7 +3792,7 @@ function buildStatusLine(dataDir, compact) {
   }
   let xraySummary;
   if (cfg.modules.xray) {
-    const live = readJsonSilent(import_node_path4.default.join(getModuleDataDir(dataDir, "xray"), "live-state.json"));
+    const live = readJsonSilent(import_node_path7.default.join(getModuleDataDir(dataDir, "xray"), "live-state.json"));
     xraySummary = {
       enabled: true,
       activeConversationId: typeof live?.activeConversationId === "string" ? live.activeConversationId : void 0,
@@ -1970,7 +3846,7 @@ function printStatus(dataDir) {
   console.log(`agy-NOV v${CLI_VERSION} Status`);
   console.log(`  Architecture:   100% Native MCP Apps & Hooks (Zero ASAR / Zero CDP)`);
   console.log(`  Data Dir:       ${dataDir}`);
-  console.log(`  Config File:    ${getConfigPath(dataDir)} (${import_node_fs3.default.existsSync(getConfigPath(dataDir)) ? "persisted" : "defaults"})`);
+  console.log(`  Config File:    ${getConfigPath(dataDir)} (${import_node_fs5.default.existsSync(getConfigPath(dataDir)) ? "persisted" : "defaults"})`);
   console.log(`  Preset:         ${cfg.preset}`);
   console.log(`  UI Locale:      ${cfg.locale}`);
   console.log(`  Modules:        ${enabledCount}/${MODULE_IDS.length} enabled (${modelTools} model tools)`);
@@ -1990,15 +3866,15 @@ function printStatus(dataDir) {
   }
 }
 function buildWorkspaceRecommendation(workspaceRoot) {
-  const resolvedRoot = import_node_path4.default.resolve(workspaceRoot);
+  const resolvedRoot = import_node_path7.default.resolve(workspaceRoot);
   let realRoot = resolvedRoot;
   try {
-    realRoot = import_node_fs3.default.realpathSync(resolvedRoot);
+    realRoot = import_node_fs5.default.realpathSync(resolvedRoot);
   } catch {
   }
   const exists = (rel) => {
     try {
-      return import_node_fs3.default.existsSync(import_node_path4.default.join(realRoot, rel));
+      return import_node_fs5.default.existsSync(import_node_path7.default.join(realRoot, rel));
     } catch {
       return false;
     }
@@ -2007,7 +3883,7 @@ function buildWorkspaceRecommendation(workspaceRoot) {
   let hasMultipleTestsOrScripts = false;
   if (exists("package.json")) {
     detectedStacks.push("Node.js / TypeScript");
-    const pkg = readJsonSilent(import_node_path4.default.join(realRoot, "package.json"));
+    const pkg = readJsonSilent(import_node_path7.default.join(realRoot, "package.json"));
     const scripts = pkg?.scripts && typeof pkg.scripts === "object" && !Array.isArray(pkg.scripts) ? Object.keys(pkg.scripts) : [];
     if (scripts.some((s) => /test|typecheck|lint|check|build/i.test(s))) {
       hasMultipleTestsOrScripts = true;
@@ -2029,7 +3905,7 @@ function buildWorkspaceRecommendation(workspaceRoot) {
   const hasRulesOrMcp = exists("GEMINI.md") || exists("AGENTS.md") || exists("CLAUDE.md") || exists(".mcp.json") || exists("mcp_config.json") || exists(".agents/rules");
   let hasDataOrOpenApi = false;
   try {
-    const entries = import_node_fs3.default.readdirSync(realRoot, { withFileTypes: true }).slice(0, 120);
+    const entries = import_node_fs5.default.readdirSync(realRoot, { withFileTypes: true }).slice(0, 120);
     for (const ent of entries) {
       if (ent.isFile() && /\.(?:sqlite|sqlite3|db|csv|openapi\.ya?ml|openapi\.json)$/i.test(ent.name)) {
         hasDataOrOpenApi = true;
@@ -2136,14 +4012,14 @@ function buildWorkspaceRecommendation(workspaceRoot) {
   };
 }
 function resolvePluginRootDir() {
-  const scriptDir = import_node_path4.default.dirname(process.argv[1] || process.cwd());
+  const scriptDir = import_node_path7.default.dirname(process.argv[1] || process.cwd());
   const candidates = [
-    import_node_path4.default.resolve(scriptDir, ".."),
-    import_node_path4.default.resolve(scriptDir, "../.."),
+    import_node_path7.default.resolve(scriptDir, ".."),
+    import_node_path7.default.resolve(scriptDir, "../.."),
     process.cwd()
   ];
   for (const dir of candidates) {
-    if (import_node_fs3.default.existsSync(import_node_path4.default.join(dir, "plugin.json"))) {
+    if (import_node_fs5.default.existsSync(import_node_path7.default.join(dir, "plugin.json"))) {
       return dir;
     }
   }
@@ -2165,14 +4041,14 @@ function runDoctor(dataDir) {
   let ok = true;
   console.log(`agy-NOV Doctor (v${CLI_VERSION} \xB7 Zero ASAR / Zero CDP)`);
   for (const rel of requiredFiles) {
-    const abs = import_node_path4.default.join(rootDir, rel);
-    const exists = import_node_fs3.default.existsSync(abs);
+    const abs = import_node_path7.default.join(rootDir, rel);
+    const exists = import_node_fs5.default.existsSync(abs);
     if (!exists) ok = false;
-    const size = exists ? `${(import_node_fs3.default.statSync(abs).size / 1024).toFixed(1)} KB` : "MISSING";
+    const size = exists ? `${(import_node_fs5.default.statSync(abs).size / 1024).toFixed(1)} KB` : "MISSING";
     console.log(`  ${exists ? "OK  " : "FAIL"} ${rel.padEnd(28)} ${size}`);
   }
-  const pluginPath = import_node_path4.default.join(rootDir, "plugin.json");
-  if (import_node_fs3.default.existsSync(pluginPath)) {
+  const pluginPath = import_node_path7.default.join(rootDir, "plugin.json");
+  if (import_node_fs5.default.existsSync(pluginPath)) {
     const allowedKeys = /* @__PURE__ */ new Set([
       "name",
       "displayName",
@@ -2185,7 +4061,7 @@ function runDoctor(dataDir) {
       "repository",
       "disabled"
     ]);
-    const manifest = JSON.parse(import_node_fs3.default.readFileSync(pluginPath, "utf8"));
+    const manifest = JSON.parse(import_node_fs5.default.readFileSync(pluginPath, "utf8"));
     const unknown = Object.keys(manifest).filter((k) => !allowedKeys.has(k));
     if (unknown.length > 0) {
       ok = false;
@@ -2194,9 +4070,9 @@ function runDoctor(dataDir) {
       console.log(`  OK   plugin.json schema clean (name=${String(manifest.name)}, version=${String(manifest.version)})`);
     }
   }
-  const uiPath = import_node_path4.default.join(rootDir, "dist/ui/app.html");
-  if (import_node_fs3.default.existsSync(uiPath)) {
-    const bytes = import_node_fs3.default.statSync(uiPath).size;
+  const uiPath = import_node_path7.default.join(rootDir, "dist/ui/app.html");
+  if (import_node_fs5.default.existsSync(uiPath)) {
+    const bytes = import_node_fs5.default.statSync(uiPath).size;
     if (bytes >= 10 * 1024 * 1024) {
       ok = false;
       console.log(`  FAIL dist/ui/app.html exceeds 10 MiB limit (${bytes} bytes)`);
@@ -2208,11 +4084,16 @@ function runDoctor(dataDir) {
   console.log(
     `  OK   config readable (preset=${cfg.preset}, locale=${cfg.locale}, remote=${cfg.modules.remote ? "ON" : "OFF"})`
   );
+  const turboPrefs = loadTurboPrefsReadOnly(getModuleDataDir(dataDir, "turbo"));
+  const autoRtkActive = cfg.modules.turbo && turboPrefs.autoRtk;
+  console.log(
+    `  OK   Auto-RTK: ${turboPrefs.autoRtk ? autoRtkActive ? "ON (active)" : "ON (waiting for turbo module)" : "OFF (default safe passive mode)"}`
+  );
   const feedPath = getFeedSnapshotPath(dataDir);
   let feedStatusTag = "OK  ";
   let feedNote = "not generated yet (lazy read-only until first write)";
   try {
-    const feedStat = import_node_fs3.default.lstatSync(feedPath);
+    const feedStat = import_node_fs5.default.lstatSync(feedPath);
     if (feedStat.isSymbolicLink() || !feedStat.isFile()) {
       ok = false;
       feedStatusTag = "FAIL";
@@ -2311,6 +4192,23 @@ function main() {
   }
   if (cmd === "doctor") {
     process.exit(runDoctor(dataDir));
+  }
+  if (cmd === "compact-run") {
+    const payloadB64 = parseCliFlag(argv, "--payload");
+    if (!payloadB64) {
+      console.error("[agy-NOV Auto-RTK] Missing required --payload=<base64url> argument.");
+      process.exit(2);
+    }
+    const result = executeSafeCompactRun({
+      payloadB64,
+      cwd: process.cwd(),
+      dataDir
+    });
+    if (result.output) {
+      process.stdout.write(result.output.endsWith("\n") ? result.output : `${result.output}
+`);
+    }
+    process.exit(result.exitCode);
   }
   console.error(`Unknown command "${cmd}".`);
   printHelp();

@@ -527,7 +527,7 @@ describe('Builder A — Unified McpServer registration, tool naming & dynamic to
           'app_review_clear_resolved',
           'app_review_mark_file_viewed',
           'app_review_build_prompt',
-          // guard (4 + 6)
+          // guard (4 + 8)
           'guard_status',
           'guard_list_snapshots',
           'guard_create_checkpoint',
@@ -535,6 +535,8 @@ describe('Builder A — Unified McpServer registration, tool naming & dynamic to
           'app_guard_get_state',
           'app_guard_diff_snapshot',
           'app_guard_restore_snapshot',
+          'app_guard_get_turn_diff',
+          'app_guard_restore_turn',
           'app_guard_update_policy',
           'app_guard_scan_workspace',
           'app_guard_simulate_threat',

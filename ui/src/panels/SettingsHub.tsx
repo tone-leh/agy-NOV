@@ -12,6 +12,7 @@ import {
   type NovLocale,
   type NovStartupView,
   type PresetId,
+  type ResolvedUiLocale,
 } from '../../../src/core/catalog.js';
 import type {
   NovBridge,
@@ -35,11 +36,13 @@ export interface SettingsHubProps {
   onNotify?: (message: string) => void;
 }
 
-type GuardDecision = 'allow' | 'ask' | 'deny';
+type GuardDecision = 'allow' | 'ask' | 'force_ask' | 'deny';
+type GuardPermissionMode = 'readonly-audit' | 'balanced-dev' | 'strict-gate';
 
 interface GuardDrawerData {
   policy: {
     enabled: boolean;
+    permissionMode?: GuardPermissionMode;
     protectEnvAndKeys: GuardDecision;
     blockSecretWrites: GuardDecision;
     blockDestructiveCommands: GuardDecision;
@@ -51,6 +54,19 @@ interface GuardDrawerData {
     blockedCount?: number;
     secretCatches?: number;
   };
+}
+
+interface TurboHotspotSummaryItem {
+  commandPrefix: string;
+  count: number;
+  estimatedWasteTokens?: number;
+}
+
+interface TurboDrawerData {
+  autoRtk: boolean;
+  updatedAt?: string;
+  hotspotsCount: number;
+  hotspots: TurboHotspotSummaryItem[];
 }
 
 interface VerifyDrawerData {
@@ -113,6 +129,7 @@ interface RemoteDrawerData {
 
 const CONFIGURABLE_STRATEGY_MODULES = new Set<ModuleId>([
   'guard',
+  'turbo',
   'verify',
   'spec',
   'radar',
@@ -120,11 +137,146 @@ const CONFIGURABLE_STRATEGY_MODULES = new Set<ModuleId>([
 ]);
 
 const STRATEGY_SEARCH_HINTS: Partial<Record<ModuleId, string>> = {
-  guard: 'secret key env command snapshot firewall policy',
+  guard: 'secret key env command snapshot firewall policy permissionMode readonly-audit balanced-dev strict-gate',
+  turbo: 'autoRtk rtk compact-run overwrite hotspot compression token',
   verify: 'stop hook enforceOnStop autoRunOnStop blockEmptyWrites maxConsecutiveBlocks gate',
   spec: 'write lock enforcePlanBeforeWrite requireUiApproval approval draft dag',
   radar: 'chime sound notify desktopNotify stallMinutes threshold alert',
   remote: 'gateway port pwa approval notifyOnStop isolation network',
+};
+
+interface SettingsV08LocaleLabels {
+  guardPermissionModeLabel: string;
+  guardModes: Record<GuardPermissionMode, string>;
+  turboAutoRtkLabel: string;
+  turboAutoRtkOnBadge: string;
+  turboAutoRtkOffBadge: string;
+  turboHotspotsBadge: string;
+  turboHotspotsEmpty: string;
+  turboSafetyHint: string;
+}
+
+const SETTINGS_V08_LABELS: Record<ResolvedUiLocale, SettingsV08LocaleLabels> = {
+  en: {
+    guardPermissionModeLabel: 'Permission Mode',
+    guardModes: {
+      'readonly-audit': 'Read-Only Audit (block writes)',
+      'balanced-dev': 'Balanced Dev (default)',
+      'strict-gate': 'Strict Gate (force_ask writes & shell)',
+    },
+    turboAutoRtkLabel: 'Auto-RTK Compression Proxy',
+    turboAutoRtkOnBadge: 'Auto-RTK: ON',
+    turboAutoRtkOffBadge: 'Auto-RTK: OFF (default)',
+    turboHotspotsBadge: 'Noisy command hotspots: {n}',
+    turboHotspotsEmpty: 'No noisy test/build/git command hotspots observed yet.',
+    turboSafetyHint:
+      'OFF by default. When enabled, only strictly whitelisted single read-only/test/build commands are rewritten via PreToolUse.overwrite (shell metacharacters rejected; non-zero exit codes preserve the error tail).',
+  },
+  'zh-CN': {
+    guardPermissionModeLabel: '权限模式',
+    guardModes: {
+      'readonly-audit': '只读审计（拦截写入与危险命令）',
+      'balanced-dev': '均衡开发（默认）',
+      'strict-gate': '严格门禁（写文件与命令强制确认）',
+    },
+    turboAutoRtkLabel: 'Auto-RTK 透明压缩代理',
+    turboAutoRtkOnBadge: 'Auto-RTK：已开启',
+    turboAutoRtkOffBadge: 'Auto-RTK：默认关闭',
+    turboHotspotsBadge: '高噪声命令热点：{n}',
+    turboHotspotsEmpty: '暂未观测到高噪声测试/构建/Git 命令热点。',
+    turboSafetyHint:
+      '默认关闭。开启后仅对通过严格白名单校验的单条只读 Git/测试/构建命令执行 PreToolUse.overwrite 压缩（拒绝所有 Shell 注入字符，非 0 退出码完整保留末尾报错堆栈）。',
+  },
+  'zh-TW': {
+    guardPermissionModeLabel: '權限模式',
+    guardModes: {
+      'readonly-audit': '唯讀稽核（攔截寫入與高風險指令）',
+      'balanced-dev': '均衡開發（預設）',
+      'strict-gate': '嚴格門禁（寫入與指令強制確認）',
+    },
+    turboAutoRtkLabel: 'Auto-RTK 透明壓縮代理',
+    turboAutoRtkOnBadge: 'Auto-RTK：已開啟',
+    turboAutoRtkOffBadge: 'Auto-RTK：預設關閉',
+    turboHotspotsBadge: '高雜訊指令熱點：{n}',
+    turboHotspotsEmpty: '尚未觀測到高雜訊測試／建置／Git 指令熱點。',
+    turboSafetyHint:
+      '預設關閉。開啟後僅對通過嚴格白名單校驗的單條唯讀 Git／測試／建置指令進行 PreToolUse.overwrite 壓縮（拒絕 Shell 注入字元，非 0 結束碼保留完整錯誤尾段）。',
+  },
+  ja: {
+    guardPermissionModeLabel: '権限モード',
+    guardModes: {
+      'readonly-audit': '読み取り専用監査（書込み拒否）',
+      'balanced-dev': 'バランス開発（既定）',
+      'strict-gate': '厳格ゲート（書込み・シェル強制確認）',
+    },
+    turboAutoRtkLabel: 'Auto-RTK 透過圧縮プロキシ',
+    turboAutoRtkOnBadge: 'Auto-RTK：有効',
+    turboAutoRtkOffBadge: 'Auto-RTK：無効（既定）',
+    turboHotspotsBadge: '高ノイズコマンド傾向：{n}',
+    turboHotspotsEmpty: '高ノイズなテスト／ビルド／Git コマンドはまだ観測されていません。',
+    turboSafetyHint:
+      '既定では無効です。有効化すると厳格なホワイトリストに一致する単一の読み取り専用・テスト・ビルドコマンドのみを PreToolUse.overwrite で圧縮します（シェルメタ文字は拒否、非 0 終了時はエラー末尾を保持）。',
+  },
+  ko: {
+    guardPermissionModeLabel: '권한 모드',
+    guardModes: {
+      'readonly-audit': '읽기 전용 감사(쓰기 차단)',
+      'balanced-dev': '균형 개발(기본값)',
+      'strict-gate': '엄격 게이트(쓰기·명령 강제 확인)',
+    },
+    turboAutoRtkLabel: 'Auto-RTK 투명 압축 프록시',
+    turboAutoRtkOnBadge: 'Auto-RTK: 켜짐',
+    turboAutoRtkOffBadge: 'Auto-RTK: 꺼짐(기본값)',
+    turboHotspotsBadge: '고잡음 명령 핫스팟: {n}',
+    turboHotspotsEmpty: '아직 감지된 고잡음 테스트/빌드/Git 명령 핫스팟이 없습니다.',
+    turboSafetyHint:
+      '기본값은 꺼짐입니다. 켜면 엄격한 화이트리스트를 통과한 단일 읽기/테스트/빌드 명령만 PreToolUse.overwrite로 압축합니다(셸 메타문자 차단, 비정상 종료 시 오류 꼬리 로그 보존).',
+  },
+  es: {
+    guardPermissionModeLabel: 'Modo de permisos',
+    guardModes: {
+      'readonly-audit': 'Auditoría solo lectura (bloquea escrituras)',
+      'balanced-dev': 'Desarrollo equilibrado (predeterminado)',
+      'strict-gate': 'Control estricto (confirmación forzada)',
+    },
+    turboAutoRtkLabel: 'Proxy transparente Auto-RTK',
+    turboAutoRtkOnBadge: 'Auto-RTK: ACTIVO',
+    turboAutoRtkOffBadge: 'Auto-RTK: INACTIVO (predet.)',
+    turboHotspotsBadge: 'Puntos críticos ruidosos: {n}',
+    turboHotspotsEmpty: 'Aún no se han observado comandos ruidosos de pruebas/compilación/Git.',
+    turboSafetyHint:
+      'Desactivado por defecto. Al activarlo, solo reescribe comandos únicos en lista blanca estricta (Git solo lectura/pruebas/compilación) vía PreToolUse.overwrite; rechaza metacaracteres de shell y conserva el final de errores si falla.',
+  },
+  fr: {
+    guardPermissionModeLabel: 'Mode de permissions',
+    guardModes: {
+      'readonly-audit': 'Audit lecture seule (bloque les écritures)',
+      'balanced-dev': 'Développement équilibré (par défaut)',
+      'strict-gate': 'Contrôle strict (confirmation forcée)',
+    },
+    turboAutoRtkLabel: 'Proxy de compression Auto-RTK',
+    turboAutoRtkOnBadge: 'Auto-RTK : ACTIF',
+    turboAutoRtkOffBadge: 'Auto-RTK : INACTIF (défaut)',
+    turboHotspotsBadge: 'Points chauds verbeux : {n}',
+    turboHotspotsEmpty: 'Aucune commande verbeuse de test/build/Git observée pour le moment.',
+    turboSafetyHint:
+      'Désactivé par défaut. Une fois activé, seules les commandes simples strictement autorisées (Git lecture seule/tests/build) sont réécrites via PreToolUse.overwrite ; les métacaractères shell sont rejetés et la fin des erreurs est conservée en cas d’échec.',
+  },
+  de: {
+    guardPermissionModeLabel: 'Berechtigungsmodus',
+    guardModes: {
+      'readonly-audit': 'Nur-Lese-Audit (blockiert Schreibzugriffe)',
+      'balanced-dev': 'Ausgewogene Entwicklung (Standard)',
+      'strict-gate': 'Strenges Gate (Pflichtbestätigung)',
+    },
+    turboAutoRtkLabel: 'Auto-RTK-Kompressionsproxy',
+    turboAutoRtkOnBadge: 'Auto-RTK: EIN',
+    turboAutoRtkOffBadge: 'Auto-RTK: AUS (Standard)',
+    turboHotspotsBadge: 'Rauschintensive Befehle: {n}',
+    turboHotspotsEmpty: 'Noch keine rauschintensiven Test-/Build-/Git-Befehle beobachtet.',
+    turboSafetyHint:
+      'Standardmäßig AUS. Bei Aktivierung werden ausschließlich streng freigegebene Einzelbefehle (Nur-Lese-Git/Tests/Build) über PreToolUse.overwrite komprimiert; Shell-Metazeichen werden blockiert und Fehler-Stacks bei Abbruch erhalten.',
+  },
 };
 
 function getBudgetTone(exposed: number, limit: number): 'is-safe' | 'is-warn' | 'is-danger' {
@@ -192,6 +344,58 @@ function unwrapRadarData(raw: unknown): RadarDrawerData | null {
   return null;
 }
 
+function unwrapTurboPrefsData(raw: unknown): TurboDrawerData {
+  const fallback: TurboDrawerData = {
+    autoRtk: false,
+    hotspotsCount: 0,
+    hotspots: [],
+  };
+  if (!raw || typeof raw !== 'object') return fallback;
+  const obj = raw as Record<string, unknown>;
+  const target =
+    obj.state && typeof obj.state === 'object' ? (obj.state as Record<string, unknown>) : obj;
+  const prefsObj =
+    target.prefs && typeof target.prefs === 'object'
+      ? (target.prefs as Record<string, unknown>)
+      : target;
+  const autoRtk = prefsObj.autoRtk === true;
+  const updatedAt = typeof prefsObj.updatedAt === 'string' ? prefsObj.updatedAt : undefined;
+
+  const rawHotspots = Array.isArray(target.hotspots)
+    ? target.hotspots
+    : Array.isArray(obj.hotspots)
+      ? obj.hotspots
+      : [];
+  const hotspots: TurboHotspotSummaryItem[] = [];
+  for (const item of rawHotspots) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    const rec = item as Record<string, unknown>;
+    if (typeof rec.commandPrefix !== 'string' || !rec.commandPrefix.trim()) continue;
+    const count = Number(rec.count);
+    hotspots.push({
+      commandPrefix: rec.commandPrefix.trim(),
+      count: Number.isFinite(count) && count > 0 ? Math.floor(count) : 1,
+      estimatedWasteTokens:
+        typeof rec.estimatedWasteTokens === 'number' && Number.isFinite(rec.estimatedWasteTokens)
+          ? Math.max(0, Math.floor(rec.estimatedWasteTokens))
+          : undefined,
+    });
+  }
+
+  const explicitCount = Number(target.hotspotsCount ?? obj.hotspotsCount);
+  const hotspotsCount =
+    Number.isFinite(explicitCount) && explicitCount >= 0
+      ? Math.max(Math.floor(explicitCount), hotspots.length)
+      : hotspots.length;
+
+  return {
+    autoRtk,
+    updatedAt,
+    hotspotsCount,
+    hotspots,
+  };
+}
+
 export const SettingsHub: React.FC<SettingsHubProps> = ({
   bridge,
   snapshot,
@@ -205,8 +409,9 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
   onSnapshotReplaced,
   onNotify,
 }) => {
-  const { dict, prefLocale, t } = useNovI18n();
+  const { locale, dict, prefLocale, t } = useNovI18n();
   const sh = dict.settingsHub;
+  const v08 = SETTINGS_V08_LABELS[locale] ?? SETTINGS_V08_LABELS.en;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [hubState, setHubState] = useState<NovHubStatePayload | null>(null);
@@ -218,6 +423,7 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
   const [drawerError, setDrawerError] = useState<string | null>(null);
 
   const [guardData, setGuardData] = useState<GuardDrawerData | null>(null);
+  const [turboData, setTurboData] = useState<TurboDrawerData | null>(null);
   const [verifyData, setVerifyData] = useState<VerifyDrawerData | null>(null);
   const [specData, setSpecData] = useState<SpecDrawerData | null>(null);
   const [radarData, setRadarData] = useState<RadarDrawerData | null>(null);
@@ -264,6 +470,9 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
         if (modId === 'guard') {
           const raw = await bridge.callTool('app_guard_get_state', {});
           setGuardData(unwrapGuardData(raw));
+        } else if (modId === 'turbo') {
+          const raw = await bridge.callTool('app_turbo_get_prefs', {});
+          setTurboData(unwrapTurboPrefsData(raw));
         } else if (modId === 'verify') {
           const raw = await bridge.callTool('app_verify_get_state', {});
           setVerifyData(unwrapVerifyData(raw));
@@ -317,6 +526,27 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
       const next = unwrapGuardData(raw);
       if (next) setGuardData(next);
       onNotify?.(`${dict.modules.guard.shortLabel}: ${dict.common.save}`);
+    } catch (err) {
+      setDrawerError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDrawerSaving(false);
+    }
+  };
+
+  const updateTurboPrefs = async (patch: { autoRtk: boolean }) => {
+    setDrawerSaving(true);
+    setDrawerError(null);
+    try {
+      const raw = await bridge.callTool('app_turbo_update_prefs', patch);
+      const parsed = unwrapTurboPrefsData(raw);
+      setTurboData((prev) => ({
+        autoRtk: typeof parsed.autoRtk === 'boolean' ? parsed.autoRtk : patch.autoRtk,
+        updatedAt: parsed.updatedAt ?? prev?.updatedAt,
+        hotspots: parsed.hotspots.length > 0 ? parsed.hotspots : (prev?.hotspots ?? []),
+        hotspotsCount:
+          parsed.hotspotsCount > 0 ? parsed.hotspotsCount : (prev?.hotspotsCount ?? 0),
+      }));
+      onNotify?.(`${dict.modules.turbo.shortLabel}: ${dict.common.save}`);
     } catch (err) {
       setDrawerError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -576,6 +806,25 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
         {modId === 'guard' && guardData && (
           <div className="nov-drawer-grid">
             <label className="nov-drawer-field">
+              <span>{v08.guardPermissionModeLabel}</span>
+              <select
+                className="nov-p-select"
+                aria-label={v08.guardPermissionModeLabel}
+                value={guardData.policy.permissionMode ?? 'balanced-dev'}
+                disabled={drawerSaving}
+                onChange={(e) =>
+                  void updateGuardPolicy({
+                    permissionMode: e.target.value as GuardPermissionMode,
+                  })
+                }
+              >
+                <option value="readonly-audit">{v08.guardModes['readonly-audit']}</option>
+                <option value="balanced-dev">{v08.guardModes['balanced-dev']}</option>
+                <option value="strict-gate">{v08.guardModes['strict-gate']}</option>
+              </select>
+            </label>
+
+            <label className="nov-drawer-field">
               <span>.env / SSH / Keys</span>
               <select
                 className="nov-p-select"
@@ -642,6 +891,58 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
                 <span className="nov-switch-thumb" />
               </button>
             </div>
+          </div>
+        )}
+
+        {modId === 'turbo' && turboData && (
+          <div className="nov-drawer-stack">
+            <div className="nov-card-tags">
+              <span className={`nov-badge ${turboData.autoRtk ? 'is-accent' : 'is-offline'}`}>
+                {turboData.autoRtk ? v08.turboAutoRtkOnBadge : v08.turboAutoRtkOffBadge}
+              </span>
+              <span className="nov-badge">
+                {t(v08.turboHotspotsBadge, { n: turboData.hotspotsCount })}
+              </span>
+              {typeof (feedSummary.turbo?.totalSavedTokens ?? feedSummary.turbo?.savedTokens) ===
+                'number' && (
+                <span className="nov-badge is-accent">
+                  ~{feedSummary.turbo?.totalSavedTokens ?? feedSummary.turbo?.savedTokens} tok
+                </span>
+              )}
+            </div>
+
+            <div className="nov-drawer-grid">
+              <div className="nov-drawer-toggle-row">
+                <span>{v08.turboAutoRtkLabel}</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={turboData.autoRtk}
+                  aria-label={v08.turboAutoRtkLabel}
+                  className="nov-switch"
+                  disabled={drawerSaving}
+                  onClick={() =>
+                    void updateTurboPrefs({ autoRtk: !turboData.autoRtk })
+                  }
+                >
+                  <span className="nov-switch-thumb" />
+                </button>
+              </div>
+            </div>
+
+            {turboData.hotspots.length > 0 ? (
+              <div className="nov-card-tags">
+                {turboData.hotspots.slice(0, 3).map((item) => (
+                  <span key={item.commandPrefix} className="nov-badge nov-mono">
+                    {item.commandPrefix} ×{item.count}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="nov-muted">{v08.turboHotspotsEmpty}</div>
+            )}
+
+            <div className="nov-muted">{v08.turboSafetyHint}</div>
           </div>
         )}
 
@@ -933,13 +1234,6 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
                       feedSummary.mem?.stale ??
                       feedSummary.mem?.drifted ??
                       0}
-                  </span>
-                )}
-              {modId === 'turbo' &&
-                typeof (feedSummary.turbo?.totalSavedTokens ?? feedSummary.turbo?.savedTokens) ===
-                  'number' && (
-                  <span className="nov-badge is-accent">
-                    ~{feedSummary.turbo?.totalSavedTokens ?? feedSummary.turbo?.savedTokens} tok
                   </span>
                 )}
               {modId === 'xray' &&

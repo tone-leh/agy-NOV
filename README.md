@@ -2,7 +2,7 @@
   <img src="./assets/logo.svg" width="88" height="88" alt="agy-NOV Logo" />
   <h1>agy-NOV</h1>
   <p><strong>The 100% Native Modular Super-Workbench for Google Antigravity 2.0.</strong></p>
-  <p><em>One plugin. Thirteen toggleable superpowers across a 4+1 domain IA, 4-tier Settings Hub, Spec 2.0 inline review, 5 official Hooks (incl. zero-token PreInvocation), 8-language UI &amp; CLI statusLine. Zero ASAR, Zero CDP, zero token tax when off.</em></p>
+  <p><em>One plugin. Thirteen toggleable superpowers across a 4+1 domain IA, 4-tier Settings Hub, Turbo 3.0 (Auto-RTK proxy, Offline Dep Contracts, Symbol References &amp; Context Pack), Guard 2.5 (Turn-Grouped Rewind &amp; 3-Tier Permission Modes), Spec 2.0 inline review, 5 official Hooks (incl. zero-token PreInvocation), 8-language UI &amp; 9-command CLI. Zero ASAR, Zero CDP, zero token tax when off.</em></p>
 
   <p>
     <strong>English</strong> ·
@@ -16,7 +16,7 @@
   </p>
 
   <p>
-    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v0.7.0"><img src="https://img.shields.io/badge/Version-v0.7.0-0284c7?style=flat-square" alt="Version: v0.7.0" /></a>
+    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v0.8.0"><img src="https://img.shields.io/badge/Version-v0.8.0-0284c7?style=flat-square" alt="Version: v0.8.0" /></a>
     <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tone-leh/agy-NOV/ci.yml?branch=main&style=flat-square&label=CI" alt="CI Status" /></a>
     <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square" alt="License: MIT" /></a>
     <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node-%3E%3D20-16a34a?style=flat-square" alt="Node >= 20" /></a>
@@ -27,7 +27,7 @@
   <br />
 
   <p><strong>Live Workbench Preview</strong></p>
-  <img src="./assets/demo-preview.gif" alt="agy-NOV v0.7.0 Live Workbench Preview — 4+1 Domain IA & Hub, 4-Tier Settings Hub, Spec 2.0 Plannotator, 5 Official Hooks (PreInvocation), Dual-Star Feed & 8-Language UI" width="100%" />
+  <img src="./assets/demo-preview.gif" alt="agy-NOV v0.8.0 Live Workbench Preview — 4+1 Domain IA & Hub, 4-Tier Settings Hub, Turbo 3.0 Auto-RTK & Context Pack, Guard 2.5 Turn Rewind & Permission Modes, Spec 2.0 Plannotator, 5 Official Hooks & 8-Language UI" width="100%" />
 
   <br />
 
@@ -44,7 +44,7 @@
 </div>
 
 > [!NOTE]
-> **Independent Open-Source Project:** `agy-NOV` (v0.7.0) is an independent, MIT-licensed community plugin built for Google Antigravity 2.0. It has no affiliation with, sponsorship from, or endorsement by Google LLC.
+> **Independent Open-Source Project:** `agy-NOV` (v0.8.0) is an independent, MIT-licensed community plugin built for Google Antigravity 2.0. It has no affiliation with, sponsorship from, or endorsement by Google LLC.
 
 ---
 
@@ -79,9 +79,9 @@ Installing separate MCP servers and hook scripts for code review, secret scannin
 
 ### The 100% Native Switchboard Philosophy
 
-1. **Single Native Runtime:** 1 MCP server (`dist/server.cjs`) + 1 unified **5-hook** lifecycle dispatcher (`dist/hook.cjs` covering `SessionStart`, `PreToolUse`, `PostToolUse`, `PreInvocation`, and `Stop`) + 1 self-contained 8-language dark/light UI (`dist/ui/app.html`, `~1.1 MB` — measured `1,112.7 KB`, far below the 10 MiB resource cap, **491 dictionary keys** across all **24 UI components** including `HubPanel` & `SettingsHub`) + 1 CLI (`dist/cli.cjs`) with 8 commands including zero-token `statusline` and read-only `recommend` (with `.agy-nov.json` team preset validation).
-2. **Zero Token & Tool-Slot Tax When Off:** Every module wraps its model tools in `RegisteredTool.enable()` / `.disable()` and pushes delta `tools/list_changed` notifications live. All **47 canonical model tool names** stay strictly unchanged in v0.7.0 (including `spec`'s 4 tools); all new Hub and 4-tier Settings Hub governance actions run as App-only tools (`visibility: ['app']`) with zero model-context expansion.
-3. **4+1 Functional Domain IA & 12 Local Offline Modules First:** Organized into **L0 Workflow Hub** (6-node pipeline bar + alert cards + `Cmd/Ctrl+K` quick jump) and 4 clear domains — **Core Essentials** (`core`: `review`, `guard`, `xray`), **Engineering Pipeline** (`pipeline`: **Spec 2.0** Plannotator inline review bench / Brownfield `delta` specs / 8-revision history / pure-TS LCS diff / archive to `mem`, `worktree`, `verify`, `turbo` 2.5, `mem` 2.0), **On-Demand Toolbox** (`toolbox`: `radar`, `studio`, `canvas`, `ops` 2.5), and **Opt-In Connectivity** (`connectivity`: `remote` 2.0). All 12 Tier-1 modules run 100% locally with zero external network calls, zero ASAR edits, and zero CDP hooks.
+1. **Single Native Runtime:** 1 MCP server (`dist/server.cjs`) + 1 unified **5-hook** lifecycle dispatcher (`dist/hook.cjs` covering `SessionStart`, `PreToolUse`, `PostToolUse`, `PreInvocation`, and `Stop`) + 1 self-contained 8-language dark/light UI (`dist/ui/app.html`, `~1.2 MB` — measured `1,201.2 KB`, far below the 10 MiB resource cap, full 8-language coverage across all **24 UI components** including `HubPanel`, `SettingsHub`, `TurboPanel` 3.0 & `GuardPanel` 2.5) + 1 CLI (`dist/cli.cjs`) with **9 commands** including zero-token `statusline`, read-only `recommend` (with `.agy-nov.json` team preset validation), and Auto-RTK `compact-run`.
+2. **Zero Token & Tool-Slot Tax When Off:** Every module wraps its model tools in `RegisteredTool.enable()` / `.disable()` and pushes delta `tools/list_changed` notifications live. All **47 canonical model tool names** stay strictly unchanged in v0.8.0 (`turbo` remains strictly 3 tools and `guard` remains strictly 4 tools); all Hub, Settings Hub, Context Pack, Turn Rewind, and preference controls run as App-only tools (`visibility: ['app']`) with zero model-context expansion.
+3. **4+1 Functional Domain IA & 12 Local Offline Modules First:** Organized into **L0 Workflow Hub** (6-node pipeline bar + alert cards + `Cmd/Ctrl+K` quick jump) and 4 clear domains — **Core Essentials** (`core`: `review`, **Guard 2.5** turn-grouped rewind & 3-tier `permissionMode`, `xray` 2.0), **Engineering Pipeline** (`pipeline`: **Spec 2.0** Plannotator inline review bench / Brownfield `delta` specs / 8-revision history / pure-TS LCS diff / archive to `mem`, `worktree`, `verify`, **Turbo 3.0** opt-in Auto-RTK `PreToolUse.overwrite` proxy / offline locked dependency contracts / lightweight cross-file symbol references / redacted Context Pack, `mem` 2.0), **On-Demand Toolbox** (`toolbox`: `radar`, `studio`, `canvas`, `ops` 2.5), and **Opt-In Connectivity** (`connectivity`: `remote` 2.0). All 12 Tier-1 modules run 100% locally with zero external network calls, zero ASAR edits, and zero CDP hooks.
 4. **Zero-Port Dual-Star Feed & 1 Strictly Opt-In Remote Module (`Remote 2.0`):** Event-driven `<dataDir>/feed-snapshot.json` (`0600` atomic, `< 64 KiB`, O(n) redacted, zero mkdir/writes when `dataDir` is absent) enables zero-port read-only telemetry sharing with `agy-Sag`, while `remote` stays completely OFF by default — zero listening ports, zero background polling, zero disk writes, and zero outbound network requests until you explicitly enable it.
 
 ---
@@ -92,13 +92,13 @@ Start lean and expand whenever a workflow demands it. Run `agy-nov recommend` fo
 
 | Preset | Persona | Enabled Modules | Model Tools* | Isolation Profile |
 | :--- | :--- | :--- | :---: | :--- |
-| **`minimal`** | *Minimalist Safety Net* — bare-minimum secret shield & snapshots | `guard` (1) | **6** | 100% Offline |
-| **`core`** *(Default)* | *Daily Driver* — Core Essentials (`review`, `guard`, `xray` 2.0) out of the box | `review`, `guard`, `xray` (3) | **12** | 100% Offline |
-| **`power`** | *High-Velocity Engineer* — Core + **Spec 2.0** Plannotator review bench, Verify Gate stack auto-detection, Turbo 2.5 `gain` & `<= 8.8 KB` guardrails, Swarm radar, parallel worktrees & Ops 2.5 `#233`/`#1937` Budget Doctor | `core` + `turbo`, `radar`, `verify`, `worktree`, `spec`, `ops` (9) | **32** | 100% Offline |
+| **`minimal`** | *Minimalist Safety Net* — Guard 2.5 secret shield, turn-grouped rewind & 3-tier permission modes | `guard` (1) | **6** | 100% Offline |
+| **`core`** *(Default)* | *Daily Driver* — Core Essentials (`review`, **Guard 2.5** turn rewind & permission modes, `xray` 2.0) out of the box | `review`, `guard`, `xray` (3) | **12** | 100% Offline |
+| **`power`** | *High-Velocity Engineer* — Core + **Turbo 3.0** (opt-in Auto-RTK, offline dep contracts, symbol refs & Context Pack), **Spec 2.0** Plannotator review bench, Verify Gate stack auto-detection, Swarm radar, parallel worktrees & Ops 2.5 `#233`/`#1937` Budget Doctor | `core` + `turbo`, `radar`, `verify`, `worktree`, `spec`, `ops` (9) | **32** | 100% Offline |
 | **`local-all`** | *All-Local Studio* — every offline capability including Mem 2.0 progressive disclosure, Spec 2.0 archive-to-Mem, on-demand Workspace Studio (with OpenAPI parser) & Visual Canvas | All 12 offline native modules | **43** | 100% Offline |
 | **`full`** | *Away-From-Desk Commander* — full studio plus opt-in Remote 2.0 read-only PWA live stream, safe tunnel guide & IM approvals | All 13 native modules (incl. opt-in `remote`) | **47** | Opt-in Network |
 
-<sub>*Exact model tool count = `2` always-on entry tools (`nov_open`, `nov_status`) + sum of enabled module tools (`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47; all 47 canonical model tool names remain unchanged in v0.7.0, and Hub / Settings Hub controls are strictly App-only).</sub>
+<sub>*Exact model tool count = `2` always-on entry tools (`nov_open`, `nov_status`) + sum of enabled module tools (`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47; all 47 canonical model tool names remain strictly unchanged in v0.8.0, and Hub / Settings Hub / Context Pack / Turn Rewind controls are strictly App-only).</sub>
 
 ```bash
 # Let agy-NOV scan your repo read-only and validate any optional .agy-nov.json team preset (zero writes)
@@ -123,12 +123,12 @@ Zero external network calls, zero CDP, zero ASAR patching. Built strictly on Goo
 | Module | Domain | Default | Model Tools | Hooks | Core Superpower |
 | :--- | :---: | :---: | :---: | :--- | :--- |
 | **Diff Review** (`review`) | `core` | **ON** | 2 | `PostToolUse`, `Stop` | PR-grade working-tree, staged & commit diff viewer featuring zero-dependency pure-React syntax highlighting (zero `dangerouslySetInnerHTML`), ignore-whitespace (`-w`) toggle, zero-ReDoS deterministic line risk hints (1-click convert to annotation), and pinpoint `file:line` fix prompts |
-| **Guard & Snapshots** (`guard`) | `core` | **ON** | 4 | `PreToolUse`, `PreInvocation` | Blocks `.env`/SSH/credential leaks and destructive commands pre-execution; takes zero-Git pre-edit snapshots with 1-click rollback; emits zero-token `PreInvocation` visual receipts for recent denies |
+| **Guard & Snapshots** (`guard`) *(Upgraded to 2.5 in v0.8)* | `core` | **ON** | 4 | `PreToolUse`, `PreInvocation` | **Guard 2.5** blocks `.env`/SSH/credential leaks and destructive commands pre-execution; groups zero-Git pre-edit snapshots by session & turn (`turnKey`, reverting multi-edit files to **before their first edit** in that turn) with multi-file turn diff preview, All-or-Nothing boundary preflight, `pre-rewind` backup, and inline double-confirm 1-click turn rewind; adds 3 protocol-level `permissionMode` tiers (`readonly-audit`, `balanced-dev`, `strict-gate` via official `PreToolUse` `force_ask`); emits zero-token `PreInvocation` visual receipts for recent denies |
 | **Context X-Ray** (`xray`) | `core` | **ON** | 4 | `PostToolUse`, `Stop` | Offline USD billing (built-in reference rates + read-only `pricing-overrides.json`), 14-day trend & 5h rolling burn-rate alerts, cached vs. fresh tokens, Swarm subagent lineage, HTTP 429 retry alerts, EN+CJK BM25 search, and `xray_export_brief` (`brief` / `handoff` / `otlp` / formula-safe `csv`) |
-| **Spec Flow & Plannotator** (`spec`) *(Upgraded to 2.0 in v0.7)* | `pipeline` | OFF | 4 | `SessionStart`, `PreToolUse`, `PreInvocation` | **Spec 2.0 Plannotator inline review bench** + `Spec -> Plan -> Task DAG`: supports **`full` / Brownfield `delta`** (`ADDED`/`MODIFIED`/`REMOVED`) modes, automatic revision numbering with **latest 8 snapshots**, zero-dependency **pure-TS line-level LCS diff** (`> 600` lines linear fallback), inline **`Comment`/`Strike`/`Replace`** annotations with 1-click structured bounce-back to agent, **1-click archive to `mem`** (auto `<private>` stripping & secret redaction), Kahn cycle check, `PreToolUse` draft write lock, `requireUiApproval`, and zero-token `PreInvocation` lock receipt |
+| **Spec Flow & Plannotator** (`spec`) *(2.0)* | `pipeline` | OFF | 4 | `SessionStart`, `PreToolUse`, `PreInvocation` | **Spec 2.0 Plannotator inline review bench** + `Spec -> Plan -> Task DAG`: supports **`full` / Brownfield `delta`** (`ADDED`/`MODIFIED`/`REMOVED`) modes, automatic revision numbering with **latest 8 snapshots**, zero-dependency **pure-TS line-level LCS diff** (`> 600` lines linear fallback), inline **`Comment`/`Strike`/`Replace`** annotations with 1-click structured bounce-back to agent, **1-click archive to `mem`** (auto `<private>` stripping & secret redaction), Kahn cycle check, `PreToolUse` draft write lock, `requireUiApproval`, and zero-token `PreInvocation` lock receipt |
 | **Worktree Orchestrator** (`worktree`) | `pipeline` | OFF | 4 | None | Safe parallel Git worktree manager confined to `.agy-worktrees/` with `carryUncommitted` transfer, branch diff summaries, `extensions.worktreeConfig` hazard checks, and safe orphan/merged cleanup |
 | **Verify Gate** (`verify`) | `pipeline` | OFF | 4 | `PostToolUse`, `Stop` | Stop-hook verification gate blocking 0-byte writes and unverified "done" claims via shell-free allowlisted checks, zero-write stack auto-detection (`package.json` pnpm/yarn/bun/npm, `pyproject.toml`/`pytest.ini`, `Cargo.toml`, `go.mod`), anti-loop `maxConsecutiveBlocks` guardrails (`continuation_active`-aware), and a redacted evidence chain |
-| **Turbo & Output Guard** (`turbo`) *(2.5)* | `pipeline` | OFF | 3 | `SessionStart` | Multi-pattern batch search, nested multi-indent symbol outlines (TS/JS class methods & interface members, Python class methods, Go receiver methods, Rust `impl`/`trait` methods), RTK smart presets (`auto` / `test` / `build` / `git` / `generic`), UTF-8 safe `<= 8.8 KB` (`8,800 B`) anti-spill guardrails across all 3 tools, and an in-memory cumulative token & USD `gain` dashboard (`$2.50/1M` baseline, `app_turbo_get_gain`) |
+| **Turbo & Output Guard** (`turbo`) *(Upgraded to 3.0 in v0.8)* | `pipeline` | OFF | 3 | `SessionStart`, `PreToolUse`, `PostToolUse` | **Turbo 3.0** adds opt-in **Auto-RTK** (`autoRtk: false` by default; rewrites allowlisted shell-free test/build/read-only Git commands via `PreToolUse.overwrite` into `agy-nov compact-run`, preserving non-zero exit codes, full error tails & `0600` redacted `last-raw.log`, plus `PostToolUse` noisy-command hotspot discovery), **Offline Locked Dep Contracts** (`turbo_read_outline` `depPackage` parsing local `node_modules/.d.ts` incl. barrel re-exports, Python `.venv/.pyi`, Go `go.mod`, Rust `Cargo.lock` with `realpath` containment), **Lightweight Cross-File Symbol References** (`turbo_batch_search` `mode: "references"` O(n) `definitions`/`imports`/`usages`), and **Redacted Context Pack** (`app_turbo_build_context_pack` supporting scope/globs/`fromGitDiff` + token caps), alongside nested outlines, RTK presets, UTF-8 safe `<= 8.8 KB` guardrails & in-memory `gain` dashboard — strictly **3** model tools |
 | **Memory Graph** (`mem`) *(2.0)* | `pipeline` | OFF | 3 | `SessionStart`, `PreInvocation`, `Stop` | SHA-256 code-anchored memory with 3-layer progressive disclosure: compact `SessionStart` L1 Index (`<= 1,200` chars), extended `mem_recall` (`mode: "index" \| "timeline" \| "detail"`, `ids[]`, `window`) with zero tool-count inflation, O(n) `<private>...</private>` privacy stripping (unclosed-tag truncation + Stop-hook pure-private skip), stale drift alerts, and zero-token `PreInvocation` drift receipt |
 | **Session Radar & Chime** (`radar`) | `toolbox` | OFF | 2 | `PreToolUse`, `PostToolUse`, `Stop` | Tracks parallel sessions and parent/child Swarm subagents across `running`, `awaiting_approval`, `completed`, `stalled`, and `error` states, with orphan subagent alerts, `status-capsule.json` export, and optional chime |
 | **Workspace Studio** (`studio`) | `toolbox` | OFF | 4 | None | On-demand local debugger: read-only SQLite + CSV/TSV/JSON/NDJSON viewer, pure-Node offline DOCX/XLSX/PDF/Markdown slicer with ZIP-bomb guards, zero-dependency OpenAPI 2.0/3.x parser (YAML anchor-bomb & prototype-pollution safe) generating clickable collections that auto-fill the strict loopback-only anti-SSRF HTTP probe — toggle off when idle for `0` tool-budget tax |
@@ -139,12 +139,12 @@ Zero external network calls, zero CDP, zero ASAR patching. Built strictly on Goo
 <summary><strong>Try asking your agent… (12 real-world prompts for Tier-1 offline modules)</strong></summary>
 
 - **Review:** *"Open agy-NOV Diff Review on my staged changes with `-w` whitespace-ignored, highlight risky lines automatically, and let me convert risk hints into annotations before committing."*
-- **Guard:** *"Scan the workspace for hardcoded secrets and create a pre-edit checkpoint before refactoring auth."*
+- **Guard 2.5:** *"Scan the workspace for hardcoded secrets, switch Guard to `strict-gate` (or `readonly-audit` for safe inspection), create a pre-edit checkpoint before refactoring auth, and let me preview & rewind the whole turn in one click if needed."*
 - **X-Ray:** *"Show my offline estimated USD spend, 14-day trend, 5-hour burn-rate status, and Swarm subagent lineage, then export an anti-compaction `handoff` snapshot (or `otlp` / `csv` report)."*
 - **Spec 2.0:** *"Draft a Brownfield `delta` Spec (`ADDED`/`MODIFIED`/`REMOVED`) and Task DAG for migrating auth tokens, keep the `PreToolUse` write lock active with UI approval required, let me inspect revisions via line-level LCS diff and drop inline `Comment`/`Strike`/`Replace` notes, then archive the completed spec into `mem`."*
 - **Worktree:** *"Create a parallel Git worktree under `.agy-worktrees/` for `feat/auth-v2` carrying my uncommitted edits, then show its diff summary against `main`."*
 - **Verify:** *"Auto-detect our repo's safe check commands in Verify Gate (read-only), apply the allowlisted `typecheck` and `test` checks, and inspect the redacted evidence chain."*
-- **Turbo 2.5:** *"Enable Turbo, extract nested class and interface methods across `src/` with `turbo_read_outline`, compact this test log under the `<= 8.8 KB` guardrail, and inspect our cumulative saved tokens and USD in the Gain Dashboard."*
+- **Turbo 3.0:** *"Enable Turbo, inspect locked signatures for `zod` offline via `turbo_read_outline(depPackage="zod")`, find cross-file `definitions`/`imports`/`usages` with `turbo_batch_search(mode="references")`, assemble a redacted `fromGitDiff` Context Pack in TurboPanel, and check noisy-command hotspots before enabling opt-in Auto-RTK."*
 - **Mem 2.0:** *"Remember our native isolation invariant anchored to `src/core/catalog.ts` (stripping any `<private>` blocks), start sessions with the compact L1 Index, and recall deeper context progressively via `mem_recall` (`index` -> `timeline` -> `detail`)."*
 - **Radar:** *"Check Session Radar to see which parallel sessions or Swarm subagents are awaiting approval, stalled, or orphaned."*
 - **Studio:** *"Enable Workspace Studio to inspect `data/metrics.sqlite` read-only, parse `api.openapi.yaml` into clickable endpoints to probe `http://127.0.0.1:3000/health`, and slice `docs/spec.docx` — then disable Studio afterward to save tool slots."*
@@ -167,19 +167,19 @@ Enforces a hard zero-touch guarantee while disabled: **0 listening ports, 0 back
 
 ### 4+1 Functional Domain IA, Adaptive Wide/Narrow Navigation & 4-Tier Settings Hub
 
-`agy-NOV` v0.7.0 introduces a structured **4+1 Information Architecture** (canonical spec in [`docs/PRODUCT-IA.md`](./docs/PRODUCT-IA.md)):
+`agy-NOV` v0.8.0 builds on its structured **4+1 Information Architecture** (canonical spec in [`docs/PRODUCT-IA.md`](./docs/PRODUCT-IA.md)):
 
 - **L0 Workflow Hub (`HubPanel`) & `⌘K` Command Palette:** Opens to a 6-node pipeline status strip and prioritized alert cards (Guard denies, Spec draft locks, Verify gates, Mem drift, Radar stalls, X-Ray burn rate), with `Cmd/Ctrl+K` instant navigation across every domain and module.
 - **Adaptive `< 720px` / `>= 720px` Single-Bundle Navigation:** Narrow sidebars (`aux_pane`, `< 720px`) automatically present a clean 4-control top bar with a domain-grouped dropdown switcher; full-width panes (`global`, `>= 720px`) expand a `204px` domain-grouped left rail.
 - **4-Tier Unified Settings Hub (`SettingsHub`):**
   - **S1:** Global mode controls, instant search, 5 one-click presets, and a live 100-tool budget progress bar.
   - **S2:** Single-source-of-truth 4-domain master switches for all 13 modules.
-  - **S3:** On-demand policy drawers expanded exclusively for enabled modules (`guard`, `verify`, `spec`, `radar`, `remote`).
+  - **S3:** On-demand policy drawers expanded exclusively for enabled modules (**6 configurable strategy modules**: `guard` incl. 3-tier `permissionMode`, `turbo` incl. opt-in `autoRtk` toggle & hotspot summary, `verify`, `spec`, `radar`, `remote`).
   - **S4:** Collapsed-by-default advanced governance with redacted JSON config export, allowlist-validated config import (blocking prototype pollution and silent `remote` enablement), inline double-confirmation reset to defaults, plus read-only `.agy-nov.json` and dual-star feed status.
 
-### 100% Full-Component 8-Language Plugin UI (491 Keys × 8 Locales · 24 Components · Zero Restart)
+### 100% Full-Component 8-Language Plugin UI (491 Core Keys + v0.8 Localized Controls × 8 Locales · 24 Components · Zero Restart)
 
-`agy-NOV` v0.7.0 ships **100% full-component localization** inside the plugin bundle itself — **491 dictionary keys × 8 languages** covering all **24 UI components** including `HubPanel` and `SettingsHub` (`dist/ui/app.html` `~1.1 MB`, measured `1,112.7 KB`, zero leftover hardcoded English strings), in complete parity with the 8-language documentation (`docs/i18n/README.*.md`):
+`agy-NOV` v0.8.0 ships **100% full-component localization** inside the plugin bundle itself — **491 core dictionary keys plus full 8-language v0.8 controls** (Auto-RTK, Dep Contracts, Context Pack, Turn Rewind & 3-tier `permissionMode`) covering all **24 UI components** including `HubPanel` and `SettingsHub` (`dist/ui/app.html` `~1.2 MB`, measured `1,201.2 KB`, zero leftover hardcoded English strings), in complete parity with the 8-language documentation (`docs/i18n/README.*.md`):
 
 - **Top-Bar Native Language Switcher:** Pick any language directly from the header or Settings Hub; the interface and `<html lang>` update immediately with zero reload.
 - **Automatic BCP-47 Host Detection (`auto`):** Defaults to `auto`, tracking the Antigravity host locale automatically and supporting explicit selection across all 8 bundled languages:
@@ -199,10 +199,10 @@ All aggressive host-DOM customizations that rely on local CDP injection live in 
 
 | Dimension | **`agy-NOV`** (This Repo) | **[`agy-Sag`](https://github.com/tone-leh/agy-session-guard)** (Companion Repo) |
 | :--- | :--- | :--- |
-| **Protocol Boundary** | **100% Official Native Protocols** (MCP Apps SEP-1865 + **5 Lifecycle Hooks** incl. `PreInvocation` + Skills; **Zero ASAR · Zero CDP**) | **Zero-ASAR Local CDP Companion** + Watch Sidecar + Storage CLI |
+| **Protocol Boundary** | **100% Official Native Protocols** (MCP Apps SEP-1865 + **5 Lifecycle Hooks** incl. `PreInvocation` & `PreToolUse.overwrite` / `force_ask` + Skills; **Zero ASAR · Zero CDP**) | **Zero-ASAR Local CDP Companion** + Watch Sidecar + Storage CLI |
 | **Upgrade Durability** | Immune to Antigravity DOM & binary changes across every update | Deep host-window hooks dedicated to power customization |
-| **Localization Scope** | **100% full-component 8-language workbench UI** (`491` keys × `8` locales across all `24` components, `auto` + 8 locales) & 8-language docs | **In-place Antigravity host UI translation** & native `Settings` injection |
-| **Core Capabilities** | 4+1 Domain IA (`Hub` + `⌘K` + adaptive `< 720px`/`>= 720px` nav + 4-tier Settings Hub), 13-module native engineering workbench (Spec 2.0 Plannotator & Brownfield Delta Spec, Mem 2.0, Turbo 2.5, Remote 2.0, Ops 2.5, X-Ray 2.0, Review, Guard, Verify, Worktree, Radar, Studio, Canvas), `feed-snapshot.json` zero-port contract & zero-token CLI `statusline` / `recommend` | Active `/compact` auto-compaction guard, Draft Vault, Prompt Queue, turn bookmarks, Optical Theme Studio, policy-gated safe auto-accept & host DOM controls |
+| **Localization Scope** | **100% full-component 8-language workbench UI** (`491` core keys + v0.8 localized controls across all `24` components, `auto` + 8 locales) & 8-language docs | **In-place Antigravity host UI translation** & native `Settings` injection |
+| **Core Capabilities** | 4+1 Domain IA (`Hub` + `⌘K` + adaptive `< 720px`/`>= 720px` nav + 4-tier Settings Hub), 13-module native engineering workbench (**Turbo 3.0** opt-in Auto-RTK / Offline Dep Contracts / Symbol Refs / Context Pack, **Guard 2.5** Turn Rewind & 3-tier Permission Modes, Spec 2.0 Plannotator & Brownfield Delta Spec, Mem 2.0, Remote 2.0, Ops 2.5, X-Ray 2.0, Review, Verify, Worktree, Radar, Studio, Canvas), `feed-snapshot.json` zero-port contract & **9-command CLI** (`statusline`, `recommend`, `compact-run`, etc.) | Active `/compact` auto-compaction guard, Draft Vault, Prompt Queue, turn bookmarks, Optical Theme Studio, policy-gated safe auto-accept & host DOM controls |
 
 ```bash
 # Install both zero-overlap companion plugins side by side
@@ -217,36 +217,36 @@ agy plugin install https://github.com/tone-leh/agy-session-guard
 ```mermaid
 flowchart TB
   subgraph L1["Layer 1 · Google Antigravity 2.0 Host (Desktop / CLI / IDE)"]
-    Host["100% Official Native Protocols (Zero ASAR · Zero CDP)\nMCP Apps SEP-1865 · 5 Official Hooks (incl. PreInvocation) · ui:// · CLI statusLine"]
+    Host["100% Official Native Protocols (Zero ASAR · Zero CDP)\nMCP Apps SEP-1865 · 5 Official Hooks (incl. PreInvocation, overwrite & force_ask) · ui:// · CLI statusLine"]
     Sag["Optional Companion · agy-Sag\nAtomic config.json hot-sync · Read-only feed-snapshot.json consumer"]
   end
 
-  subgraph L2["Layer 2 · agy-NOV v0.7.0 Pure Native Runtime Core"]
-    MCP["Single MCP Server (dist/server.cjs)\nDynamic tools/list: 6 / 12 / 32 / 43 / 47 + App-only Hub/Settings · 0 tax when off"]
-    Hook["Unified 5-Hook Dispatcher (dist/hook.cjs)\nSessionStart · PreToolUse · PostToolUse · PreInvocation (0-token receipt) · Stop\nRead-only config check -> O(1) short-circuit · Guard > Spec > Remote"]
-    UI["Single-File 8-Language UI (dist/ui/app.html)\n4+1 IA · Hub + 4-Tier Settings Hub + Cmd/Ctrl+K · <720px / >=720px\n491 keys × 8 locales (24 components) · Dark/Light · ~1.1 MB (< 10 MiB)"]
-    CLI["Zero-Token Native CLI (dist/cli.cjs)\n8 commands incl. statusline, recommend (.agy-nov.json) & doctor"]
+  subgraph L2["Layer 2 · agy-NOV v0.8.0 Pure Native Runtime Core"]
+    MCP["Single MCP Server (dist/server.cjs)\nDynamic tools/list: 6 / 12 / 32 / 43 / 47 + App-only Hub/Settings/Pack/Rewind · 0 tax when off"]
+    Hook["Unified 5-Hook Dispatcher (dist/hook.cjs)\nSessionStart · PreToolUse · PostToolUse · PreInvocation (0-token receipt) · Stop\nRead-only config check -> O(1) short-circuit · Guard (deny/force_ask) > Spec > Remote > Turbo Auto-RTK"]
+    UI["Single-File 8-Language UI (dist/ui/app.html)\n4+1 IA · Hub + 4-Tier Settings Hub (S3: 6 modules) + Cmd/Ctrl+K · <720px / >=720px\nFull 8-Language UI (24 components) · Dark/Light · ~1.2 MB (< 10 MiB)"]
+    CLI["Zero-Token Native CLI (dist/cli.cjs)\n9 commands incl. statusline, recommend (.agy-nov.json), compact-run & doctor"]
   end
 
   subgraph L3["Layer 3 · 4 Functional Domains (13 Modules) & Zero-Port Contract Storage"]
-    T1["Tier 1 · 12 Local Offline Modules (0 ports · 0 outbound · 43 tools max)\ncore: review · guard · xray 2.0\npipeline: spec 2.0 · worktree · verify · turbo 2.5 · mem 2.0\ntoolbox: radar · studio · canvas · ops 2.5"]
+    T1["Tier 1 · 12 Local Offline Modules (0 ports · 0 outbound · 43 tools max)\ncore: review · guard 2.5 (Turn Rewind & 3 Modes) · xray 2.0\npipeline: spec 2.0 · worktree · verify · turbo 3.0 (Auto-RTK/Dep/Refs/Pack) · mem 2.0\ntoolbox: radar · studio · canvas · ops 2.5"]
     T2R["Tier 2 · connectivity (OFF by default · 4-Zero Isolation)\nremote 2.0: Read-Only PWA Live Stream, Safe Tunnel Guide & 6 IM Webhooks"]
     Store["Per-Module Storage & Dual-Star Feed (0700 / 0600)\n<dataDir>/config.json · feed-snapshot.json (<64 KiB, O(n) redacted)\n<dataDir>/modules/<id>/ · realpath Guard · Zero-mkdir when absent"]
   end
 
   Host --> MCP
   Host --> Hook
-  Host -. "CLI statusLine / recommend" .-> CLI
+  Host -. "CLI statusLine / recommend / compact-run" .-> CLI
   Sag -. "config.json hot-sync / feed-snapshot.json" .-> Store
   Sag -. "config.json hot-sync" .-> MCP
   MCP --> UI
   MCP --> T1
   MCP -. "opt-in only" .-> T2R
   Hook --> T1
-  Hook -. "PreToolUse: Guard > Spec > Remote" .-> T2R
+  Hook -. "PreToolUse: Guard > Spec > Remote > Turbo" .-> T2R
   T1 --> Store
   T2R -. "lazy write when ON" .-> Store
-  CLI -. "read-only" .-> Store
+  CLI -. "read-only / compact-run" .-> Store
 ```
 
 <details>
@@ -259,7 +259,9 @@ flowchart TB
 - **4-Tier Settings Hub Governance & Safe Config Import/Export:** S4 JSON export includes allowlisted keys only (zero secrets, zero local host paths); config import enforces strict allowlist validation, blocks `__proto__` / `constructor` / `prototype` prototype pollution, and refuses silent `remote` enablement; resetting defaults requires inline double confirmation (`confirm: true`).
 - **Spec 2.0 Inline Review Bench, Brownfield Delta Spec & Archive Safety:** Validates every Task DAG via Kahn topological sort to reject cycles and dangling references, blocks advancing tasks while prerequisites remain unfinished, enforces a pure read-only `PreToolUse` write lock (`enforcePlanBeforeWrite`) while the active spec stays in `draft`, and rejects model-side `spec_approve` calls whenever `requireUiApproval` is enabled. Pure-TypeScript line-level LCS diffing degrades linearly beyond 600 lines to prevent CPU spikes, history stays bounded to the latest 8 snapshots, and one-click archival into `mem` automatically strips `<private>` tags and redacts credentials.
 - **Mem 2.0 Privacy Stripping & Context Budgeting:** O(n) `<private>...</private>` stripping removes sensitive blocks (with unclosed-tag tail truncation to prevent partial leaks) and skips Stop-hook storage on purely private turns; `SessionStart` injects a bounded L1 Index (`<= 1,200` chars) while progressive `mem_recall` loads deeper tiers on demand without adding extra model tools.
-- **Turbo 2.5 Anti-Spill UTF-8 Safety & In-Memory Gain:** All three model tools (`turbo_batch_search`, `turbo_read_outline`, `turbo_compact_output`) enforce UTF-8 code-point-safe truncation at `<= 8.8 KB` (`8,800 B`) to prevent host file spills; cumulative token and USD savings (`app_turbo_get_gain`, `$2.50/1M` baseline) stay purely in memory with zero extra disk writes.
+- **Auto-RTK Zero-Shell Proxy & `compact-run` Hardening (`turbo`, `hooks`, `cli`):** Auto-RTK stays strictly `false` by default (`prefs.json`). When opted in, `PreToolUse.overwrite` triggers exclusively on strictly allowlisted single commands (test/build/read-only Git queries), hard-denies all shell metacharacters, control bytes, glob syntax, env-assignment prefixes, and shell/interpreter binaries (`sh`/`bash`/`zsh`/`node`/`eval`/etc.), executes via shell-free `spawnSync` (`shell: false`), preserves full error stacks (minimum 60-line failure tail) and exact original exit codes on failure, writes redacted raw output to mode-`0600` `last-raw.log` (`<= 128 KiB`), and executes strictly after `guard`, `spec`, and `remote` leave the call clean.
+- **Turbo 3.0 Offline Contracts, O(n) Symbol References & Redacted Context Pack (`turbo`):** `turbo_read_outline` (`depPackage`) enforces canonical `realpath` confinement inside workspace dependency roots (`node_modules/.d.ts` incl. barrel re-exports capped at depth 2 / 8 files, Python `.venv/.pyi`, Go `go.mod`, Rust `Cargo.lock`) alongside UTF-8 code-point-safe `<= 8.8 KB` (`8,800 B`) truncation across all 3 model tools; `turbo_batch_search` (`mode: "references"`) uses O(n) lexical tokenization with file/hit/time caps; `app_turbo_build_context_pack` enforces `realpath` containment, skips sensitive/binary/symlink files, caps tokens (`256`–`32,000`), and applies linear O(n) secret redaction; cumulative token & USD savings (`app_turbo_get_gain`, `$2.50/1M` baseline) stay purely in memory.
+- **Guard 2.5 Turn-Grouped Rewind & 3-Tier Protocol Permission Modes (`guard`, `hooks`):** Turn-grouped rewind (`turnKey`) restores multi-edit files back to their pre-first-edit baseline after All-or-Nothing workspace-boundary and symlink preflight validation across all target files, records `pre-rewind` safety backups, and requires inline double confirmation. Protocol-level `permissionMode` (`readonly-audit` hard-denies all writes & commands; `balanced-dev` runs balanced guardrails; `strict-gate` emits official `PreToolUse` `force_ask` that cannot be downgraded by `ask`, while critical rules remain hard `deny`).
 - **Remote 2.0 Read-Only Live Stream & Tunnel Containment:** `GET /api/conversations/:id/stream` enforces strict token authentication, conversation ID traversal blocking, dual-pass secret redaction, a `256 KiB` tail read cap, and zero-`innerHTML` DOM rendering against XSS while refusing file writes and remote shell access. `tailscale` / `cloudflared` detection uses shell-free `execFile` and never launches public tunnels automatically; disabling `remote` preserves four-zero isolation (zero ports, zero polling, zero writes, zero outbound traffic).
 - **Single-File `.agy-nov.json` Team Preset & Ops 2.5 Zero-Echo Audit:** Optional workspace `.agy-nov.json` parsing is strictly read-only (never creates directories in user repos), enforces a `64 KiB` cap, `realpath` boundary, `__proto__`/`constructor`/`prototype` prototype-pollution blocking, static 23-executable allowlist validation with zero automatic execution, and hard refusal to silently enable `remote`. Ops 2.5 checks for Antigravity `#233` unexpanded `${ENV_VAR}` traps, `#1937` duplicate plugins/MCP servers, and `.claude/`/`.cursor/rules/`/`.codex/` migration hints strictly read-only with zero secret echoing.
 - **Symlink & Workspace Boundary (`realpath`):** `guard`, `verify`, `studio`, `canvas`, `mem`, `turbo`, and `ops` resolve canonical real paths against the workspace root and automatically exclude `.env`, SSH keys, `.git`, and `node_modules`.
@@ -268,9 +270,9 @@ flowchart TB
 - **Workspace Studio Read-Only, ZIP-Bomb, OpenAPI Bomb & Anti-SSRF Guards:** `studio` caps inspected workspace files at `10 MiB`, restricts SQLite queries to validated single-statement read-only `SELECT` / `EXPLAIN QUERY PLAN SELECT` / `PRAGMA table_info(...)` calls, parses DOCX/XLSX/PDF purely in Node.js with hard ZIP-bomb and PDF-stream caps (`512` entries, `4 MiB`/entry, `6 MiB` total inflated ZIP, `2 MiB` PDF streams), parses OpenAPI 2.0/3.x YAML & JSON with zero dependencies while blocking YAML anchor bombs and `__proto__`/`constructor`/`prototype` prototype pollution (`2 MiB` file, `20,000` lines, depth `24`, `200` endpoints), and limits `studio_http_probe` strictly to loopback addresses (`127.0.0.1`, `localhost`, `[::1]`) with `redirect: manual`, a `64 KiB` body cap, `1–15s` timeout bounds, and automatic header/body secret redaction.
 - **Verify Gate Shell-Free Whitelist, Zero-Write Auto-Detection & Anti-Loop Guardrails:** `verify` auto-detects project stacks read-only (`package.json`, `pyproject.toml`/`pytest.ini`, `Cargo.toml`, `go.mod`) and re-validates every candidate through the shell-free `execFile` whitelist (17 allowlisted executables + 4 safe `git` subcommands: `diff`, `status`, `rev-parse`, `check-ignore`), enforces Stop-hook time budgets (`8s` single / `14s` total inside the `20s` Stop hook timeout), respects `continuation_active`, caps consecutive Stop blocks with `maxConsecutiveBlocks` (default `3`, range `1`–`10`), and redacts sensitive tokens before storing evidence.
 - **Worktree Isolation & Ref Validation:** `worktree` confines managed worktrees inside `<repoRoot>/.agy-worktrees/`, validates branch/ref and directory names against strict regexes to stop option injection or traversal, invokes Git via shell-free `execFile`, warns on `extensions.worktreeConfig` hazards, and guards non-forced cleanup against dirty trees.
-- **Synchronized Tool & 5-Hook Gating:** Turning a module off disables its model tools and mutating `app_*` tools together while `dist/hook.cjs` reads `config.json` read-only and returns `{}` in O(1). In `PreToolUse`, strict precedence applies: `guard` `deny` precedes `spec` write-lock `deny`, which precedes `remote`.
+- **Synchronized Tool & 5-Hook Gating:** Turning a module off disables its model tools and mutating `app_*` tools together while `dist/hook.cjs` reads `config.json` read-only and returns `{}` in O(1). In `PreToolUse`, strict precedence applies: `guard` (`deny`/`force_ask`/`ask`) precedes `spec` write-lock `deny`, which precedes `remote`, which precedes `turbo` Auto-RTK (`overwrite`).
 - **Isolated `0700` / `0600` Storage:** Each module writes strictly under `<dataDir>/modules/<moduleId>/` using owner-only permissions and creates zero directories while disabled; `status`, `statusline`, `recommend`, `doctor`, and `PreInvocation` perform zero disk writes.
-- **Official Plugin Manifest & Bundle Cap:** `plugin.json` contains strictly the 10 officially supported top-level keys, and `dist/ui/app.html` (`~1.1 MB`, measured `1,112.7 KB`) stays far below Antigravity's 10 MiB limit — both verified automatically alongside all 9 required bundle files by `agy-nov doctor`.
+- **Official Plugin Manifest & Bundle Cap:** `plugin.json` contains strictly the 10 officially supported top-level keys, and `dist/ui/app.html` (`~1.2 MB`, measured `1,201.2 KB`) stays far below Antigravity's 10 MiB limit — both verified automatically alongside all 9 required bundle files by `agy-nov doctor`.
 
 </details>
 
@@ -307,10 +309,10 @@ Open `http://127.0.0.1:4399` to access the zero-touch simulator featuring:
 - **Dark / Light theme toggle**
 - **Adaptive `< 720px` (`480px` aux-pane 4-control bar) & `>= 720px` (`1160px` global `204px` left rail)** viewport presets
 - **L0 Workflow Hub, 4-Tier Settings Hub & `Cmd/Ctrl+K` command palette**
-- **8-language Host Locale simulator** (`en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `es`, `fr`, `de`) verifying all **491 dictionary keys** across all **24 UI components**
+- **8-language Host Locale simulator** (`en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `es`, `fr`, `de`) verifying full 8-language localization across all **24 UI components** (incl. v0.8.0 Turbo 3.0 & Guard 2.5 controls)
 - **Live Host Events inspector** (`sendMessage` / `updateModelContext` / `openFile`)
 
-### CLI Control Cheat Sheet (8 Commands)
+### CLI Control Cheat Sheet (9 Commands)
 
 Use `agy-nov <command>` if installed on your `PATH`, or `node dist/cli.cjs <command>` inside the repository:
 
@@ -323,6 +325,7 @@ agy-nov locale zh-CN                           # Set UI language (auto|en|zh-CN|
 agy-nov statusline                             # Zero-token read-only status line (supports --compact and --json)
 agy-nov recommend [--workspace=<dir>] [--json] # Read-only stack scanner & .agy-nov.json team preset validator (zero writes)
 agy-nov doctor                                 # Read-only check for all 9 required files, plugin.json schema & 10 MiB cap
+agy-nov compact-run --payload=<base64url>      # Shell-free Auto-RTK runner invoked by PreToolUse.overwrite (preserves exit code & 0600 last-raw.log)
 ```
 
 #### Zero-Token Antigravity CLI `statusLine` Integration
@@ -354,9 +357,9 @@ Machine-optimized entry points and canonical architecture contracts for AI codin
 | "Organize all my Antigravity tools cleanly across narrow sidebars and full-width panes with one governance hub and `⌘K` navigation." | 4+1 Domain IA (`Hub` + `SettingsHub`) | L0 Workflow Hub (6-node pipeline bar + alert cards), adaptive `< 720px` / `>= 720px` nav, `Cmd/Ctrl+K` palette, and 4-tier Settings Hub (S1–S4) with 0 extra model tools |
 | "Review plans like Plannotator with Brownfield `delta` specs, line-level diff across revisions, inline `Comment`/`Strike`/`Replace` bounce-back, and archive into memory." | `spec` (`power` preset) | **Spec 2.0**: `full`/`delta` (`ADDED`/`MODIFIED`/`REMOVED`), latest 8 revision snapshots, pure-TS LCS diff (`> 600` lines linear fallback), inline annotations, 1-click archive to `mem`, Kahn DAG check, `PreToolUse` write lock, `requireUiApproval`, and zero-token `PreInvocation` receipt |
 | "I want PR-style diff review inside Antigravity with syntax highlighting, `-w` whitespace ignore, and risk pre-annotations." | `review` (`core` preset) | Native side-pane diff viewer with zero-HTML pure-React syntax highlighting, `-w` toggle, zero-ReDoS risk hints (1-click annotate), and `file:line` fix prompts |
-| "Prevent the agent from leaking `.env`/SSH keys or breaking files without Git commits." | `guard` (`minimal` or `core`) | `PreToolUse` secret/command firewall + zero-Git pre-edit file snapshots + zero-token `PreInvocation` receipt on recent denies |
+| "Prevent the agent from leaking `.env`/SSH keys, enforce read-only audit or mandatory write confirmation, or rewind a whole multi-file turn in one click." | `guard` (`minimal` or `core`) | **Guard 2.5**: `PreToolUse` secret/command firewall, 3-tier `permissionMode` (`readonly-audit` / `balanced-dev` / `strict-gate` via `force_ask`), turn-grouped pre-edit snapshots reverting multi-edit files to before their first edit (multi-file diff preview, All-or-Nothing preflight, `pre-rewind` backup & inline double-confirm), plus zero-token `PreInvocation` receipt on recent denies |
 | "Estimate offline USD token costs, catch 5h burn-rate spikes or 429 retries, inspect Swarm subagent lineage, and export handoff/OTLP/CSV." | `xray` (`core` preset) | Context X-Ray 2.0: offline USD pricing (with read-only `pricing-overrides.json`), 14-day trend & 5h rolling burn-rate alerts, Swarm lineage, 429 alerts, EN+CJK BM25 search, and `brief`/`handoff`/`otlp`/`csv` export |
-| "Measure cumulative token/USD savings, stop oversized tool output from spilling to temp files, and slice nested class/interface/impl methods." | `turbo` (`power` preset) | Turbo 2.5: in-memory cumulative `gain` dashboard (`$2.50/1M`, `app_turbo_get_gain`), UTF-8 safe `<= 8.8 KB` anti-spill guardrails across all 3 tools, nested multi-indent symbol outlines (TS/JS, Python, Go, Rust), and RTK log compression |
+| "Transparently compact noisy test/build/git output, look up locked local dependency signatures offline, find cross-file symbol references without an LSP daemon, or export a redacted Context Pack." | `turbo` (`power` preset) | **Turbo 3.0**: opt-in Auto-RTK `PreToolUse.overwrite` proxy (`autoRtk: false` by default, zero shell, `PostToolUse` hotspot discovery & `compact-run`), offline locked dependency contracts (`turbo_read_outline` `depPackage` for Node/Python/Go/Rust), O(n) cross-file symbol references (`turbo_batch_search` `mode: "references"`), redacted Context Pack (`app_turbo_build_context_pack`), UTF-8 safe `<= 8.8 KB` guardrails & in-memory `gain` dashboard — strictly **3** model tools |
 | "I run parallel sessions or Swarm subagents and miss approvals, stalls, or orphans." | `radar` (`power` preset) | Lifecycle-hook attention board with parent/child subagent tracking, orphan alerts, `status-capsule.json` & optional chime |
 | "Auto-detect safe repo checks and stop the agent from claiming 'done' without passing tests or leaving 0-byte files." | `verify` (`power` preset) | Read-only stack auto-detection (`package.json`, `pyproject.toml`/`pytest.ini`, `Cargo.toml`, `go.mod`) + Stop-hook verification gate with shell-free allowlisted checks, 0-byte blocking, `maxConsecutiveBlocks` anti-loop guardrails & redacted evidence chain |
 | "Run parallel branches or subagents in isolated Git worktrees without dirtying main." | `worktree` (`power` preset) | Safe `.agy-worktrees/` orchestrator with `carryUncommitted`, branch diff summaries, `extensions.worktreeConfig` hazard checks & orphan cleanup |
@@ -406,14 +409,14 @@ Machine-optimized entry points and canonical architecture contracts for AI codin
 
 ```bash
 npm run typecheck
-npm test                      # 55 suites / 163 tests (incl. 3 v0.7.0 regression suites)
+npm test                      # 67 suites / 187 tests (incl. 3 v0.8.0 regression suites)
 node dist/cli.cjs status
 node dist/cli.cjs statusline --json
 node dist/cli.cjs recommend --json
 node dist/cli.cjs doctor
 ```
 
-*Agent Guardrail:* Ask for explicit user confirmation before enabling `remote` (or applying preset `full`). Respect `requireUiApproval` on `spec`, keep optional `.agy-nov.json` team presets strictly read-only without auto-executing commands or silently enabling `remote` (including during Settings Hub JSON imports), and never write directly to `~/.gemini/config/plugins/` during repository testing.
+*Agent Guardrail:* Ask for explicit user confirmation before enabling `remote` (or applying preset `full`). Keep Auto-RTK (`autoRtk: false`) disabled until explicitly opted in by the user, respect Guard 2.5's `permissionMode` (`readonly-audit` / `strict-gate`) and `spec`'s `requireUiApproval`, keep optional `.agy-nov.json` team presets strictly read-only without auto-executing commands or silently enabling `remote` (including during Settings Hub JSON imports), and never write directly to `~/.gemini/config/plugins/` during repository testing.
 
 </details>
 
@@ -428,7 +431,7 @@ Install both zero-overlap companion plugins to combine a **100% native MCP App e
 
 | Plugin | Architecture | Core Capabilities |
 | :--- | :--- | :--- |
-| **`agy-NOV`** *(This Repo)* | **100% Official Native Protocols** (MCP Apps SEP-1865 + **5 Lifecycle Hooks** incl. `PreInvocation` + Skills; **Zero ASAR · Zero CDP**) | 4+1 Domain IA (`Hub` + `⌘K` + `< 720px`/`>= 720px` adaptive nav + 4-tier Settings Hub), 13-module engineering workbench (Spec 2.0 Plannotator inline review / Brownfield Delta Spec / archive to `mem`, Mem 2.0, Turbo 2.5, Remote 2.0, Ops 2.5, `.agy-nov.json` team presets, `review`, `guard`, `xray` 2.0, `radar`, `verify`, `worktree`, `studio`, `canvas`), 100% 8-language UI (`491` keys across `24` components, `~1.1 MB`), 5 presets, 8 CLI commands incl. zero-token `statusline` & `recommend`, `config.json` hot-sync, and `feed-snapshot.json` dual-star contract. |
+| **`agy-NOV`** *(This Repo)* | **100% Official Native Protocols** (MCP Apps SEP-1865 + **5 Lifecycle Hooks** incl. `PreInvocation`, `PreToolUse.overwrite` & `force_ask` + Skills; **Zero ASAR · Zero CDP**) | 4+1 Domain IA (`Hub` + `⌘K` + `< 720px`/`>= 720px` adaptive nav + 4-tier Settings Hub with 6 S3 policy drawers), 13-module engineering workbench (**Turbo 3.0** opt-in Auto-RTK / Offline Dep Contracts / Symbol Refs / Context Pack, **Guard 2.5** Turn Rewind & 3-tier Permission Modes, Spec 2.0 Plannotator inline review / Brownfield Delta Spec / archive to `mem`, Mem 2.0, Remote 2.0, Ops 2.5, `.agy-nov.json` team presets, `review`, `xray` 2.0, `radar`, `verify`, `worktree`, `studio`, `canvas`), 100% 8-language UI (`24` components, `~1.2 MB`), 5 presets, **9 CLI commands** incl. zero-token `statusline`, `recommend` & `compact-run`, `config.json` hot-sync, and `feed-snapshot.json` dual-star contract. |
 | **[`agy-Sag`](https://github.com/tone-leh/agy-session-guard)** *(formerly `agy-session-guard`)* | **Zero-ASAR Local CDP Deep-Enhancement Suite + Watch Sidecar + Storage CLI** | Embedded native Antigravity **Settings** control panel (with live `agy-NOV` toggle sync & `feed-snapshot.json` feed), **10-language host UI translation**, custom `/compact` auto-compaction guard, **Draft Vault**, **Prompt Queue**, turn bookmarks & archive, policy-gated **Safe Auto-Accept**, zero-`:has()` **Optical Theme Studio**, read-only **Quota Pulse**, and offline **Storage Doctor**. |
 
 ```bash

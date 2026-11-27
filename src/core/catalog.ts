@@ -208,7 +208,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
     uiMode: 'scroll',
     hasUiTab: true,
     defaultEnabled: false,
-    hooks: ['SessionStart'],
+    hooks: ['SessionStart', 'PreToolUse', 'PostToolUse'],
     modelToolNames: ['turbo_batch_search', 'turbo_read_outline', 'turbo_compact_output'],
   },
   radar: {

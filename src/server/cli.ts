@@ -25,8 +25,9 @@ import {
 } from '../core/config.js';
 import { getFeedSnapshotPath, MAX_FEED_SNAPSHOT_BYTES } from '../core/feed.js';
 import { hasCliFlag, parseCliFlag } from '../core/utils.js';
+import { executeSafeCompactRun, loadTurboPrefsReadOnly } from '../modules/turbo/auto-rtk.js';
 
-const CLI_VERSION = '0.7.0';
+const CLI_VERSION = '0.8.0';
 
 function printHelp(): void {
   console.log(`agy-NOV CLI (v${CLI_VERSION}) — The 100% Native Modular Super-Workbench for Antigravity 2.0
@@ -40,6 +41,7 @@ Usage:
   agy-nov statusline [--json] [--compact] [--data-dir=<dir>]    Zero-token read-only status line for Antigravity CLI
   agy-nov recommend [--workspace=<dir>] [--json]                Read-only project scanner recommending preset & modules
   agy-nov doctor [--data-dir=<dir>]                             Verify plugin bundle, manifests & config health (read-only)
+  agy-nov compact-run --payload=<b64> [--data-dir=<dir>]        Auto-RTK whitelisted shell-free compact command runner
 `);
 }
 
@@ -580,6 +582,13 @@ function runDoctor(dataDir: string): number {
     `  OK   config readable (preset=${cfg.preset}, locale=${cfg.locale}, remote=${cfg.modules.remote ? 'ON' : 'OFF'})`,
   );
 
+  // Read-only Auto-RTK proxy status (default OFF, zero disk writes)
+  const turboPrefs = loadTurboPrefsReadOnly(getModuleDataDir(dataDir, 'turbo'));
+  const autoRtkActive = cfg.modules.turbo && turboPrefs.autoRtk;
+  console.log(
+    `  OK   Auto-RTK: ${turboPrefs.autoRtk ? (autoRtkActive ? 'ON (active)' : 'ON (waiting for turbo module)') : 'OFF (default safe passive mode)'}`,
+  );
+
   // Read-only dual-star feed snapshot status check (never writes or creates directories)
   const feedPath = getFeedSnapshotPath(dataDir);
   let feedStatusTag = 'OK  ';
@@ -694,6 +703,23 @@ function main(): void {
 
   if (cmd === 'doctor') {
     process.exit(runDoctor(dataDir));
+  }
+
+  if (cmd === 'compact-run') {
+    const payloadB64 = parseCliFlag(argv, '--payload');
+    if (!payloadB64) {
+      console.error('[agy-NOV Auto-RTK] Missing required --payload=<base64url> argument.');
+      process.exit(2);
+    }
+    const result = executeSafeCompactRun({
+      payloadB64,
+      cwd: process.cwd(),
+      dataDir,
+    });
+    if (result.output) {
+      process.stdout.write(result.output.endsWith('\n') ? result.output : `${result.output}\n`);
+    }
+    process.exit(result.exitCode);
   }
 
   console.error(`Unknown command "${cmd}".`);

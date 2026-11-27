@@ -1,5 +1,75 @@
 import path from 'node:path';
-import type { GuardPolicy, PolicyEvaluation, SecretFinding } from './types.js';
+import type { GuardDecision, GuardPermissionMode, GuardPolicy, PolicyEvaluation, SecretFinding } from './types.js';
+
+const VALID_PERMISSION_MODES = new Set<GuardPermissionMode>([
+  'readonly-audit',
+  'balanced-dev',
+  'strict-gate',
+]);
+
+export const MUTATING_FILE_TOOL_NAMES = new Set<string>([
+  'edit_file',
+  'write_file',
+  'write_to_file',
+  'create_file',
+  'patch_file',
+  'apply_patch',
+  'replace_file_content',
+  'multi_replace_file_content',
+  'replace_in_file',
+  'str_replace_editor',
+  'delete_file',
+  'remove_file',
+  'rm_file',
+  'unlink_file',
+  'move_file',
+  'rename_file',
+  'write',
+  'edit',
+  'multi_edit',
+  'multiedit',
+  'notebook_edit',
+  'notebookedit',
+]);
+
+export const COMMAND_EXEC_TOOL_NAMES = new Set<string>([
+  'run_command',
+  'run_shell_command',
+  'run_terminal_command',
+  'send_command_input',
+  'exec_command',
+  'bash',
+  'shell',
+  'execute_command',
+]);
+
+export function normalizeGuardToolName(toolName: string): string {
+  const trimmed = toolName.trim().toLowerCase();
+  const sepIdx = Math.max(trimmed.lastIndexOf(':'), trimmed.lastIndexOf('/'));
+  return sepIdx >= 0 ? trimmed.slice(sepIdx + 1) : trimmed;
+}
+
+export function normalizePermissionMode(value: unknown): GuardPermissionMode {
+  if (typeof value === 'string' && VALID_PERMISSION_MODES.has(value as GuardPermissionMode)) {
+    return value as GuardPermissionMode;
+  }
+  return 'balanced-dev';
+}
+
+export function isMutatingFileToolName(toolName: string): boolean {
+  return MUTATING_FILE_TOOL_NAMES.has(normalizeGuardToolName(toolName));
+}
+
+export function isCommandExecToolName(toolName: string): boolean {
+  return COMMAND_EXEC_TOOL_NAMES.has(normalizeGuardToolName(toolName));
+}
+
+const DECISION_SEVERITY: Record<GuardDecision, number> = {
+  allow: 0,
+  ask: 1,
+  force_ask: 2,
+  deny: 3,
+};
 
 interface SecretPattern {
   ruleId: string;
@@ -659,6 +729,70 @@ export function extractWritePayload(args: Record<string, unknown>): string {
   return parts.join('\n');
 }
 
+function evaluatePermissionModeGate(
+  toolName: string,
+  policy: GuardPolicy,
+  args?: Record<string, unknown>,
+): PolicyEvaluation | null {
+  const mode = normalizePermissionMode(policy.permissionMode);
+  if (mode === 'balanced-dev') return null;
+
+  const hasCmd = Boolean(args && extractCommandLine(args));
+  const restricted = isMutatingFileToolName(toolName) || isCommandExecToolName(toolName) || hasCmd;
+  if (!restricted) return null;
+
+  if (mode === 'readonly-audit') {
+    return {
+      decision: 'deny',
+      category: 'permission-mode',
+      ruleId: 'mode.readonly-audit',
+      reason: `Blocked ${toolName}: Guard permission mode is readonly-audit (read-only)`,
+      findings: [],
+    };
+  }
+
+  if (mode === 'strict-gate') {
+    return {
+      decision: 'force_ask',
+      category: 'permission-mode',
+      ruleId: 'mode.strict-gate',
+      reason: `Confirmation required for ${toolName}: Guard permission mode is strict-gate`,
+      findings: [],
+    };
+  }
+
+  return null;
+}
+
+function finalizeEvaluation(
+  highRiskEval: PolicyEvaluation | null,
+  toolName: string,
+  policy: GuardPolicy,
+  args?: Record<string, unknown>,
+): PolicyEvaluation {
+  // High-risk deny can never be downgraded by permission mode.
+  if (highRiskEval && highRiskEval.decision === 'deny') {
+    return highRiskEval;
+  }
+
+  const modeEval = evaluatePermissionModeGate(toolName, policy, args);
+  if (highRiskEval && modeEval) {
+    // Keep stricter decision when both match (e.g. curl|sh ask under readonly-audit -> deny).
+    if (DECISION_SEVERITY[modeEval.decision] > DECISION_SEVERITY[highRiskEval.decision]) {
+      return {
+        ...highRiskEval,
+        decision: modeEval.decision,
+        reason: `${highRiskEval.reason} (${modeEval.ruleId})`,
+      };
+    }
+    return highRiskEval;
+  }
+
+  if (highRiskEval) return highRiskEval;
+  if (modeEval) return modeEval;
+  return { decision: 'allow', category: 'safe', reason: 'Passed all guardrails', findings: [] };
+}
+
 export function evaluateToolCall(
   toolName: string,
   args: Record<string, unknown>,
@@ -669,26 +803,27 @@ export function evaluateToolCall(
     return { decision: 'allow', category: 'safe', reason: 'Guard policy disabled', findings: [] };
   }
 
-  const lowerTool = toolName.toLowerCase();
+  const lowerTool = toolName.trim().toLowerCase();
   const targetPath = extractTargetPath(args);
   const commandLine = extractCommandLine(args);
+
+  let highRiskEval: PolicyEvaluation | null = null;
 
   // 1. Check sensitive file reads/writes/deletes (both literal path and resolved symlink target)
   if (targetPath && policy.protectEnvAndKeys !== 'allow') {
     const check = isSensitivePath(targetPath, policy.customProtectedPaths);
     if (check.sensitive) {
-      return {
+      highRiskEval = {
         decision: policy.protectEnvAndKeys,
         category: check.ruleId?.startsWith('custom.') ? 'custom' : 'sensitive-file',
         ruleId: check.ruleId,
         reason: `Blocked ${toolName} on protected path: ${check.label} (${path.basename(targetPath)})`,
         findings: [],
       };
-    }
-    if (options?.resolvedTargetPath && options.resolvedTargetPath !== targetPath) {
+    } else if (options?.resolvedTargetPath && options.resolvedTargetPath !== targetPath) {
       const realCheck = isSensitivePath(options.resolvedTargetPath, policy.customProtectedPaths);
       if (realCheck.sensitive) {
-        return {
+        highRiskEval = {
           decision: policy.protectEnvAndKeys,
           category: realCheck.ruleId?.startsWith('custom.') ? 'custom' : 'sensitive-file',
           ruleId: realCheck.ruleId,
@@ -699,8 +834,14 @@ export function evaluateToolCall(
     }
   }
 
+  if (highRiskEval) {
+    return finalizeEvaluation(highRiskEval, toolName, policy, args);
+  }
+
   // 2. Check outgoing write/edit/patch/create payloads for accidentally hardcoded secrets
-  const isMutatingFileTool = /write|edit|replace|patch_file|apply_patch|create_file|patch/.test(lowerTool);
+  const isMutatingFileTool =
+    MUTATING_FILE_TOOL_NAMES.has(lowerTool) ||
+    /write|edit|replace|patch_file|apply_patch|create_file|patch/.test(lowerTool);
   if (isMutatingFileTool && policy.blockSecretWrites !== 'allow') {
     const payload = extractWritePayload(args);
     if (payload) {
@@ -710,13 +851,18 @@ export function evaluateToolCall(
           .slice(0, 3)
           .map((f) => `${f.label} (${f.preview})`)
           .join(', ');
-        return {
-          decision: policy.blockSecretWrites,
-          category: 'secret-leak',
-          ruleId: findings[0].ruleId,
-          reason: `Detected ${findings.length} potential secret(s) in ${toolName} payload: ${summary}`,
-          findings,
-        };
+        return finalizeEvaluation(
+          {
+            decision: policy.blockSecretWrites,
+            category: 'secret-leak',
+            ruleId: findings[0].ruleId,
+            reason: `Detected ${findings.length} potential secret(s) in ${toolName} payload: ${summary}`,
+            findings,
+          },
+          toolName,
+          policy,
+          args,
+        );
       }
     }
   }
@@ -726,32 +872,47 @@ export function evaluateToolCall(
     // 3a. Destructive commands
     if (policy.blockDestructiveCommands !== 'allow') {
       if (isCatastrophicRmCommand(commandLine)) {
-        return {
-          decision: policy.blockDestructiveCommands,
-          category: 'destructive-command',
-          ruleId: 'cmd.rm-rf-root',
-          reason: 'Blocked dangerous command: Catastrophic recursive delete (rm -r/-rf targeting /, ~, $HOME, or system root)',
-          findings: [],
-        };
+        return finalizeEvaluation(
+          {
+            decision: policy.blockDestructiveCommands,
+            category: 'destructive-command',
+            ruleId: 'cmd.rm-rf-root',
+            reason: 'Blocked dangerous command: Catastrophic recursive delete (rm -r/-rf targeting /, ~, $HOME, or system root)',
+            findings: [],
+          },
+          toolName,
+          policy,
+          args,
+        );
       }
       if (hasDangerousSqlCommand(commandLine)) {
-        return {
-          decision: policy.blockDestructiveCommands,
-          category: 'destructive-command',
-          ruleId: 'cmd.sql-drop',
-          reason: 'Blocked dangerous command: Destructive SQL DROP/TRUNCATE statement',
-          findings: [],
-        };
+        return finalizeEvaluation(
+          {
+            decision: policy.blockDestructiveCommands,
+            category: 'destructive-command',
+            ruleId: 'cmd.sql-drop',
+            reason: 'Blocked dangerous command: Destructive SQL DROP/TRUNCATE statement',
+            findings: [],
+          },
+          toolName,
+          policy,
+          args,
+        );
       }
       for (const rule of DESTRUCTIVE_COMMAND_RULES) {
         if (rule.regex.test(commandLine)) {
-          return {
-            decision: policy.blockDestructiveCommands,
-            category: 'destructive-command',
-            ruleId: rule.ruleId,
-            reason: `Blocked dangerous command: ${rule.label}`,
-            findings: [],
-          };
+          return finalizeEvaluation(
+            {
+              decision: policy.blockDestructiveCommands,
+              category: 'destructive-command',
+              ruleId: rule.ruleId,
+              reason: `Blocked dangerous command: ${rule.label}`,
+              findings: [],
+            },
+            toolName,
+            policy,
+            args,
+          );
         }
       }
     }
@@ -760,13 +921,18 @@ export function evaluateToolCall(
     for (const custom of policy.customBlockedCommands) {
       const trimmed = custom.trim();
       if (trimmed && commandLine.toLowerCase().includes(trimmed.toLowerCase())) {
-        return {
-          decision: 'deny',
-          category: 'custom',
-          ruleId: 'custom.command',
-          reason: `Matched custom blocked command pattern: "${trimmed}"`,
-          findings: [],
-        };
+        return finalizeEvaluation(
+          {
+            decision: 'deny',
+            category: 'custom',
+            ruleId: 'custom.command',
+            reason: `Matched custom blocked command pattern: "${trimmed}"`,
+            findings: [],
+          },
+          toolName,
+          policy,
+          args,
+        );
       }
     }
 
@@ -774,13 +940,18 @@ export function evaluateToolCall(
     if (policy.protectEnvAndKeys !== 'allow') {
       const hit = detectCommandSensitiveAccess(commandLine, policy.customProtectedPaths);
       if (hit) {
-        return {
-          decision: policy.protectEnvAndKeys,
-          category: hit.category,
-          ruleId: hit.ruleId,
-          reason: `Blocked credential access in shell: ${hit.label}`,
-          findings: [],
-        };
+        return finalizeEvaluation(
+          {
+            decision: policy.protectEnvAndKeys,
+            category: hit.category,
+            ruleId: hit.ruleId,
+            reason: `Blocked credential access in shell: ${hit.label}`,
+            findings: [],
+          },
+          toolName,
+          policy,
+          args,
+        );
       }
     }
 
@@ -788,13 +959,18 @@ export function evaluateToolCall(
     if (policy.askOnNetworkPipes !== 'allow') {
       for (const rule of NETWORK_PIPE_RULES) {
         if (rule.regex.test(commandLine)) {
-          return {
-            decision: policy.askOnNetworkPipes,
-            category: 'network-pipe',
-            ruleId: rule.ruleId,
-            reason: `Requires confirmation: ${rule.label}`,
-            findings: [],
-          };
+          return finalizeEvaluation(
+            {
+              decision: policy.askOnNetworkPipes,
+              category: 'network-pipe',
+              ruleId: rule.ruleId,
+              reason: `Requires confirmation: ${rule.label}`,
+              findings: [],
+            },
+            toolName,
+            policy,
+            args,
+          );
         }
       }
     }
@@ -803,16 +979,21 @@ export function evaluateToolCall(
     if (policy.blockSecretWrites !== 'allow') {
       const cmdSecrets = scanTextForSecrets(commandLine);
       if (cmdSecrets.length > 0) {
-        return {
-          decision: policy.blockSecretWrites,
-          category: 'secret-leak',
-          ruleId: cmdSecrets[0].ruleId,
-          reason: `Command contains inline secret (${cmdSecrets[0].label}: ${cmdSecrets[0].preview})`,
-          findings: cmdSecrets,
-        };
+        return finalizeEvaluation(
+          {
+            decision: policy.blockSecretWrites,
+            category: 'secret-leak',
+            ruleId: cmdSecrets[0].ruleId,
+            reason: `Command contains inline secret (${cmdSecrets[0].label}: ${cmdSecrets[0].preview})`,
+            findings: cmdSecrets,
+          },
+          toolName,
+          policy,
+          args,
+        );
       }
     }
   }
 
-  return { decision: 'allow', category: 'safe', reason: 'Passed all guardrails', findings: [] };
+  return finalizeEvaluation(null, toolName, policy, args);
 }

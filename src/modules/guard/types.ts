@@ -1,7 +1,10 @@
-export type GuardDecision = 'allow' | 'ask' | 'deny';
+export type GuardDecision = 'allow' | 'ask' | 'force_ask' | 'deny';
+
+export type GuardPermissionMode = 'readonly-audit' | 'balanced-dev' | 'strict-gate';
 
 export interface GuardPolicy {
   enabled: boolean;
+  permissionMode: GuardPermissionMode;
   protectEnvAndKeys: GuardDecision;
   blockSecretWrites: GuardDecision;
   blockDestructiveCommands: GuardDecision;
@@ -26,6 +29,7 @@ export type PolicyCategory =
   | 'secret-leak'
   | 'destructive-command'
   | 'network-pipe'
+  | 'permission-mode'
   | 'custom'
   | 'safe';
 
@@ -48,10 +52,34 @@ export interface SnapshotRecord {
   sizeBytes: number;
   lineCount: number;
   existed: boolean;
+  turnKey?: string;
+  conversationId?: string;
+  stepIdx?: number;
   restoredFromId?: string;
   isDemo?: boolean;
   demoContent?: string;
   demoCurrentContent?: string;
+  demoCurrentExists?: boolean;
+}
+
+export interface TurnCheckpointFileEntry {
+  snapshotId: string;
+  relPath: string;
+  filePath: string;
+  existed: boolean;
+  sizeBytes: number;
+  toolName: string;
+  createdAt: string;
+}
+
+export interface TurnCheckpointSummary {
+  turnKey: string;
+  conversationId?: string;
+  createdAt: string;
+  latestAt: string;
+  fileCount: number;
+  files: TurnCheckpointFileEntry[];
+  toolNames: string[];
 }
 
 export interface DiffLine {
@@ -72,6 +100,28 @@ export interface SnapshotDiff {
   added: number;
   removed: number;
   hunks: DiffLine[];
+}
+
+export interface TurnCheckpointDiff {
+  turnKey: string;
+  conversationId?: string;
+  createdAt: string;
+  latestAt: string;
+  fileCount: number;
+  changedFiles: number;
+  totalAdded: number;
+  totalRemoved: number;
+  identical: boolean;
+  files: SnapshotDiff[];
+}
+
+export interface TurnRestoreResult {
+  restored: boolean;
+  turnKey: string;
+  restoredFiles: string[];
+  backupSnapshotIds: string[];
+  deletedNewFiles: string[];
+  message: string;
 }
 
 export interface AuditEvent {
@@ -117,12 +167,14 @@ export interface GuardDashboardState {
   policy: GuardPolicy;
   stats: GuardStats;
   snapshots: SnapshotRecord[];
+  turns: TurnCheckpointSummary[];
   auditLog: AuditEvent[];
   lastScan: WorkspaceScanReport | null;
 }
 
 export const DEFAULT_POLICY: GuardPolicy = {
   enabled: true,
+  permissionMode: 'balanced-dev',
   protectEnvAndKeys: 'deny',
   blockSecretWrites: 'deny',
   blockDestructiveCommands: 'deny',
