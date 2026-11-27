@@ -33,7 +33,7 @@ __export(dispatcher_exports, {
   dispatchNovHook: () => dispatchNovHook
 });
 module.exports = __toCommonJS(dispatcher_exports);
-var import_node_fs13 = __toESM(require("node:fs"), 1);
+var import_node_fs15 = __toESM(require("node:fs"), 1);
 
 // src/core/config.ts
 var import_node_fs = __toESM(require("node:fs"), 1);
@@ -49,6 +49,8 @@ var MODULE_IDS = [
   "radar",
   "verify",
   "worktree",
+  "spec",
+  "studio",
   "canvas",
   "mem",
   "ops",
@@ -118,8 +120,8 @@ var MODULE_CATALOG = {
     category: "core-dev",
     name: "Turbo & Output Guard",
     shortLabel: "Turbo",
-    tagline: "Batch codebase search, outline slices & large-output compression",
-    description: "Cut wasted turns and context bloat with multi-pattern workspace search, symbol outline slicing, and compact indexed summaries for oversized command/log outputs.",
+    tagline: "Batch codebase search, outline slices & RTK-style output compression",
+    description: "Cut wasted turns and context bloat with multi-pattern workspace search, symbol outline slicing, and RTK-style smart compression presets (test/build/git/auto) for oversized logs.",
     isolationTier: "offline",
     networkAccess: "offline",
     uiMode: "scroll",
@@ -183,6 +185,46 @@ var MODULE_CATALOG = {
       "worktree_cleanup"
     ]
   },
+  spec: {
+    id: "spec",
+    category: "workspace",
+    name: "Spec Flow & Task DAG",
+    shortLabel: "Spec",
+    tagline: "Spec-driven development, dependency task DAG & pre-approval write lock",
+    description: "Maintain structured Spec -> Plan -> Task DAG workflows with cycle detection, SessionStart next-task recall, and a PreToolUse write gate that keeps code read-only until the spec is approved.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: ["SessionStart", "PreToolUse"],
+    modelToolNames: [
+      "spec_get_state",
+      "spec_create_or_update",
+      "spec_approve",
+      "spec_update_task"
+    ]
+  },
+  studio: {
+    id: "studio",
+    category: "workspace",
+    name: "Workspace Studio",
+    shortLabel: "Studio",
+    tagline: "On-demand SQLite/CSV/JSON data viewer, DOCX/XLSX/PDF slicer & loopback HTTP probe",
+    description: "Inspect local SQLite/CSV/JSON datasets, slice DOCX/XLSX/PDF/Markdown documents offline without external binaries, and probe localhost/127.0.0.1 APIs \u2014 toggle off for zero tool budget tax.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: [],
+    modelToolNames: [
+      "studio_list_sources",
+      "studio_inspect_data",
+      "studio_inspect_document",
+      "studio_http_probe"
+    ]
+  },
   canvas: {
     id: "canvas",
     category: "workspace",
@@ -221,10 +263,10 @@ var MODULE_CATALOG = {
   ops: {
     id: "ops",
     category: "workspace",
-    name: "Prompt Vault & Doctor",
+    name: "Prompt Vault & Budget Doctor",
     shortLabel: "Ops",
-    tagline: "Parameterized prompt vault, workspace asset audit & storage hygiene",
-    description: "Manage reusable {{var}} prompt templates, inspect workspace skills/rules/MCP footprint with read-only token estimates, and audit local agy-NOV storage.",
+    tagline: "Parameterized prompt vault, 24KB/20K rule bloat & 100-tool budget doctor",
+    description: "Manage reusable {{var}} prompt templates, audit workspace rules for 24KB/20K bloat that triggers false 429s, track the 100-tool MCP budget, and verify local storage hygiene.",
     isolationTier: "offline",
     networkAccess: "offline",
     uiMode: "scroll",
@@ -275,24 +317,8 @@ var PRESET_DEFINITIONS = {
   },
   power: {
     id: "power",
-    label: "Power Dev (8 Offline)",
-    description: "Core + Turbo + Radar + Verify + Worktree + Ops \u2014 high-velocity engineering suite with strong verification gates and zero network usage (28 model tools).",
-    enabledModules: ["review", "guard", "xray", "turbo", "radar", "verify", "worktree", "ops"],
-    modules: makeModulesMap([
-      "review",
-      "guard",
-      "xray",
-      "turbo",
-      "radar",
-      "verify",
-      "worktree",
-      "ops"
-    ])
-  },
-  "local-all": {
-    id: "local-all",
-    label: "Local All (10 Offline)",
-    description: "All 10 native offline modules enabled; Remote stays strictly off with zero ports (35 model tools).",
+    label: "Power Dev (9 Offline)",
+    description: "Core + Turbo + Radar + Verify + Worktree + Spec + Ops \u2014 complete spec-to-verify offline engineering workflow with zero network usage (32 model tools).",
     enabledModules: [
       "review",
       "guard",
@@ -301,6 +327,35 @@ var PRESET_DEFINITIONS = {
       "radar",
       "verify",
       "worktree",
+      "spec",
+      "ops"
+    ],
+    modules: makeModulesMap([
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "spec",
+      "ops"
+    ])
+  },
+  "local-all": {
+    id: "local-all",
+    label: "Local All (12 Offline)",
+    description: "All 12 native offline modules enabled including Workspace Studio; Remote stays strictly off with zero ports (43 model tools).",
+    enabledModules: [
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "spec",
+      "studio",
       "canvas",
       "mem",
       "ops"
@@ -313,6 +368,8 @@ var PRESET_DEFINITIONS = {
       "radar",
       "verify",
       "worktree",
+      "spec",
+      "studio",
       "canvas",
       "mem",
       "ops"
@@ -320,8 +377,8 @@ var PRESET_DEFINITIONS = {
   },
   full: {
     id: "full",
-    label: "Full Suite (All 11)",
-    description: "All 11 native modules including the opt-in Mobile PWA & IM remote approval hub (39 model tools).",
+    label: "Full Suite (All 13)",
+    description: "All 13 native modules including the opt-in Mobile PWA & IM remote approval hub (47 model tools).",
     enabledModules: [...MODULE_IDS],
     modules: makeModulesMap(MODULE_IDS)
   },
@@ -3070,14 +3127,521 @@ function handleReviewHook(payload, rootDataDir) {
   }
 }
 
-// src/modules/turbo/hook.ts
+// src/modules/spec/hook.ts
 var import_node_fs10 = __toESM(require("node:fs"), 1);
-var import_node_path12 = __toESM(require("node:path"), 1);
+
+// src/modules/spec/core.ts
+var import_node_fs9 = __toESM(require("node:fs"), 1);
+var import_node_path11 = __toESM(require("node:path"), 1);
+var SPEC_ID_RE = /^[a-zA-Z0-9._-]{1,64}$/;
+var SPEC_TASK_ID_RE = /^[a-zA-Z0-9._-]{1,48}$/;
+var MAX_SPECS = 50;
+var MAX_TASKS_PER_SPEC = 100;
+var MAX_CRITERIA_ITEMS = 50;
+var MAX_PLAN_STEPS = 80;
+var VALID_SPEC_STATUSES = /* @__PURE__ */ new Set([
+  "draft",
+  "approved",
+  "completed",
+  "archived"
+]);
+var VALID_TASK_STATUSES = /* @__PURE__ */ new Set([
+  "pending",
+  "in_progress",
+  "done",
+  "blocked"
+]);
+function sanitizeSingleLine(input, maxLen) {
+  return input.replace(/[\x00-\x1f\x7f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLen);
+}
+function sanitizeMultiline(input, maxLen) {
+  return input.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "").trim().slice(0, maxLen);
+}
+function sanitizeOptionalMultiline(input, maxLen) {
+  if (typeof input !== "string") return void 0;
+  const cleaned = sanitizeMultiline(input, maxLen);
+  return cleaned.length > 0 ? cleaned : void 0;
+}
+function sanitizeStringList(raw, maxItems, maxLen) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  for (const item of raw) {
+    if (typeof item !== "string") continue;
+    const cleaned = sanitizeSingleLine(item, maxLen);
+    if (cleaned) {
+      out.push(cleaned);
+      if (out.length >= maxItems) break;
+    }
+  }
+  return out;
+}
+function getSpecStatePath(moduleDataDir) {
+  return import_node_path11.default.join(moduleDataDir, "state.json");
+}
+function createEmptySpecState() {
+  return {
+    schemaVersion: 1,
+    activeSpecId: null,
+    specs: [],
+    updatedAt: (/* @__PURE__ */ new Date(0)).toISOString()
+  };
+}
+function findCyclePath(cycleNodeIds, dependsOnMap) {
+  const state = /* @__PURE__ */ new Map();
+  const stack = [];
+  const dfs = (node) => {
+    state.set(node, 1);
+    stack.push(node);
+    const deps = dependsOnMap.get(node) ?? [];
+    for (const dep of deps) {
+      if (!cycleNodeIds.has(dep)) continue;
+      const st = state.get(dep) ?? 0;
+      if (st === 1) {
+        const idx = stack.indexOf(dep);
+        return [...stack.slice(idx), dep];
+      }
+      if (st === 0) {
+        const found = dfs(dep);
+        if (found) return found;
+      }
+    }
+    stack.pop();
+    state.set(node, 2);
+    return null;
+  };
+  for (const node of cycleNodeIds) {
+    if ((state.get(node) ?? 0) === 0) {
+      const cycle = dfs(node);
+      if (cycle) return cycle;
+    }
+  }
+  return [...cycleNodeIds];
+}
+function validateTaskDag(tasks) {
+  if (tasks.length > MAX_TASKS_PER_SPEC) {
+    return {
+      valid: false,
+      error: `Spec cannot contain more than ${MAX_TASKS_PER_SPEC} tasks.`
+    };
+  }
+  const idSet = /* @__PURE__ */ new Set();
+  const dependsOnMap = /* @__PURE__ */ new Map();
+  for (const task of tasks) {
+    if (typeof task.id !== "string" || !SPEC_TASK_ID_RE.test(task.id)) {
+      return {
+        valid: false,
+        error: `Invalid task id "${String(task.id)}": must match ${SPEC_TASK_ID_RE.source}.`
+      };
+    }
+    if (idSet.has(task.id)) {
+      return {
+        valid: false,
+        error: `Duplicate task id "${task.id}". Task IDs must be unique within a spec.`
+      };
+    }
+    idSet.add(task.id);
+  }
+  const inDegree = /* @__PURE__ */ new Map();
+  const dependents = /* @__PURE__ */ new Map();
+  for (const task of tasks) {
+    inDegree.set(task.id, 0);
+    dependents.set(task.id, []);
+  }
+  for (const task of tasks) {
+    const dedupDeps = [];
+    const seenDeps = /* @__PURE__ */ new Set();
+    for (const rawDep of task.dependsOn) {
+      if (typeof rawDep !== "string" || !rawDep.trim()) {
+        return {
+          valid: false,
+          error: `Task "${task.id}" contains an empty dependency ID.`
+        };
+      }
+      const dep = rawDep;
+      if (dep === task.id) {
+        return {
+          valid: false,
+          error: `Task "${task.id}" cannot depend on itself (self-cycle detected).`
+        };
+      }
+      if (!idSet.has(dep)) {
+        return {
+          valid: false,
+          error: `Task "${task.id}" depends on unknown task "${dep}".`
+        };
+      }
+      if (!seenDeps.has(dep)) {
+        seenDeps.add(dep);
+        dedupDeps.push(dep);
+      }
+    }
+    dependsOnMap.set(task.id, dedupDeps);
+    inDegree.set(task.id, dedupDeps.length);
+    for (const dep of dedupDeps) {
+      dependents.get(dep).push(task.id);
+    }
+  }
+  const queue = [];
+  const depths = /* @__PURE__ */ new Map();
+  for (const task of tasks) {
+    if ((inDegree.get(task.id) ?? 0) === 0) {
+      queue.push(task.id);
+      depths.set(task.id, 0);
+    }
+  }
+  const orderedIds = [];
+  let head = 0;
+  while (head < queue.length) {
+    const current = queue[head];
+    head += 1;
+    orderedIds.push(current);
+    const currentDepth = depths.get(current) ?? 0;
+    for (const next of dependents.get(current) ?? []) {
+      const prevDepth = depths.get(next) ?? 0;
+      if (currentDepth + 1 > prevDepth) {
+        depths.set(next, currentDepth + 1);
+      }
+      const remaining = (inDegree.get(next) ?? 0) - 1;
+      inDegree.set(next, remaining);
+      if (remaining === 0) {
+        queue.push(next);
+      }
+    }
+  }
+  if (orderedIds.length !== tasks.length) {
+    const remainingNodes = new Set(
+      tasks.filter((t) => (inDegree.get(t.id) ?? 0) > 0).map((t) => t.id)
+    );
+    const cyclePath = findCyclePath(remainingNodes, dependsOnMap);
+    return {
+      valid: false,
+      error: `Dependency cycle detected in task DAG: ${cyclePath.join(" -> ")}.`
+    };
+  }
+  return {
+    valid: true,
+    orderedIds,
+    depths
+  };
+}
+function computeSpecTaskViews(tasks) {
+  const dag = validateTaskDag(tasks);
+  const depths = dag.valid ? dag.depths : /* @__PURE__ */ new Map();
+  const taskMap = /* @__PURE__ */ new Map();
+  for (const task of tasks) {
+    taskMap.set(task.id, task);
+  }
+  return tasks.map((task) => {
+    const unmetDeps = task.dependsOn.filter((depId) => taskMap.get(depId)?.status !== "done");
+    let computedState;
+    if (task.status === "done") {
+      computedState = "done";
+    } else if (task.status === "in_progress") {
+      computedState = "in_progress";
+    } else if (task.status === "blocked") {
+      computedState = "blocked";
+    } else {
+      computedState = unmetDeps.length === 0 ? "ready" : "waiting_deps";
+    }
+    return {
+      ...task,
+      dependsOn: [...task.dependsOn],
+      computedState,
+      unmetDeps,
+      depth: depths.get(task.id) ?? 0
+    };
+  });
+}
+function buildSpecDocumentView(spec) {
+  return {
+    id: spec.id,
+    title: spec.title,
+    goal: spec.goal,
+    acceptanceCriteria: [...spec.acceptanceCriteria],
+    planSteps: [...spec.planSteps],
+    status: spec.status,
+    enforcePlanBeforeWrite: spec.enforcePlanBeforeWrite,
+    requireUiApproval: spec.requireUiApproval,
+    ...spec.approvedBy !== void 0 ? { approvedBy: spec.approvedBy } : {},
+    ...spec.approvedAt !== void 0 ? { approvedAt: spec.approvedAt } : {},
+    ...spec.approvalNote !== void 0 ? { approvalNote: spec.approvalNote } : {},
+    tasks: computeSpecTaskViews(spec.tasks),
+    createdAt: spec.createdAt,
+    updatedAt: spec.updatedAt
+  };
+}
+function isSpecWriteLockActive(spec) {
+  return Boolean(spec && spec.status === "draft" && spec.enforcePlanBeforeWrite === true);
+}
+function buildSpecStateView(state, mode = "live", requestedSpecId) {
+  const globalActiveSpec = state.activeSpecId ? state.specs.find((s) => s.id === state.activeSpecId) ?? null : null;
+  const effectiveActiveSpecId = globalActiveSpec ? globalActiveSpec.id : null;
+  const targetSpec = requestedSpecId ? state.specs.find((s) => s.id === requestedSpecId) ?? null : globalActiveSpec;
+  const sortedSpecs = [...state.specs].sort(
+    (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)
+  );
+  const specs = sortedSpecs.map((spec) => {
+    const taskViews = computeSpecTaskViews(spec.tasks);
+    let doneTasks = 0;
+    let readyTasks = 0;
+    for (const task of taskViews) {
+      if (task.status === "done") doneTasks += 1;
+      if (task.computedState === "ready") readyTasks += 1;
+    }
+    return {
+      id: spec.id,
+      title: spec.title,
+      status: spec.status,
+      enforcePlanBeforeWrite: spec.enforcePlanBeforeWrite,
+      requireUiApproval: spec.requireUiApproval,
+      totalTasks: taskViews.length,
+      doneTasks,
+      readyTasks,
+      updatedAt: spec.updatedAt
+    };
+  });
+  return {
+    mode,
+    activeSpecId: effectiveActiveSpecId,
+    activeSpec: targetSpec ? buildSpecDocumentView(targetSpec) : null,
+    specs,
+    writeLockActive: isSpecWriteLockActive(globalActiveSpec)
+  };
+}
+function normalizeTaskFromDisk(raw, fallbackIso) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw;
+  if (typeof obj.id !== "string" || !SPEC_TASK_ID_RE.test(obj.id.trim())) return null;
+  const id = obj.id.trim();
+  const title = typeof obj.title === "string" ? sanitizeSingleLine(obj.title, 200) : "";
+  if (!title) return null;
+  const status = typeof obj.status === "string" && VALID_TASK_STATUSES.has(obj.status) ? obj.status : "pending";
+  const dependsOn = [];
+  if (Array.isArray(obj.dependsOn)) {
+    const seen = /* @__PURE__ */ new Set();
+    for (const dep of obj.dependsOn) {
+      if (typeof dep === "string") {
+        const cleanDep = dep.trim();
+        if (cleanDep && cleanDep !== id && SPEC_TASK_ID_RE.test(cleanDep) && !seen.has(cleanDep)) {
+          seen.add(cleanDep);
+          dependsOn.push(cleanDep);
+        }
+      }
+    }
+  }
+  const description = sanitizeOptionalMultiline(obj.description, 2e3);
+  const note = sanitizeOptionalMultiline(obj.note, 2e3);
+  return {
+    id,
+    title,
+    ...description !== void 0 ? { description } : {},
+    dependsOn,
+    status,
+    ...note !== void 0 ? { note } : {},
+    updatedAt: typeof obj.updatedAt === "string" ? obj.updatedAt : fallbackIso
+  };
+}
+function normalizeSpecFromDisk(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw;
+  if (typeof obj.id !== "string" || !SPEC_ID_RE.test(obj.id.trim())) return null;
+  const id = obj.id.trim();
+  const title = typeof obj.title === "string" ? sanitizeSingleLine(obj.title, 200) : "";
+  if (!title) return null;
+  const goal = typeof obj.goal === "string" ? sanitizeMultiline(obj.goal, 4e3) : "";
+  const createdAt = typeof obj.createdAt === "string" ? obj.createdAt : (/* @__PURE__ */ new Date()).toISOString();
+  const updatedAt = typeof obj.updatedAt === "string" ? obj.updatedAt : createdAt;
+  const status = typeof obj.status === "string" && VALID_SPEC_STATUSES.has(obj.status) ? obj.status : "draft";
+  const rawTasks = [];
+  if (Array.isArray(obj.tasks)) {
+    const seenTaskIds = /* @__PURE__ */ new Set();
+    for (const item of obj.tasks.slice(0, MAX_TASKS_PER_SPEC)) {
+      const task = normalizeTaskFromDisk(item, updatedAt);
+      if (task && !seenTaskIds.has(task.id)) {
+        seenTaskIds.add(task.id);
+        rawTasks.push(task);
+      }
+    }
+  }
+  const knownTaskIds = new Set(rawTasks.map((t) => t.id));
+  const tasks = rawTasks.map((t) => ({
+    ...t,
+    dependsOn: t.dependsOn.filter((dep) => knownTaskIds.has(dep))
+  }));
+  const approvedBy = obj.approvedBy === "user" || obj.approvedBy === "model" ? obj.approvedBy : void 0;
+  const approvedAt = typeof obj.approvedAt === "string" ? obj.approvedAt : void 0;
+  const approvalNote = sanitizeOptionalMultiline(obj.approvalNote, 1e3);
+  return {
+    id,
+    title,
+    goal,
+    acceptanceCriteria: sanitizeStringList(obj.acceptanceCriteria, MAX_CRITERIA_ITEMS, 500),
+    planSteps: sanitizeStringList(obj.planSteps, MAX_PLAN_STEPS, 500),
+    status,
+    enforcePlanBeforeWrite: typeof obj.enforcePlanBeforeWrite === "boolean" ? obj.enforcePlanBeforeWrite : true,
+    requireUiApproval: typeof obj.requireUiApproval === "boolean" ? obj.requireUiApproval : false,
+    ...approvedBy !== void 0 ? { approvedBy } : {},
+    ...approvedAt !== void 0 ? { approvedAt } : {},
+    ...approvalNote !== void 0 ? { approvalNote } : {},
+    tasks,
+    createdAt,
+    updatedAt
+  };
+}
+function loadSpecStateReadOnly(moduleDataDir) {
+  const statePath = getSpecStatePath(moduleDataDir);
+  if (!import_node_fs9.default.existsSync(statePath)) {
+    return createEmptySpecState();
+  }
+  try {
+    const raw = JSON.parse(import_node_fs9.default.readFileSync(statePath, "utf8"));
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return createEmptySpecState();
+    }
+    const specs = [];
+    const seenSpecIds = /* @__PURE__ */ new Set();
+    if (Array.isArray(raw.specs)) {
+      for (const item of raw.specs.slice(0, MAX_SPECS)) {
+        const spec = normalizeSpecFromDisk(item);
+        if (spec && !seenSpecIds.has(spec.id)) {
+          seenSpecIds.add(spec.id);
+          specs.push(spec);
+        }
+      }
+    }
+    const activeSpecId = typeof raw.activeSpecId === "string" && seenSpecIds.has(raw.activeSpecId) ? raw.activeSpecId : null;
+    return {
+      schemaVersion: 1,
+      activeSpecId,
+      specs,
+      updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : (/* @__PURE__ */ new Date()).toISOString()
+    };
+  } catch {
+    return createEmptySpecState();
+  }
+}
+
+// src/modules/spec/hook.ts
+var SPEC_WRITE_LOCK_TOOLS = /* @__PURE__ */ new Set([
+  "write",
+  "edit",
+  "multi_edit",
+  "multiedit",
+  "notebook_edit",
+  "notebookedit",
+  "write_file",
+  "edit_file",
+  "write_to_file",
+  "create_file",
+  "patch_file",
+  "apply_patch",
+  "replace_file_content",
+  "multi_replace_file_content",
+  "delete_file"
+]);
+function normalizeToolName(rawName) {
+  if (!rawName) return "";
+  const trimmed = rawName.trim().toLowerCase();
+  const sepIdx = Math.max(trimmed.lastIndexOf(":"), trimmed.lastIndexOf("/"));
+  return sepIdx >= 0 ? trimmed.slice(sepIdx + 1) : trimmed;
+}
+function isAlwaysAllowedSpecOrNovTool(normalizedToolName) {
+  return normalizedToolName.startsWith("spec_") || normalizedToolName.startsWith("nov_") || normalizedToolName.startsWith("app_spec_");
+}
+function handleSpecPreToolHook(payload, rootDataDir) {
+  try {
+    if (payload.event !== "PreToolUse") {
+      return {};
+    }
+    const toolName = normalizeToolName(payload.toolName);
+    if (!toolName || isAlwaysAllowedSpecOrNovTool(toolName)) {
+      return {};
+    }
+    if (!SPEC_WRITE_LOCK_TOOLS.has(toolName)) {
+      return {};
+    }
+    const resolvedRoot = resolveNovDataDir(rootDataDir);
+    const moduleDataDir = getModuleDataDir(resolvedRoot, "spec");
+    if (!import_node_fs10.default.existsSync(getSpecStatePath(moduleDataDir))) {
+      return {};
+    }
+    const state = loadSpecStateReadOnly(moduleDataDir);
+    const activeSpec = state.activeSpecId ? state.specs.find((s) => s.id === state.activeSpecId) ?? null : null;
+    if (activeSpec && isSpecWriteLockActive(activeSpec)) {
+      const safeTitle = activeSpec.title.replace(/[\x00-\x1f\x7f]+/g, " ").trim();
+      return {
+        decision: "deny",
+        reason: `[agy-NOV Spec Flow] Active spec "${safeTitle}" is in DRAFT with write lock enabled. Approve the spec in agy-NOV Spec Flow before editing workspace files.`
+      };
+    }
+    return {};
+  } catch {
+    return {};
+  }
+}
+function handleSpecSessionStartHook(payload, rootDataDir) {
+  try {
+    if (payload.event !== "SessionStart") {
+      return {};
+    }
+    const resolvedRoot = resolveNovDataDir(rootDataDir);
+    const moduleDataDir = getModuleDataDir(resolvedRoot, "spec");
+    if (!import_node_fs10.default.existsSync(getSpecStatePath(moduleDataDir))) {
+      return {};
+    }
+    const state = loadSpecStateReadOnly(moduleDataDir);
+    const view = buildSpecStateView(state, "live");
+    const spec = view.activeSpec;
+    if (!spec || spec.status !== "draft" && spec.status !== "approved") {
+      return {};
+    }
+    const readyTasks = spec.tasks.filter((t) => t.computedState === "ready");
+    const inProgressCount = spec.tasks.filter((t) => t.computedState === "in_progress").length;
+    const doneCount = spec.tasks.filter((t) => t.computedState === "done").length;
+    const waitingCount = spec.tasks.filter((t) => t.computedState === "waiting_deps").length;
+    const blockedCount = spec.tasks.filter((t) => t.computedState === "blocked").length;
+    const writeLockLabel = view.writeLockActive ? "ENABLED (workspace writes blocked until approved)" : spec.enforcePlanBeforeWrite ? "UNLOCKED (spec approved)" : "OFF";
+    const lines = [
+      `[agy-NOV Spec Flow] Active Spec: "${spec.title}" (${spec.id})`,
+      `Status: ${spec.status.toUpperCase()} | Write Lock: ${writeLockLabel}${spec.requireUiApproval ? " | UI Approval Required" : ""}`,
+      `Progress: ${doneCount}/${spec.tasks.length} done, ${inProgressCount} in_progress, ${readyTasks.length} ready, ${waitingCount} waiting_deps, ${blockedCount} blocked`
+    ];
+    const topReady = readyTasks.slice(0, 5);
+    if (topReady.length > 0) {
+      lines.push(`Next Ready Tasks (${topReady.length}/${readyTasks.length}):`);
+      for (const task of topReady) {
+        lines.push(`- [${task.id}] (depth ${task.depth}) ${task.title}`);
+      }
+    } else {
+      lines.push("Next Ready Tasks: none (remaining tasks are in progress, waiting on dependencies, blocked, or done).");
+    }
+    if (view.writeLockActive) {
+      lines.push(
+        spec.requireUiApproval ? "Action required: Ask the user to review and approve this draft spec in the agy-NOV Spec Flow UI before editing workspace files." : "Action required: Approve this draft spec before editing workspace files."
+      );
+    }
+    return {
+      injectSteps: [
+        {
+          systemMessage: {
+            systemMessage: lines.join("\n")
+          }
+        }
+      ]
+    };
+  } catch {
+    return {};
+  }
+}
+
+// src/modules/turbo/hook.ts
+var import_node_fs12 = __toESM(require("node:fs"), 1);
+var import_node_path13 = __toESM(require("node:path"), 1);
 
 // src/modules/turbo/core.ts
 var import_node_crypto6 = __toESM(require("node:crypto"), 1);
-var import_node_fs9 = __toESM(require("node:fs"), 1);
-var import_node_path11 = __toESM(require("node:path"), 1);
+var import_node_fs11 = __toESM(require("node:fs"), 1);
+var import_node_path12 = __toESM(require("node:path"), 1);
 var TURBO_MAX_FILE_BYTES = 512 * 1024;
 var TURBO_MAX_OUTLINE_FILE_BYTES = 1024 * 1024;
 var TURBO_MAX_COMPACTED_CHUNKS = 24;
@@ -3129,20 +3693,446 @@ function isSensitiveTurboPath(inputPath) {
       return true;
     }
   }
-  const base = import_node_path11.default.posix.basename(normalized);
+  const base = import_node_path12.default.posix.basename(normalized);
   const lowerBase = base.toLowerCase();
   if (SENSITIVE_EXACT_BASENAMES.has(lowerBase)) return true;
   if (lowerBase.startsWith("id_rsa.") || lowerBase.startsWith("id_ed25519.") || lowerBase.startsWith("id_dsa.") || lowerBase.startsWith("id_ecdsa.")) {
     return true;
   }
-  const ext = import_node_path11.default.posix.extname(lowerBase);
+  const ext = import_node_path12.default.posix.extname(lowerBase);
   if (SENSITIVE_EXTENSIONS2.has(ext)) return true;
   return false;
 }
+var ANSI_ESCAPE_RE = /\x1b(?:\[[0-9;?]*[A-Za-z]|\][^\x07\x1b]*(?:\x07|\x1b\\))/g;
 var ERROR_LINE_RE = /\b(?:error|err!|fail|failed|failure|exception|fatal|panic|traceback|assertionerror|typeerror|syntaxerror|referenceerror|enoent|eacces|ts\d{4})\b|^\s*(?:✗|✖|×|FAIL\b)/i;
 var WARN_LINE_RE = /\b(?:warn|warning|deprecated)\b|^\s*⚠/i;
+function stripAnsiSequences(text) {
+  return text.replace(ANSI_ESCAPE_RE, "");
+}
+function cleanLogLine(line) {
+  const noAnsi = stripAnsiSequences(line);
+  if (!noAnsi.includes("\r")) return noAnsi;
+  const segments = noAnsi.split("\r");
+  for (let i = segments.length - 1; i >= 0; i -= 1) {
+    if (segments[i].length > 0) return segments[i];
+  }
+  return "";
+}
 function normalizeDiagKey(line) {
   return line.trim().replace(/\b\d+\b/g, "#").replace(/\s+/g, " ").slice(0, 120);
+}
+var TEST_PASS_LINE_RE = /^\s*(?:(?:✔|✓)\s+(?!built in\b|\d+\s+modules?\s+transformed\b)\S|ok\s+\d+(?:\s|-|$)|PASS(?:\s+\S|\s*$)|---\s+PASS:|test\s+.+\.\.\.\s+ok\s*$|.+::.+PASSED(?:\s+\[\s*\d+%\])?\s*$)/;
+var TEST_FAIL_START_RE = /^\s*(?:FAIL(?:\s|:|$)|not ok\s+\d+|---\s+FAIL:|(?:✖|✗|×)\s+|AssertionError\b|Error:|TypeError:|SyntaxError:|ReferenceError:|Traceback\b|FAILURES\b|short test summary|thread '[^']*' panicked|panicked at|E\s{3,})|\.\.\.\s+FAILED\s*$|\bFAILED(?:\s+\[\s*\d+%\])?\s*$/;
+var TEST_STACK_OR_DIFF_RE = /^\s*(?:at\s+\S|File\s+"|Expected\b|Received\b|Actual\b|expected\b|actual\b|stack:|[-+]\s|\|\s|\d+\s*\||>?\s*\d+\s*\||[~^]{2,}|Difference:)/;
+var TEST_SUMMARY_LINE_RE = /^\s*(?:Tests:|Test Suites:|Test Files\b|Snapshots:|Time:|Duration\b|Start at\b|Summary:|Ran\s+\d+\s+tests?|test result:|ℹ\s+(?:tests|suites|pass|fail|cancelled|skipped|todo|duration_ms)\b|={3,}.*(?:passed|failed|error).*={3,}|FAILED\s*\(|exitCode=|exit code\b)/i;
+var TEST_VERBOSE_NOISE_RE = /^\s*(?:info\s+\[|debug\s+\[|\[(?:info|debug)\]|#\s*Subtest:)/i;
+var BUILD_NOISE_LINE_RE = /transforming\s*\(\d+\)|\b\d+\s+modules?\s+transformed\b|^\s*(?:transforming\b|Compiling\s+|Checking\s+|Downloading\s+|Unpacking\s+|Resolving\s+|Fetching\s+|Updating\s+|Fresh\s+|Copying\s+|Bundling\s+|Generating\s+|Rendering\s+chunks|Computing\s+gzip|reify:|npm\s+(?:timing|http)\b|info\s+\[|debug\s+\[|\[(?:info|debug)\]|\[\d+\/\d+\]\s+(?:Building|Compiling|Resolving|Fetching|Linking)|\d{1,3}%\s+(?:building|sealing|emitting|compiling|hashing|asset))/i;
+var BUILD_FILE_LOC_RE = /[A-Za-z0-9_./-]+\.[A-Za-z0-9]+(?:\(\d+,\d+\)|:\d+:\d+)/;
+var BUILD_DIAG_CONTEXT_RE = /^\s*(?:\d+\s*\||\|\s|[~^]{2,}|-->\s+|=\s*(?:note|help):|at\s+\S)/;
+var BUILD_SUMMARY_LINE_RE = /(?:✓|✔)?\s*built in\s+\d|^\s*(?:Finished\s+|Found\s+\d+\s+errors?|Compiled\s+|Build\s+(?:succeeded|failed|complete)|Done in\s+|added\s+\d+\s+packages|found\s+\d+\s+vulnerabilities|Summary:|FAILED\b|dist\/\S+\s+[\d.]+\s*(?:kB|KB|MB|B)\b|webpack\b.*compiled)/i;
+var LOCK_OR_GENERATED_PATH_RE = /(?:^|\/)(?:package-lock\.json|pnpm-lock\.yaml|yarn\.lock|Cargo\.lock|Gemfile\.lock|poetry\.lock|composer\.lock|go\.sum|Podfile\.lock|uv\.lock|flake\.lock|bun\.lock|bun\.lockb)$|(?:^|\/)(?:dist|build|vendor|generated)\/|\.(?:min\.js|min\.css|bundle\.js|map|snap|pb\.go)$|\.generated\.[^/]+$/i;
+function detectOutputPreset(text) {
+  const raw = typeof text === "string" ? text : String(text ?? "");
+  if (!raw.trim()) return "generic";
+  const rawLines = raw.split(/\r?\n/);
+  const sampleLines = [];
+  if (rawLines.length <= 800) {
+    for (const l of rawLines) sampleLines.push(cleanLogLine(l));
+  } else {
+    for (let i = 0; i < 600; i += 1) sampleLines.push(cleanLogLine(rawLines[i]));
+    for (let i = rawLines.length - 200; i < rawLines.length; i += 1) {
+      sampleLines.push(cleanLogLine(rawLines[i]));
+    }
+  }
+  let gitScore = 0;
+  let testScore = 0;
+  let buildScore = 0;
+  let gitDiffHeaders = 0;
+  let gitHunks = 0;
+  let gitMetaHits = 0;
+  let testPassHits = 0;
+  let testStrongHits = 0;
+  let buildNoiseHits = 0;
+  let buildStrongHits = 0;
+  for (const rawLine of sampleLines) {
+    if (!rawLine) continue;
+    const line = rawLine.length > 512 ? rawLine.slice(0, 512) : rawLine;
+    if (/^diff --git\s+/.test(line)) {
+      gitDiffHeaders += 1;
+      gitScore += 6;
+    } else if (/^@@\s+-\d+(?:,\d+)?\s+\+\d+(?:,\d+)?\s+@@/.test(line)) {
+      gitHunks += 1;
+      if (gitHunks <= 4) gitScore += 4;
+    } else if (/^commit\s+[0-9a-f]{7,40}\b/.test(line)) {
+      gitMetaHits += 1;
+      if (gitMetaHits <= 4) gitScore += 3;
+    } else if (/^(?:index\s+[0-9a-f]{7,}\.\.[0-9a-f]{7,}|---\s+a\/|\+\+\+\s+b\/)/.test(line) || /^\s*(?:modified|new file|deleted|renamed):\s+\S/.test(line) || /\b\d+\s+files?\s+changed,\s+\d+\s+(?:insertions?|deletions?)/.test(line)) {
+      gitMetaHits += 1;
+      if (gitMetaHits <= 6) gitScore += 2;
+    }
+    if (/^\s*(?:---\s+(?:FAIL|PASS):|Tests:|Test Suites:|Test Files\b|TAP version \d+|ℹ\s+(?:pass|fail|tests)\b|test result:\s*(?:ok|FAILED))/.test(
+      line
+    ) || /\b(?:pytest|cargo test)\b/i.test(line)) {
+      testStrongHits += 1;
+      if (testStrongHits <= 6) testScore += 4;
+    } else if (/^\s*(?:PASS|FAIL)\s+\S/.test(line) || /^\s*not ok\s+\d+/.test(line)) {
+      testStrongHits += 1;
+      if (testStrongHits <= 6) testScore += 3;
+    } else if (TEST_PASS_LINE_RE.test(line) || /^\s*(?:✖|✗)\s+\S/.test(line)) {
+      testPassHits += 1;
+      if (testPassHits <= 6) testScore += 2;
+    }
+    if (/\berror\s+TS\d{4}\b|\bTS\d{4}:/.test(line) || /transforming\s*\(\d+\)|\b\d+\s+modules?\s+transformed\b|(?:✓|✔)?\s*built in\s+\d/.test(line) || /\b(?:vite|esbuild|webpack|eslint)\b/i.test(line)) {
+      buildStrongHits += 1;
+      if (buildStrongHits <= 6) buildScore += 4;
+    } else if (/^\s*(?:Compiling|Checking|Finished|Bundling)\s+\S/.test(line) || /\bwarning:\s+\S/i.test(line) || BUILD_FILE_LOC_RE.test(line) && /\b(?:error|warning)\b/i.test(line)) {
+      buildNoiseHits += 1;
+      if (buildNoiseHits <= 6) buildScore += 2;
+    }
+  }
+  if (gitDiffHeaders > 0) {
+    return "git";
+  }
+  const best = Math.max(gitScore, testScore, buildScore);
+  if (best < 3) return "generic";
+  if (gitScore >= testScore && gitScore >= buildScore) return "git";
+  if (testScore >= buildScore) return "test";
+  return "build";
+}
+var TURBO_DEFAULT_MAX_COMPACT_LINES = 180;
+var TURBO_MIN_COMPACT_LINES = 20;
+var TURBO_MAX_COMPACT_LINES = 300;
+var TURBO_MAX_COMPACT_BYTES = 48 * 1024;
+function capCompactedLines(lines, maxLines = TURBO_DEFAULT_MAX_COMPACT_LINES, maxBytes = TURBO_MAX_COMPACT_BYTES) {
+  const cap = Math.max(
+    TURBO_MIN_COMPACT_LINES,
+    Math.min(
+      Math.floor(Number.isFinite(maxLines) ? maxLines : TURBO_DEFAULT_MAX_COMPACT_LINES),
+      TURBO_MAX_COMPACT_LINES
+    )
+  );
+  const byteLimit = Math.max(
+    2048,
+    Math.floor(Number.isFinite(maxBytes) ? maxBytes : TURBO_MAX_COMPACT_BYTES)
+  );
+  const clipLine = (l) => l.length > 240 ? l.slice(0, 240) : l;
+  const calcBytes = (arr) => Buffer.byteLength(arr.join("\n"), "utf8");
+  if (lines.length <= cap) {
+    const bounded = lines.map(clipLine);
+    if (calcBytes(bounded) <= byteLimit) {
+      return bounded;
+    }
+  }
+  const buildCapped = (budget2) => {
+    const contentBudget = Math.max(2, budget2 - 1);
+    const headKeep = Math.max(1, Math.floor(contentBudget * 0.6));
+    const tailKeep = Math.max(1, contentBudget - headKeep);
+    const omitted = lines.length - headKeep - tailKeep;
+    if (omitted <= 0) {
+      return lines.map(clipLine);
+    }
+    const marker = `... [truncated ${omitted} additional diagnostic lines; query full indexed log via chunkId]`;
+    return [
+      ...lines.slice(0, headKeep).map(clipLine),
+      marker,
+      ...lines.slice(lines.length - tailKeep).map(clipLine)
+    ];
+  };
+  let budget = Math.min(cap, Math.max(3, lines.length - 1));
+  let result = buildCapped(budget);
+  while (calcBytes(result) > byteLimit && budget > 3) {
+    const nextBudget = Math.max(3, Math.floor(budget * 0.75));
+    if (nextBudget >= budget) break;
+    budget = nextBudget;
+    result = buildCapped(budget);
+  }
+  return result;
+}
+function compactTestOutputLines(cleanedLines, maxLines = TURBO_DEFAULT_MAX_COMPACT_LINES) {
+  const out = [];
+  let passingRun = [];
+  let noiseRun = [];
+  let inFailureBlock = false;
+  let failureBlankStreak = 0;
+  const flushPassing = () => {
+    if (passingRun.length === 0) return;
+    if (passingRun.length === 1) {
+      out.push(passingRun[0].slice(0, 240));
+    } else {
+      out.push(`... [collapsed ${passingRun.length} passing test lines]`);
+    }
+    passingRun = [];
+  };
+  const flushNoise = () => {
+    if (noiseRun.length === 0) return;
+    if (noiseRun.length <= 2) {
+      for (const l of noiseRun) out.push(l.slice(0, 240));
+    } else {
+      out.push(`... [collapsed ${noiseRun.length} verbose log lines]`);
+    }
+    noiseRun = [];
+  };
+  for (let i = 0; i < cleanedLines.length; i += 1) {
+    const line = cleanedLines[i];
+    const probe = line.length > 512 ? line.slice(0, 512) : line;
+    const trimmed = probe.trim();
+    if (TEST_SUMMARY_LINE_RE.test(probe)) {
+      flushPassing();
+      flushNoise();
+      inFailureBlock = false;
+      failureBlankStreak = 0;
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (TEST_FAIL_START_RE.test(probe)) {
+      flushPassing();
+      flushNoise();
+      inFailureBlock = true;
+      failureBlankStreak = 0;
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (inFailureBlock) {
+      if (TEST_PASS_LINE_RE.test(probe)) {
+        inFailureBlock = false;
+        failureBlankStreak = 0;
+        passingRun.push(line);
+        continue;
+      }
+      if (!trimmed) {
+        failureBlankStreak += 1;
+        if (failureBlankStreak <= 2) {
+          out.push("");
+        } else {
+          inFailureBlock = false;
+        }
+        continue;
+      }
+      if (TEST_VERBOSE_NOISE_RE.test(probe) && !ERROR_LINE_RE.test(probe)) {
+        inFailureBlock = false;
+        failureBlankStreak = 0;
+        noiseRun.push(line);
+        continue;
+      }
+      failureBlankStreak = 0;
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (TEST_PASS_LINE_RE.test(probe)) {
+      flushNoise();
+      passingRun.push(line);
+      continue;
+    }
+    if (!trimmed) {
+      if (passingRun.length === 0 && noiseRun.length === 0 && out.length > 0 && out[out.length - 1] !== "") {
+        out.push("");
+      }
+      continue;
+    }
+    if (ERROR_LINE_RE.test(probe) || WARN_LINE_RE.test(probe) || TEST_STACK_OR_DIFF_RE.test(probe)) {
+      flushPassing();
+      flushNoise();
+      if (ERROR_LINE_RE.test(probe)) {
+        inFailureBlock = true;
+        failureBlankStreak = 0;
+      }
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (i < 3) {
+      flushPassing();
+      flushNoise();
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (TEST_VERBOSE_NOISE_RE.test(probe)) {
+      flushPassing();
+      noiseRun.push(line);
+      continue;
+    }
+    if (passingRun.length > 0) {
+      flushPassing();
+    }
+    noiseRun.push(line);
+  }
+  flushPassing();
+  flushNoise();
+  return capCompactedLines(out, maxLines);
+}
+function compactBuildOutputLines(cleanedLines, maxLines = TURBO_DEFAULT_MAX_COMPACT_LINES) {
+  const out = [];
+  let noiseRun = [];
+  let diagFollowRemaining = 0;
+  const flushNoise = () => {
+    if (noiseRun.length === 0) return;
+    if (noiseRun.length === 1) {
+      out.push(noiseRun[0].slice(0, 240));
+    } else {
+      out.push(`... [collapsed ${noiseRun.length} build progress lines]`);
+    }
+    noiseRun = [];
+  };
+  for (let i = 0; i < cleanedLines.length; i += 1) {
+    const line = cleanedLines[i];
+    const probe = line.length > 512 ? line.slice(0, 512) : line;
+    const trimmed = probe.trim();
+    const isErrorOrWarn = ERROR_LINE_RE.test(probe) || WARN_LINE_RE.test(probe) || /^\s*\d+:\d+\s+(?:error|warning)\b/i.test(probe) || BUILD_FILE_LOC_RE.test(probe) && !BUILD_NOISE_LINE_RE.test(probe);
+    if (isErrorOrWarn) {
+      flushNoise();
+      out.push(line.slice(0, 240));
+      diagFollowRemaining = 3;
+      continue;
+    }
+    if (diagFollowRemaining > 0) {
+      if (trimmed && (BUILD_DIAG_CONTEXT_RE.test(probe) || /^\s{2,}\S/.test(probe)) && !BUILD_NOISE_LINE_RE.test(probe)) {
+        flushNoise();
+        out.push(line.slice(0, 240));
+        diagFollowRemaining -= 1;
+        continue;
+      }
+      diagFollowRemaining = 0;
+    }
+    if (BUILD_SUMMARY_LINE_RE.test(probe)) {
+      flushNoise();
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (BUILD_NOISE_LINE_RE.test(probe)) {
+      noiseRun.push(line);
+      continue;
+    }
+    if (!trimmed) {
+      if (noiseRun.length === 0 && out.length > 0 && out[out.length - 1] !== "") {
+        out.push("");
+      }
+      continue;
+    }
+    if (i < 2 || i >= cleanedLines.length - 3) {
+      flushNoise();
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    noiseRun.push(line);
+  }
+  flushNoise();
+  return capCompactedLines(out, maxLines);
+}
+function extractGitDiffPath(diffHeaderLine) {
+  const m = /^diff --git\s+"?a\/(.+?)"?\s+"?b\/(.+?)"?\s*$/.exec(diffHeaderLine);
+  if (m) return m[2];
+  return diffHeaderLine;
+}
+function compactGitOutputLines(cleanedLines, maxLines = TURBO_DEFAULT_MAX_COMPACT_LINES) {
+  const hasDiff = cleanedLines.some((l) => l.startsWith("diff --git "));
+  if (!hasDiff) {
+    const out2 = [];
+    let listRun = [];
+    const flushList = () => {
+      if (listRun.length === 0) return;
+      if (listRun.length <= 20) {
+        for (const l of listRun) out2.push(l.slice(0, 240));
+      } else {
+        for (const l of listRun.slice(0, 12)) out2.push(l.slice(0, 240));
+        out2.push(`... [collapsed ${listRun.length - 16} git file status lines]`);
+        for (const l of listRun.slice(-4)) out2.push(l.slice(0, 240));
+      }
+      listRun = [];
+    };
+    for (const line of cleanedLines) {
+      if (/^\s*(?:modified|new file|deleted|renamed|untracked):\s+/.test(line) || /^\t\S/.test(line)) {
+        listRun.push(line);
+      } else {
+        flushList();
+        out2.push(line.slice(0, 240));
+      }
+    }
+    flushList();
+    return capCompactedLines(out2, maxLines);
+  }
+  const out = [];
+  const preamble = [];
+  const blocks = [];
+  let current = null;
+  let inBody = false;
+  for (const line of cleanedLines) {
+    if (line.startsWith("diff --git ")) {
+      current = {
+        headerLine: line,
+        filePath: extractGitDiffPath(line),
+        metaLines: [],
+        bodyLines: []
+      };
+      blocks.push(current);
+      inBody = false;
+      continue;
+    }
+    if (!current) {
+      preamble.push(line);
+      continue;
+    }
+    if (!inBody && (line.startsWith("index ") || line.startsWith("--- ") || line.startsWith("+++ ") || line.startsWith("new file mode") || line.startsWith("deleted file mode") || line.startsWith("old mode") || line.startsWith("new mode") || line.startsWith("similarity index") || line.startsWith("rename from") || line.startsWith("rename to") || line.startsWith("Binary files"))) {
+      current.metaLines.push(line);
+    } else {
+      inBody = true;
+      current.bodyLines.push(line);
+    }
+  }
+  for (const line of preamble.slice(0, 25)) {
+    out.push(line.slice(0, 240));
+  }
+  if (preamble.length > 25) {
+    out.push(`... [collapsed ${preamble.length - 25} git preamble lines]`);
+  }
+  for (let bIdx = 0; bIdx < blocks.length; bIdx += 1) {
+    const block = blocks[bIdx];
+    out.push(block.headerLine.slice(0, 240));
+    for (const m of block.metaLines) {
+      out.push(m.slice(0, 240));
+    }
+    if (block.bodyLines.length === 0) continue;
+    let added = 0;
+    let removed = 0;
+    for (const l of block.bodyLines) {
+      if (l.startsWith("+") && !l.startsWith("+++")) added += 1;
+      else if (l.startsWith("-") && !l.startsWith("---")) removed += 1;
+    }
+    const isLockOrGenerated = LOCK_OR_GENERATED_PATH_RE.test(block.filePath);
+    if (isLockOrGenerated || block.bodyLines.length > 200 || bIdx >= 35) {
+      const kindLabel = isLockOrGenerated ? "lockfile/generated diff" : "large file diff";
+      out.push(`... [collapsed ${kindLabel}: ${block.bodyLines.length} lines (+${added} / -${removed})]`);
+      continue;
+    }
+    const hunks = [];
+    let currentHunk = [];
+    for (const l of block.bodyLines) {
+      if (l.startsWith("@@ ")) {
+        if (currentHunk.length > 0) hunks.push(currentHunk);
+        currentHunk = [l];
+      } else {
+        currentHunk.push(l);
+      }
+    }
+    if (currentHunk.length > 0) hunks.push(currentHunk);
+    for (const hunk of hunks) {
+      if (hunk.length <= 36) {
+        for (const l of hunk) out.push(l.slice(0, 240));
+      } else {
+        const keepHead = 12;
+        const keepTail = 6;
+        const middle = hunk.slice(keepHead, hunk.length - keepTail);
+        let midAdd = 0;
+        let midDel = 0;
+        for (const ml of middle) {
+          if (ml.startsWith("+")) midAdd += 1;
+          else if (ml.startsWith("-")) midDel += 1;
+        }
+        for (const l of hunk.slice(0, keepHead)) out.push(l.slice(0, 240));
+        out.push(`... [collapsed ${middle.length} hunk lines (+${midAdd} / -${midDel})]`);
+        for (const l of hunk.slice(-keepTail)) out.push(l.slice(0, 240));
+      }
+    }
+  }
+  return capCompactedLines(out, maxLines);
 }
 var CompactedChunkStore = class {
   entries = /* @__PURE__ */ new Map();
@@ -3156,14 +4146,22 @@ var CompactedChunkStore = class {
   compact(dataDir, label, rawText, opts = {}) {
     const safeLabel = (label || "output").replace(/[\r\n\t\x00-\x1f]/g, " ").trim().slice(0, 80) || "output";
     const raw = typeof rawText === "string" ? rawText : String(rawText ?? "");
-    const lines = raw.split(/\r?\n/);
+    const rawLines = raw.split(/\r?\n/);
+    const lines = rawLines.map(cleanLogLine);
     const totalLines = lines.length;
+    const linesBefore = totalLines;
     const rawBytes = Buffer.byteLength(raw, "utf8");
     const estimatedRawTokens = Math.ceil(raw.length / 4);
     const headCount = Math.max(1, Math.min(opts.headLines ?? 12, 50));
     const tailCount = Math.max(1, Math.min(opts.tailLines ?? 15, 50));
     const maxErrorLines = Math.max(1, Math.min(opts.maxErrorLines ?? 20, 60));
+    const maxCompactedLines = typeof opts.maxErrorLines === "number" && Number.isFinite(opts.maxErrorLines) ? Math.max(
+      TURBO_MIN_COMPACT_LINES,
+      Math.min(Math.floor(opts.maxErrorLines), TURBO_MAX_COMPACT_LINES)
+    ) : TURBO_DEFAULT_MAX_COMPACT_LINES;
     const chunkLines = Math.max(10, Math.min(opts.chunkLines ?? 40, 200));
+    const requestedPreset = opts.preset ?? "auto";
+    const detectedPreset = requestedPreset === "auto" ? detectOutputPreset(raw) : requestedPreset;
     const diagMap = /* @__PURE__ */ new Map();
     let errorCount = 0;
     let warningCount = 0;
@@ -3197,38 +4195,60 @@ var CompactedChunkStore = class {
       if (b.count !== a.count) return b.count - a.count;
       return a.line - b.line;
     }).slice(0, maxErrorLines);
-    const headSlice = lines.slice(0, Math.min(headCount, totalLines));
-    const tailStart = Math.max(headSlice.length, totalLines - tailCount);
-    const tailSlice = tailStart < totalLines ? lines.slice(tailStart) : [];
-    const omittedMid = Math.max(0, tailStart - headSlice.length);
-    const sections = [
-      `[Turbo Compact] ${safeLabel} \u2014 ${totalLines} lines, ${rawBytes} bytes (~${estimatedRawTokens} tokens), errors=${errorCount}, warnings=${warningCount}`
-    ];
-    if (diagnostics.length > 0) {
-      sections.push("--- Errors & Warnings (aggregated) ---");
-      for (const d of diagnostics) {
-        const repeat = d.count > 1 ? ` (x${d.count})` : "";
-        sections.push(`[${d.severity.toUpperCase()} L${d.line}]${repeat} ${d.text}`);
+    const bodySections = [];
+    if (detectedPreset === "test") {
+      bodySections.push(...compactTestOutputLines(lines, maxCompactedLines));
+    } else if (detectedPreset === "build") {
+      bodySections.push(...compactBuildOutputLines(lines, maxCompactedLines));
+    } else if (detectedPreset === "git") {
+      bodySections.push(...compactGitOutputLines(lines, maxCompactedLines));
+    } else {
+      const headSlice = lines.slice(0, Math.min(headCount, totalLines));
+      const tailStart = Math.max(headSlice.length, totalLines - tailCount);
+      const tailSlice = tailStart < totalLines ? lines.slice(tailStart) : [];
+      const omittedMid = Math.max(0, tailStart - headSlice.length);
+      if (diagnostics.length > 0) {
+        bodySections.push("--- Errors & Warnings (aggregated) ---");
+        for (const d of diagnostics) {
+          const repeat = d.count > 1 ? ` (x${d.count})` : "";
+          bodySections.push(`[${d.severity.toUpperCase()} L${d.line}]${repeat} ${d.text}`);
+        }
+      }
+      bodySections.push(`--- Head (L1-L${headSlice.length}) ---`);
+      bodySections.push(
+        headSlice.map((l, idx) => `${idx + 1} | ${l.slice(0, 220)}`).join("\n")
+      );
+      if (omittedMid > 0) {
+        bodySections.push(`... (${omittedMid} middle lines indexed in memory; query via chunkId) ...`);
+      }
+      if (tailSlice.length > 0) {
+        bodySections.push(`--- Tail (L${tailStart + 1}-L${totalLines}) ---`);
+        bodySections.push(
+          tailSlice.map((l, idx) => `${tailStart + idx + 1} | ${l.slice(0, 220)}`).join("\n")
+        );
       }
     }
-    sections.push(`--- Head (L1-L${headSlice.length}) ---`);
-    sections.push(
-      headSlice.map((l, idx) => `${idx + 1} | ${l.slice(0, 220)}`).join("\n")
-    );
-    if (omittedMid > 0) {
-      sections.push(`... (${omittedMid} middle lines indexed in memory; query via chunkId) ...`);
+    const buildSummary = (pct) => {
+      const header = `[Turbo Compact] ${safeLabel} [preset=${detectedPreset}, saved ${pct}%] \u2014 ${totalLines} lines, ${rawBytes} bytes (~${estimatedRawTokens} tokens), errors=${errorCount}, warnings=${warningCount}`;
+      return [header, ...bodySections].join("\n");
+    };
+    const draftText = buildSummary(0);
+    const draftBytes = Buffer.byteLength(draftText, "utf8");
+    const draftRatio = rawBytes > 0 ? Number((1 - Math.min(draftBytes, rawBytes) / rawBytes).toFixed(3)) : 0;
+    const draftSavedPct = Math.max(0, Math.min(100, Math.round(draftRatio * 100)));
+    let summaryText = buildSummary(draftSavedPct);
+    let summaryBytes = Buffer.byteLength(summaryText, "utf8");
+    let compressionRatio = rawBytes > 0 ? Number((1 - Math.min(summaryBytes, rawBytes) / rawBytes).toFixed(3)) : 0;
+    let savedPercent = Math.max(0, Math.min(100, Math.round(compressionRatio * 100)));
+    if (savedPercent !== draftSavedPct) {
+      summaryText = buildSummary(savedPercent);
+      summaryBytes = Buffer.byteLength(summaryText, "utf8");
+      compressionRatio = rawBytes > 0 ? Number((1 - Math.min(summaryBytes, rawBytes) / rawBytes).toFixed(3)) : 0;
+      savedPercent = Math.max(0, Math.min(100, Math.round(compressionRatio * 100)));
     }
-    if (tailSlice.length > 0) {
-      sections.push(`--- Tail (L${tailStart + 1}-L${totalLines}) ---`);
-      sections.push(
-        tailSlice.map((l, idx) => `${tailStart + idx + 1} | ${l.slice(0, 220)}`).join("\n")
-      );
-    }
-    const summaryText = sections.join("\n");
-    const summaryBytes = Buffer.byteLength(summaryText, "utf8");
+    const linesAfter = summaryText.split(/\r?\n/).length;
     const estimatedSummaryTokens = Math.ceil(summaryText.length / 4);
     const estimatedSavedTokens = Math.max(0, estimatedRawTokens - estimatedSummaryTokens);
-    const compressionRatio = rawBytes > 0 ? Number((1 - Math.min(summaryBytes, rawBytes) / rawBytes).toFixed(3)) : 0;
     const chunkCount = Math.max(1, Math.ceil(totalLines / chunkLines));
     const chunkId = `chk_${Date.now().toString(36)}_${import_node_crypto6.default.randomBytes(3).toString("hex")}`;
     const createdAt = (/* @__PURE__ */ new Date()).toISOString();
@@ -3243,7 +4263,9 @@ var CompactedChunkStore = class {
       estimatedSavedTokens,
       chunkCount,
       errorCount,
-      warningCount
+      warningCount,
+      detectedPreset,
+      savedPercent
     };
     if (this.entries.size >= this.maxEntries) {
       const oldestKey = this.entries.keys().next().value;
@@ -3257,7 +4279,7 @@ var CompactedChunkStore = class {
     this.totalRawBytes += rawBytes;
     if (opts.persistStats && dataDir) {
       try {
-        atomicWriteJson(import_node_path11.default.join(dataDir, "stats.json"), {
+        atomicWriteJson(import_node_path12.default.join(dataDir, "stats.json"), {
           schemaVersion: 1,
           totalCompactions: this.totalCompactions,
           totalSavedTokens: this.totalSavedTokens,
@@ -3272,7 +4294,11 @@ var CompactedChunkStore = class {
       summaryBytes,
       compressionRatio,
       diagnostics,
-      summaryText
+      summaryText,
+      detectedPreset,
+      linesBefore,
+      linesAfter,
+      savedPercent
     };
   }
   query(chunkId, query, limit = 10) {
@@ -3341,18 +4367,18 @@ var defaultCompactedChunkStore = new CompactedChunkStore(TURBO_MAX_COMPACTED_CHU
 var SNAPSHOT_EXPAND_DIRS = /* @__PURE__ */ new Set(["src", "app", "apps", "packages", "lib", "ui", "test", "tests", "scripts", "cmd", "pkg", "internal"]);
 function buildWorkspaceSnapshot(workspaceRoot) {
   const startedAt = Date.now();
-  const realRoot = import_node_fs9.default.realpathSync(import_node_path11.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path11.default.sep) ? realRoot : `${realRoot}${import_node_path11.default.sep}`;
-  const workspaceName = import_node_path11.default.basename(realRoot) || "workspace";
+  const realRoot = import_node_fs11.default.realpathSync(import_node_path12.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path12.default.sep) ? realRoot : `${realRoot}${import_node_path12.default.sep}`;
+  const workspaceName = import_node_path12.default.basename(realRoot) || "workspace";
   const techStack = [];
   const scripts = [];
   let packageName;
   let packageVersion;
   const hasFile = (name) => {
     try {
-      const candidate = import_node_path11.default.join(realRoot, name);
-      const real = import_node_fs9.default.realpathSync(candidate);
-      return real.startsWith(rootPrefix) && import_node_fs9.default.statSync(real).isFile();
+      const candidate = import_node_path12.default.join(realRoot, name);
+      const real = import_node_fs11.default.realpathSync(candidate);
+      return real.startsWith(rootPrefix) && import_node_fs11.default.statSync(real).isFile();
     } catch {
       return false;
     }
@@ -3360,7 +4386,7 @@ function buildWorkspaceSnapshot(workspaceRoot) {
   if (hasFile("package.json")) {
     techStack.push("Node.js");
     try {
-      const pkg = JSON.parse(import_node_fs9.default.readFileSync(import_node_path11.default.join(realRoot, "package.json"), "utf8"));
+      const pkg = JSON.parse(import_node_fs11.default.readFileSync(import_node_path12.default.join(realRoot, "package.json"), "utf8"));
       if (typeof pkg.name === "string") packageName = pkg.name.slice(0, 64);
       if (typeof pkg.version === "string") packageVersion = pkg.version.slice(0, 32);
       if (pkg.scripts && typeof pkg.scripts === "object") {
@@ -3388,7 +4414,7 @@ function buildWorkspaceSnapshot(workspaceRoot) {
   const maxTreeLines = 28;
   let extraEntries = 0;
   try {
-    const entries = import_node_fs9.default.readdirSync(realRoot, { withFileTypes: true }).sort((a, b) => {
+    const entries = import_node_fs11.default.readdirSync(realRoot, { withFileTypes: true }).sort((a, b) => {
       if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
       return a.name.localeCompare(b.name);
     });
@@ -3396,8 +4422,8 @@ function buildWorkspaceSnapshot(workspaceRoot) {
       if (SKIP_DIRS.has(entry.name) || isSensitiveTurboPath(entry.name)) continue;
       if (entry.isSymbolicLink()) {
         try {
-          const realEntry = import_node_fs9.default.realpathSync(import_node_path11.default.join(realRoot, entry.name));
-          const realEntryRel = import_node_path11.default.relative(realRoot, realEntry).replace(/\\/g, "/");
+          const realEntry = import_node_fs11.default.realpathSync(import_node_path12.default.join(realRoot, entry.name));
+          const realEntryRel = import_node_path12.default.relative(realRoot, realEntry).replace(/\\/g, "/");
           if (!realEntry.startsWith(rootPrefix) || isSensitiveTurboPath(realEntryRel)) continue;
         } catch {
           continue;
@@ -3411,14 +4437,14 @@ function buildWorkspaceSnapshot(workspaceRoot) {
         treeLines.push(`- ${entry.name}/`);
         if (SNAPSHOT_EXPAND_DIRS.has(entry.name) && treeLines.length < maxTreeLines) {
           try {
-            const subEntries = import_node_fs9.default.readdirSync(import_node_path11.default.join(realRoot, entry.name), { withFileTypes: true }).filter((sub) => {
+            const subEntries = import_node_fs11.default.readdirSync(import_node_path12.default.join(realRoot, entry.name), { withFileTypes: true }).filter((sub) => {
               if (SKIP_DIRS.has(sub.name) || isSensitiveTurboPath(`${entry.name}/${sub.name}`)) {
                 return false;
               }
               if (sub.isSymbolicLink()) {
                 try {
-                  const realSub = import_node_fs9.default.realpathSync(import_node_path11.default.join(realRoot, entry.name, sub.name));
-                  const realSubRel = import_node_path11.default.relative(realRoot, realSub).replace(/\\/g, "/");
+                  const realSub = import_node_fs11.default.realpathSync(import_node_path12.default.join(realRoot, entry.name, sub.name));
+                  const realSubRel = import_node_path12.default.relative(realRoot, realSub).replace(/\\/g, "/");
                   return realSub.startsWith(rootPrefix) && !isSensitiveTurboPath(realSubRel);
                 } catch {
                   return false;
@@ -3479,11 +4505,11 @@ function handleTurboSessionStartHook(payload, _rootDataDir) {
     if (!candidate || typeof candidate !== "string" || candidate.includes("\0")) {
       return {};
     }
-    const resolved = import_node_path12.default.resolve(candidate);
-    if (!import_node_fs10.default.existsSync(resolved)) {
+    const resolved = import_node_path13.default.resolve(candidate);
+    if (!import_node_fs12.default.existsSync(resolved)) {
       return {};
     }
-    const stat = import_node_fs10.default.statSync(resolved);
+    const stat = import_node_fs12.default.statSync(resolved);
     if (!stat.isDirectory()) {
       return {};
     }
@@ -3512,8 +4538,8 @@ var import_node_crypto8 = __toESM(require("node:crypto"), 1);
 // src/modules/verify/core.ts
 var import_node_child_process2 = require("node:child_process");
 var import_node_crypto7 = __toESM(require("node:crypto"), 1);
-var import_node_fs11 = __toESM(require("node:fs"), 1);
-var import_node_path13 = __toESM(require("node:path"), 1);
+var import_node_fs13 = __toESM(require("node:fs"), 1);
+var import_node_path14 = __toESM(require("node:path"), 1);
 var ALLOWED_VERIFY_EXECUTABLES = /* @__PURE__ */ new Set([
   "npm",
   "pnpm",
@@ -3727,7 +4753,7 @@ function redactVerifyOutput(input) {
   return out;
 }
 function getVerifyStatePath(moduleDataDir) {
-  return import_node_path13.default.join(moduleDataDir, "state.json");
+  return import_node_path14.default.join(moduleDataDir, "state.json");
 }
 function clampCommandTimeout(raw) {
   if (typeof raw !== "number" || !Number.isFinite(raw)) {
@@ -4229,11 +5255,11 @@ function normalizeEvidenceFromDisk(raw) {
 }
 function loadVerifyStateReadOnly(moduleDataDir) {
   const statePath = getVerifyStatePath(moduleDataDir);
-  if (!import_node_fs11.default.existsSync(statePath)) {
+  if (!import_node_fs13.default.existsSync(statePath)) {
     return createDefaultVerifyState();
   }
   try {
-    const raw = JSON.parse(import_node_fs11.default.readFileSync(statePath, "utf8"));
+    const raw = JSON.parse(import_node_fs13.default.readFileSync(statePath, "utf8"));
     const policy = normalizePolicyFromDisk(raw.policy);
     const sessions = {};
     if (raw.sessions && typeof raw.sessions === "object" && !Array.isArray(raw.sessions)) {
@@ -4283,33 +5309,33 @@ function resolveRealPathWithMissingTail2(inputPath, depth = 0) {
   if (depth > MAX_SYMLINK_DEPTH2) {
     throw new Error(`Too many levels of symbolic links: ${inputPath}`);
   }
-  const resolved = import_node_path13.default.resolve(inputPath);
+  const resolved = import_node_path14.default.resolve(inputPath);
   const missingSegments = [];
   let current = resolved;
   while (true) {
     try {
-      const realBase = import_node_fs11.default.realpathSync(current);
-      return missingSegments.length > 0 ? import_node_path13.default.join(realBase, ...missingSegments.reverse()) : realBase;
+      const realBase = import_node_fs13.default.realpathSync(current);
+      return missingSegments.length > 0 ? import_node_path14.default.join(realBase, ...missingSegments.reverse()) : realBase;
     } catch (err) {
       const code = err?.code;
       if (code !== "ENOENT" && code !== "ENOTDIR") {
         throw err;
       }
       try {
-        const lstat = import_node_fs11.default.lstatSync(current);
+        const lstat = import_node_fs13.default.lstatSync(current);
         if (lstat.isSymbolicLink()) {
-          const linkTarget = import_node_fs11.default.readlinkSync(current);
-          const resolvedLink = import_node_path13.default.resolve(import_node_path13.default.dirname(current), linkTarget);
-          const nextTarget = missingSegments.length > 0 ? import_node_path13.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
+          const linkTarget = import_node_fs13.default.readlinkSync(current);
+          const resolvedLink = import_node_path14.default.resolve(import_node_path14.default.dirname(current), linkTarget);
+          const nextTarget = missingSegments.length > 0 ? import_node_path14.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
           return resolveRealPathWithMissingTail2(nextTarget, depth + 1);
         }
       } catch {
       }
-      const parent = import_node_path13.default.dirname(current);
+      const parent = import_node_path14.default.dirname(current);
       if (parent === current) {
         return resolved;
       }
-      missingSegments.push(import_node_path13.default.basename(current));
+      missingSegments.push(import_node_path14.default.basename(current));
       current = parent;
     }
   }
@@ -4320,16 +5346,16 @@ function inspectWorkspaceFile(workspaceRoot, targetPath) {
   }
   try {
     const realRoot = resolveRealPathWithMissingTail2(workspaceRoot);
-    const candidate = import_node_path13.default.isAbsolute(targetPath) ? targetPath : import_node_path13.default.resolve(workspaceRoot, targetPath);
+    const candidate = import_node_path14.default.isAbsolute(targetPath) ? targetPath : import_node_path14.default.resolve(workspaceRoot, targetPath);
     const realTarget = resolveRealPathWithMissingTail2(candidate);
-    const rootPrefix = realRoot.endsWith(import_node_path13.default.sep) ? realRoot : `${realRoot}${import_node_path13.default.sep}`;
+    const rootPrefix = realRoot.endsWith(import_node_path14.default.sep) ? realRoot : `${realRoot}${import_node_path14.default.sep}`;
     if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
       return { inside: false };
     }
     if (realTarget === realRoot) {
       return { inside: false };
     }
-    const relPath = import_node_path13.default.relative(realRoot, realTarget).split(import_node_path13.default.sep).join("/");
+    const relPath = import_node_path14.default.relative(realRoot, realTarget).split(import_node_path14.default.sep).join("/");
     if (!relPath || relPath === "." || relPath.startsWith("../")) {
       return { inside: false };
     }
@@ -4337,7 +5363,7 @@ function inspectWorkspaceFile(workspaceRoot, targetPath) {
     let isFile = false;
     let isEmpty = false;
     try {
-      const stat = import_node_fs11.default.statSync(realTarget);
+      const stat = import_node_fs13.default.statSync(realTarget);
       exists = true;
       isFile = stat.isFile();
       isEmpty = isFile && stat.size === 0;
@@ -4419,8 +5445,8 @@ function executeVerifyCommand(command, workspaceRoot, options = {}) {
   );
   let resolvedCwd;
   try {
-    resolvedCwd = import_node_fs11.default.realpathSync(import_node_path13.default.resolve(workspaceRoot));
-    if (!import_node_fs11.default.statSync(resolvedCwd).isDirectory()) {
+    resolvedCwd = import_node_fs13.default.realpathSync(import_node_path14.default.resolve(workspaceRoot));
+    if (!import_node_fs13.default.statSync(resolvedCwd).isDirectory()) {
       throw new Error("Workspace root is not a directory.");
     }
   } catch (err) {
@@ -4709,7 +5735,7 @@ var SINGLE_PATH_KEYS = [
   "FilePath"
 ];
 var PATCH_TEXT_KEYS = ["patch", "Patch", "diff", "Diff", "input", "Input"];
-function normalizeToolName(rawName) {
+function normalizeToolName2(rawName) {
   if (!rawName) return "";
   const trimmed = rawName.trim().toLowerCase();
   const sepIdx = Math.max(trimmed.lastIndexOf(":"), trimmed.lastIndexOf("/"));
@@ -4787,7 +5813,7 @@ function handleVerifyPostToolHook(payload, rootDataDir) {
     if (payload.event !== "PostToolUse") {
       return;
     }
-    const toolName = normalizeToolName(payload.toolName);
+    const toolName = normalizeToolName2(payload.toolName);
     if (!TRACKED_VERIFY_WRITE_TOOLS.has(toolName)) {
       return;
     }
@@ -5077,8 +6103,8 @@ async function handleVerifyStopHook(payload, rootDataDir) {
 
 // src/modules/xray/hook.ts
 var import_node_crypto9 = __toESM(require("node:crypto"), 1);
-var import_node_fs12 = __toESM(require("node:fs"), 1);
-var import_node_path14 = __toESM(require("node:path"), 1);
+var import_node_fs14 = __toESM(require("node:fs"), 1);
+var import_node_path15 = __toESM(require("node:path"), 1);
 function formatErrorValue2(err) {
   if (err === void 0 || err === null || err === "") return void 0;
   if (typeof err === "string") return err;
@@ -5095,11 +6121,11 @@ function handleXrayHook(payload, rootDataDir) {
   const now = (/* @__PURE__ */ new Date()).toISOString();
   try {
     ensurePrivateDir(moduleDataDir);
-    const statePath = import_node_path14.default.join(moduleDataDir, "live-state.json");
+    const statePath = import_node_path15.default.join(moduleDataDir, "live-state.json");
     let state = { recentEvents: [] };
-    if (import_node_fs12.default.existsSync(statePath)) {
+    if (import_node_fs14.default.existsSync(statePath)) {
       try {
-        const parsed = JSON.parse(import_node_fs12.default.readFileSync(statePath, "utf8"));
+        const parsed = JSON.parse(import_node_fs14.default.readFileSync(statePath, "utf8"));
         state = {
           ...parsed,
           recentEvents: Array.isArray(parsed.recentEvents) ? parsed.recentEvents : []
@@ -5126,9 +6152,9 @@ function handleXrayHook(payload, rootDataDir) {
       state.recentEvents = state.recentEvents.slice(-50);
     }
     const tmpPath = `${statePath}.${process.pid}.${import_node_crypto9.default.randomBytes(4).toString("hex")}.tmp`;
-    import_node_fs12.default.writeFileSync(tmpPath, `${JSON.stringify(state, null, 2)}
+    import_node_fs14.default.writeFileSync(tmpPath, `${JSON.stringify(state, null, 2)}
 `, { encoding: "utf8", mode: 384 });
-    import_node_fs12.default.renameSync(tmpPath, statePath);
+    import_node_fs14.default.renameSync(tmpPath, statePath);
   } catch {
   }
 }
@@ -5140,13 +6166,22 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
   const config = loadNovConfigReadOnly(rootDataDir);
   const { modules } = config;
   if (payload.event === "SessionStart") {
-    if (!modules.mem && !modules.turbo) return {};
+    if (!modules.mem && !modules.turbo && !modules.spec) return {};
     const injectSteps = [];
     if (modules.turbo) {
       try {
         const turboOut = handleTurboSessionStartHook(payload, rootDataDir);
         if (turboOut && Array.isArray(turboOut.injectSteps) && turboOut.injectSteps.length > 0) {
           injectSteps.push(...turboOut.injectSteps);
+        }
+      } catch {
+      }
+    }
+    if (modules.spec) {
+      try {
+        const specOut = handleSpecSessionStartHook(payload, rootDataDir);
+        if (specOut && Array.isArray(specOut.injectSteps) && specOut.injectSteps.length > 0) {
+          injectSteps.push(...specOut.injectSteps);
         }
       } catch {
       }
@@ -5163,7 +6198,7 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
     return injectSteps.length > 0 ? { injectSteps } : {};
   }
   if (payload.event === "PreToolUse") {
-    if (!modules.guard && !modules.remote && !modules.radar) {
+    if (!modules.guard && !modules.spec && !modules.remote && !modules.radar) {
       return {};
     }
     if (modules.radar) {
@@ -5185,6 +6220,15 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
           if (guardRes.reason) reasons.push(guardRes.reason);
         } else if (guardRes.decision === "allow") {
           finalDecision = "allow";
+        }
+      } catch {
+      }
+    }
+    if (modules.spec) {
+      try {
+        const specRes = handleSpecPreToolHook(payload, rootDataDir);
+        if (specRes.decision === "deny") {
+          return { decision: "deny", reason: specRes.reason };
         }
       } catch {
       }
@@ -5288,7 +6332,7 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
 }
 function readStdinText() {
   try {
-    return import_node_fs13.default.readFileSync(0, "utf8");
+    return import_node_fs15.default.readFileSync(0, "utf8");
   } catch {
     return "";
   }

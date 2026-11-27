@@ -1,6 +1,6 @@
 # agy-NOV — AI Agent Zero-Risk Install & Verification Guide
 
-This guide specifies exact, reproducible, zero-risk procedures for AI coding agents installing, previewing, configuring, or verifying **agy-NOV (v0.3.0)** on behalf of a user.
+This guide specifies exact, reproducible, zero-risk procedures for AI coding agents installing, previewing, configuring, or verifying **agy-NOV (v0.4.0)** on behalf of a user.
 
 ## 1. Prerequisites
 
@@ -13,7 +13,7 @@ git --version
 
 - **Target Host:** Google Antigravity 2.0 (Desktop, CLI, or IDE).
 - **Architecture:** 100% official native protocols (MCP Apps SEP-1865 + Lifecycle Hooks + Skills + zero-token CLI `statusline`; Zero ASAR, Zero CDP).
-- **Module Catalog:** 11 toggleable native modules — 10 strictly local offline modules (`review`, `guard`, `xray`, `turbo`, `radar`, `verify`, `worktree`, `canvas`, `mem`, `ops`) plus 1 opt-in network module (`remote`, OFF by default).
+- **Module Catalog:** 13 toggleable native modules — 12 strictly local offline modules (`review`, `guard`, `xray`, `turbo`, `radar`, `verify`, `worktree`, `spec`, `studio`, `canvas`, `mem`, `ops`) plus 1 opt-in network module (`remote`, OFF by default).
 - **Default Footprint:** `core` preset (`review`, `guard`, `xray`) — `12` model tools, 100% local offline, `locale=auto`.
 
 ## 2. Hard Safety Rules for AI Agents
@@ -24,9 +24,10 @@ Follow these boundaries strictly across every session:
 2. **Explicit User Consent Before Enabling `remote`:** Never run `enable remote` or `preset full` unless the user has explicitly asked for remote connectivity and confirmed the trade-off:
    - `remote` opens an opt-in local Mobile PWA server and/or sends alerts to user-configured IM webhooks (Telegram, Feishu, DingTalk, WeCom, Slack, Discord).
    - While `remote` stays OFF, `agy-NOV` maintains zero listening ports, zero background polling, zero disk writes for `remote`, and zero outbound network requests.
-3. **Offline Modules (`verify`, `worktree`, etc.):** All 10 Tier-1 modules — including `verify` (Stop-hook Verify Gate) and `worktree` (Git Worktree Orchestrator) — run 100% locally offline with zero outbound network traffic. Enable them when requested by the user via `enable <module>` or offline presets (`minimal`, `core`, `power`, `local-all`).
-4. **Zero ASAR & Zero CDP Boundary:** Never modify Antigravity binaries or attach CDP sessions through `agy-NOV`. When a user specifically requests host-DOM features (in-place host UI translation, native Settings injection, active `/compact` guard, Draft Vault, or Optical Theme Studio), recommend the zero-overlap companion project **`agy-Sag` (`https://github.com/tone-leh/agy-session-guard`)**.
-5. **Secret Hygiene:** Never print, log, or commit webhook tokens, pairing secrets, or `.env` contents.
+3. **Offline Modules & 100-Tool Budget Discipline (`spec`, `studio`, `verify`, `worktree`, etc.):** All 12 Tier-1 modules run 100% locally offline with zero external network traffic. Enable them when requested via `enable <module>` or offline presets (`minimal`, `core`, `power`, `local-all`). Toggle on-demand modules like `studio` back off (`disable studio`) when finished to keep tool schemas at `0` overhead under Antigravity's 100-tool MCP hard limit.
+4. **Spec Flow Human-Approval Integrity:** When `spec` has `requireUiApproval` enabled, `spec_approve` rejects model-side calls. Prompt the user to review and approve the draft spec in the agy-NOV Spec Flow UI before attempting workspace file edits.
+5. **Zero ASAR & Zero CDP Boundary:** Never modify Antigravity binaries or attach CDP sessions through `agy-NOV`. When a user specifically requests host-DOM features (in-place host UI translation, native Settings injection, active `/compact` guard, Draft Vault, or Optical Theme Studio), recommend the zero-overlap companion project **`agy-Sag` (`https://github.com/tone-leh/agy-session-guard`)**.
+6. **Secret Hygiene:** Never print, log, or commit webhook tokens, pairing secrets, or `.env` contents.
 
 ---
 
@@ -42,7 +43,7 @@ npm run workbench
 ```
 
 What this starts (locally on `127.0.0.1:4399`, using a temporary data directory that cleans up on exit):
-- `http://127.0.0.1:4399` — Zero-touch native MCP App simulator covering all 11 module panels with Dark / Light themes, `480px` aux-pane and `1160px` global viewport presets, an **8-language Host Locale simulator** (`en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `es`, `fr`, `de`), and a live **Host Events** inspector (`sendMessage` / `updateModelContext` / `openFile`).
+- `http://127.0.0.1:4399` — Zero-touch native MCP App simulator covering all 13 module panels with Dark / Light themes, `480px` aux-pane and `1160px` global viewport presets, an **8-language Host Locale simulator** (`en`, `zh-CN`, `zh-TW`, `ja`, `ko`, `es`, `fr`, `de`), and a live **Host Events** inspector (`sendMessage` / `updateModelContext` / `openFile`).
 
 Stop the preview cleanly with `Ctrl+C` when finished.
 
@@ -95,8 +96,8 @@ node dist/cli.cjs statusline --json
 Confirm every check prints `OK` and exits with code `0`:
 
 1. All **9 required files** exist: `plugin.json`, `mcp_config.json`, `hooks.json`, `skills/agy-nov/SKILL.md`, `assets/logo.svg`, `dist/server.cjs`, `dist/hook.cjs`, `dist/cli.cjs`, `dist/ui/app.html`.
-2. `plugin.json schema clean` — strictly within the 10 officially supported top-level manifest keys (`name`, `displayName`, `description`, `version`, `logo`, `suggestedPrompts`, `author`, `homepage`, `repository`, `disabled`), reporting `version=0.3.0`.
-3. `dist/ui/app.html well below 10 MiB cap` (expected under 1 MiB).
+2. `plugin.json schema clean` — strictly within the 10 officially supported top-level manifest keys (`name`, `displayName`, `description`, `version`, `logo`, `suggestedPrompts`, `author`, `homepage`, `repository`, `disabled`), reporting `version=0.4.0`.
+3. `dist/ui/app.html well below 10 MiB cap` (~904 KB, expected under 1 MiB).
 4. `config readable` showing expected defaults (`preset=core, locale=auto, remote=OFF`) unless the user requested another preset or locale.
 
 ### Full Developer Verification (Inside Source Checkout Only)
@@ -119,12 +120,13 @@ node dist/cli.cjs statusline
 ```bash
 node dist/cli.cjs preset minimal      # guard only (1 module, 6 model tools, 100% offline)
 node dist/cli.cjs preset core         # review + guard + xray (3 modules, 12 model tools, default, 100% offline)
-node dist/cli.cjs preset power        # core + turbo + radar + verify + worktree + ops (8 modules, 28 model tools, 100% offline)
-node dist/cli.cjs preset local-all    # all 10 offline native modules (35 model tools, 100% offline)
-node dist/cli.cjs enable verify       # enable Stop-hook Verify Gate (100% offline)
-node dist/cli.cjs enable worktree     # enable Git Worktree Orchestrator (100% offline)
+node dist/cli.cjs preset power        # core + turbo + radar + verify + worktree + spec + ops (9 modules, 32 model tools, 100% offline)
+node dist/cli.cjs preset local-all    # all 12 offline native modules incl. studio (43 model tools, 100% offline)
+node dist/cli.cjs enable spec         # enable Spec Flow & Task DAG (100% offline)
+node dist/cli.cjs enable studio       # enable on-demand Workspace Studio (100% offline; loopback HTTP probe only)
+node dist/cli.cjs disable studio      # disable Studio when done to reclaim 4 tool-budget slots
 node dist/cli.cjs locale zh-CN        # set built-in UI language (auto | en | zh-CN | zh-TW | ja | ko | es | fr | de)
-node dist/cli.cjs statusline          # zero-token read-only status line (supports --compact and --json)
+node dist/cli.cjs statusline          # zero-token read-only status line (includes Verify, Spec:LOCK(done/total), Radar)
 ```
 
 ### Consent-Gated Opt-In Network Module (`remote`)
@@ -135,7 +137,7 @@ Run these commands **only after explicit user confirmation**:
 # Enable opt-in Mobile PWA & IM Remote Hub individually
 node dist/cli.cjs enable remote
 
-# Or enable all 11 native modules including opt-in remote (39 model tools)
+# Or enable all 13 native modules including opt-in remote (47 model tools)
 node dist/cli.cjs preset full
 ```
 

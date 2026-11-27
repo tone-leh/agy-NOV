@@ -43,6 +43,8 @@ var MODULE_IDS = [
   "radar",
   "verify",
   "worktree",
+  "spec",
+  "studio",
   "canvas",
   "mem",
   "ops",
@@ -146,8 +148,8 @@ var MODULE_CATALOG = {
     category: "core-dev",
     name: "Turbo & Output Guard",
     shortLabel: "Turbo",
-    tagline: "Batch codebase search, outline slices & large-output compression",
-    description: "Cut wasted turns and context bloat with multi-pattern workspace search, symbol outline slicing, and compact indexed summaries for oversized command/log outputs.",
+    tagline: "Batch codebase search, outline slices & RTK-style output compression",
+    description: "Cut wasted turns and context bloat with multi-pattern workspace search, symbol outline slicing, and RTK-style smart compression presets (test/build/git/auto) for oversized logs.",
     isolationTier: "offline",
     networkAccess: "offline",
     uiMode: "scroll",
@@ -211,6 +213,46 @@ var MODULE_CATALOG = {
       "worktree_cleanup"
     ]
   },
+  spec: {
+    id: "spec",
+    category: "workspace",
+    name: "Spec Flow & Task DAG",
+    shortLabel: "Spec",
+    tagline: "Spec-driven development, dependency task DAG & pre-approval write lock",
+    description: "Maintain structured Spec -> Plan -> Task DAG workflows with cycle detection, SessionStart next-task recall, and a PreToolUse write gate that keeps code read-only until the spec is approved.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: ["SessionStart", "PreToolUse"],
+    modelToolNames: [
+      "spec_get_state",
+      "spec_create_or_update",
+      "spec_approve",
+      "spec_update_task"
+    ]
+  },
+  studio: {
+    id: "studio",
+    category: "workspace",
+    name: "Workspace Studio",
+    shortLabel: "Studio",
+    tagline: "On-demand SQLite/CSV/JSON data viewer, DOCX/XLSX/PDF slicer & loopback HTTP probe",
+    description: "Inspect local SQLite/CSV/JSON datasets, slice DOCX/XLSX/PDF/Markdown documents offline without external binaries, and probe localhost/127.0.0.1 APIs \u2014 toggle off for zero tool budget tax.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: [],
+    modelToolNames: [
+      "studio_list_sources",
+      "studio_inspect_data",
+      "studio_inspect_document",
+      "studio_http_probe"
+    ]
+  },
   canvas: {
     id: "canvas",
     category: "workspace",
@@ -249,10 +291,10 @@ var MODULE_CATALOG = {
   ops: {
     id: "ops",
     category: "workspace",
-    name: "Prompt Vault & Doctor",
+    name: "Prompt Vault & Budget Doctor",
     shortLabel: "Ops",
-    tagline: "Parameterized prompt vault, workspace asset audit & storage hygiene",
-    description: "Manage reusable {{var}} prompt templates, inspect workspace skills/rules/MCP footprint with read-only token estimates, and audit local agy-NOV storage.",
+    tagline: "Parameterized prompt vault, 24KB/20K rule bloat & 100-tool budget doctor",
+    description: "Manage reusable {{var}} prompt templates, audit workspace rules for 24KB/20K bloat that triggers false 429s, track the 100-tool MCP budget, and verify local storage hygiene.",
     isolationTier: "offline",
     networkAccess: "offline",
     uiMode: "scroll",
@@ -303,24 +345,8 @@ var PRESET_DEFINITIONS = {
   },
   power: {
     id: "power",
-    label: "Power Dev (8 Offline)",
-    description: "Core + Turbo + Radar + Verify + Worktree + Ops \u2014 high-velocity engineering suite with strong verification gates and zero network usage (28 model tools).",
-    enabledModules: ["review", "guard", "xray", "turbo", "radar", "verify", "worktree", "ops"],
-    modules: makeModulesMap([
-      "review",
-      "guard",
-      "xray",
-      "turbo",
-      "radar",
-      "verify",
-      "worktree",
-      "ops"
-    ])
-  },
-  "local-all": {
-    id: "local-all",
-    label: "Local All (10 Offline)",
-    description: "All 10 native offline modules enabled; Remote stays strictly off with zero ports (35 model tools).",
+    label: "Power Dev (9 Offline)",
+    description: "Core + Turbo + Radar + Verify + Worktree + Spec + Ops \u2014 complete spec-to-verify offline engineering workflow with zero network usage (32 model tools).",
     enabledModules: [
       "review",
       "guard",
@@ -329,6 +355,35 @@ var PRESET_DEFINITIONS = {
       "radar",
       "verify",
       "worktree",
+      "spec",
+      "ops"
+    ],
+    modules: makeModulesMap([
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "spec",
+      "ops"
+    ])
+  },
+  "local-all": {
+    id: "local-all",
+    label: "Local All (12 Offline)",
+    description: "All 12 native offline modules enabled including Workspace Studio; Remote stays strictly off with zero ports (43 model tools).",
+    enabledModules: [
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "spec",
+      "studio",
       "canvas",
       "mem",
       "ops"
@@ -341,6 +396,8 @@ var PRESET_DEFINITIONS = {
       "radar",
       "verify",
       "worktree",
+      "spec",
+      "studio",
       "canvas",
       "mem",
       "ops"
@@ -348,8 +405,8 @@ var PRESET_DEFINITIONS = {
   },
   full: {
     id: "full",
-    label: "Full Suite (All 11)",
-    description: "All 11 native modules including the opt-in Mobile PWA & IM remote approval hub (39 model tools).",
+    label: "Full Suite (All 13)",
+    description: "All 13 native modules including the opt-in Mobile PWA & IM remote approval hub (47 model tools).",
     enabledModules: [...MODULE_IDS],
     modules: makeModulesMap(MODULE_IDS)
   },
@@ -532,7 +589,7 @@ function hasCliFlag(argv, flag) {
 }
 
 // src/server/cli.ts
-var CLI_VERSION = "0.3.0";
+var CLI_VERSION = "0.4.0";
 function printHelp() {
   console.log(`agy-NOV CLI (v${CLI_VERSION}) \u2014 The 100% Native Modular Super-Workbench for Antigravity 2.0
 
@@ -585,6 +642,38 @@ function buildStatusLine(dataDir, compact) {
     const blockedStops = Math.max(storedBlockedStops, countedBlocked);
     verifySummary = { enabled: true, lastStatus, blockedStops };
   }
+  let specSummary;
+  if (cfg.modules.spec) {
+    const specState = readJsonSilent(import_node_path2.default.join(getModuleDataDir(dataDir, "spec"), "state.json"));
+    const activeId = typeof specState?.activeSpecId === "string" ? specState.activeSpecId : void 0;
+    let activeDoc;
+    if (activeId && Array.isArray(specState?.specs)) {
+      activeDoc = specState.specs.find(
+        (s) => Boolean(s) && typeof s === "object" && !Array.isArray(s) && s.id === activeId
+      );
+    } else if (activeId && specState?.specs && typeof specState.specs === "object") {
+      const candidate = specState.specs[activeId];
+      if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
+        activeDoc = candidate;
+      }
+    }
+    const tasks = Array.isArray(activeDoc?.tasks) ? activeDoc.tasks.filter(
+      (t) => Boolean(t) && typeof t === "object" && !Array.isArray(t)
+    ) : [];
+    const doneTasks = tasks.filter((t) => t.status === "done").length;
+    const status = typeof activeDoc?.status === "string" ? activeDoc.status : void 0;
+    const writeLockActive = Boolean(
+      activeDoc && status === "draft" && activeDoc.enforcePlanBeforeWrite === true
+    );
+    specSummary = {
+      enabled: true,
+      activeTitle: typeof activeDoc?.title === "string" ? activeDoc.title : void 0,
+      status,
+      writeLockActive,
+      doneTasks,
+      totalTasks: tasks.length
+    };
+  }
   let radarSummary;
   if (cfg.modules.radar) {
     const radarDir = getModuleDataDir(dataDir, "radar");
@@ -602,8 +691,10 @@ function buildStatusLine(dataDir, compact) {
       };
     } else {
       const board = readJsonSilent(import_node_path2.default.join(radarDir, "board.json"));
-      const sessionsObj = board && board.sessions && typeof board.sessions === "object" ? board.sessions : {};
-      const list = Object.values(sessionsObj);
+      const sessionsRaw = board?.sessions;
+      const list = sessionsRaw && typeof sessionsRaw === "object" && !Array.isArray(sessionsRaw) ? Object.values(sessionsRaw).filter(
+        (s) => Boolean(s) && typeof s === "object" && !Array.isArray(s)
+      ) : [];
       radarSummary = {
         enabled: true,
         running: list.filter((s) => s.status === "running").length,
@@ -633,6 +724,10 @@ function buildStatusLine(dataDir, compact) {
     const tag = verifySummary.lastStatus === "pass" ? "PASS" : verifySummary.lastStatus === "blocked" ? "BLOCKED" : verifySummary.lastStatus === "fail" ? "FAIL" : "IDLE";
     parts.push(`Verify:${tag}`);
   }
+  if (specSummary && specSummary.status) {
+    const lockTag = specSummary.writeLockActive ? "LOCK" : specSummary.status.toUpperCase();
+    parts.push(`Spec:${lockTag}(${specSummary.doneTasks}/${specSummary.totalTasks})`);
+  }
   if (radarSummary) {
     const radarBits = [];
     if (radarSummary.running > 0) radarBits.push(`${radarSummary.running}run`);
@@ -654,6 +749,7 @@ function buildStatusLine(dataDir, compact) {
     locale: cfg.locale,
     network,
     verify: verifySummary,
+    spec: specSummary,
     radar: radarSummary,
     xray: xraySummary,
     line

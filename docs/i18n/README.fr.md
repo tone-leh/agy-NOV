@@ -2,7 +2,7 @@
   <img src="../../assets/logo.svg" width="88" height="88" alt="Logo agy-NOV" />
   <h1>agy-NOV</h1>
   <p><strong>Le super-établi modulaire 100 % natif pour Google Antigravity 2.0.</strong></p>
-  <p><em>Un seul plugin. 11 super-pouvoirs activables. Interface intégrée en 8 langues. Zéro ASAR, zéro CDP et zéro taxe de tokens dès qu'un module est désactivé.</em></p>
+  <p><em>Un seul plugin. 13 super-pouvoirs activables. Interface intégrée en 8 langues et CLI <code>statusline</code> zéro token. Zéro ASAR, zéro CDP et zéro taxe de tokens dès qu'un module est désactivé.</em></p>
 
   <p>
     <a href="../../README.md">English</a> ·
@@ -41,7 +41,7 @@
   <p>
     <a href="#pourquoi-choisir-agy-nov">Pourquoi agy-NOV</a> ·
     <a href="#choisissez-votre-configuration-en-10-secondes">Choisir un profil</a> ·
-    <a href="#11-super-pouvoirs-activables">11 modules</a> ·
+    <a href="#13-super-pouvoirs-activables">13 modules</a> ·
     <a href="#interface-intégrée-en-8-langues-et-écosystème-compagnon-zéro-cdp">UI 8 langues et compagnon</a> ·
     <a href="#démarrage-rapide-en-30-secondes">Démarrage 30 s</a> ·
     <a href="#architecture">Architecture</a> ·
@@ -50,18 +50,18 @@
 </div>
 
 > [!NOTE]
-> **Projet open source indépendant :** `agy-NOV` est un plugin communautaire indépendant sous licence MIT conçu pour Google Antigravity 2.0. Il est sans affiliation, parrainage ni approbation officielle de Google LLC.
+> **Projet open source indépendant :** `agy-NOV` (v0.4.0) est un plugin communautaire indépendant sous licence MIT conçu pour Google Antigravity 2.0. Il est sans affiliation, parrainage ni approbation officielle de Google LLC.
 
 ---
 
 ## Pourquoi choisir agy-NOV
 
-Empiler des serveurs MCP séparés et des scripts de hooks pour la revue de diffs, la détection de secrets, l'inspection de tokens, la recherche par lots, le suivi de sessions, les portails de vérification, l'orchestration de Git worktrees et les modèles de prompts transforme vite un espace Antigravity propre en une pile bruyante de démons en arrière-plan et de schémas d'outils surchargés.
+Empiler des serveurs MCP séparés et des scripts de hooks pour la revue de diffs, la détection de secrets, l'inspection de tokens, la recherche par lots et la compression des sorties, le suivi de sessions, les portails de vérification, l'orchestration de Git worktrees, les flux de spécifications DAG, le débogage local de données/documents/HTTP et l'audit des règles et du budget d'outils transforme vite un espace Antigravity propre en une pile bruyante de démons en arrière-plan et de schémas surchargés qui heurtent le plafond strict des 100 outils.
 
-| Dimension | ❌ Dispersion de plugins (10–11 outils séparés) | ✅ Super-établi agy-NOV |
+| Dimension | ❌ Dispersion de plugins (12–13 outils séparés) | ✅ Super-établi agy-NOV |
 | :--- | :--- | :--- |
-| **Processus résidents** | 10–11 serveurs Node/Python se disputant la RAM et le temps de démarrage | **1 serveur MCP résident** (`dist/server.cjs`) pour toutes les capacités activées |
-| **Taxe de tokens par tour** | Plus de 50 schémas statiques injectés dans chaque prompt, utilisés ou non | **`tools/list` dynamique** — chaque module désactivé est retiré instantanément (`0` token) |
+| **Processus résidents** | 12–13 serveurs Node/Python se disputant la RAM et le temps de démarrage | **1 serveur MCP résident** (`dist/server.cjs`) pour toutes les capacités activées |
+| **Taxe de tokens par tour** | Plus de 60 schémas statiques injectés dans chaque prompt en rognant le plafond de 100 outils | **`tools/list` dynamique** — chaque module désactivé est retiré instantanément (`0` token et `0` quota d'outil) |
 | **Tempête de hooks** | Plusieurs scripts lancés en parallèle à chaque `PreToolUse` / `PostToolUse` / `Stop` | **1 répartiteur de hooks unifié** (`dist/hook.cjs`) avec court-circuit en lecture seule O(1) |
 | **Résistance aux mises à jour** | Les patchs binaires sur `app.asar` et les hooks DOM cassent après les mises à jour d'Antigravity | **100 % protocoles natifs officiels** — zéro ASAR, zéro CDP, résiste à chaque mise à jour du client |
 | **Configuration et UX multilingue** | Fichiers JSON éclatés, thèmes incohérents et panneaux uniquement en anglais | **1 tableau de bord sombre/clair** avec **interface intégrée en 8 langues**, **5 presets instantanés** et `statusline` CLI zéro token |
@@ -69,8 +69,8 @@ Empiler des serveurs MCP séparés et des scripts de hooks pour la revue de diff
 ### La philosophie du tableau de bord 100 % natif
 
 1. **Un seul runtime natif :** 1 serveur MCP (`dist/server.cjs`) + 1 répartiteur de hooks de cycle de vie (`dist/hook.cjs`) + 1 interface autonome en 8 langues (`dist/ui/app.html`, sous 1 MiB — très en dessous du plafond de 10 MiB) + 1 CLI incluant `statusline` (`dist/cli.cjs`).
-2. **Zéro taxe de tokens à l'arrêt :** Chaque module encapsule ses outils de modèle via `RegisteredTool.enable()` / `.disable()` et publie `tools/list_changed` en direct. Dès qu'un module est coupé, ses schémas quittent aussitôt le contexte du modèle.
-3. **10 modules locaux hors ligne en priorité :** Revue de diffs, pare-feu de secrets, instantanés avant édition, radiographie de contexte, recherche par lots et compression des sorties, radar de sessions, portail de vérification `Stop`, orchestrateur de Git worktrees parallèles, canevas visuel, mémoire ancrée au code et gestion de prompts tournent intégralement en local avec zéro appel réseau externe, zéro édition ASAR et zéro hook CDP.
+2. **Zéro taxe de tokens à l'arrêt :** Chaque module encapsule ses outils de modèle via `RegisteredTool.enable()` / `.disable()` et publie `tools/list_changed` en direct. Dès qu'un module est coupé, ses schémas quittent aussitôt le contexte du modèle pour rester largement sous la limite stricte des 100 outils.
+3. **12 modules locaux hors ligne en priorité :** Revue de diffs, pare-feu de secrets et instantanés avant édition, radiographie de contexte, recherche par lots et compression intelligente façon RTK, radar de sessions, portail de vérification `Stop`, orchestrateur de Git worktrees parallèles, flux Spec & Task DAG, atelier local léger à la demande Workspace Studio, canevas visuel, mémoire ancrée au code et coffre de prompts avec docteur de budget tournent intégralement en local avec zéro appel réseau externe, zéro édition ASAR et zéro hook CDP.
 4. **1 module distant strictement opt-in :** `remote` (PWA mobile + webhooks de messagerie) reste totalement désactivé par défaut — zéro port en écoute, zéro sondage en arrière-plan, zéro écriture disque et zéro requête réseau sortante tant que vous le laissez éteint.
 
 ---
@@ -81,13 +81,13 @@ Démarrez léger et activez de nouveaux modules dès que votre flux le demande. 
 
 | Preset | Profil | Modules activés | Outils du modèle* | Profil d'isolation |
 | :--- | :--- | :--- | :---: | :--- |
-| **`minimal`** | *Filet de sécurité minimal* — bouclier anti-fuites et instantanés essentiels | `guard` | **6** | 100 % hors ligne |
-| **`core`** *(Par défaut)* | *Quotidien* — revue, sécurité et visibilité sur les tokens prêts à l'emploi | `review`, `guard`, `xray` | **12** | 100 % hors ligne |
-| **`power`** | *Ingénierie haute vélocité* — recherche par lots, radar Swarm, portail Verify, worktrees parallèles et coffre de prompts | `core` + `turbo`, `radar`, `verify`, `worktree`, `ops` | **28** | 100 % hors ligne |
-| **`local-all`** | *Studio 100 % local* — toutes les capacités hors ligne, canevas visuel et mémoire inclus | Les 10 modules natifs hors ligne | **35** | 100 % hors ligne |
-| **`full`** | *Pilotage à distance* — studio complet avec validations sur mobile et messagerie | Les 11 modules natifs (`remote` opt-in inclus) | **39** | Réseau opt-in |
+| **`minimal`** | *Filet de sécurité minimal* — bouclier anti-fuites et instantanés essentiels | `guard` (1) | **6** | 100 % hors ligne |
+| **`core`** *(Par défaut)* | *Quotidien* — revue, sécurité et visibilité sur les tokens prêts à l'emploi | `review`, `guard`, `xray` (3) | **12** | 100 % hors ligne |
+| **`power`** | *Ingénierie haute vélocité* — recherche par lots et compression RTK, radar Swarm, portail Verify, worktrees parallèles, flux Spec DAG et docteur de budget | `core` + `turbo`, `radar`, `verify`, `worktree`, `spec`, `ops` (9) | **32** | 100 % hors ligne |
+| **`local-all`** | *Studio 100 % local* — toutes les capacités hors ligne, Workspace Studio, canevas visuel et mémoire inclus | Les 12 modules natifs hors ligne | **43** | 100 % hors ligne |
+| **`full`** | *Pilotage à distance* — studio complet avec validations sur mobile et messagerie | Les 13 modules natifs (`remote` opt-in inclus) | **47** | Réseau opt-in |
 
-<sub>*Nombre exact d'outils du modèle = `2` outils d'entrée toujours actifs (`nov_open`, `nov_status`) + somme des outils des modules activés (`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4).</sub>
+<sub>*Nombre exact d'outils du modèle = `2` outils d'entrée toujours actifs (`nov_open`, `nov_status`) + somme des outils des modules activés (`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4).</sub>
 
 ```bash
 # Changez de preset à tout moment depuis votre terminal
@@ -98,9 +98,9 @@ node dist/cli.cjs preset power
 
 ---
 
-## 11 super-pouvoirs activables
+## 13 super-pouvoirs activables
 
-### Niveau 1 — 10 modules natifs locaux hors ligne (100 % hors ligne)
+### Niveau 1 — 12 modules natifs locaux hors ligne (100 % hors ligne)
 
 Zéro appel réseau, zéro CDP et zéro patch ASAR. Bâtis strictement sur les spécifications officielles MCP Apps (`aux_pane` + `global`), Lifecycle Hooks et Skills de Google Antigravity 2.0.
 
@@ -109,27 +109,31 @@ Zéro appel réseau, zéro CDP et zéro patch ASAR. Bâtis strictement sur les s
 | **Diff Review** (`review`) | **ON** | 2 | `PostToolUse`, `Stop` | Visionneuse de diffs façon PR (working tree, staged et commits) avec annotations par ligne et prompts de correction ciblés `file:line` |
 | **Guard & Snapshots** (`guard`) | **ON** | 4 | `PreToolUse` | Bloque les fuites `.env`/SSH/identifiants et les commandes destructrices avant exécution ; crée des instantanés pré-édition sans Git avec restauration en 1 clic |
 | **Context X-Ray** (`xray`) | **ON** | 4 | `PostToolUse`, `Stop` | Mesure les vrais tokens en cache face aux tokens neufs par tour, classe les outils gourmands, détaille la lignée des sous-agents Swarm et les pertes multimodèles / 429, ouvre les fichiers modifiés en 1 clic et recherche dans les sessions passées en BM25 EN+CJK |
-| **Turbo & Output Guard** (`turbo`) | OFF | 3 | `SessionStart` | Exécute des recherches par lots multi-motifs dans le workspace, extrait les plans de symboles de haut niveau et compresse les logs volumineux de build ou tests en résumés indexés |
+| **Turbo & Output Guard** (`turbo`) | OFF | 3 | `SessionStart` | Exécute des recherches par lots multi-motifs dans le workspace, extrait les plans de symboles de haut niveau et offre des **presets intelligents de compression façon RTK** (`auto \| test \| build \| git \| generic`) pour résumer les logs volumineux |
 | **Session Radar & Chime** (`radar`) | OFF | 2 | `PreToolUse`, `PostToolUse`, `Stop` | Suit les conversations parallèles et sous-agents Swarm parent-enfant selon les états `running`, `awaiting_approval`, `completed`, `stalled` et `error`, avec alertes d'orphelins, `status-capsule.json` en lecture seule et signal sonore optionnel |
 | **Verify Gate** (`verify`) | OFF | 4 | `PostToolUse`, `Stop` | Portail de vérification strict sur `Stop` Hook bloquant les écritures de 0 octet et les déclarations « terminé » non vérifiées ; inclut une liste blanche sûre sans shell, un garde-fou anti-boucle et une chaîne de preuves expurgée (`verify_get_policy` / `verify_set_policy` / `verify_run_checks` / `verify_get_evidence`) |
 | **Worktree Orchestrator** (`worktree`) | OFF | 4 | Aucun | Console sûre de Git worktrees parallèles avec transfert optionnel des changements non commités, résumés de diff par branche, détection `extensions.worktreeConfig` et nettoyage sécurisé des worktrees orphelins (`worktree_list` / `worktree_create` / `worktree_diff_summary` / `worktree_cleanup`) |
+| **Spec Flow & Task DAG** (`spec`) | OFF | 4 | `SessionStart`, `PreToolUse` | Flux structuré `Spec -> Plan -> Task DAG`, détection de cycles de Kahn et progression sans saut de dépendance, verrou lecture seule `PreToolUse` tant que le brouillon reste non approuvé et verrou UI optionnel `requireUiApproval` (`spec_get_state` / `spec_create_or_update` / `spec_approve` / `spec_update_task`) |
+| **Workspace Studio** (`studio`) | OFF | 4 | Aucun | Atelier léger de débogage local à la demande : inspection SQLite lecture seule + CSV/JSON/NDJSON, découpe hors ligne 100 % Node de DOCX/XLSX/PDF/Markdown (protection ZIP Bomb) et sondes HTTP strictement loopback (`127.0.0.1`/`localhost`/`[::1]`) anti-SSRF ; coupé, il consomme 0 outil pour éviter le plafond des 100 outils (`studio_list_sources` / `studio_inspect_data` / `studio_inspect_document` / `studio_http_probe`) |
 | **Visual Canvas** (`canvas`) | OFF | 4 | Aucun | Affiche maquettes HTML, diagrammes SVG, présentations, specs Markdown et images dans un bac à sable isolé avec épingles visuelles numérotées |
 | **Memory Graph** (`mem`) | OFF | 3 | `SessionStart`, `Stop` | Ancre les décisions d'architecture aux empreintes SHA-256 des fichiers, rappelle le contexte automatiquement au `SessionStart` et signale toute dérive lorsque le code évolue |
-| **Prompt Vault & Doctor** (`ops`) | OFF | 3 | Aucun | Stocke des modèles de prompts réutilisables `{{var}}` et lance un audit en lecture seule des règles, skills, estimations de tokens MCP et stockage local |
+| **Prompt Vault & Budget Doctor** (`ops`) | OFF | 3 | Aucun | Stocke des modèles de prompts réutilisables `{{var}}` ; inclut **l'alerte d'inflation des règles 24KB/20K** (prévention des faux 429), la **jauge du budget strict des 100 outils**, le diagnostic statique MCP et l'audit en lecture seule du stockage local |
 
 <details>
-<summary><strong>Essayez de demander à votre agent… (10 prompts concrets pour les modules hors ligne de Niveau 1)</strong></summary>
+<summary><strong>Essayez de demander à votre agent… (12 prompts concrets pour les modules hors ligne de Niveau 1)</strong></summary>
 
 - **Review :** *« Ouvre agy-NOV Diff Review sur mes modifications staged pour que j'annote les lignes sensibles avant le commit. »*
 - **Guard :** *« Analyse le workspace pour repérer d'éventuels secrets en dur et crée un point de sauvegarde avant de refactoriser auth. »*
 - **X-Ray :** *« Montre-moi pourquoi le taux de cache a chuté et les pertes 429 de ce tour, détaille la lignée des sous-agents Swarm et retrouve dans les sessions passées notre décision sur les relances de webhooks. »*
-- **Turbo :** *« Active Turbo, recherche en lot tous les appels à `registerTool` et `realpathSync` dans `src/`, puis compacte ce log d'échec de tests. »*
+- **Turbo :** *« Active Turbo, recherche en lot tous les appels à `registerTool` et `realpathSync` dans `src/`, puis compacte ce log d'échec de tests avec le preset RTK `test`. »*
 - **Radar :** *« Vérifie Session Radar pour voir quelles conversations parallèles ou quels sous-agents Swarm parent-enfant attendent une approbation, sont bloqués ou orphelins. »*
 - **Verify :** *« Active Verify Gate, impose `npm run typecheck` et `npm test` avant la fin de tâche, puis affiche la chaîne de preuves expurgée de ce tour. »*
 - **Worktree :** *« Utilise Worktree Orchestrator pour créer un worktree parallèle en emportant mes modifications non commitées, inspecte le résumé de diff de la branche et nettoie sûrement les worktrees orphelins fusionnés. »*
+- **Spec :** *« Prépare un `Spec -> Plan -> Task DAG` dans Spec Flow pour la refonte auth avec verrou lecture seule avant approbation et `requireUiApproval`, puis avance tâche par tâche après mon feu vert. »*
+- **Studio :** *« Active temporairement Workspace Studio pour inspecter en lecture seule SQLite et CSV locaux, découper hors ligne cette spec DOCX/XLSX/PDF et sonder `http://127.0.0.1:3000/health`, puis coupe-le pour libérer le quota d'outils. »*
 - **Canvas :** *« Publie cette maquette de page tarifaire dans agy-NOV Visual Canvas afin que je place des épingles numérotées de mise en page. »*
 - **Memory :** *« Mémorise notre invariant d'isolation natif ancré à `src/core/catalog.ts` et préviens-moi si ce fichier dérive. »*
-- **Ops :** *« Audite les skills, règles et l'empreinte MCP de cet espace de travail, puis génère mon modèle de prompt de préparation de release. »*
+- **Ops :** *« Lance le Budget Doctor pour détecter une inflation de règles 24KB/20K et des faux 429, vérifier la marge du plafond de 100 outils et la santé statique MCP, puis génère mon modèle de prompt de release. »*
 
 </details>
 
@@ -147,7 +151,7 @@ Garantit une absence totale d'activité lorsqu'il est désactivé : **0 port en 
 
 ### Interface de plugin en 8 langues en temps réel (sans redémarrage)
 
-`agy-NOV` embarque une localisation native en temps réel directement dans le paquet du plugin — couvrant les 11 panneaux de modules, les cartes de presets, les badges d'état et les notifications en parité avec la documentation en 8 langues (`docs/i18n/README.*.md`) :
+`agy-NOV` embarque une localisation native en temps réel directement dans le paquet du plugin — couvrant les 13 panneaux de modules, les cartes de presets, les badges d'état et les notifications en parité avec la documentation en 8 langues (`docs/i18n/README.*.md`) :
 
 - **Sélecteur natif dans la barre supérieure :** Choisissez n'importe quelle langue depuis le menu déroulant de l'en-tête ; l'interface et `<html lang>` se mettent à jour instantanément sans rechargement.
 - **Détection automatique BCP-47 de l'hôte (`auto`) :** Réglé par défaut sur `auto`, il suit automatiquement la langue de l'hôte Antigravity tout en autorisant une sélection explicite parmi les 8 langues intégrées :
@@ -170,7 +174,7 @@ Toutes les personnalisations poussées du DOM de l'hôte qui s'appuient sur une 
 | **Frontière de protocole** | **100 % protocoles natifs officiels** (MCP Apps SEP-1865 + Lifecycle Hooks + Skills ; **Zéro ASAR · Zéro CDP**) | **Compagnon CDP local Zero-ASAR** + sidecar Watch + CLI de stockage |
 | **Résistance aux mises à jour** | Immunisé contre les changements DOM et binaires d'Antigravity à chaque mise à jour | Hooks profonds dans la fenêtre hôte dédiés à la personnalisation avancée |
 | **Périmètre de localisation** | **Interface intégrée du plugin en 8 langues** (`auto` + 8 langues) et documentation en 8 langues | **Traduction en place de l'UI hôte Antigravity** et injection native dans `Settings` |
-| **Capacités principales** | Établi natif à 11 modules (`review`, `guard`, `xray`, `turbo`, `radar`, `verify`, `worktree`, `canvas`, `mem`, `ops`, `remote` opt-in) et CLI `statusline` zéro token | Protection active d'auto-compaction `/compact`, coffre de brouillons, file de prompts, signets de tours, Optical Theme Studio, auto-acceptation sûre par règles et contrôles DOM hôte |
+| **Capacités principales** | Établi natif à 13 modules (`review`, `guard`, `xray`, `turbo`, `radar`, `verify`, `worktree`, `spec`, `studio`, `canvas`, `mem`, `ops`, `remote` opt-in) et CLI `statusline` zéro token | Protection active d'auto-compaction `/compact`, coffre de brouillons, file de prompts, signets de tours, Optical Theme Studio, auto-acceptation sûre par règles et contrôles DOM hôte |
 
 ```bash
 # Installez côte à côte les deux plugins compagnons sans recoupement
@@ -185,7 +189,7 @@ agy plugin install https://github.com/tone-leh/agy-session-guard
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../../assets/architecture-dark.svg" />
   <source media="(prefers-color-scheme: light)" srcset="../../assets/architecture-light.svg" />
-  <img src="../../assets/architecture-dark.svg" alt="Architecture 100 % native et zéro CDP d'agy-NOV v0.3" width="100%" />
+  <img src="../../assets/architecture-dark.svg" alt="Architecture 100 % native et zéro CDP d'agy-NOV v0.4" width="100%" />
 </picture>
 
 <details>
@@ -195,11 +199,11 @@ agy plugin install https://github.com/tone-leh/agy-session-guard
 flowchart TB
   Host["Hôte Google Antigravity 2.0 (Desktop / CLI / IDE)\n100 % protocoles natifs officiels (Zéro ASAR · Zéro CDP)"]
   MCP["Serveur MCP unique (dist/server.cjs)\nToujours actifs : nov_open, nov_status\nActivation/désactivation dynamique via RegisteredTool"]
-  UI["UI unifiée mono-fichier (dist/ui/app.html)\nInterface intégrée en 8 langues · Sombre et clair · < 10 MiB"]
+  UI["UI unifiée mono-fichier (dist/ui/app.html)\nInterface intégrée en 8 langues · 13 panneaux · Sombre et clair · < 10 MiB"]
   Hook["Répartiteur de hooks unifié (dist/hook.cjs)\nLecture config en lecture seule -> court-circuit O(1)"]
   CLI["CLI (dist/cli.cjs)\n7 commandes · statusline en lecture seule"]
   Store["Stockage isolé par module\n<dataDir>/modules/<id>/ (0700 / 0600)"]
-  T1["Niveau 1 : 10 modules natifs locaux hors ligne\nreview · guard · xray · turbo · radar\nverify · worktree · canvas · mem · ops"]
+  T1["Niveau 1 : 12 modules natifs locaux hors ligne\nreview · guard · xray · turbo · radar · verify\nworktree · spec · studio · canvas · mem · ops"]
   T2R["Niveau 2 (OFF par défaut) : remote\nPWA mobile et webhooks IM opt-in"]
 
   Host --> MCP
@@ -212,13 +216,15 @@ flowchart TB
   Hook -. "opt-in (Guard prioritaire sur Remote)" .-> T2R
   T1 --> Store
   T2R -. "écriture paresseuse si ON" .-> Store
-  CLI -. "lecture de status-capsule.json" .-> Store
+  CLI -. "lecture de status-capsule.json / spec" .-> Store
 ```
 
 ### Liste de vérification de sécurité en profondeur
 
 - **Zéro ASAR et zéro CDP :** Fonctionne exclusivement via les protocoles documentés d'Antigravity 2.0 — MCP Apps (`ui://agy-nov/app.html`), Lifecycle Hooks, Skills et CLI `statusLine` — avec zéro patch binaire, zéro port de débogage distant et zéro injection dans le DOM de l'hôte.
-- **Frontière de liens symboliques et d'espace de travail (`realpath`) :** `guard`, `canvas`, `mem`, `turbo`, `ops` et `worktree` résolvent les chemins réels canoniques par rapport à la racine du workspace et excluent automatiquement `.env`, les clés SSH, `.git` et `node_modules`.
+- **Frontière de liens symboliques et d'espace de travail (`realpath`) :** `guard`, `verify`, `worktree`, `spec`, `studio`, `canvas`, `mem`, `turbo` et `ops` résolvent les chemins réels canoniques par rapport à la racine du workspace et excluent automatiquement `.env`, les clés SSH, `.git` et `node_modules`.
+- **Portail Spec et ordre DAG :** `spec` applique l'algorithme de Kahn pour détecter les cycles de tâches, bloque tout saut de dépendance inachevée, verrouille les écritures via `PreToolUse` tant qu'un brouillon reste non approuvé et propose le verrou UI optionnel `requireUiApproval`.
+- **Garde-fous hors ligne et anti-SSRF de Workspace Studio :** `studio` ouvre SQLite strictement en lecture seule, découpe DOCX/XLSX/PDF en Node pur avec défense contre les ZIP Bombs et confine les sondes HTTP aux adresses loopback (`127.0.0.1` / `localhost` / `[::1]`) sans redirection externe ; une fois désactivé, il libère ses 4 outils.
 - **Exécution sans shell et défense contre les injections :** `review` et `worktree` exécutent Git via `execFile` sans shell avec séparateurs explicites `--` avant les pathspecs et signalent les risques liés à `extensions.worktreeConfig` ; `verify` limite les contrôles à une liste blanche sans shell avec preuves expurgées et garde-fous anti-boucle.
 - **Filtrage synchronisé des outils et hooks :** Couper un module désactive simultanément ses outils de modèle et ses outils d'écriture `app_*`, tandis que `dist/hook.cjs` consulte `config.json` en lecture seule et renvoie `{}` en O(1). Dans `PreToolUse`, les décisions `deny` de `guard` gardent toujours la priorité absolue sur `remote`.
 - **Stockage isolé `0700` / `0600` :** Chaque module écrit strictement sous `<dataDir>/modules/<moduleId>/` avec des permissions réservées au propriétaire et crée zéro répertoire tant qu'il reste désactivé ; `status`, `statusline` et `doctor` s'exécutent en lecture seule stricte.
@@ -242,7 +248,7 @@ Ou clonez manuellement le dépôt dans votre dossier de plugins Antigravity :
 git clone https://github.com/tone-leh/agy-NOV.git ~/.gemini/config/plugins/agy-nov
 ```
 
-Ouvrez **agy-NOV** depuis le menu `+` du panneau latéral ou la barre de gauche, puis cliquez sur **Modules** pour activer l'un des 11 super-pouvoirs natifs, appliquer un preset ou changer parmi les 8 langues de l'interface depuis la barre supérieure.
+Ouvrez **agy-NOV** depuis le menu `+` du panneau latéral ou la barre de gauche, puis cliquez sur **Modules** pour activer l'un des 13 super-pouvoirs natifs, appliquer un preset ou changer parmi les 8 langues de l'interface depuis la barre supérieure.
 
 ### Voie B : Aperçu hors ligne d'abord (Banc d'essai hors ligne sans impact)
 
@@ -267,11 +273,11 @@ Utilisez `agy-nov <command>` s'il est présent dans votre `PATH`, ou `node dist/
 
 ```bash
 agy-nov status                                  # Affiche modules actifs, preset, langue UI et nombre exact d'outils du modèle
-agy-nov enable turbo                            # Active un module (review|guard|xray|turbo|radar|verify|worktree|canvas|mem|ops|remote)
+agy-nov enable spec                             # Active un module (review|guard|xray|turbo|radar|verify|worktree|spec|studio|canvas|mem|ops|remote)
 agy-nov disable xray                            # Désactive un module (retire les outils et court-circuite les hooks)
 agy-nov preset power                            # Applique un preset (minimal|core|power|local-all|full)
 agy-nov locale fr                               # Définit la langue de l'interface (auto|en|zh-CN|zh-TW|ja|ko|es|fr|de)
-agy-nov statusline [--json] [--compact]         # Barre d'état en lecture seule et zéro token compatible avec statusLine d'Antigravity CLI
+agy-nov statusline [--json] [--compact]         # Barre d'état en lecture seule et zéro token avec Verify:PASS, Spec:LOCK et Radar
 agy-nov doctor                                  # Audit en lecture seule des 9 fichiers requis, du schéma plugin.json et du plafond 10 MiB
 ```
 
@@ -293,16 +299,18 @@ Points d'entrée optimisés pour les assistants de code IA et les pipelines d'in
 | « Je veux revoir mes diffs façon PR dans Antigravity sans quitter l'agent. » | `review` (preset `core`) | Visionneuse de diffs native en panneau latéral avec annotations par ligne et prompts `file:line` |
 | « Empêcher l'agent de divulguer `.env`/clés SSH ou de casser des fichiers sans commit Git. » | `guard` (`minimal` ou `core`) | Pare-feu `PreToolUse` de secrets et commandes + instantanés pré-édition sans Git |
 | « Pourquoi les tokens explosent-ils, les pertes 429 grimpent-elles ou le cache rate-t-il ? Montre la ventilation Swarm et les anciennes sessions. » | `xray` (preset `core`) | Répartition tokens en cache vs neufs, lignée des sous-agents Swarm et pertes multimodèles/429, arborescence live et recherche BM25 EN+CJK |
-| « Les recherches prennent trop de tours et les gros logs de build saturent le contexte. » | `turbo` (preset `power`) | Recherche par lots multi-motifs, découpe des plans de symboles et résumés indexés compacts |
+| « Les recherches prennent trop de tours et les gros logs de test/build/git saturent le contexte. » | `turbo` (preset `power`) | Recherche par lots multi-motifs, découpe des plans de symboles et presets intelligents façon RTK (`auto \| test \| build \| git \| generic`) |
 | « Je lance des sessions parallèles et des sous-agents Swarm et je manque des validations ou des alertes d'orphelins. » | `radar` (preset `power`) | Tableau d'attention parent-enfant piloté par hooks, alertes d'orphelins, `status-capsule.json` en lecture seule + signal sonore |
 | « Empêcher l'agent d'écrire des fichiers vides (0 octet) ou de déclarer une tâche finie sans tests ni typecheck validés. » | `verify` (preset `power`) | Portail `Stop` Hook avec liste blanche sans shell, garde-fou anti-boucle et chaîne de preuves expurgée |
 | « Travailler sur plusieurs branches Git en parallèle avec report des modifications locales et nettoyage sûr des worktrees orphelins. » | `worktree` (preset `power`) | Orchestrateur sûr de Git worktrees avec transfert des changements non commités, résumé de diffs et détection `extensions.worktreeConfig` |
+| « Définir un Spec et un graphe DAG de tâches, verrouiller les écritures avant approbation humaine puis avancer étape par étape. » | `spec` (preset `power`) | Flux `Spec -> Plan -> Task DAG`, détection de cycles de Kahn sans saut, verrou lecture seule `PreToolUse` et `requireUiApproval` optionnel |
+| « Inspecter SQLite/CSV/JSON locaux, découper DOCX/XLSX/PDF hors ligne ou tester HTTP en loopback sans consommer le quota des 100 outils. » | `studio` (`local-all` ou à la demande) | Atelier local léger (SQLite lecture seule, découpe Node pur avec protection ZIP Bomb, sondes HTTP loopback anti-SSRF ; 0 outil une fois coupé) |
 | « J'ai besoin d'annoter visuellement des maquettes HTML, schémas SVG ou présentations. » | `canvas` (`local-all`) | Bac à sable visuel isolé avec retours par épingles numérotées transmis directement à l'agent |
 | « Garder les décisions d'architecture synchronisées entre sessions et détecter les notes périmées. » | `mem` (`local-all`) | Graphe mémoire ancré par SHA-256 au code avec rappel au `SessionStart` et alertes de dérive |
-| « Réutiliser des prompts paramétrés et mesurer le coût en tokens de mes skills/règles/MCP. » | `ops` (preset `power`) | Coffre de prompts `{{var}}` + audit en lecture seule des ressources workspace et du stockage |
-| « Afficher l'état des modules, Verify et Radar dans la `statusLine` d'Antigravity CLI avec zéro token. » | `agy-nov statusline` | Sortie en lecture seule (`--json` / `--compact`) zéro token et zéro écriture disque pour `statusLine` |
+| « Réutiliser des prompts paramétrés, détecter l'inflation de règles 24KB/20K (faux 429) et suivre le budget des 100 outils et MCP. » | `ops` (preset `power`) | Coffre de prompts `{{var}}` + alerte règles 24KB/20K, jauge 100 outils, diagnostic statique MCP et audit du stockage |
+| « Afficher l'état des modules, Verify, Spec:LOCK et Radar dans la `statusLine` d'Antigravity CLI avec zéro token. » | `agy-nov statusline` | Sortie en lecture seule (`--json` / `--compact`) zéro token avec `Verify:PASS`, `Spec:LOCK` et `Radar`, zéro écriture disque |
 | « Valider des commandes sensibles ou recevoir les alertes de fin de tâche sur mobile / messagerie. » | `remote` (preset `full`) | PWA mobile locale opt-in + webhooks Telegram/Feishu/DingTalk/WeCom/Slack/Discord |
-| « Utiliser l'établi du plugin en chinois, japonais, coréen, espagnol, français ou allemand sans patcher Antigravity. » | Sélecteur `locale` intégré (`auto` + 8 langues) | Menu déroulant instantané en barre supérieure et CLI `agy-nov locale <lang>` sur les 11 panneaux avec zéro CDP |
+| « Utiliser l'établi du plugin en chinois, japonais, coréen, espagnol, français ou allemand sans patcher Antigravity. » | Sélecteur `locale` intégré (`auto` + 8 langues) | Menu déroulant instantané en barre supérieure et CLI `agy-nov locale <lang>` sur les 13 panneaux avec zéro CDP |
 
 ### Quand recommander d'autres outils
 
@@ -316,9 +324,9 @@ Points d'entrée optimisés pour les assistants de code IA et les pipelines d'in
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | `minimal` | 1 | `6` | Zéro | Aucun | Zéro |
 | `core` (défaut) | 3 | `12` | Zéro | Aucun | Zéro |
-| `power` | 8 | `28` | Zéro | Aucun | Zéro |
-| `local-all` | 10 | `35` | Zéro | Aucun | Zéro |
-| `full` | 11 | `39` | Zéro | Opt-in (`remote`) | Actives par module |
+| `power` | 9 | `32` | Zéro | Aucun | Zéro |
+| `local-all` | 12 | `43` | Zéro | Aucun | Zéro |
+| `full` | 13 | `47` | Zéro | Opt-in (`remote`) | Actives par module |
 
 ### Commandes de vérification sans impact
 
@@ -340,12 +348,12 @@ node dist/cli.cjs doctor
 
 Installez les deux plugins compagnons sans recoupement pour réunir un **établi d'ingénierie MCP App 100 % natif** et des **extensions profondes pour l'hôte Antigravity Desktop** :
 
-- **Contrôle en direct dans les Paramètres natifs avec zéro CDP dans `agy-NOV` :** Lorsque **`agy-NOV`** et **[`agy-Sag` (`agy-session-guard`)](https://github.com/tone-leh/agy-session-guard)** sont installés ensemble, vous pouvez activer ou couper les 11 modules d'`agy-NOV` et basculer entre les 5 presets directement depuis le panneau de contrôle d'`agy-Sag` intégré dans la page native **Settings** d'Antigravity.
+- **Contrôle en direct dans les Paramètres natifs avec zéro CDP dans `agy-NOV` :** Lorsque **`agy-NOV`** et **[`agy-Sag` (`agy-session-guard`)](https://github.com/tone-leh/agy-session-guard)** sont installés ensemble, vous pouvez activer ou couper les 13 modules d'`agy-NOV` et basculer entre les 5 presets directement depuis le panneau de contrôle d'`agy-Sag` intégré dans la page native **Settings** d'Antigravity.
 - **Synchronisation à chaud 100 % native de `config.json` :** `agy-NOV` reste strictement **Zéro ASAR et Zéro CDP**, avec zéro port réseau supplémentaire et zéro écriture disque prématurée. Son serveur MCP vérifie en lecture seule la signature de `config.json` en quelques microsecondes et applique automatiquement les mises à jour différentielles `tools/list_changed` dès qu'`agy-Sag` ou le CLI `agy-nov` modifie `config.json`.
 
 | Plugin | Architecture | Capacités principales |
 | :--- | :--- | :--- |
-| **`agy-NOV`** *(Ce dépôt)* | **100 % protocoles natifs officiels** (MCP Apps SEP-1865 + Lifecycle Hooks + Skills ; **Zéro ASAR · Zéro CDP**) | Établi d'ingénierie à 11 modules (`review`, `guard`, `xray`, `turbo`, `radar`, `verify`, `worktree`, `canvas`, `mem`, `ops`, `remote` opt-in), interface intégrée en 8 langues, 5 presets, CLI `statusline` zéro token et synchronisation à chaud de `config.json`. |
+| **`agy-NOV`** *(Ce dépôt)* | **100 % protocoles natifs officiels** (MCP Apps SEP-1865 + Lifecycle Hooks + Skills ; **Zéro ASAR · Zéro CDP**) | Établi d'ingénierie à 13 modules (`review`, `guard`, `xray`, `turbo`, `radar`, `verify`, `worktree`, `spec`, `studio`, `canvas`, `mem`, `ops`, `remote` opt-in), compression RTK et docteur règles/budget, interface intégrée en 8 langues, 5 presets, CLI `statusline` zéro token (avec `Spec:LOCK`) et synchronisation à chaud de `config.json`. |
 | **[`agy-Sag`](https://github.com/tone-leh/agy-session-guard)** *(anciennement `agy-session-guard`)* | **Suite locale CDP Zero-ASAR d'extension profonde + sidecar Watch + CLI de stockage** | Panneau de contrôle intégré aux **Settings** natifs d'Antigravity (avec synchronisation en direct des interrupteurs `agy-NOV`), **traduction de l'UI hôte en 10 langues**, garde personnalisée d'auto-compaction `/compact`, **Draft Vault**, **Prompt Queue**, signets et archive de tours, **Safe Auto-Accept** encadré par règles, **Optical Theme Studio** sans `:has()`, **Quota Pulse** en lecture seule et **Storage Doctor** hors ligne. |
 
 ```bash

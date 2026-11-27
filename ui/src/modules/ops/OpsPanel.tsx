@@ -19,6 +19,34 @@ interface PromptTemplate {
   builtIn: boolean;
 }
 
+interface RuleBloatView {
+  status: 'ok' | 'warn' | 'critical';
+  singleFileLimitBytes: number;
+  aggregateTokenLimit: number;
+  largestFileBytes: number;
+  largestFilePath?: string;
+  totalRuleBytes: number;
+  totalRuleTokens: number;
+  offendingFiles: Array<{ path: string; bytes: number; estimatedTokens: number; reason: string }>;
+}
+
+interface ToolBudgetView {
+  agyNovTools: number;
+  externalServersCount: number;
+  estimatedExternalTools: number;
+  estimatedTotalTools: number;
+  hardLimit: number;
+  usagePercent: number;
+  status: 'ok' | 'warn' | 'critical';
+}
+
+interface McpHealthFindingView {
+  severity: 'info' | 'warn' | 'error';
+  serverName?: string;
+  file: string;
+  message: string;
+}
+
 interface OpsAudit {
   workspaceName: string;
   healthScore: number;
@@ -31,6 +59,23 @@ interface OpsAudit {
     modules: Array<{ moduleId: string; files: number; bytes: number }>;
   };
   recommendations: Array<{ level: string; title: string; detail: string }>;
+  ruleBloat?: RuleBloatView;
+  toolBudget?: ToolBudgetView;
+  mcpHealthFindings?: McpHealthFindingView[];
+}
+
+function getStatusColor(status: 'ok' | 'warn' | 'critical' | 'info' | 'error'): string {
+  if (status === 'critical' || status === 'error') return 'var(--nov-danger)';
+  if (status === 'warn') return 'var(--nov-warn)';
+  if (status === 'info') return 'var(--nov-accent)';
+  return 'var(--nov-success)';
+}
+
+function getStatusSoftBg(status: 'ok' | 'warn' | 'critical' | 'info' | 'error'): string {
+  if (status === 'critical' || status === 'error') return 'var(--nov-danger-soft)';
+  if (status === 'warn') return 'var(--nov-warn-soft)';
+  if (status === 'info') return 'var(--nov-accent-soft)';
+  return 'var(--nov-success-soft)';
 }
 
 interface OpsState {
@@ -138,6 +183,11 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
       setBusy(false);
     }
   };
+
+  const opsDictExt = dict.ops as Record<string, string>;
+  const ruleBloatTitle = opsDictExt.ruleBloatTitle ?? 'Rule Bloat Guard (24 KB / 20K Tokens)';
+  const toolBudgetTitle = opsDictExt.toolBudgetTitle ?? '100-Tool Budget Meter';
+  const mcpHealthTitle = opsDictExt.mcpHealthTitle ?? 'MCP Static Health Check';
 
   return (
     <div className="nov-p-page">
@@ -332,10 +382,194 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
             </button>
           </div>
 
+          {(state.audit.ruleBloat || state.audit.toolBudget) && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '10px',
+              }}
+            >
+              {state.audit.ruleBloat && (() => {
+                const rb = state.audit.ruleBloat;
+                const singlePct = Math.min(
+                  100,
+                  rb.singleFileLimitBytes > 0
+                    ? Math.round((rb.largestFileBytes / rb.singleFileLimitBytes) * 100)
+                    : 0,
+                );
+                const aggPct = Math.min(
+                  100,
+                  rb.aggregateTokenLimit > 0
+                    ? Math.round((rb.totalRuleTokens / rb.aggregateTokenLimit) * 100)
+                    : 0,
+                );
+                const rbColor = getStatusColor(rb.status);
+                const rbBg = getStatusSoftBg(rb.status);
+                return (
+                  <div className="nov-p-item" style={{ gap: '8px' }}>
+                    <div className="nov-p-row">
+                      <strong style={{ fontSize: '12.5px' }}>{ruleBloatTitle}</strong>
+                      <span
+                        className="nov-badge"
+                        style={{ color: rbColor, background: rbBg, borderColor: rbColor }}
+                      >
+                        {rb.status.toUpperCase()}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div className="nov-p-row" style={{ fontSize: '11.5px', color: 'var(--nov-text-1)' }}>
+                        <span>
+                          Largest file{rb.largestFilePath ? `: ${rb.largestFilePath}` : ''}
+                        </span>
+                        <span style={{ fontFamily: 'var(--nov-font-mono)' }}>
+                          {(rb.largestFileBytes / 1024).toFixed(1)} / {(rb.singleFileLimitBytes / 1024).toFixed(0)} KB
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          height: '7px',
+                          borderRadius: '999px',
+                          background: 'var(--nov-bg-0)',
+                          border: '1px solid var(--nov-border)',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${singlePct}%`,
+                            height: '100%',
+                            background:
+                              rb.largestFileBytes > rb.singleFileLimitBytes
+                                ? 'var(--nov-danger)'
+                                : rb.largestFileBytes >= rb.singleFileLimitBytes * 0.8
+                                  ? 'var(--nov-warn)'
+                                  : 'var(--nov-success)',
+                            transition: 'width 180ms ease',
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div className="nov-p-row" style={{ fontSize: '11.5px', color: 'var(--nov-text-1)' }}>
+                        <span>Aggregate rule tokens</span>
+                        <span style={{ fontFamily: 'var(--nov-font-mono)' }}>
+                          ~{rb.totalRuleTokens.toLocaleString()} / {rb.aggregateTokenLimit.toLocaleString()}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          height: '7px',
+                          borderRadius: '999px',
+                          background: 'var(--nov-bg-0)',
+                          border: '1px solid var(--nov-border)',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${aggPct}%`,
+                            height: '100%',
+                            background:
+                              rb.totalRuleTokens > rb.aggregateTokenLimit
+                                ? 'var(--nov-danger)'
+                                : rb.totalRuleTokens >= rb.aggregateTokenLimit * 0.8
+                                  ? 'var(--nov-warn)'
+                                  : 'var(--nov-success)',
+                            transition: 'width 180ms ease',
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {rb.offendingFiles.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '2px' }}>
+                        {rb.offendingFiles.slice(0, 4).map((f) => (
+                          <div
+                            key={f.path}
+                            style={{ fontSize: '11px', color: rbColor, fontFamily: 'var(--nov-font-mono)' }}
+                          >
+                            • {f.path} ({(f.bytes / 1024).toFixed(1)} KB, ~{f.estimatedTokens} tok)
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {state.audit.toolBudget && (() => {
+                const tb = state.audit.toolBudget;
+                const barWidth = Math.min(100, Math.max(0, tb.usagePercent));
+                const tbColor = getStatusColor(tb.status);
+                const tbBg = getStatusSoftBg(tb.status);
+                return (
+                  <div className="nov-p-item" style={{ gap: '8px' }}>
+                    <div className="nov-p-row">
+                      <strong style={{ fontSize: '12.5px' }}>{toolBudgetTitle}</strong>
+                      <span
+                        className="nov-badge"
+                        style={{ color: tbColor, background: tbBg, borderColor: tbColor }}
+                      >
+                        {tb.estimatedTotalTools} / {tb.hardLimit} ({tb.usagePercent}%)
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        height: '10px',
+                        borderRadius: '999px',
+                        background: 'var(--nov-bg-0)',
+                        border: '1px solid var(--nov-border)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${barWidth}%`,
+                          height: '100%',
+                          background: tbColor,
+                          transition: 'width 180ms ease',
+                        }}
+                      />
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '8px',
+                        fontSize: '11.5px',
+                        color: 'var(--nov-text-1)',
+                      }}
+                    >
+                      <span className="nov-badge is-accent">agy-NOV: {tb.agyNovTools} tools</span>
+                      <span className="nov-badge">
+                        External MCP: {tb.externalServersCount} server(s) (~{tb.estimatedExternalTools} tools)
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
           <div className="nov-p-stat-grid">
             <div className="nov-p-stat">
               <div className="nov-p-stat-label">Health Score</div>
-              <div className="nov-p-stat-val" style={{ color: 'var(--nov-success)' }}>
+              <div
+                className="nov-p-stat-val"
+                style={{
+                  color:
+                    state.audit.healthScore >= 80
+                      ? 'var(--nov-success)'
+                      : state.audit.healthScore >= 60
+                        ? 'var(--nov-warn)'
+                        : 'var(--nov-danger)',
+                }}
+              >
                 {state.audit.healthScore}/100
               </div>
             </div>
@@ -354,6 +588,43 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
               </div>
             </div>
           </div>
+
+          {Array.isArray(state.audit.mcpHealthFindings) && (
+            <>
+              <strong style={{ fontSize: '12px' }}>
+                {mcpHealthTitle} ({state.audit.mcpHealthFindings.length})
+              </strong>
+              {state.audit.mcpHealthFindings.length > 0 ? (
+                <div className="nov-p-list">
+                  {state.audit.mcpHealthFindings.map((f, idx) => {
+                    const color = getStatusColor(f.severity);
+                    const bg = getStatusSoftBg(f.severity);
+                    return (
+                      <div key={`${f.file}-${f.serverName ?? 'global'}-${idx}`} className="nov-p-item">
+                        <div className="nov-p-row" style={{ fontSize: '12px' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <span
+                              className="nov-badge"
+                              style={{ color, background: bg, borderColor: color }}
+                            >
+                              {f.severity.toUpperCase()}
+                            </span>
+                            <code>{f.file}</code>
+                            {f.serverName && <span className="nov-badge">{f.serverName}</span>}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '12px', color: 'var(--nov-text-1)' }}>{f.message}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="nov-p-item" style={{ fontSize: '12px', color: 'var(--nov-success)' }}>
+                  No MCP configuration issues detected.
+                </div>
+              )}
+            </>
+          )}
 
           <strong style={{ fontSize: '12px' }}>{dict.ops.auditAssets}</strong>
           <div className="nov-p-list">

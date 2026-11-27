@@ -64,19 +64,19 @@ export const EN_DICT: UiDictionary = {
       description: 'Review + Guard + X-Ray — 100% offline local essentials (12 model tools).',
     },
     power: {
-      label: 'Power Dev (8 Offline)',
+      label: 'Power Dev (9 Offline)',
       description:
-        'Core + Turbo + Radar + Verify + Worktree + Ops — high-velocity engineering suite with strong verification gates and zero network usage (28 model tools).',
+        'Core + Turbo + Radar + Verify + Worktree + Spec + Ops — complete spec-to-verify offline engineering workflow with zero network usage (32 model tools).',
     },
     'local-all': {
-      label: 'Local All (10 Offline)',
+      label: 'Local All (12 Offline)',
       description:
-        'All 10 native offline modules enabled; Remote stays strictly off with zero ports (35 model tools).',
+        'All 12 native offline modules enabled including Workspace Studio; Remote stays strictly off with zero ports (43 model tools).',
     },
     full: {
-      label: 'Full Suite (All 11)',
+      label: 'Full Suite (All 13)',
       description:
-        'All 11 native modules including the opt-in Mobile PWA & IM remote approval hub (39 model tools).',
+        'All 13 native modules including the opt-in Mobile PWA & IM remote approval hub (47 model tools).',
     },
     minimal: {
       label: 'Minimal Shield',
@@ -109,9 +109,9 @@ export const EN_DICT: UiDictionary = {
     turbo: {
       name: 'Turbo & Output Guard',
       shortLabel: 'Turbo',
-      tagline: 'Batch codebase search, outline slices & large-output compression',
+      tagline: 'Batch codebase search, outline slices & RTK-style output compression',
       description:
-        'Cut wasted turns and context bloat with multi-pattern workspace search, symbol outline slicing, and compact indexed summaries for oversized command/log outputs.',
+        'Cut wasted turns and context bloat with multi-pattern workspace search, symbol outline slicing, and RTK-style smart compression presets (test/build/git/auto) for oversized logs.',
     },
     radar: {
       name: 'Session Radar & Chime',
@@ -134,6 +134,20 @@ export const EN_DICT: UiDictionary = {
       description:
         'Create isolated Git worktrees with optional uncommitted-change carry-over, inspect branch diff summaries, flag extensions.worktreeConfig hazards, and safely prune merged or orphaned worktrees.',
     },
+    spec: {
+      name: 'Spec Flow & Task DAG',
+      shortLabel: 'Spec',
+      tagline: 'Spec-driven development, dependency task DAG & pre-approval write lock',
+      description:
+        'Maintain structured Spec -> Plan -> Task DAG workflows with cycle detection, SessionStart next-task recall, and a PreToolUse write gate that keeps code read-only until the spec is approved.',
+    },
+    studio: {
+      name: 'Workspace Studio',
+      shortLabel: 'Studio',
+      tagline: 'On-demand SQLite/CSV/JSON data viewer, DOCX/XLSX/PDF slicer & loopback HTTP probe',
+      description:
+        'Inspect local SQLite/CSV/JSON datasets, slice DOCX/XLSX/PDF/Markdown documents offline without external binaries, and probe localhost/127.0.0.1 APIs — toggle off for zero tool budget tax.',
+    },
     canvas: {
       name: 'Visual Canvas',
       shortLabel: 'Canvas',
@@ -149,11 +163,11 @@ export const EN_DICT: UiDictionary = {
         'Capture architectural decisions anchored to SHA-256 file hashes, auto-recall relevant context at SessionStart, and flag stale memories when code changes.',
     },
     ops: {
-      name: 'Prompt Vault & Doctor',
+      name: 'Prompt Vault & Budget Doctor',
       shortLabel: 'Ops',
-      tagline: 'Parameterized prompt vault, workspace asset audit & storage hygiene',
+      tagline: 'Parameterized prompt vault, 24KB/20K rule bloat & 100-tool budget doctor',
       description:
-        'Manage reusable {{var}} prompt templates, inspect workspace skills/rules/MCP footprint with read-only token estimates, and audit local agy-NOV storage.',
+        'Manage reusable {{var}} prompt templates, audit workspace rules for 24KB/20K bloat that triggers false 429s, track the 100-tool MCP budget, and verify local storage hygiene.',
     },
     remote: {
       name: 'Mobile & IM Remote',
@@ -201,6 +215,8 @@ export const EN_DICT: UiDictionary = {
     savedTokens: 'Est. tokens saved: ~{tokens} ({ratio}% reduction)',
     safetyNote:
       'Workspace realpath-confined · automatically skips .env, SSH keys, .git & node_modules.',
+    presetLabel: 'Compression Preset',
+    compressionSaved: 'RTK compression saved {percent}%',
   },
   radar: {
     title: 'Session Radar & Chime',
@@ -245,6 +261,9 @@ export const EN_DICT: UiDictionary = {
     auditEstTokens: 'Est. System Tokens',
     auditFindings: 'Health Findings',
     auditCleanNote: '100% read-only workspace scan · zero secret values read or echoed.',
+    ruleBloatTitle: 'Rule Bloat Check (24KB / 20K Tokens)',
+    toolBudgetTitle: 'MCP Tool Budget (100-Tool Limit)',
+    mcpHealthTitle: 'MCP Config & Server Health',
   },
   panels: {
     review: {
@@ -345,6 +364,59 @@ export const EN_DICT: UiDictionary = {
       emptyWorktrees: 'No Git worktrees found for this workspace.',
       diffTitle: 'Branch Diff Summary',
       aheadBehind: '+{ahead} ahead / -{behind} behind',
+    },
+    spec: {
+      title: 'Spec Flow & Task DAG',
+      subtitle:
+        'Draft structured specs, map task dependency DAGs, and enforce read-only code until approval.',
+      tabBoard: 'Spec & Task DAG',
+      tabCreate: 'New Spec',
+      writeLockOn: 'Draft Write-Lock ON',
+      writeLockOff: 'Write-Lock Unlocked',
+      statusDraft: 'Draft',
+      statusApproved: 'Approved',
+      statusCompleted: 'Completed',
+      statusArchived: 'Archived',
+      approveBtn: 'Approve Spec',
+      revertDraftBtn: 'Revert to Draft',
+      enforceLockLabel: 'Block workspace writes while active spec is Draft',
+      requireUiApprovalLabel: 'Require explicit UI approval before unlocking writes',
+      tasksTitle: 'Dependency Task DAG',
+      readyBadge: 'Ready',
+      waitingBadge: 'Waiting Deps',
+      doneBadge: 'Done',
+      inProgressBadge: 'In Progress',
+      blockedBadge: 'Blocked',
+      specTitlePlaceholder: 'Spec title (e.g. Modular Auth Refactor)',
+      specGoalPlaceholder: 'Describe the implementation goal, boundaries, and expected outcome...',
+      addTaskPlaceholder: 'Task title (e.g. Define token validator schema)',
+      createSpecBtn: 'Create Spec',
+      emptySpecs: 'No specs created yet. Draft a spec to organize tasks and guard code writes.',
+      acceptanceTitle: 'Acceptance Criteria',
+    },
+    studio: {
+      title: 'Workspace Studio',
+      subtitle:
+        'Inspect local SQLite/CSV/JSON data, slice offline office/PDF documents, and probe loopback HTTP APIs.',
+      tabData: 'Local Data',
+      tabDocs: 'Document Slicer',
+      tabHttp: 'Loopback HTTP',
+      sourcesTitle: 'Discoverable Workspace Assets',
+      refreshSources: 'Refresh Assets',
+      filePathPlaceholder: 'Workspace-relative file path (e.g. data/app.db or docs/spec.docx)',
+      sqlQueryPlaceholder: 'Optional read-only SQL (e.g. SELECT * FROM items LIMIT 50)',
+      filterPlaceholder: 'Optional keyword filter...',
+      inspectBtn: 'Inspect',
+      probeBtn: 'Send Probe',
+      urlPlaceholder: 'http://127.0.0.1:3000/health',
+      loopbackOnlyNote:
+        'Loopback only: strictly restricted to 127.0.0.1, localhost, and [::1] — zero external network access.',
+      headersPlaceholder: 'Optional JSON headers, e.g. {"Accept": "application/json"}',
+      bodyPlaceholder: 'Optional request body (JSON or plain text)...',
+      emptySources: 'No SQLite, CSV, JSON, DOCX, XLSX, PDF, or Markdown assets discovered yet.',
+      rowsCount: 'Rows',
+      statusCode: 'Status',
+      truncatedNotice: 'Output truncated to stay within safe preview limits.',
     },
     canvas: {
       title: 'Visual Canvas',

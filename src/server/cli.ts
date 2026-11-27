@@ -22,7 +22,7 @@ import {
 } from '../core/config.js';
 import { hasCliFlag, parseCliFlag } from '../core/utils.js';
 
-const CLI_VERSION = '0.3.0';
+const CLI_VERSION = '0.4.0';
 
 function printHelp(): void {
   console.log(`agy-NOV CLI (v${CLI_VERSION}) — The 100% Native Modular Super-Workbench for Antigravity 2.0
@@ -62,6 +62,14 @@ export interface StatusLineSnapshot {
     enabled: boolean;
     lastStatus: 'pass' | 'fail' | 'blocked' | 'idle';
     blockedStops: number;
+  };
+  spec?: {
+    enabled: boolean;
+    activeTitle?: string;
+    status?: string;
+    writeLockActive: boolean;
+    doneTasks: number;
+    totalTasks: number;
   };
   radar?: {
     enabled: boolean;
@@ -115,6 +123,42 @@ function buildStatusLine(dataDir: string, compact: boolean): StatusLineSnapshot 
     verifySummary = { enabled: true, lastStatus, blockedStops };
   }
 
+  let specSummary: StatusLineSnapshot['spec'];
+  if (cfg.modules.spec) {
+    const specState = readJsonSilent(path.join(getModuleDataDir(dataDir, 'spec'), 'state.json'));
+    const activeId = typeof specState?.activeSpecId === 'string' ? specState.activeSpecId : undefined;
+    let activeDoc: Record<string, unknown> | undefined;
+    if (activeId && Array.isArray(specState?.specs)) {
+      activeDoc = (specState.specs as Array<unknown>).find(
+        (s): s is Record<string, unknown> =>
+          Boolean(s) && typeof s === 'object' && !Array.isArray(s) && (s as Record<string, unknown>).id === activeId,
+      );
+    } else if (activeId && specState?.specs && typeof specState.specs === 'object') {
+      const candidate = (specState.specs as Record<string, unknown>)[activeId];
+      if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+        activeDoc = candidate as Record<string, unknown>;
+      }
+    }
+    const tasks = Array.isArray(activeDoc?.tasks)
+      ? (activeDoc.tasks as Array<unknown>).filter(
+          (t): t is Record<string, unknown> => Boolean(t) && typeof t === 'object' && !Array.isArray(t),
+        )
+      : [];
+    const doneTasks = tasks.filter((t) => t.status === 'done').length;
+    const status = typeof activeDoc?.status === 'string' ? activeDoc.status : undefined;
+    const writeLockActive = Boolean(
+      activeDoc && status === 'draft' && activeDoc.enforcePlanBeforeWrite === true,
+    );
+    specSummary = {
+      enabled: true,
+      activeTitle: typeof activeDoc?.title === 'string' ? activeDoc.title : undefined,
+      status,
+      writeLockActive,
+      doneTasks,
+      totalTasks: tasks.length,
+    };
+  }
+
   let radarSummary: StatusLineSnapshot['radar'];
   if (cfg.modules.radar) {
     const radarDir = getModuleDataDir(dataDir, 'radar');
@@ -135,11 +179,13 @@ function buildStatusLine(dataDir: string, compact: boolean): StatusLineSnapshot 
       };
     } else {
       const board = readJsonSilent(path.join(radarDir, 'board.json'));
-      const sessionsObj =
-        board && board.sessions && typeof board.sessions === 'object'
-          ? (board.sessions as Record<string, Record<string, unknown>>)
-          : {};
-      const list = Object.values(sessionsObj);
+      const sessionsRaw = board?.sessions;
+      const list =
+        sessionsRaw && typeof sessionsRaw === 'object' && !Array.isArray(sessionsRaw)
+          ? Object.values(sessionsRaw as Record<string, unknown>).filter(
+              (s): s is Record<string, unknown> => Boolean(s) && typeof s === 'object' && !Array.isArray(s),
+            )
+          : [];
       radarSummary = {
         enabled: true,
         running: list.filter((s) => s.status === 'running').length,
@@ -183,6 +229,11 @@ function buildStatusLine(dataDir: string, compact: boolean): StatusLineSnapshot 
     parts.push(`Verify:${tag}`);
   }
 
+  if (specSummary && specSummary.status) {
+    const lockTag = specSummary.writeLockActive ? 'LOCK' : specSummary.status.toUpperCase();
+    parts.push(`Spec:${lockTag}(${specSummary.doneTasks}/${specSummary.totalTasks})`);
+  }
+
   if (radarSummary) {
     const radarBits: string[] = [];
     if (radarSummary.running > 0) radarBits.push(`${radarSummary.running}run`);
@@ -205,6 +256,7 @@ function buildStatusLine(dataDir: string, compact: boolean): StatusLineSnapshot 
     locale: cfg.locale,
     network,
     verify: verifySummary,
+    spec: specSummary,
     radar: radarSummary,
     xray: xraySummary,
     line,

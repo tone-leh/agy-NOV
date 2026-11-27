@@ -37,13 +37,15 @@ import { registerOpsModule } from '../modules/ops/register.js';
 import { registerRadarModule } from '../modules/radar/register.js';
 import { registerRemoteModule } from '../modules/remote/register.js';
 import { registerReviewModule } from '../modules/review/register.js';
+import { registerSpecModule } from '../modules/spec/register.js';
+import { registerStudioModule } from '../modules/studio/register.js';
 import { registerTurboModule } from '../modules/turbo/register.js';
 import { registerVerifyModule } from '../modules/verify/register.js';
 import { registerWorktreeModule } from '../modules/worktree/register.js';
 import { registerXrayModule } from '../modules/xray/register.js';
 
 export const UI_RESOURCE_URI = 'ui://agy-nov/app.html';
-export const NOV_VERSION = '0.3.0';
+export const NOV_VERSION = '0.4.0';
 
 const UI_ENTRYPOINT_META = {
   ui: { resourceUri: UI_RESOURCE_URI },
@@ -376,7 +378,7 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     };
   }
 
-  // Register all 11 strictly native (Zero-ASAR / Zero-CDP) modules onto the single McpServer
+  // Register all 13 strictly native (Zero-ASAR / Zero-CDP) modules onto the single McpServer
   const registerAll: ModuleRegistrationResult[] = [
     registerWithAppTracking((s) => registerReviewModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerGuardModule(s, options, UI_RESOURCE_URI)),
@@ -385,6 +387,8 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     registerWithAppTracking((s) => registerRadarModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerVerifyModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerWorktreeModule(s, options, UI_RESOURCE_URI)),
+    registerWithAppTracking((s) => registerSpecModule(s, options, UI_RESOURCE_URI)),
+    registerWithAppTracking((s) => registerStudioModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerCanvasModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerMemModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerOpsModule(s, options, UI_RESOURCE_URI)),

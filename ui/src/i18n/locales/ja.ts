@@ -64,19 +64,19 @@ export const JA_DICT: UiDictionary = {
       description: 'Review + Guard + X-Ray — 100% オフラインの基本セット（モデルツール 12 件）。',
     },
     power: {
-      label: 'パワー開発（オフライン 8）',
+      label: 'パワー開発（オフライン 9）',
       description:
-        'コア + Turbo + Radar + Verify + Worktree + Ops — 検証ゲート付きで通信ゼロの高速開発セット（モデルツール 28 件）。',
+        'コア + Turbo + Radar + Verify + Worktree + Spec + Ops — 仕様策定から検証まで完結する完全オフライン開発セット（モデルツール 32 件）。',
     },
     'local-all': {
-      label: 'ローカル全部（オフライン 10）',
+      label: 'ローカル全部（オフライン 12）',
       description:
-        '全 10 個のローカル専用ネイティブモジュールを有効化。Remote は完全停止・ポート開放ゼロ（モデルツール 35 件）。',
+        'Workspace Studio を含む全 12 個のローカル専用ネイティブモジュールを有効化。Remote は完全停止・ポート開放ゼロ（モデルツール 43 件）。',
     },
     full: {
-      label: 'フルスイート（全 11）',
+      label: 'フルスイート（全 13）',
       description:
-        '任意のスマホ PWA・IM リモート承認ハブを含む全 11 ネイティブモジュールを有効化（モデルツール 39 件）。',
+        '任意のスマホ PWA・IM リモート承認ハブを含む全 13 ネイティブモジュールを有効化（モデルツール 47 件）。',
     },
     minimal: {
       label: '最小シールド',
@@ -109,9 +109,9 @@ export const JA_DICT: UiDictionary = {
     turbo: {
       name: 'Turbo＆出力ガード',
       shortLabel: 'Turbo',
-      tagline: '一括コード検索、シンボル概要スライス、長大ログ圧縮インデックス',
+      tagline: '一括コード検索、シンボル概要スライス、RTK 風スマート出力圧縮',
       description:
-        '複数パターン一括検索、シンボル概要と行スライス抽出、膨大なビルド／テストログのコンパクト要約で無駄なターンとコンテキスト消費を削減します。',
+        '複数パターン一括検索、シンボル概要スライス、肥大ログ向け RTK 風圧縮プリセット（test/build/git/auto）で無駄なターンとコンテキスト膨張を抑えます。',
     },
     radar: {
       name: 'セッションレーダー＆通知',
@@ -134,6 +134,20 @@ export const JA_DICT: UiDictionary = {
       description:
         '未コミット変更の引き継ぎにも対応した隔離 Git Worktree を作成し、ブランチ差分要約の確認、extensions.worktreeConfig 警告検知、マージ済み／孤立ツリーの安全な削除を行います。',
     },
+    spec: {
+      name: 'Spec フロー＆タスク DAG',
+      shortLabel: 'Spec',
+      tagline: '仕様駆動開発、依存タスク DAG、承認前コード書き込みロック',
+      description:
+        '循環依存検知を備えた Spec -> Plan -> Task DAG ワークフローを管理し、SessionStart で次のタスクを自動想起、仕様承認まで PreToolUse でコードを読み取り専用に保ちます。',
+    },
+    studio: {
+      name: 'ワークスペース Studio',
+      shortLabel: 'Studio',
+      tagline: 'オンデマンド SQLite/CSV/JSON 閲覧、DOCX/XLSX/PDF スライス、ループバック HTTP 検証',
+      description:
+        '外部バイナリ不要でローカルの SQLite/CSV/JSON を閲覧し、DOCX/XLSX/PDF/Markdown をオフラインでスライス抽出。localhost/127.0.0.1 API も検証でき、オフにすればツール負荷はゼロです。',
+    },
     canvas: {
       name: 'ビジュアルキャンバス',
       shortLabel: 'Canvas',
@@ -149,11 +163,11 @@ export const JA_DICT: UiDictionary = {
         '設計判断をファイルの SHA-256 ハッシュに紐付けて保存し、SessionStart で関連文脈を自動呼び出し。コード変更に伴う古い記憶を自動検知します。',
     },
     ops: {
-      name: 'プロンプト庫＆ワークスペース診断',
+      name: 'プロンプト庫＆予算ドクター',
       shortLabel: 'Ops',
-      tagline: '変数対応プロンプト保管庫、資産トークン監査、ローカル容量チェック',
+      tagline: '変数プロンプト庫、24KB/20K ルール肥大検査、100 ツール予算診断',
       description:
-        '再利用可能な {{var}} プロンプトテンプレートを管理し、ワークスペースの Rules/Skills/MCP の推定トークン負荷とローカル agy-NOV ストレージを読み取り専用で監査します。',
+        '再利用可能な {{var}} プロンプトテンプレートを管理し、誤 429 を招く 24KB/20K ルール肥大や 100 ツール MCP 予算、ローカルストレージ衛生状態を監査します。',
     },
     remote: {
       name: 'モバイル＆IM リモート',
@@ -201,6 +215,8 @@ export const JA_DICT: UiDictionary = {
     savedTokens: '推定節約トークン: 約 {tokens}（{ratio}% 削減）',
     safetyNote:
       'realpath ワークスペース境界内に厳格制限 · .env、SSH 鍵、.git、node_modules は自動スキップ。',
+    presetLabel: '圧縮プリセット',
+    compressionSaved: 'RTK 圧縮で {percent}% 削減',
   },
   radar: {
     title: 'セッションレーダー＆通知',
@@ -246,6 +262,9 @@ export const JA_DICT: UiDictionary = {
     auditFindings: '診断所見',
     auditCleanNote:
       '100% 読み取り専用スキャン · シークレットや環境変数の値は一切読み取り・表示しません。',
+    ruleBloatTitle: 'ルール肥大チェック（24KB / 20K トークン）',
+    toolBudgetTitle: 'MCP ツール予算（上限 100 ツール）',
+    mcpHealthTitle: 'MCP 設定＆サーバー健全性',
   },
   panels: {
     review: {
@@ -348,6 +367,59 @@ export const JA_DICT: UiDictionary = {
       emptyWorktrees: 'このワークスペースに Git Worktree は見つかりませんでした。',
       diffTitle: 'ブランチ差分要約',
       aheadBehind: '+{ahead} 先行 / -{behind} 遅れ',
+    },
+    spec: {
+      title: 'Spec フロー＆タスク DAG',
+      subtitle:
+        '構造化仕様を起案し、依存タスク DAG を管理して、承認までコード書き込みを保護します。',
+      tabBoard: '仕様＆タスク DAG',
+      tabCreate: '新規 Spec',
+      writeLockOn: '下書き書き込みロック ON',
+      writeLockOff: '書き込みロック解除済み',
+      statusDraft: '下書き',
+      statusApproved: '承認済み',
+      statusCompleted: '完了',
+      statusArchived: 'アーカイブ',
+      approveBtn: '仕様を承認',
+      revertDraftBtn: '下書きに戻す',
+      enforceLockLabel: '有効な仕様が下書きの間はワークスペースへの書き込みを遮断',
+      requireUiApprovalLabel: '書き込み解除には UI での明示的な承認を必須にする',
+      tasksTitle: '依存タスク DAG',
+      readyBadge: '着手可能',
+      waitingBadge: '依存待ち',
+      doneBadge: '完了',
+      inProgressBadge: '進行中',
+      blockedBadge: 'ブロック中',
+      specTitlePlaceholder: '仕様タイトル（例: モジュール認証リファクタ）',
+      specGoalPlaceholder: '実装目標、変更境界、期待される成果を記述…',
+      addTaskPlaceholder: 'タスク名（例: トークン検証スキーマ定義）',
+      createSpecBtn: 'Spec を作成',
+      emptySpecs: 'Spec はまだありません。仕様を作成してタスク依存と書き込み保護を有効化できます。',
+      acceptanceTitle: '受け入れ基準',
+    },
+    studio: {
+      title: 'ワークスペース Studio',
+      subtitle:
+        'ローカル SQLite/CSV/JSON 閲覧、オフィス・PDF 文書スライス、ループバック HTTP 検証をオフラインで完結。',
+      tabData: 'ローカルデータ',
+      tabDocs: '文書スライサー',
+      tabHttp: 'ループバック HTTP',
+      sourcesTitle: '検出されたワークスペース資産',
+      refreshSources: '資産を更新',
+      filePathPlaceholder: 'ワークスペース相対パス（例: data/app.db や docs/spec.docx）',
+      sqlQueryPlaceholder: '任意の読み取り専用 SQL（例: SELECT * FROM items LIMIT 50）',
+      filterPlaceholder: 'キーワードで絞り込み（任意）…',
+      inspectBtn: '検査する',
+      probeBtn: 'プローブ送信',
+      urlPlaceholder: 'http://127.0.0.1:3000/health',
+      loopbackOnlyNote:
+        'ループバック専用: 127.0.0.1・localhost・[::1] のみに厳格制限され、外部通信は一切行いません。',
+      headersPlaceholder: '任意の JSON ヘッダー（例: {"Accept": "application/json"}）',
+      bodyPlaceholder: '任意のリクエスト本文（JSON またはプレーンテキスト）…',
+      emptySources: 'SQLite、CSV、JSON、DOCX、XLSX、PDF、Markdown 資産はまだ見つかっていません。',
+      rowsCount: '行数',
+      statusCode: 'ステータス',
+      truncatedNotice: '安全なプレビュー上限に収めるため出力を省略しました。',
     },
     canvas: {
       title: 'ビジュアルキャンバス',

@@ -3259,8 +3259,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path28) {
-      let input2 = path28;
+    function removeDotSegments(path31) {
+      let input2 = path31;
       const output2 = [];
       let nextSlash = -1;
       let len = 0;
@@ -3334,11 +3334,11 @@ var require_utils = __commonJS({
       }
       return output2.join("");
     }
-    function removeDotSegmentsRelative(path28) {
-      if (path28 === "" || path28[0] === "/") {
-        return removeDotSegments(path28);
+    function removeDotSegmentsRelative(path31) {
+      if (path31 === "" || path31[0] === "/") {
+        return removeDotSegments(path31);
       }
-      const segments = path28.split("/");
+      const segments = path31.split("/");
       const last = segments.length - 1;
       const output2 = [];
       let trailingDirectory = false;
@@ -3701,8 +3701,8 @@ var require_schemes = __commonJS({
       }
       if (wsComponent.resourceName) {
         const queryIndex = wsComponent.resourceName.indexOf("?");
-        const path28 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
-        wsComponent.path = path28 && path28 !== "/" ? path28 : void 0;
+        const path31 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
+        wsComponent.path = path31 && path31 !== "/" ? path31 : void 0;
         wsComponent.query = queryIndex === -1 ? void 0 : wsComponent.resourceName.slice(queryIndex + 1);
         wsComponent.resourceName = void 0;
       }
@@ -7239,12 +7239,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs21, exportName) {
+    function addFormats(ajv, list, fs23, exportName) {
       var _a3;
       var _b;
       (_a3 = (_b = ajv.opts.code).formats) !== null && _a3 !== void 0 ? _a3 : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs21[f]);
+        ajv.addFormat(f, fs23[f]);
     }
     module2.exports = exports2 = formatsPlugin;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -7261,8 +7261,8 @@ __export(index_exports, {
   createNovServer: () => createNovServer
 });
 module.exports = __toCommonJS(index_exports);
-var import_node_fs20 = __toESM(require("node:fs"), 1);
-var import_node_path27 = __toESM(require("node:path"), 1);
+var import_node_fs22 = __toESM(require("node:fs"), 1);
+var import_node_path30 = __toESM(require("node:path"), 1);
 
 // node_modules/zod/v3/helpers/util.js
 var util;
@@ -7638,8 +7638,8 @@ function getErrorMap() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path28, errorMaps, issueData } = params;
-  const fullPath = [...path28, ...issueData.path || []];
+  const { data, path: path31, errorMaps, issueData } = params;
+  const fullPath = [...path31, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -7754,11 +7754,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path28, key) {
+  constructor(parent, value, path31, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path28;
+    this._path = path31;
     this._key = key;
   }
   get path() {
@@ -11714,10 +11714,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path28) {
-  if (!path28)
+function getElementAtPath(obj, path31) {
+  if (!path31)
     return obj;
-  return path28.reduce((acc, key) => acc?.[key], obj);
+  return path31.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -12057,11 +12057,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path28, issues) {
+function prefixIssues(path31, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path28);
+    iss.path.unshift(path31);
     return iss;
   });
 }
@@ -12523,16 +12523,16 @@ function flattenError(error62, mapper = (issue2) => issue2.message) {
 }
 function formatError(error62, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error63, path28 = []) => {
+  const processError = (error63, path31 = []) => {
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path28, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path31, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path28, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path31, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path28, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path31, ...issue2.path]);
       } else {
-        const fullpath = [...path28, ...issue2.path];
+        const fullpath = [...path31, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -12571,17 +12571,17 @@ function formatError(error62, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error62, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error63, path28 = []) => {
+  const processError = (error63, path31 = []) => {
     var _a3;
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path28, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path31, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path28, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path31, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path28, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path31, ...issue2.path]);
       } else {
-        const fullpath = [...path28, ...issue2.path];
+        const fullpath = [...path31, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -12620,8 +12620,8 @@ function treeifyError(error62, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path28 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path28) {
+  const path31 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path31) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -28172,11 +28172,11 @@ function normalizeObjectSchema(schema) {
   }
   return void 0;
 }
-function getDotPath(path28) {
-  if (path28.length === 0) {
+function getDotPath(path31) {
+  if (path31.length === 0) {
     return "object root";
   }
-  return path28.reduce((acc, seg, index) => {
+  return path31.reduce((acc, seg, index) => {
     if (index === 0) {
       return String(seg);
     }
@@ -30403,13 +30403,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path28 = ref.slice(1).split("/").filter(Boolean);
-  if (path28.length === 0) {
+  const path31 = ref.slice(1).split("/").filter(Boolean);
+  if (path31.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path28[0] === defsKey) {
-    const key = path28[1] === void 0 ? void 0 : decodeJSONPointerSegment(path28[1]);
+  if (path31[0] === defsKey) {
+    const key = path31[1] === void 0 ? void 0 : decodeJSONPointerSegment(path31[1]);
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -36678,6 +36678,8 @@ var MODULE_IDS = [
   "radar",
   "verify",
   "worktree",
+  "spec",
+  "studio",
   "canvas",
   "mem",
   "ops",
@@ -36747,8 +36749,8 @@ var MODULE_CATALOG = {
     category: "core-dev",
     name: "Turbo & Output Guard",
     shortLabel: "Turbo",
-    tagline: "Batch codebase search, outline slices & large-output compression",
-    description: "Cut wasted turns and context bloat with multi-pattern workspace search, symbol outline slicing, and compact indexed summaries for oversized command/log outputs.",
+    tagline: "Batch codebase search, outline slices & RTK-style output compression",
+    description: "Cut wasted turns and context bloat with multi-pattern workspace search, symbol outline slicing, and RTK-style smart compression presets (test/build/git/auto) for oversized logs.",
     isolationTier: "offline",
     networkAccess: "offline",
     uiMode: "scroll",
@@ -36812,6 +36814,46 @@ var MODULE_CATALOG = {
       "worktree_cleanup"
     ]
   },
+  spec: {
+    id: "spec",
+    category: "workspace",
+    name: "Spec Flow & Task DAG",
+    shortLabel: "Spec",
+    tagline: "Spec-driven development, dependency task DAG & pre-approval write lock",
+    description: "Maintain structured Spec -> Plan -> Task DAG workflows with cycle detection, SessionStart next-task recall, and a PreToolUse write gate that keeps code read-only until the spec is approved.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: ["SessionStart", "PreToolUse"],
+    modelToolNames: [
+      "spec_get_state",
+      "spec_create_or_update",
+      "spec_approve",
+      "spec_update_task"
+    ]
+  },
+  studio: {
+    id: "studio",
+    category: "workspace",
+    name: "Workspace Studio",
+    shortLabel: "Studio",
+    tagline: "On-demand SQLite/CSV/JSON data viewer, DOCX/XLSX/PDF slicer & loopback HTTP probe",
+    description: "Inspect local SQLite/CSV/JSON datasets, slice DOCX/XLSX/PDF/Markdown documents offline without external binaries, and probe localhost/127.0.0.1 APIs \u2014 toggle off for zero tool budget tax.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: [],
+    modelToolNames: [
+      "studio_list_sources",
+      "studio_inspect_data",
+      "studio_inspect_document",
+      "studio_http_probe"
+    ]
+  },
   canvas: {
     id: "canvas",
     category: "workspace",
@@ -36850,10 +36892,10 @@ var MODULE_CATALOG = {
   ops: {
     id: "ops",
     category: "workspace",
-    name: "Prompt Vault & Doctor",
+    name: "Prompt Vault & Budget Doctor",
     shortLabel: "Ops",
-    tagline: "Parameterized prompt vault, workspace asset audit & storage hygiene",
-    description: "Manage reusable {{var}} prompt templates, inspect workspace skills/rules/MCP footprint with read-only token estimates, and audit local agy-NOV storage.",
+    tagline: "Parameterized prompt vault, 24KB/20K rule bloat & 100-tool budget doctor",
+    description: "Manage reusable {{var}} prompt templates, audit workspace rules for 24KB/20K bloat that triggers false 429s, track the 100-tool MCP budget, and verify local storage hygiene.",
     isolationTier: "offline",
     networkAccess: "offline",
     uiMode: "scroll",
@@ -36904,24 +36946,8 @@ var PRESET_DEFINITIONS = {
   },
   power: {
     id: "power",
-    label: "Power Dev (8 Offline)",
-    description: "Core + Turbo + Radar + Verify + Worktree + Ops \u2014 high-velocity engineering suite with strong verification gates and zero network usage (28 model tools).",
-    enabledModules: ["review", "guard", "xray", "turbo", "radar", "verify", "worktree", "ops"],
-    modules: makeModulesMap([
-      "review",
-      "guard",
-      "xray",
-      "turbo",
-      "radar",
-      "verify",
-      "worktree",
-      "ops"
-    ])
-  },
-  "local-all": {
-    id: "local-all",
-    label: "Local All (10 Offline)",
-    description: "All 10 native offline modules enabled; Remote stays strictly off with zero ports (35 model tools).",
+    label: "Power Dev (9 Offline)",
+    description: "Core + Turbo + Radar + Verify + Worktree + Spec + Ops \u2014 complete spec-to-verify offline engineering workflow with zero network usage (32 model tools).",
     enabledModules: [
       "review",
       "guard",
@@ -36930,6 +36956,35 @@ var PRESET_DEFINITIONS = {
       "radar",
       "verify",
       "worktree",
+      "spec",
+      "ops"
+    ],
+    modules: makeModulesMap([
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "spec",
+      "ops"
+    ])
+  },
+  "local-all": {
+    id: "local-all",
+    label: "Local All (12 Offline)",
+    description: "All 12 native offline modules enabled including Workspace Studio; Remote stays strictly off with zero ports (43 model tools).",
+    enabledModules: [
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "spec",
+      "studio",
       "canvas",
       "mem",
       "ops"
@@ -36942,6 +36997,8 @@ var PRESET_DEFINITIONS = {
       "radar",
       "verify",
       "worktree",
+      "spec",
+      "studio",
       "canvas",
       "mem",
       "ops"
@@ -36949,8 +37006,8 @@ var PRESET_DEFINITIONS = {
   },
   full: {
     id: "full",
-    label: "Full Suite (All 11)",
-    description: "All 11 native modules including the opt-in Mobile PWA & IM remote approval hub (39 model tools).",
+    label: "Full Suite (All 13)",
+    description: "All 13 native modules including the opt-in Mobile PWA & IM remote approval hub (47 model tools).",
     enabledModules: [...MODULE_IDS],
     modules: makeModulesMap(MODULE_IDS)
   },
@@ -37045,6 +37102,18 @@ function normalizeConfig(raw) {
     locale,
     updatedAt: typeof obj.updatedAt === "string" ? obj.updatedAt : base.updatedAt
   };
+}
+function loadNovConfigReadOnly(rootDataDir) {
+  const cfgPath = getConfigPath(rootDataDir);
+  if (!import_node_fs.default.existsSync(cfgPath)) {
+    return createDefaultConfig();
+  }
+  try {
+    const raw = JSON.parse(import_node_fs.default.readFileSync(cfgPath, "utf8"));
+    return normalizeConfig(raw);
+  } catch {
+    return createDefaultConfig();
+  }
 }
 function saveNovConfig(rootDataDir, config2) {
   const normalized = normalizeConfig({
@@ -40763,6 +40832,10 @@ function registerMemModule(server, opts, uiResourceUri) {
 var import_node_crypto4 = __toESM(require("node:crypto"), 1);
 var import_node_fs7 = __toESM(require("node:fs"), 1);
 var import_node_path11 = __toESM(require("node:path"), 1);
+var RULE_SINGLE_FILE_LIMIT_BYTES = 24 * 1024;
+var RULE_AGGREGATE_TOKEN_LIMIT = 2e4;
+var TOOL_BUDGET_HARD_LIMIT = 100;
+var DEFAULT_TOOLS_PER_EXTERNAL_MCP_SERVER = 10;
 var VALID_CATEGORIES = /* @__PURE__ */ new Set([
   "review",
   "debug",
@@ -41166,34 +41239,447 @@ function isSensitiveOpsPath(inputPath) {
   if (SENSITIVE_EXTENSIONS2.has(import_node_path11.default.posix.extname(lower))) return true;
   return false;
 }
-function summarizeMcpConfigSafe(rawText) {
+var PURE_ENV_REF_RE = /^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?$/;
+var ENV_VAR_EMBED_RE = /\$\{?[A-Za-z_][A-Za-z0-9_]*\}?/;
+var UNRESOLVED_PLACEHOLDER_RE = /\{\{[^}]+\}\}|<YOUR_[A-Z0-9_-]+>|\bYOUR_[A-Z0-9_]*(?:KEY|TOKEN|SECRET|ID|URL|HOST|EMAIL)\b|\b(?:REPLACE_ME|CHANGEME|TODO_SET_[A-Z0-9_]+)\b/i;
+var SENSITIVE_KEY_NAME_RE = /token|secret|key|auth|bearer|oauth|password|passwd|credential|cookie|private/i;
+var OAUTH_OR_EXPIRING_KEY_RE = /oauth|access_?token|refresh_?token|id_?token|bearer|expires|expiry|session_?token/i;
+var JWT_LIKE_RE = /^eyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]*$/;
+var SECRET_VALUE_PATTERN_RE = /\b(?:ghp_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9_]{10,}|gh[ousr]_[A-Za-z0-9]{10,}|sk-(?:proj-|live-|test-)?[A-Za-z0-9_-]{12,}|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20,}|xox[baprs]-[0-9A-Za-z-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})\b/;
+var SECRET_VALUE_REDACT_GLOBAL_RE = /\b(?:ghp_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9_]{10,}|gh[ousr]_[A-Za-z0-9]{10,}|sk-(?:proj-|live-|test-)?[A-Za-z0-9_-]{12,}|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20,}|xox[baprs]-[0-9A-Za-z-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}(?:\.[A-Za-z0-9_-]+)?)\b/g;
+var LOCAL_RUNTIME_COMMANDS = /* @__PURE__ */ new Set([
+  "node",
+  "tsx",
+  "ts-node",
+  "python",
+  "python3",
+  "bash",
+  "sh",
+  "zsh",
+  "bun",
+  "deno",
+  "ruby",
+  "perl",
+  "php"
+]);
+var SCRIPT_EXT_RE = /\.(?:[cm]?js|[cm]?ts|py|sh|bash|zsh|rb|pl|php|exe|bin|cmd|bat)$/i;
+function containsSecretPattern(value) {
+  return SECRET_VALUE_PATTERN_RE.test(value);
+}
+function redactSecretsInMessage(message) {
+  if (!containsSecretPattern(message)) return message;
+  return message.replace(SECRET_VALUE_REDACT_GLOBAL_RE, "<redacted-path>");
+}
+function sanitizeMcpIdentifier(raw) {
+  return containsSecretPattern(raw) ? "<redacted-path>" : raw;
+}
+function sanitizeDisplayPath(raw) {
+  const cleaned = raw.split(/[?#]/)[0].trim();
+  if (!cleaned || SENSITIVE_KEY_NAME_RE.test(cleaned) || containsSecretPattern(raw) || containsSecretPattern(cleaned) || cleaned.includes("=")) {
+    return "<redacted-path>";
+  }
+  return cleaned.slice(0, 100);
+}
+function findDuplicateServerKeysInJson(rawText) {
+  const duplicates = /* @__PURE__ */ new Set();
   try {
-    const parsed = JSON.parse(rawText);
-    const serversObj = parsed.mcpServers && typeof parsed.mcpServers === "object" ? parsed.mcpServers : parsed.servers && typeof parsed.servers === "object" ? parsed.servers : null;
-    if (!serversObj) return null;
-    const serverNames = Object.keys(serversObj).slice(0, 30);
-    let envKeyCount = 0;
-    for (const key of serverNames) {
-      const def = serversObj[key];
-      if (def && typeof def === "object") {
-        const envObj = def.env;
-        if (envObj && typeof envObj === "object") {
-          for (const [, val] of Object.entries(envObj)) {
-            if (typeof val === "string" && val.trim().length > 0 && !/^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?$/.test(val.trim())) {
-              envKeyCount += 1;
-            }
+    let i = 0;
+    const len = rawText.length;
+    const skipWs = () => {
+      while (i < len && /\s/.test(rawText[i])) i += 1;
+    };
+    const readString = () => {
+      if (rawText[i] !== '"') return null;
+      i += 1;
+      let out = "";
+      while (i < len) {
+        const ch = rawText[i];
+        if (ch === "\\") {
+          if (i + 1 < len) out += rawText[i + 1];
+          i += 2;
+          continue;
+        }
+        if (ch === '"') {
+          i += 1;
+          return out;
+        }
+        out += ch;
+        i += 1;
+      }
+      return null;
+    };
+    const skipValue = () => {
+      skipWs();
+      if (i >= len) return;
+      const ch = rawText[i];
+      if (ch === '"') {
+        readString();
+        return;
+      }
+      if (ch === "{" || ch === "[") {
+        const open2 = ch;
+        const close = ch === "{" ? "}" : "]";
+        let depth = 1;
+        i += 1;
+        while (i < len && depth > 0) {
+          const c = rawText[i];
+          if (c === '"') {
+            readString();
+            continue;
           }
+          if (c === open2) depth += 1;
+          else if (c === close) depth -= 1;
+          i += 1;
+        }
+        return;
+      }
+      while (i < len && !/[,}\]\s]/.test(rawText[i])) i += 1;
+    };
+    const scanServersObject = () => {
+      skipWs();
+      if (rawText[i] !== "{") {
+        skipValue();
+        return;
+      }
+      i += 1;
+      const seen = /* @__PURE__ */ new Set();
+      while (i < len) {
+        skipWs();
+        if (rawText[i] === "}") {
+          i += 1;
+          return;
+        }
+        const key = readString();
+        if (key === null) return;
+        if (seen.has(key)) duplicates.add(key);
+        else seen.add(key);
+        skipWs();
+        if (rawText[i] !== ":") return;
+        i += 1;
+        skipValue();
+        skipWs();
+        if (rawText[i] === ",") i += 1;
+      }
+    };
+    skipWs();
+    if (rawText[i] !== "{") return [];
+    i += 1;
+    while (i < len) {
+      skipWs();
+      if (rawText[i] === "}") break;
+      const topKey = readString();
+      if (topKey === null) break;
+      skipWs();
+      if (rawText[i] !== ":") break;
+      i += 1;
+      if (topKey === "mcpServers" || topKey === "servers") {
+        scanServersObject();
+      } else {
+        skipValue();
+      }
+      skipWs();
+      if (rawText[i] === ",") i += 1;
+    }
+  } catch {
+  }
+  return Array.from(duplicates);
+}
+function inspectMcpConfigSafe(rawText, relPath, realFilePath, realRoot, rootPrefix, seenServerFiles) {
+  const findings = [];
+  const pushFinding = (finding) => {
+    findings.push({
+      severity: finding.severity,
+      ...finding.serverName !== void 0 ? { serverName: sanitizeMcpIdentifier(finding.serverName) } : {},
+      file: redactSecretsInMessage(finding.file),
+      message: redactSecretsInMessage(finding.message)
+    });
+  };
+  let parsed;
+  try {
+    const rawParsed = JSON.parse(rawText);
+    if (!rawParsed || typeof rawParsed !== "object" || Array.isArray(rawParsed)) {
+      pushFinding({
+        severity: "error",
+        file: relPath,
+        message: "MCP configuration root must be a JSON object."
+      });
+      return {
+        serverCount: 0,
+        serverNames: [],
+        envKeyCount: 0,
+        activeExternalServers: 0,
+        estimatedExternalTools: 0,
+        findings
+      };
+    }
+    parsed = rawParsed;
+  } catch {
+    pushFinding({
+      severity: "error",
+      file: relPath,
+      message: "Invalid JSON syntax in MCP configuration file."
+    });
+    return {
+      serverCount: 0,
+      serverNames: [],
+      envKeyCount: 0,
+      activeExternalServers: 0,
+      estimatedExternalTools: 0,
+      findings
+    };
+  }
+  for (const dupName of findDuplicateServerKeysInJson(rawText)) {
+    const safeDupName = sanitizeMcpIdentifier(dupName);
+    pushFinding({
+      severity: "warn",
+      serverName: safeDupName,
+      file: relPath,
+      message: `Duplicate MCP server key "${safeDupName}" within the same configuration file.`
+    });
+  }
+  const serversObj = parsed.mcpServers && typeof parsed.mcpServers === "object" && !Array.isArray(parsed.mcpServers) ? parsed.mcpServers : parsed.servers && typeof parsed.servers === "object" && !Array.isArray(parsed.servers) ? parsed.servers : null;
+  if (!serversObj) {
+    pushFinding({
+      severity: "warn",
+      file: relPath,
+      message: 'No "mcpServers" or "servers" object found in MCP configuration.'
+    });
+    return {
+      serverCount: 0,
+      serverNames: [],
+      envKeyCount: 0,
+      activeExternalServers: 0,
+      estimatedExternalTools: 0,
+      findings
+    };
+  }
+  const allKeys = Object.keys(serversObj);
+  const serverNames = allKeys.slice(0, 30).map(sanitizeMcpIdentifier);
+  const configDir = import_node_path11.default.dirname(realFilePath);
+  const isInsideWorkspace = (p) => p === realRoot || p.startsWith(rootPrefix);
+  const checkLocalRelativeScript = (serverName, candidate, sourceLabel) => {
+    const trimmed = candidate.trim();
+    if (!trimmed || trimmed.startsWith("-") || trimmed.includes("://") || trimmed.includes("=")) return;
+    if (UNRESOLVED_PLACEHOLDER_RE.test(trimmed) || ENV_VAR_EMBED_RE.test(trimmed)) return;
+    if (import_node_path11.default.isAbsolute(trimmed)) return;
+    const fromConfigDir = import_node_path11.default.resolve(configDir, trimmed);
+    const fromWorkspaceRoot = import_node_path11.default.resolve(realRoot, trimmed);
+    const configInside = isInsideWorkspace(fromConfigDir);
+    const rootInside = isInsideWorkspace(fromWorkspaceRoot);
+    if (!configInside && !rootInside) {
+      pushFinding({
+        severity: "error",
+        serverName,
+        file: relPath,
+        message: `Relative script in ${sourceLabel} escapes workspace boundary (${sanitizeDisplayPath(trimmed)}).`
+      });
+      return;
+    }
+    const existsSafe = (absPath) => {
+      if (!isInsideWorkspace(absPath)) return false;
+      try {
+        if (!import_node_fs7.default.existsSync(absPath)) return false;
+        const real = import_node_fs7.default.realpathSync(absPath);
+        return isInsideWorkspace(real);
+      } catch {
+        return false;
+      }
+    };
+    if (!existsSafe(fromConfigDir) && !existsSafe(fromWorkspaceRoot)) {
+      pushFinding({
+        severity: "error",
+        serverName,
+        file: relPath,
+        message: `Local script referenced in ${sourceLabel} does not exist: ${sanitizeDisplayPath(trimmed)}`
+      });
+    }
+  };
+  let envKeyCount = 0;
+  let activeExternalServers = 0;
+  let estimatedExternalTools = 0;
+  for (const serverName of allKeys) {
+    const safeServerName = sanitizeMcpIdentifier(serverName);
+    const prevFile = seenServerFiles.get(serverName);
+    const isDuplicateAcrossFiles = prevFile !== void 0 && prevFile !== relPath;
+    if (isDuplicateAcrossFiles) {
+      pushFinding({
+        severity: "warn",
+        serverName: safeServerName,
+        file: relPath,
+        message: `Duplicate MCP server "${safeServerName}" (already defined in ${prevFile}).`
+      });
+    } else if (!prevFile) {
+      seenServerFiles.set(serverName, relPath);
+    }
+    const rawDef = serversObj[serverName];
+    if (!rawDef || typeof rawDef !== "object" || Array.isArray(rawDef)) {
+      pushFinding({
+        severity: "error",
+        serverName: safeServerName,
+        file: relPath,
+        message: `Server "${safeServerName}" definition must be a JSON object.`
+      });
+      continue;
+    }
+    const def = rawDef;
+    const disabled = def.disabled === true || def.enabled === false;
+    if (!disabled && !isDuplicateAcrossFiles) {
+      activeExternalServers += 1;
+      if (Array.isArray(def.tools)) {
+        estimatedExternalTools += def.tools.length;
+      } else {
+        estimatedExternalTools += DEFAULT_TOOLS_PER_EXTERNAL_MCP_SERVER;
+      }
+    }
+    const command = typeof def.command === "string" ? def.command.trim() : "";
+    const urlCandidate = typeof def.url === "string" ? def.url.trim() : typeof def.serverUrl === "string" ? def.serverUrl.trim() : typeof def.httpUrl === "string" ? def.httpUrl.trim() : "";
+    if (!command && !urlCandidate) {
+      pushFinding({
+        severity: "error",
+        serverName: safeServerName,
+        file: relPath,
+        message: `Server "${safeServerName}" is missing required "command" or "url" transport field.`
+      });
+    }
+    if (command) {
+      if (UNRESOLVED_PLACEHOLDER_RE.test(command) || ENV_VAR_EMBED_RE.test(command)) {
+        pushFinding({
+          severity: "warn",
+          serverName: safeServerName,
+          file: relPath,
+          message: `Server "${safeServerName}" contains an unresolved placeholder in "command" (value redacted).`
+        });
+      } else if (command.startsWith("./") || command.startsWith("../") || !import_node_path11.default.isAbsolute(command) && !command.startsWith("@") && (command.includes("/") || SCRIPT_EXT_RE.test(command))) {
+        checkLocalRelativeScript(safeServerName, command, "command");
+      } else if (containsSecretPattern(command)) {
+        pushFinding({
+          severity: "warn",
+          serverName: safeServerName,
+          file: relPath,
+          message: `Server "${safeServerName}" contains a hardcoded secret-like value in "command" (<redacted-path>).`
+        });
+      }
+    }
+    if (urlCandidate) {
+      if (UNRESOLVED_PLACEHOLDER_RE.test(urlCandidate) || ENV_VAR_EMBED_RE.test(urlCandidate)) {
+        pushFinding({
+          severity: "warn",
+          serverName: safeServerName,
+          file: relPath,
+          message: `Server "${safeServerName}" contains an unresolved placeholder in "url" (value redacted).`
+        });
+      } else if (containsSecretPattern(urlCandidate)) {
+        pushFinding({
+          severity: "warn",
+          serverName: safeServerName,
+          file: relPath,
+          message: `Server "${safeServerName}" contains a hardcoded secret-like token in "url" (<redacted-path>).`
+        });
+      }
+    }
+    const cmdBase = import_node_path11.default.basename(command).toLowerCase();
+    const isLocalRuntime = LOCAL_RUNTIME_COMMANDS.has(cmdBase);
+    if (Array.isArray(def.args)) {
+      let warnedArgPlaceholder = false;
+      for (const rawArg of def.args) {
+        if (typeof rawArg !== "string") continue;
+        const arg = rawArg.trim();
+        if (!arg) continue;
+        if (UNRESOLVED_PLACEHOLDER_RE.test(arg)) {
+          if (!warnedArgPlaceholder) {
+            warnedArgPlaceholder = true;
+            pushFinding({
+              severity: "warn",
+              serverName: safeServerName,
+              file: relPath,
+              message: `Server "${safeServerName}" contains an unresolved placeholder in "args" (value redacted).`
+            });
+          }
+          continue;
+        }
+        const explicitRelative = arg.startsWith("./") || arg.startsWith("../");
+        const runtimeScriptCandidate = isLocalRuntime && !arg.startsWith("-") && !arg.startsWith("@") && !arg.includes("://") && !arg.includes("=") && !import_node_path11.default.isAbsolute(arg) && (arg.includes("/") || SCRIPT_EXT_RE.test(arg));
+        if (explicitRelative || runtimeScriptCandidate) {
+          checkLocalRelativeScript(safeServerName, arg, "args");
+        } else if (containsSecretPattern(arg)) {
+          pushFinding({
+            severity: "warn",
+            serverName: safeServerName,
+            file: relPath,
+            message: `Server "${safeServerName}" contains a hardcoded secret-like argument in "args" (<redacted-path>).`
+          });
         }
       }
     }
-    return {
-      serverCount: Object.keys(serversObj).length,
-      serverNames,
-      envKeyCount
+    const inspectKeyValueMap = (mapObj, containerName, countLiterals) => {
+      if (!mapObj || typeof mapObj !== "object" || Array.isArray(mapObj)) return;
+      for (const [k, v] of Object.entries(mapObj)) {
+        if (typeof v !== "string") continue;
+        const val = v.trim();
+        if (!val) continue;
+        const cleanedKey = k.replace(/[^\w.-]/g, "").slice(0, 64) || "key";
+        const safeKey = sanitizeMcpIdentifier(cleanedKey);
+        if (UNRESOLVED_PLACEHOLDER_RE.test(val)) {
+          pushFinding({
+            severity: "warn",
+            serverName: safeServerName,
+            file: relPath,
+            message: `Server "${safeServerName}" has an unresolved placeholder in ${containerName}.${safeKey} (value redacted).`
+          });
+          continue;
+        }
+        const isEnvRef = PURE_ENV_REF_RE.test(val);
+        if (!isEnvRef) {
+          if (countLiterals) {
+            envKeyCount += 1;
+          }
+          if (OAUTH_OR_EXPIRING_KEY_RE.test(k) || JWT_LIKE_RE.test(val)) {
+            pushFinding({
+              severity: "warn",
+              serverName: safeServerName,
+              file: relPath,
+              message: `Server "${safeServerName}" has a static OAuth/token value in ${containerName}.${safeKey} (value redacted) that may expire or leak.`
+            });
+          } else if (SENSITIVE_KEY_NAME_RE.test(k) || containsSecretPattern(val)) {
+            pushFinding({
+              severity: "warn",
+              serverName: safeServerName,
+              file: relPath,
+              message: `Server "${safeServerName}" hardcodes a literal secret in ${containerName}.${safeKey} (value redacted); use an env var placeholder instead.`
+            });
+          }
+        }
+      }
     };
-  } catch {
-    return null;
+    inspectKeyValueMap(def.env, "env", true);
+    inspectKeyValueMap(def.headers, "headers", false);
+    const expiryRaw = def.expiresAt ?? def.tokenExpiry ?? def.expires_at;
+    if (typeof expiryRaw === "string" || typeof expiryRaw === "number") {
+      const ts = typeof expiryRaw === "number" ? expiryRaw : Date.parse(expiryRaw);
+      const expired = Number.isFinite(ts) && ts < Date.now();
+      pushFinding({
+        severity: expired ? "error" : "warn",
+        serverName: safeServerName,
+        file: relPath,
+        message: expired ? `Server "${safeServerName}" contains an expired static OAuth/token expiry field (value redacted).` : `Server "${safeServerName}" defines a static OAuth/token expiry field (value redacted); verify auto-refresh is enabled.`
+      });
+    } else if (typeof def.accessToken === "string" && def.accessToken.trim() && !PURE_ENV_REF_RE.test(def.accessToken.trim()) || typeof def.refreshToken === "string" && def.refreshToken.trim() && !PURE_ENV_REF_RE.test(def.refreshToken.trim()) || def.oauth && typeof def.oauth === "object") {
+      pushFinding({
+        severity: "warn",
+        serverName: safeServerName,
+        file: relPath,
+        message: `Server "${safeServerName}" contains static OAuth/token configuration (values redacted); ensure credentials are not committed and refresh cleanly.`
+      });
+    }
   }
+  return {
+    serverCount: allKeys.length,
+    serverNames,
+    envKeyCount,
+    activeExternalServers,
+    estimatedExternalTools,
+    findings
+  };
 }
 function measureDirReadOnly(targetDir, allowedRootReal, maxDepth = 5) {
   const rootPrefix = allowedRootReal.endsWith(import_node_path11.default.sep) ? allowedRootReal : `${allowedRootReal}${import_node_path11.default.sep}`;
@@ -41290,15 +41776,41 @@ function auditStorageReadOnly(rootDataDir) {
     modules
   };
 }
-function auditWorkspaceAssets(workspaceRoot, rootDataDir) {
+function isRuleBloatTarget(asset) {
+  if (asset.kind === "rules") return true;
+  const lower = asset.relPath.toLowerCase();
+  if ((lower.startsWith(".agents/rules/") || lower.startsWith(".gemini/")) && (lower.endsWith(".md") || lower.endsWith(".mdx") || lower.endsWith(".txt"))) {
+    return true;
+  }
+  return false;
+}
+function resolveEnabledNovTools(rootDataDir, optsOrCount) {
+  const explicit = typeof optsOrCount === "number" ? optsOrCount : optsOrCount?.enabledNovTools;
+  if (typeof explicit === "number" && Number.isFinite(explicit) && explicit >= 0) {
+    return Math.floor(explicit);
+  }
+  if (rootDataDir) {
+    try {
+      const cfg = loadNovConfigReadOnly(rootDataDir);
+      return countEnabledModelTools(cfg.modules);
+    } catch {
+    }
+  }
+  return countEnabledModelTools(createDefaultConfig().modules);
+}
+function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools) {
   const realRoot = import_node_fs7.default.realpathSync(import_node_path11.default.resolve(workspaceRoot));
   const rootPrefix = realRoot.endsWith(import_node_path11.default.sep) ? realRoot : `${realRoot}${import_node_path11.default.sep}`;
   const workspaceName = import_node_path11.default.basename(realRoot) || "workspace";
   const assets = [];
   const seenRealPaths = /* @__PURE__ */ new Set();
+  const seenMcpServerFiles = /* @__PURE__ */ new Map();
+  const mcpHealthFindings = [];
   let skippedSymlinks = 0;
   let skippedSensitive = 0;
   let mcpLiteralEnvCount = 0;
+  let externalServersCount = 0;
+  let estimatedExternalTools = 0;
   const isInsideWorkspace = (realCandidate) => realCandidate === realRoot || realCandidate.startsWith(rootPrefix);
   const inspectFile = (candidatePath, kind) => {
     const rawRel = import_node_path11.default.relative(realRoot, candidatePath).replace(/\\/g, "/");
@@ -41362,15 +41874,26 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir) {
     seenRealPaths.add(realPath);
     let meta3;
     if (kind === "mcp") {
-      const mcpInfo = summarizeMcpConfigSafe(text);
-      if (mcpInfo) {
-        mcpLiteralEnvCount += mcpInfo.envKeyCount;
-        meta3 = {
-          serverCount: mcpInfo.serverCount,
-          serverNames: mcpInfo.serverNames,
-          literalEnvEntries: mcpInfo.envKeyCount
-        };
+      const mcpInfo = inspectMcpConfigSafe(
+        text,
+        rawRel,
+        realPath,
+        realRoot,
+        rootPrefix,
+        seenMcpServerFiles
+      );
+      mcpLiteralEnvCount += mcpInfo.envKeyCount;
+      externalServersCount += mcpInfo.activeExternalServers;
+      estimatedExternalTools += mcpInfo.estimatedExternalTools;
+      if (mcpInfo.findings.length > 0) {
+        mcpHealthFindings.push(...mcpInfo.findings);
       }
+      meta3 = {
+        serverCount: mcpInfo.serverCount,
+        serverNames: mcpInfo.serverNames,
+        literalEnvEntries: mcpInfo.envKeyCount,
+        estimatedTools: mcpInfo.estimatedExternalTools
+      };
     }
     const chars = text.length;
     const lineCount = text.length === 0 ? 0 : text.split(/\r?\n/).length;
@@ -41394,6 +41917,10 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir) {
     { rel: ".claude-plugin/plugin.json", kind: "manifest" },
     { rel: "mcp_config.json", kind: "mcp" },
     { rel: ".mcp.json", kind: "mcp" },
+    { rel: ".cursor/mcp.json", kind: "mcp" },
+    { rel: ".vscode/mcp.json", kind: "mcp" },
+    { rel: ".antigravity/mcp.json", kind: "mcp" },
+    { rel: ".gemini/mcp_config.json", kind: "mcp" },
     { rel: "hooks.json", kind: "hooks" },
     { rel: "hooks/hooks.json", kind: "hooks" }
   ];
@@ -41478,9 +42005,20 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir) {
     }
   });
   walkBounded(".agents", 4, (fullPath, entryName) => {
-    const ext = import_node_path11.default.extname(entryName).toLowerCase();
+    const lowerName = entryName.toLowerCase();
+    if (lowerName === "mcp.json" || lowerName === "mcp_config.json") {
+      inspectFile(fullPath, "mcp");
+      return;
+    }
+    const ext = import_node_path11.default.extname(lowerName);
     if (ALLOWED_AGENT_CONFIG_EXTS.has(ext)) {
       inspectFile(fullPath, "agent-config");
+    }
+  });
+  walkBounded(".gemini", 4, (fullPath, entryName) => {
+    const ext = import_node_path11.default.extname(entryName).toLowerCase();
+    if (ext === ".md" || ext === ".mdx" || ext === ".txt") {
+      inspectFile(fullPath, "rules");
     }
   });
   assets.sort((a, b) => b.estimatedTokens - a.estimatedTokens || a.relPath.localeCompare(b.relPath));
@@ -41502,9 +42040,124 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir) {
     byKind[a.kind].count += 1;
     byKind[a.kind].estimatedTokens += a.estimatedTokens;
   }
+  const ruleAssets = assets.filter(isRuleBloatTarget);
+  const singleWarnBytes = Math.floor(RULE_SINGLE_FILE_LIMIT_BYTES * 0.8);
+  const aggregateWarnTokens = Math.floor(RULE_AGGREGATE_TOKEN_LIMIT * 0.8);
+  let largestFileBytes = 0;
+  let largestFilePath;
+  let totalRuleBytes = 0;
+  let totalRuleTokens = 0;
+  const offendingFiles = [];
+  for (const r of ruleAssets) {
+    totalRuleBytes += r.bytes;
+    totalRuleTokens += r.estimatedTokens;
+    if (r.bytes > largestFileBytes) {
+      largestFileBytes = r.bytes;
+      largestFilePath = r.relPath;
+    }
+    if (r.bytes > RULE_SINGLE_FILE_LIMIT_BYTES) {
+      offendingFiles.push({
+        path: r.relPath,
+        bytes: r.bytes,
+        estimatedTokens: r.estimatedTokens,
+        reason: `Exceeds 24 KB single-file limit (${(r.bytes / 1024).toFixed(1)} KB); may trigger false 429 retry loops.`
+      });
+    } else if (r.bytes >= singleWarnBytes) {
+      offendingFiles.push({
+        path: r.relPath,
+        bytes: r.bytes,
+        estimatedTokens: r.estimatedTokens,
+        reason: `Approaching 24 KB single-file limit (${(r.bytes / 1024).toFixed(1)} KB, >= 80%).`
+      });
+    }
+  }
+  let ruleBloatStatus = "ok";
+  if (largestFileBytes > RULE_SINGLE_FILE_LIMIT_BYTES || totalRuleTokens > RULE_AGGREGATE_TOKEN_LIMIT) {
+    ruleBloatStatus = "critical";
+    if (offendingFiles.length === 0 && totalRuleTokens > RULE_AGGREGATE_TOKEN_LIMIT) {
+      const topRules = [...ruleAssets].sort((a, b) => b.estimatedTokens - a.estimatedTokens).slice(0, 3);
+      for (const r of topRules) {
+        offendingFiles.push({
+          path: r.relPath,
+          bytes: r.bytes,
+          estimatedTokens: r.estimatedTokens,
+          reason: `Contributes to aggregate rule bloat (~${totalRuleTokens} > 20,000 tokens); may trigger false 429 retry loops.`
+        });
+      }
+    }
+  } else if (largestFileBytes >= singleWarnBytes || totalRuleTokens >= aggregateWarnTokens) {
+    ruleBloatStatus = "warn";
+  }
+  const ruleBloat = {
+    status: ruleBloatStatus,
+    singleFileLimitBytes: 24576,
+    aggregateTokenLimit: 2e4,
+    largestFileBytes,
+    ...largestFilePath ? { largestFilePath } : {},
+    totalRuleBytes,
+    totalRuleTokens,
+    offendingFiles
+  };
+  const agyNovTools = resolveEnabledNovTools(rootDataDir, optsOrEnabledNovTools);
+  const estimatedTotalTools = agyNovTools + estimatedExternalTools;
+  const usagePercent = Math.round(estimatedTotalTools / TOOL_BUDGET_HARD_LIMIT * 100);
+  const toolBudgetStatus = estimatedTotalTools >= 95 ? "critical" : estimatedTotalTools >= 75 ? "warn" : "ok";
+  const toolBudget = {
+    agyNovTools,
+    externalServersCount,
+    estimatedExternalTools,
+    estimatedTotalTools,
+    hardLimit: 100,
+    usagePercent,
+    status: toolBudgetStatus
+  };
   const storage = auditStorageReadOnly(rootDataDir);
   const recommendations = [];
   let penalty = 0;
+  if (ruleBloat.status === "critical") {
+    penalty += 25;
+    recommendations.push({
+      level: "critical",
+      code: "ops.rule-bloat",
+      title: "Rule bloat exceeds 24 KB / 20K token safety limit",
+      detail: `Largest rule file ${ruleBloat.largestFilePath ?? "(rules)"} is ${(ruleBloat.largestFileBytes / 1024).toFixed(1)} KB; aggregate rules total ~${ruleBloat.totalRuleTokens} tokens. Oversized always-on rules can trigger false 429 retry loops \u2014 split reference content into on-demand skills.`
+    });
+  } else if (ruleBloat.status === "warn") {
+    penalty += 12;
+    recommendations.push({
+      level: "warn",
+      code: "ops.rule-bloat-warn",
+      title: "Rule files approaching 24 KB / 20K token ceiling (>= 80%)",
+      detail: `Largest rule file ${ruleBloat.largestFilePath ?? "(rules)"} is ${(ruleBloat.largestFileBytes / 1024).toFixed(1)} KB; aggregate rules total ~${ruleBloat.totalRuleTokens} tokens. Trim redundant instructions to prevent false 429 retry loops.`
+    });
+  }
+  if (toolBudget.status === "critical") {
+    penalty += 20;
+    recommendations.push({
+      level: "critical",
+      code: "ops.tool-budget",
+      title: `Tool budget critical (${toolBudget.estimatedTotalTools}/100 tools)`,
+      detail: `Estimated ${toolBudget.estimatedTotalTools} active tools (agy-NOV ${toolBudget.agyNovTools} + ${toolBudget.externalServersCount} external MCP server(s) ~${toolBudget.estimatedExternalTools}) approaches or exceeds the 100-tool hard ceiling. Disable unused modules or external MCP servers.`
+    });
+  } else if (toolBudget.status === "warn") {
+    penalty += 10;
+    recommendations.push({
+      level: "warn",
+      code: "ops.tool-budget-warn",
+      title: `Tool budget elevated (${toolBudget.estimatedTotalTools}/100 tools)`,
+      detail: `Estimated ${toolBudget.estimatedTotalTools} active tools (${toolBudget.usagePercent}% of the 100-tool hard ceiling). Keep unused modules switched off for headroom.`
+    });
+  }
+  const mcpErrorCount = mcpHealthFindings.filter((f) => f.severity === "error").length;
+  if (mcpErrorCount > 0) {
+    penalty += Math.min(24, mcpErrorCount * 8);
+    recommendations.push({
+      level: "warn",
+      code: "ops.mcp-health-errors",
+      title: `MCP static health check found ${mcpErrorCount} configuration error(s)`,
+      detail: `Inspect mcpHealthFindings for missing local scripts, invalid JSON, or missing transport fields.`
+    });
+  }
   if (totalEstimatedTokens > 8e3) {
     penalty += 15;
     recommendations.push({
@@ -41565,7 +42218,7 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir) {
     mode: "live",
     workspaceName,
     scannedAt: (/* @__PURE__ */ new Date()).toISOString(),
-    healthScore: Math.max(20, 100 - penalty),
+    healthScore: Math.max(10, 100 - penalty),
     summary: {
       assetCount: assets.length,
       totalBytes,
@@ -41577,18 +42230,36 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir) {
     },
     assets,
     storage,
-    recommendations
+    recommendations,
+    ruleBloat,
+    toolBudget,
+    mcpHealthFindings
   };
 }
-function createDemoOpsAuditReport(workspaceRoot) {
+var auditWorkspaceReadOnly = auditWorkspaceAssets;
+function createDemoOpsAuditReport(workspaceRoot, enabledNovTools) {
   const workspaceName = import_node_path11.default.basename(import_node_path11.default.resolve(workspaceRoot)) || "agy-NOV";
+  const novTools = typeof enabledNovTools === "number" && Number.isFinite(enabledNovTools) && enabledNovTools >= 0 ? Math.floor(enabledNovTools) : countEnabledModelTools(createDefaultConfig().modules);
+  const externalServersCount = 3;
+  const estimatedExternalTools = 28;
+  const estimatedTotalTools = novTools + estimatedExternalTools;
+  const usagePercent = Math.round(estimatedTotalTools / TOOL_BUDGET_HARD_LIMIT * 100);
+  const toolBudgetStatus = estimatedTotalTools >= 95 ? "critical" : estimatedTotalTools >= 75 ? "warn" : "ok";
   const assets = [
     {
       relPath: "AGENTS.md",
       kind: "rules",
+      bytes: 4280,
+      chars: 4020,
+      estimatedTokens: 1005,
+      lineCount: 68
+    },
+    {
+      relPath: ".agents/rules/security.md",
+      kind: "agent-config",
       bytes: 2840,
-      chars: 2620,
-      estimatedTokens: 655,
+      chars: 2680,
+      estimatedTokens: 670,
       lineCount: 44
     },
     {
@@ -41598,6 +42269,20 @@ function createDemoOpsAuditReport(workspaceRoot) {
       chars: 1840,
       estimatedTokens: 460,
       lineCount: 38
+    },
+    {
+      relPath: ".mcp.json",
+      kind: "mcp",
+      bytes: 880,
+      chars: 880,
+      estimatedTokens: 220,
+      lineCount: 34,
+      meta: {
+        serverCount: externalServersCount,
+        serverNames: ["github", "postgres-readonly", "docs-search"],
+        literalEnvEntries: 0,
+        estimatedTools: estimatedExternalTools
+      }
     },
     {
       relPath: "plugin.json",
@@ -41620,21 +42305,21 @@ function createDemoOpsAuditReport(workspaceRoot) {
     mode: "demo",
     workspaceName,
     scannedAt: (/* @__PURE__ */ new Date()).toISOString(),
-    healthScore: 96,
+    healthScore: 94,
     summary: {
       assetCount: assets.length,
-      totalBytes: 6460,
-      totalChars: 6120,
-      totalEstimatedTokens: 1530,
+      totalBytes: 11620,
+      totalChars: 11080,
+      totalEstimatedTokens: 2770,
       skippedSymlinks: 0,
       skippedSensitive: 0,
       byKind: {
-        rules: { count: 1, estimatedTokens: 655 },
+        rules: { count: 1, estimatedTokens: 1005 },
         skill: { count: 1, estimatedTokens: 460 },
         manifest: { count: 1, estimatedTokens: 180 },
-        mcp: { count: 0, estimatedTokens: 0 },
+        mcp: { count: 1, estimatedTokens: 220 },
         hooks: { count: 1, estimatedTokens: 235 },
-        "agent-config": { count: 0, estimatedTokens: 0 }
+        "agent-config": { count: 1, estimatedTokens: 670 }
       }
     },
     assets,
@@ -41654,12 +42339,46 @@ function createDemoOpsAuditReport(workspaceRoot) {
       {
         level: "info",
         code: "ops.healthy",
-        title: "Workspace asset footprint looks healthy",
-        detail: "Scanned 4 asset(s) (~1,530 tokens) with compact startup overhead and zero boundary issues."
+        title: "Workspace rules & tool budget are within safe bounds",
+        detail: `Largest rule file is 4.2 KB (< 24 KB limit) and estimated tool load is ${estimatedTotalTools}/100 (${usagePercent}%).`
+      }
+    ],
+    ruleBloat: {
+      status: "ok",
+      singleFileLimitBytes: 24576,
+      aggregateTokenLimit: 2e4,
+      largestFileBytes: 4280,
+      largestFilePath: "AGENTS.md",
+      totalRuleBytes: 7120,
+      totalRuleTokens: 1675,
+      offendingFiles: []
+    },
+    toolBudget: {
+      agyNovTools: novTools,
+      externalServersCount,
+      estimatedExternalTools,
+      estimatedTotalTools,
+      hardLimit: 100,
+      usagePercent,
+      status: toolBudgetStatus
+    },
+    mcpHealthFindings: [
+      {
+        severity: "info",
+        serverName: "postgres-readonly",
+        file: ".mcp.json",
+        message: 'Server "postgres-readonly" uses env var placeholder references (zero hardcoded literals detected).'
+      },
+      {
+        severity: "warn",
+        serverName: "docs-search",
+        file: ".mcp.json",
+        message: 'Server "docs-search" defines a static OAuth/token expiry field (value redacted); verify auto-refresh is enabled.'
       }
     ]
   };
 }
+var createDemoWorkspaceAudit = createDemoOpsAuditReport;
 
 // src/modules/ops/register.ts
 function toHandle3(name, tool) {
@@ -41697,7 +42416,7 @@ function registerOpsModule(server, options, uiResourceUri) {
       tags: ["release", "checklist", "demo"],
       body: "\u8BF7\u6838\u5BF9 {{version}} \u53D1\u5E03\u524D\u7684\u95E8\u7981\u6E05\u5355\uFF1A\u786E\u8BA4 UI \u5305\u4F53\u79EF\u5C0F\u4E8E {{max_mb}} MiB\uFF0C\u5168\u90E8\u5355\u5143\u6D4B\u8BD5\u901A\u8FC7\uFF0C\u5E76\u68C0\u67E5 {{module_scope}} \u7684\u9ED8\u8BA4\u5173\u95ED\u8FB9\u754C\u3002",
       variables: [
-        { name: "version", defaultValue: "v0.3.0" },
+        { name: "version", defaultValue: "v0.4.0" },
         { name: "max_mb", defaultValue: "10" },
         { name: "module_scope", defaultValue: "opt-in remote" }
       ]
@@ -41717,7 +42436,9 @@ function registerOpsModule(server, options, uiResourceUri) {
     return listPromptTemplates(moduleDataDir, filter);
   };
   const runAudit = () => {
-    const report = isDemo ? createDemoOpsAuditReport(workspaceRoot) : auditWorkspaceAssets(workspaceRoot, rootDataDir);
+    const cfg = loadNovConfigReadOnly(rootDataDir);
+    const enabledNovTools = countEnabledModelTools(cfg.modules);
+    const report = isDemo ? createDemoWorkspaceAudit(workspaceRoot, enabledNovTools) : auditWorkspaceReadOnly(workspaceRoot, rootDataDir, { enabledNovTools });
     cachedAudit = report;
     return report;
   };
@@ -41800,17 +42521,25 @@ function registerOpsModule(server, options, uiResourceUri) {
     "ops_audit_workspace",
     {
       title: "Audit Workspace Assets & Storage",
-      description: "Read-only inspection of workspace agent rules, skills, manifests, MCP/hook configs, token estimates, and local agy-NOV storage usage.",
+      description: "Read-only inspection of workspace rules (24KB/20K bloat guard), 100-tool MCP budget meter, static MCP config health, skills/manifests, token estimates, and local agy-NOV storage usage.",
       inputSchema: {}
     },
     async () => {
       try {
         const report = runAudit();
+        const largestKb = (report.ruleBloat.largestFileBytes / 1024).toFixed(1);
+        const limitKb = Math.round(report.ruleBloat.singleFileLimitBytes / 1024);
         const lines = [
           `Workspace Audit (${report.workspaceName}, score=${report.healthScore}/100): ${report.summary.assetCount} asset(s), ~${report.summary.totalEstimatedTokens} tokens (${report.summary.totalBytes} bytes)`,
+          `Rule Bloat: [${report.ruleBloat.status.toUpperCase()}] largest=${largestKb}KB/${limitKb}KB${report.ruleBloat.largestFilePath ? ` (${report.ruleBloat.largestFilePath})` : ""}, total=~${report.ruleBloat.totalRuleTokens}/${report.ruleBloat.aggregateTokenLimit} tokens`,
+          `Tool Budget (${report.toolBudget.estimatedTotalTools}/${report.toolBudget.hardLimit}): [${report.toolBudget.status.toUpperCase()}] ${report.toolBudget.usagePercent}% (agy-NOV=${report.toolBudget.agyNovTools}, external MCP=${report.toolBudget.externalServersCount} server(s) ~${report.toolBudget.estimatedExternalTools} tools)`,
+          `MCP Health: ${report.mcpHealthFindings.length} finding(s)`,
           `Local storage: ${report.storage.rootDataDirExists ? `${report.storage.totalFiles} files, ${report.storage.totalBytes} bytes` : "not initialized (0 bytes)"}`,
           ...report.assets.slice(0, 12).map(
             (a) => `- [${a.kind}] ${a.relPath}: ~${a.estimatedTokens} tokens (${a.bytes}B, ${a.lineCount}L)`
+          ),
+          ...report.mcpHealthFindings.slice(0, 8).map(
+            (f) => `! [MCP ${f.severity.toUpperCase()}] ${f.file}${f.serverName ? ` (${f.serverName})` : ""}: ${f.message}`
           ),
           ...report.recommendations.map((r) => `\u2022 [${r.level.toUpperCase()}] ${r.title}: ${r.detail}`)
         ];
@@ -46621,10 +47350,4416 @@ function registerReviewModule(server, opts, uiResourceUri) {
   };
 }
 
-// src/modules/turbo/core.ts
+// src/modules/spec/core.ts
 var import_node_crypto11 = __toESM(require("node:crypto"), 1);
 var import_node_fs14 = __toESM(require("node:fs"), 1);
 var import_node_path19 = __toESM(require("node:path"), 1);
+var SPEC_ID_RE = /^[a-zA-Z0-9._-]{1,64}$/;
+var SPEC_TASK_ID_RE = /^[a-zA-Z0-9._-]{1,48}$/;
+var MAX_SPECS = 50;
+var MAX_TASKS_PER_SPEC = 100;
+var MAX_CRITERIA_ITEMS = 50;
+var MAX_PLAN_STEPS = 80;
+var VALID_SPEC_STATUSES = /* @__PURE__ */ new Set([
+  "draft",
+  "approved",
+  "completed",
+  "archived"
+]);
+var VALID_TASK_STATUSES = /* @__PURE__ */ new Set([
+  "pending",
+  "in_progress",
+  "done",
+  "blocked"
+]);
+function sanitizeSingleLine(input2, maxLen) {
+  return input2.replace(/[\x00-\x1f\x7f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLen);
+}
+function sanitizeMultiline(input2, maxLen) {
+  return input2.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "").trim().slice(0, maxLen);
+}
+function sanitizeOptionalMultiline(input2, maxLen) {
+  if (typeof input2 !== "string") return void 0;
+  const cleaned = sanitizeMultiline(input2, maxLen);
+  return cleaned.length > 0 ? cleaned : void 0;
+}
+function sanitizeStringList(raw, maxItems, maxLen) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  for (const item of raw) {
+    if (typeof item !== "string") continue;
+    const cleaned = sanitizeSingleLine(item, maxLen);
+    if (cleaned) {
+      out.push(cleaned);
+      if (out.length >= maxItems) break;
+    }
+  }
+  return out;
+}
+function getSpecStatePath(moduleDataDir) {
+  return import_node_path19.default.join(moduleDataDir, "state.json");
+}
+function createEmptySpecState() {
+  return {
+    schemaVersion: 1,
+    activeSpecId: null,
+    specs: [],
+    updatedAt: (/* @__PURE__ */ new Date(0)).toISOString()
+  };
+}
+function createSpecId(title, existingIds) {
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 28);
+  const base = slug ? `spec-${slug}` : "spec";
+  for (let i = 0; i < 16; i += 1) {
+    const suffix = import_node_crypto11.default.randomBytes(3).toString("hex");
+    const candidate = `${base}-${suffix}`.slice(0, 64);
+    if (SPEC_ID_RE.test(candidate) && !existingIds.has(candidate)) {
+      return candidate;
+    }
+  }
+  return `spec-${Date.now().toString(36)}-${import_node_crypto11.default.randomBytes(2).toString("hex")}`;
+}
+function findCyclePath(cycleNodeIds, dependsOnMap) {
+  const state = /* @__PURE__ */ new Map();
+  const stack = [];
+  const dfs = (node2) => {
+    state.set(node2, 1);
+    stack.push(node2);
+    const deps = dependsOnMap.get(node2) ?? [];
+    for (const dep of deps) {
+      if (!cycleNodeIds.has(dep)) continue;
+      const st = state.get(dep) ?? 0;
+      if (st === 1) {
+        const idx = stack.indexOf(dep);
+        return [...stack.slice(idx), dep];
+      }
+      if (st === 0) {
+        const found = dfs(dep);
+        if (found) return found;
+      }
+    }
+    stack.pop();
+    state.set(node2, 2);
+    return null;
+  };
+  for (const node2 of cycleNodeIds) {
+    if ((state.get(node2) ?? 0) === 0) {
+      const cycle = dfs(node2);
+      if (cycle) return cycle;
+    }
+  }
+  return [...cycleNodeIds];
+}
+function validateTaskDag(tasks) {
+  if (tasks.length > MAX_TASKS_PER_SPEC) {
+    return {
+      valid: false,
+      error: `Spec cannot contain more than ${MAX_TASKS_PER_SPEC} tasks.`
+    };
+  }
+  const idSet = /* @__PURE__ */ new Set();
+  const dependsOnMap = /* @__PURE__ */ new Map();
+  for (const task of tasks) {
+    if (typeof task.id !== "string" || !SPEC_TASK_ID_RE.test(task.id)) {
+      return {
+        valid: false,
+        error: `Invalid task id "${String(task.id)}": must match ${SPEC_TASK_ID_RE.source}.`
+      };
+    }
+    if (idSet.has(task.id)) {
+      return {
+        valid: false,
+        error: `Duplicate task id "${task.id}". Task IDs must be unique within a spec.`
+      };
+    }
+    idSet.add(task.id);
+  }
+  const inDegree = /* @__PURE__ */ new Map();
+  const dependents = /* @__PURE__ */ new Map();
+  for (const task of tasks) {
+    inDegree.set(task.id, 0);
+    dependents.set(task.id, []);
+  }
+  for (const task of tasks) {
+    const dedupDeps = [];
+    const seenDeps = /* @__PURE__ */ new Set();
+    for (const rawDep of task.dependsOn) {
+      if (typeof rawDep !== "string" || !rawDep.trim()) {
+        return {
+          valid: false,
+          error: `Task "${task.id}" contains an empty dependency ID.`
+        };
+      }
+      const dep = rawDep;
+      if (dep === task.id) {
+        return {
+          valid: false,
+          error: `Task "${task.id}" cannot depend on itself (self-cycle detected).`
+        };
+      }
+      if (!idSet.has(dep)) {
+        return {
+          valid: false,
+          error: `Task "${task.id}" depends on unknown task "${dep}".`
+        };
+      }
+      if (!seenDeps.has(dep)) {
+        seenDeps.add(dep);
+        dedupDeps.push(dep);
+      }
+    }
+    dependsOnMap.set(task.id, dedupDeps);
+    inDegree.set(task.id, dedupDeps.length);
+    for (const dep of dedupDeps) {
+      dependents.get(dep).push(task.id);
+    }
+  }
+  const queue = [];
+  const depths = /* @__PURE__ */ new Map();
+  for (const task of tasks) {
+    if ((inDegree.get(task.id) ?? 0) === 0) {
+      queue.push(task.id);
+      depths.set(task.id, 0);
+    }
+  }
+  const orderedIds = [];
+  let head = 0;
+  while (head < queue.length) {
+    const current = queue[head];
+    head += 1;
+    orderedIds.push(current);
+    const currentDepth = depths.get(current) ?? 0;
+    for (const next of dependents.get(current) ?? []) {
+      const prevDepth = depths.get(next) ?? 0;
+      if (currentDepth + 1 > prevDepth) {
+        depths.set(next, currentDepth + 1);
+      }
+      const remaining = (inDegree.get(next) ?? 0) - 1;
+      inDegree.set(next, remaining);
+      if (remaining === 0) {
+        queue.push(next);
+      }
+    }
+  }
+  if (orderedIds.length !== tasks.length) {
+    const remainingNodes = new Set(
+      tasks.filter((t) => (inDegree.get(t.id) ?? 0) > 0).map((t) => t.id)
+    );
+    const cyclePath = findCyclePath(remainingNodes, dependsOnMap);
+    return {
+      valid: false,
+      error: `Dependency cycle detected in task DAG: ${cyclePath.join(" -> ")}.`
+    };
+  }
+  return {
+    valid: true,
+    orderedIds,
+    depths
+  };
+}
+function computeSpecTaskViews(tasks) {
+  const dag = validateTaskDag(tasks);
+  const depths = dag.valid ? dag.depths : /* @__PURE__ */ new Map();
+  const taskMap = /* @__PURE__ */ new Map();
+  for (const task of tasks) {
+    taskMap.set(task.id, task);
+  }
+  return tasks.map((task) => {
+    const unmetDeps = task.dependsOn.filter((depId) => taskMap.get(depId)?.status !== "done");
+    let computedState;
+    if (task.status === "done") {
+      computedState = "done";
+    } else if (task.status === "in_progress") {
+      computedState = "in_progress";
+    } else if (task.status === "blocked") {
+      computedState = "blocked";
+    } else {
+      computedState = unmetDeps.length === 0 ? "ready" : "waiting_deps";
+    }
+    return {
+      ...task,
+      dependsOn: [...task.dependsOn],
+      computedState,
+      unmetDeps,
+      depth: depths.get(task.id) ?? 0
+    };
+  });
+}
+function buildSpecDocumentView(spec) {
+  return {
+    id: spec.id,
+    title: spec.title,
+    goal: spec.goal,
+    acceptanceCriteria: [...spec.acceptanceCriteria],
+    planSteps: [...spec.planSteps],
+    status: spec.status,
+    enforcePlanBeforeWrite: spec.enforcePlanBeforeWrite,
+    requireUiApproval: spec.requireUiApproval,
+    ...spec.approvedBy !== void 0 ? { approvedBy: spec.approvedBy } : {},
+    ...spec.approvedAt !== void 0 ? { approvedAt: spec.approvedAt } : {},
+    ...spec.approvalNote !== void 0 ? { approvalNote: spec.approvalNote } : {},
+    tasks: computeSpecTaskViews(spec.tasks),
+    createdAt: spec.createdAt,
+    updatedAt: spec.updatedAt
+  };
+}
+function isSpecWriteLockActive(spec) {
+  return Boolean(spec && spec.status === "draft" && spec.enforcePlanBeforeWrite === true);
+}
+function buildSpecStateView(state, mode = "live", requestedSpecId) {
+  const globalActiveSpec = state.activeSpecId ? state.specs.find((s) => s.id === state.activeSpecId) ?? null : null;
+  const effectiveActiveSpecId = globalActiveSpec ? globalActiveSpec.id : null;
+  const targetSpec = requestedSpecId ? state.specs.find((s) => s.id === requestedSpecId) ?? null : globalActiveSpec;
+  const sortedSpecs = [...state.specs].sort(
+    (a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)
+  );
+  const specs = sortedSpecs.map((spec) => {
+    const taskViews = computeSpecTaskViews(spec.tasks);
+    let doneTasks = 0;
+    let readyTasks = 0;
+    for (const task of taskViews) {
+      if (task.status === "done") doneTasks += 1;
+      if (task.computedState === "ready") readyTasks += 1;
+    }
+    return {
+      id: spec.id,
+      title: spec.title,
+      status: spec.status,
+      enforcePlanBeforeWrite: spec.enforcePlanBeforeWrite,
+      requireUiApproval: spec.requireUiApproval,
+      totalTasks: taskViews.length,
+      doneTasks,
+      readyTasks,
+      updatedAt: spec.updatedAt
+    };
+  });
+  return {
+    mode,
+    activeSpecId: effectiveActiveSpecId,
+    activeSpec: targetSpec ? buildSpecDocumentView(targetSpec) : null,
+    specs,
+    writeLockActive: isSpecWriteLockActive(globalActiveSpec)
+  };
+}
+function normalizeTaskFromDisk(raw, fallbackIso) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw;
+  if (typeof obj.id !== "string" || !SPEC_TASK_ID_RE.test(obj.id.trim())) return null;
+  const id = obj.id.trim();
+  const title = typeof obj.title === "string" ? sanitizeSingleLine(obj.title, 200) : "";
+  if (!title) return null;
+  const status = typeof obj.status === "string" && VALID_TASK_STATUSES.has(obj.status) ? obj.status : "pending";
+  const dependsOn = [];
+  if (Array.isArray(obj.dependsOn)) {
+    const seen = /* @__PURE__ */ new Set();
+    for (const dep of obj.dependsOn) {
+      if (typeof dep === "string") {
+        const cleanDep = dep.trim();
+        if (cleanDep && cleanDep !== id && SPEC_TASK_ID_RE.test(cleanDep) && !seen.has(cleanDep)) {
+          seen.add(cleanDep);
+          dependsOn.push(cleanDep);
+        }
+      }
+    }
+  }
+  const description = sanitizeOptionalMultiline(obj.description, 2e3);
+  const note = sanitizeOptionalMultiline(obj.note, 2e3);
+  return {
+    id,
+    title,
+    ...description !== void 0 ? { description } : {},
+    dependsOn,
+    status,
+    ...note !== void 0 ? { note } : {},
+    updatedAt: typeof obj.updatedAt === "string" ? obj.updatedAt : fallbackIso
+  };
+}
+function normalizeSpecFromDisk(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw;
+  if (typeof obj.id !== "string" || !SPEC_ID_RE.test(obj.id.trim())) return null;
+  const id = obj.id.trim();
+  const title = typeof obj.title === "string" ? sanitizeSingleLine(obj.title, 200) : "";
+  if (!title) return null;
+  const goal = typeof obj.goal === "string" ? sanitizeMultiline(obj.goal, 4e3) : "";
+  const createdAt = typeof obj.createdAt === "string" ? obj.createdAt : (/* @__PURE__ */ new Date()).toISOString();
+  const updatedAt = typeof obj.updatedAt === "string" ? obj.updatedAt : createdAt;
+  const status = typeof obj.status === "string" && VALID_SPEC_STATUSES.has(obj.status) ? obj.status : "draft";
+  const rawTasks = [];
+  if (Array.isArray(obj.tasks)) {
+    const seenTaskIds = /* @__PURE__ */ new Set();
+    for (const item of obj.tasks.slice(0, MAX_TASKS_PER_SPEC)) {
+      const task = normalizeTaskFromDisk(item, updatedAt);
+      if (task && !seenTaskIds.has(task.id)) {
+        seenTaskIds.add(task.id);
+        rawTasks.push(task);
+      }
+    }
+  }
+  const knownTaskIds = new Set(rawTasks.map((t) => t.id));
+  const tasks = rawTasks.map((t) => ({
+    ...t,
+    dependsOn: t.dependsOn.filter((dep) => knownTaskIds.has(dep))
+  }));
+  const approvedBy = obj.approvedBy === "user" || obj.approvedBy === "model" ? obj.approvedBy : void 0;
+  const approvedAt = typeof obj.approvedAt === "string" ? obj.approvedAt : void 0;
+  const approvalNote = sanitizeOptionalMultiline(obj.approvalNote, 1e3);
+  return {
+    id,
+    title,
+    goal,
+    acceptanceCriteria: sanitizeStringList(obj.acceptanceCriteria, MAX_CRITERIA_ITEMS, 500),
+    planSteps: sanitizeStringList(obj.planSteps, MAX_PLAN_STEPS, 500),
+    status,
+    enforcePlanBeforeWrite: typeof obj.enforcePlanBeforeWrite === "boolean" ? obj.enforcePlanBeforeWrite : true,
+    requireUiApproval: typeof obj.requireUiApproval === "boolean" ? obj.requireUiApproval : false,
+    ...approvedBy !== void 0 ? { approvedBy } : {},
+    ...approvedAt !== void 0 ? { approvedAt } : {},
+    ...approvalNote !== void 0 ? { approvalNote } : {},
+    tasks,
+    createdAt,
+    updatedAt
+  };
+}
+function loadSpecStateReadOnly(moduleDataDir) {
+  const statePath = getSpecStatePath(moduleDataDir);
+  if (!import_node_fs14.default.existsSync(statePath)) {
+    return createEmptySpecState();
+  }
+  try {
+    const raw = JSON.parse(import_node_fs14.default.readFileSync(statePath, "utf8"));
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return createEmptySpecState();
+    }
+    const specs = [];
+    const seenSpecIds = /* @__PURE__ */ new Set();
+    if (Array.isArray(raw.specs)) {
+      for (const item of raw.specs.slice(0, MAX_SPECS)) {
+        const spec = normalizeSpecFromDisk(item);
+        if (spec && !seenSpecIds.has(spec.id)) {
+          seenSpecIds.add(spec.id);
+          specs.push(spec);
+        }
+      }
+    }
+    const activeSpecId = typeof raw.activeSpecId === "string" && seenSpecIds.has(raw.activeSpecId) ? raw.activeSpecId : null;
+    return {
+      schemaVersion: 1,
+      activeSpecId,
+      specs,
+      updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : (/* @__PURE__ */ new Date()).toISOString()
+    };
+  } catch {
+    return createEmptySpecState();
+  }
+}
+function saveSpecState(moduleDataDir, state) {
+  const sorted = [...state.specs].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+  let kept = sorted.slice(0, MAX_SPECS);
+  if (state.activeSpecId && !kept.some((s) => s.id === state.activeSpecId)) {
+    const activeDoc = sorted.find((s) => s.id === state.activeSpecId);
+    if (activeDoc && kept.length > 0) {
+      kept = [...kept.slice(0, MAX_SPECS - 1), activeDoc];
+    }
+  }
+  const keptIds = new Set(kept.map((s) => s.id));
+  const next = {
+    schemaVersion: 1,
+    activeSpecId: state.activeSpecId && keptIds.has(state.activeSpecId) ? state.activeSpecId : null,
+    specs: kept,
+    updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  atomicWriteJson(getSpecStatePath(moduleDataDir), next);
+  return next;
+}
+function validateAndNormalizeTaskInputs(rawTasks, existingTaskMap, nowIso, options) {
+  if (rawTasks.length > MAX_TASKS_PER_SPEC) {
+    return {
+      ok: false,
+      error: `Spec cannot contain more than ${MAX_TASKS_PER_SPEC} tasks.`
+    };
+  }
+  const normalized = [];
+  for (let i = 0; i < rawTasks.length; i += 1) {
+    const raw = rawTasks[i];
+    if (!raw || typeof raw !== "object") {
+      return { ok: false, error: `Task at index ${i} must be an object.` };
+    }
+    const id = typeof raw.id === "string" ? raw.id : "";
+    if (!SPEC_TASK_ID_RE.test(id)) {
+      return {
+        ok: false,
+        error: `Invalid task id "${String(raw.id ?? "")}": must be 1..48 chars matching ${SPEC_TASK_ID_RE.source}.`
+      };
+    }
+    const title = typeof raw.title === "string" ? sanitizeSingleLine(raw.title, 200) : "";
+    if (!title) {
+      return { ok: false, error: `Task "${id}" must have a non-empty title.` };
+    }
+    const existing = existingTaskMap.get(id);
+    const status = raw.status !== void 0 ? raw.status : existing?.status ?? "pending";
+    if (!VALID_TASK_STATUSES.has(status)) {
+      return {
+        ok: false,
+        error: `Task "${id}" has invalid status "${String(status)}".`
+      };
+    }
+    if (options?.forbidAdvancingTaskStatus && (raw.status === "in_progress" || raw.status === "done")) {
+      const label = options.specTitle ? `"${options.specTitle}" ` : "";
+      return {
+        ok: false,
+        error: `Cannot set task "${id}" to "${raw.status}" from a model tool while draft spec ${label}has write lock enabled. Approve the spec first before advancing tasks.`
+      };
+    }
+    const dependsOnRaw = raw.dependsOn ?? [];
+    if (!Array.isArray(dependsOnRaw)) {
+      return { ok: false, error: `Task "${id}" dependsOn must be an array of task IDs.` };
+    }
+    const dependsOn = [];
+    const seenDeps = /* @__PURE__ */ new Set();
+    for (const dep of dependsOnRaw) {
+      if (typeof dep !== "string" || !dep.trim()) {
+        return { ok: false, error: `Task "${id}" contains an empty dependency ID.` };
+      }
+      if (!seenDeps.has(dep)) {
+        seenDeps.add(dep);
+        dependsOn.push(dep);
+      }
+    }
+    const description = raw.description !== void 0 ? sanitizeOptionalMultiline(raw.description, 2e3) : existing?.description;
+    const note = raw.note !== void 0 ? sanitizeOptionalMultiline(raw.note, 2e3) : existing?.note;
+    normalized.push({
+      id,
+      title,
+      ...description !== void 0 ? { description } : {},
+      dependsOn,
+      status,
+      ...note !== void 0 ? { note } : {},
+      updatedAt: existing && existing.title === title && existing.status === status && existing.description === description && existing.note === note && existing.dependsOn.length === dependsOn.length && existing.dependsOn.every((d, idx) => d === dependsOn[idx]) ? existing.updatedAt : nowIso
+    });
+  }
+  const dagCheck = validateTaskDag(normalized);
+  if (!dagCheck.valid) {
+    return { ok: false, error: dagCheck.error };
+  }
+  const nextTaskMap = new Map(normalized.map((t) => [t.id, t]));
+  for (const task of normalized) {
+    const prev = existingTaskMap.get(task.id);
+    const transitioningToActiveOrDone = (task.status === "in_progress" || task.status === "done") && prev?.status !== task.status;
+    if (transitioningToActiveOrDone) {
+      const unmet = task.dependsOn.filter((depId) => nextTaskMap.get(depId)?.status !== "done");
+      if (unmet.length > 0) {
+        return {
+          ok: false,
+          error: `Cannot set task "${task.id}" to "${task.status}": unmet dependencies must be done first (${unmet.join(", ")}).`
+        };
+      }
+    }
+  }
+  return { ok: true, tasks: normalized };
+}
+function applySaveSpecInMemory(state, input2, actor) {
+  const title = typeof input2.title === "string" ? sanitizeSingleLine(input2.title, 200) : "";
+  if (!title) {
+    return { ok: false, error: "Spec title must be non-empty." };
+  }
+  const goal = typeof input2.goal === "string" ? sanitizeMultiline(input2.goal, 4e3) : "";
+  if (!goal) {
+    return { ok: false, error: "Spec goal must be non-empty." };
+  }
+  const existingIds = new Set(state.specs.map((s) => s.id));
+  let specId;
+  if (input2.id !== void 0 && input2.id.trim().length > 0) {
+    const trimmedId = input2.id.trim();
+    if (!SPEC_ID_RE.test(trimmedId)) {
+      return {
+        ok: false,
+        error: `Invalid spec id "${trimmedId}": must match ${SPEC_ID_RE.source}.`
+      };
+    }
+    specId = trimmedId;
+  } else {
+    specId = createSpecId(title, existingIds);
+  }
+  const existingIndex = state.specs.findIndex((s) => s.id === specId);
+  const existing = existingIndex >= 0 ? state.specs[existingIndex] : void 0;
+  const currentActiveSpec = state.activeSpecId ? state.specs.find((s) => s.id === state.activeSpecId) ?? null : null;
+  const globalWriteLockActive = isSpecWriteLockActive(currentActiveSpec);
+  if (actor === "model" && existing) {
+    if (existing.requireUiApproval && input2.requireUiApproval === false) {
+      return {
+        ok: false,
+        error: "Cannot disable requireUiApproval from a model tool. Update this setting in the agy-NOV Spec Flow UI."
+      };
+    }
+    if (existing.enforcePlanBeforeWrite && input2.enforcePlanBeforeWrite === false) {
+      return {
+        ok: false,
+        error: "Cannot disable enforcePlanBeforeWrite from a model tool. Approve the spec via spec_approve or update guardrails in the agy-NOV Spec Flow UI."
+      };
+    }
+  }
+  const enforcePlanBeforeWrite = input2.enforcePlanBeforeWrite !== void 0 ? Boolean(input2.enforcePlanBeforeWrite) : existing?.enforcePlanBeforeWrite ?? true;
+  const requireUiApproval = input2.requireUiApproval !== void 0 ? Boolean(input2.requireUiApproval) : existing?.requireUiApproval ?? false;
+  const nextStatus = existing?.status ?? "draft";
+  const targetWriteLockActive = isSpecWriteLockActive(existing) || nextStatus === "draft" && enforcePlanBeforeWrite;
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const existingTaskMap = new Map(
+    (existing?.tasks ?? []).map((t) => [t.id, t])
+  );
+  let nextTasks;
+  if (input2.tasks !== void 0) {
+    const validated = validateAndNormalizeTaskInputs(input2.tasks, existingTaskMap, nowIso, {
+      forbidAdvancingTaskStatus: actor === "model" && targetWriteLockActive,
+      specTitle: title
+    });
+    if (!validated.ok) return validated;
+    nextTasks = validated.tasks;
+  } else {
+    nextTasks = existing ? existing.tasks.map((t) => ({ ...t, dependsOn: [...t.dependsOn] })) : [];
+  }
+  let nextActiveSpecId = state.activeSpecId;
+  const wantsSetActive = input2.setActive === true || !existing && input2.setActive !== false;
+  const wantsClearActive = input2.setActive === false && state.activeSpecId === specId;
+  if (actor === "model" && globalWriteLockActive && currentActiveSpec) {
+    if (wantsClearActive && currentActiveSpec.id === specId) {
+      return {
+        ok: false,
+        error: "Cannot deactivate a draft spec with write lock enabled from a model tool. Approve the spec or switch specs in the agy-NOV Spec Flow UI."
+      };
+    }
+    if (wantsSetActive && currentActiveSpec.id !== specId) {
+      if (input2.setActive === true) {
+        return {
+          ok: false,
+          error: "Cannot switch active spec from a model tool while the current draft spec has write lock enabled. Approve the active spec first or switch in the agy-NOV Spec Flow UI."
+        };
+      }
+      nextActiveSpecId = currentActiveSpec.id;
+    } else if (wantsSetActive) {
+      nextActiveSpecId = specId;
+    }
+  } else {
+    if (wantsSetActive) {
+      nextActiveSpecId = specId;
+    } else if (wantsClearActive) {
+      nextActiveSpecId = null;
+    }
+  }
+  const nextSpec = {
+    id: specId,
+    title,
+    goal,
+    acceptanceCriteria: input2.acceptanceCriteria !== void 0 ? sanitizeStringList(input2.acceptanceCriteria, MAX_CRITERIA_ITEMS, 500) : existing ? [...existing.acceptanceCriteria] : [],
+    planSteps: input2.planSteps !== void 0 ? sanitizeStringList(input2.planSteps, MAX_PLAN_STEPS, 500) : existing ? [...existing.planSteps] : [],
+    status: nextStatus,
+    enforcePlanBeforeWrite,
+    requireUiApproval,
+    ...existing?.approvedBy !== void 0 ? { approvedBy: existing.approvedBy } : {},
+    ...existing?.approvedAt !== void 0 ? { approvedAt: existing.approvedAt } : {},
+    ...existing?.approvalNote !== void 0 ? { approvalNote: existing.approvalNote } : {},
+    tasks: nextTasks,
+    createdAt: existing?.createdAt ?? nowIso,
+    updatedAt: nowIso
+  };
+  if (existingIndex >= 0) {
+    state.specs[existingIndex] = nextSpec;
+  } else {
+    state.specs.unshift(nextSpec);
+  }
+  state.activeSpecId = nextActiveSpecId;
+  state.updatedAt = nowIso;
+  return {
+    ok: true,
+    spec: buildSpecDocumentView(nextSpec),
+    state
+  };
+}
+function saveSpec(moduleDataDir, input2, actor) {
+  const state = loadSpecStateReadOnly(moduleDataDir);
+  const res = applySaveSpecInMemory(state, input2, actor);
+  if (!res.ok) return res;
+  const saved = saveSpecState(moduleDataDir, res.state);
+  const savedDoc = saved.specs.find((s) => s.id === res.spec.id);
+  return {
+    ok: true,
+    spec: savedDoc ? buildSpecDocumentView(savedDoc) : res.spec,
+    state: saved
+  };
+}
+function applySetSpecStatusInMemory(state, input2, actor) {
+  if (!VALID_SPEC_STATUSES.has(input2.status)) {
+    return { ok: false, error: `Invalid spec status "${String(input2.status)}".` };
+  }
+  const targetId = input2.specId?.trim() || state.activeSpecId || void 0;
+  if (!targetId) {
+    return { ok: false, error: "No specId specified and no active spec exists." };
+  }
+  const idx = state.specs.findIndex((s) => s.id === targetId);
+  if (idx < 0) {
+    return { ok: false, error: `Spec not found: "${targetId}".` };
+  }
+  const existing = state.specs[idx];
+  if (actor === "model" && input2.status === "approved" && existing.requireUiApproval) {
+    return {
+      ok: false,
+      error: `Spec "${existing.title}" requires UI approval (requireUiApproval=true). Please ask the user to approve it in the agy-NOV Spec Flow panel.`
+    };
+  }
+  if (actor === "model" && input2.status === "approved" && existing.status === "archived") {
+    return {
+      ok: false,
+      error: `Spec "${existing.title}" is archived and cannot be approved directly by a model tool.`
+    };
+  }
+  if (actor === "model") {
+    if (existing.requireUiApproval && input2.requireUiApproval === false) {
+      return {
+        ok: false,
+        error: "Cannot disable requireUiApproval from a model tool. Update this setting in the agy-NOV Spec Flow UI."
+      };
+    }
+    if (existing.enforcePlanBeforeWrite && input2.enforcePlanBeforeWrite === false) {
+      return {
+        ok: false,
+        error: "Cannot disable enforcePlanBeforeWrite from a model tool. Approve the spec via spec_approve or update guardrails in the agy-NOV Spec Flow UI."
+      };
+    }
+    const currentActiveSpec = state.activeSpecId ? state.specs.find((s) => s.id === state.activeSpecId) ?? null : null;
+    if (currentActiveSpec && isSpecWriteLockActive(currentActiveSpec)) {
+      const unlockingActive = existing.id === currentActiveSpec.id && input2.status === "approved";
+      if (!unlockingActive) {
+        if (input2.setActive === false && currentActiveSpec.id === existing.id) {
+          return {
+            ok: false,
+            error: "Cannot deactivate a draft spec with write lock enabled from a model tool. Approve the spec or switch specs in the agy-NOV Spec Flow UI."
+          };
+        }
+        if (input2.setActive === true && currentActiveSpec.id !== existing.id) {
+          return {
+            ok: false,
+            error: "Cannot switch active spec from a model tool while the current draft spec has write lock enabled. Approve the active spec first or switch in the agy-NOV Spec Flow UI."
+          };
+        }
+      }
+    }
+  }
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const nextSpec = {
+    ...existing,
+    acceptanceCriteria: [...existing.acceptanceCriteria],
+    planSteps: [...existing.planSteps],
+    tasks: existing.tasks.map((t) => ({ ...t, dependsOn: [...t.dependsOn] })),
+    status: input2.status,
+    enforcePlanBeforeWrite: input2.enforcePlanBeforeWrite !== void 0 ? Boolean(input2.enforcePlanBeforeWrite) : existing.enforcePlanBeforeWrite,
+    requireUiApproval: input2.requireUiApproval !== void 0 ? Boolean(input2.requireUiApproval) : existing.requireUiApproval,
+    updatedAt: nowIso
+  };
+  const cleanedNote = input2.approvalNote !== void 0 ? sanitizeOptionalMultiline(input2.approvalNote, 1e3) : void 0;
+  if (input2.status === "approved") {
+    if (existing.status !== "approved" || !existing.approvedBy) {
+      nextSpec.approvedBy = actor;
+      nextSpec.approvedAt = nowIso;
+    }
+    if (input2.approvalNote !== void 0) {
+      if (cleanedNote !== void 0) nextSpec.approvalNote = cleanedNote;
+      else delete nextSpec.approvalNote;
+    }
+  } else if (input2.status === "draft") {
+    delete nextSpec.approvedBy;
+    delete nextSpec.approvedAt;
+    if (input2.approvalNote !== void 0) {
+      if (cleanedNote !== void 0) nextSpec.approvalNote = cleanedNote;
+      else delete nextSpec.approvalNote;
+    } else {
+      delete nextSpec.approvalNote;
+    }
+  } else if (input2.approvalNote !== void 0) {
+    if (cleanedNote !== void 0) nextSpec.approvalNote = cleanedNote;
+    else delete nextSpec.approvalNote;
+  }
+  state.specs[idx] = nextSpec;
+  if (input2.setActive === true) {
+    state.activeSpecId = nextSpec.id;
+  } else if (input2.setActive === false && state.activeSpecId === nextSpec.id) {
+    state.activeSpecId = null;
+  }
+  state.updatedAt = nowIso;
+  return {
+    ok: true,
+    spec: buildSpecDocumentView(nextSpec),
+    state
+  };
+}
+function setSpecStatus(moduleDataDir, input2, actor) {
+  const state = loadSpecStateReadOnly(moduleDataDir);
+  const res = applySetSpecStatusInMemory(state, input2, actor);
+  if (!res.ok) return res;
+  const saved = saveSpecState(moduleDataDir, res.state);
+  const savedDoc = saved.specs.find((s) => s.id === res.spec.id);
+  return {
+    ok: true,
+    spec: savedDoc ? buildSpecDocumentView(savedDoc) : res.spec,
+    state: saved
+  };
+}
+function applyUpdateSpecTaskInMemory(state, input2, actor) {
+  if (!VALID_TASK_STATUSES.has(input2.status)) {
+    return { ok: false, error: `Invalid task status "${String(input2.status)}".` };
+  }
+  const targetSpecId = input2.specId?.trim() || state.activeSpecId || void 0;
+  if (!targetSpecId) {
+    return { ok: false, error: "No specId specified and no active spec exists." };
+  }
+  const specIdx = state.specs.findIndex((s) => s.id === targetSpecId);
+  if (specIdx < 0) {
+    return { ok: false, error: `Spec not found: "${targetSpecId}".` };
+  }
+  const spec = state.specs[specIdx];
+  const taskId = input2.taskId.trim();
+  const taskIdx = spec.tasks.findIndex((t) => t.id === taskId);
+  if (taskIdx < 0) {
+    return { ok: false, error: `Task "${taskId}" not found in spec "${spec.id}".` };
+  }
+  const targetTask = spec.tasks[taskIdx];
+  if (actor === "model" && isSpecWriteLockActive(spec) && (input2.status === "in_progress" || input2.status === "done")) {
+    return {
+      ok: false,
+      error: `Cannot mark task "${taskId}" as "${input2.status}" while spec "${spec.title}" is in DRAFT with write lock enabled. Approve the spec first before advancing tasks.`
+    };
+  }
+  if (input2.status === "in_progress" || input2.status === "done") {
+    const taskMap = new Map(spec.tasks.map((t) => [t.id, t]));
+    const unmetDeps = targetTask.dependsOn.filter(
+      (depId) => taskMap.get(depId)?.status !== "done"
+    );
+    if (unmetDeps.length > 0) {
+      return {
+        ok: false,
+        error: `Cannot mark task "${taskId}" as "${input2.status}": unmet prerequisite task(s) must be done first: ${unmetDeps.join(", ")}.`
+      };
+    }
+  }
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const nextNote = input2.note !== void 0 ? sanitizeOptionalMultiline(input2.note, 2e3) : targetTask.note;
+  const updatedTask = {
+    ...targetTask,
+    dependsOn: [...targetTask.dependsOn],
+    status: input2.status,
+    updatedAt: nowIso
+  };
+  if (nextNote !== void 0) {
+    updatedTask.note = nextNote;
+  } else {
+    delete updatedTask.note;
+  }
+  const nextTasks = spec.tasks.map((t, i) => i === taskIdx ? updatedTask : t);
+  const nextSpec = {
+    ...spec,
+    tasks: nextTasks,
+    updatedAt: nowIso
+  };
+  state.specs[specIdx] = nextSpec;
+  state.updatedAt = nowIso;
+  const specView = buildSpecDocumentView(nextSpec);
+  const taskView = specView.tasks.find((t) => t.id === taskId);
+  return {
+    ok: true,
+    task: taskView,
+    spec: specView,
+    state
+  };
+}
+function updateSpecTask(moduleDataDir, input2, actor) {
+  const state = loadSpecStateReadOnly(moduleDataDir);
+  const res = applyUpdateSpecTaskInMemory(state, input2, actor);
+  if (!res.ok) return res;
+  const saved = saveSpecState(moduleDataDir, res.state);
+  const savedDoc = saved.specs.find((s) => s.id === res.spec.id);
+  const specView = savedDoc ? buildSpecDocumentView(savedDoc) : res.spec;
+  const taskView = specView.tasks.find((t) => t.id === res.task.id) ?? res.task;
+  return {
+    ok: true,
+    task: taskView,
+    spec: specView,
+    state: saved
+  };
+}
+function createDemoSpecState() {
+  const now = Date.now();
+  const iso = (offsetMinutes) => new Date(now - offsetMinutes * 6e4).toISOString();
+  const approvedSpec = {
+    id: "spec-oauth-refresh-rotation",
+    title: "OAuth2 Refresh Token Rotation & Replay Guard",
+    goal: "Implement rolling refresh token families with automatic replay revocation and backward-compatible session cookie migration.",
+    acceptanceCriteria: [
+      "Every refresh call mints a single-use child token and invalidates its immediate parent.",
+      "Replaying a previously rotated token revokes the entire token family and logs a redacted audit event.",
+      "All unit and integration tests pass with zero breaking changes to active sessions."
+    ],
+    planSteps: [
+      "Add token_family_id and revoked_at columns with non-blocking migration.",
+      "Implement atomic rotation and reuse detection in AuthTokenService.",
+      "Emit structured, secret-redacted telemetry events for rotation and replay anomalies.",
+      "Execute integration suite and canary rollout verification checklist."
+    ],
+    status: "approved",
+    enforcePlanBeforeWrite: true,
+    requireUiApproval: false,
+    approvedBy: "user",
+    approvedAt: iso(42),
+    approvalNote: "Approved schema design and rollback guardrails.",
+    tasks: [
+      {
+        id: "schema-migration",
+        title: "Define refresh token family schema & migration",
+        description: "Add token_family_id index and nullable revoked_at timestamp.",
+        dependsOn: [],
+        status: "done",
+        note: "Migration verified cleanly on SQLite & Postgres fixtures.",
+        updatedAt: iso(35)
+      },
+      {
+        id: "rotation-service",
+        title: "Implement atomic rotation & replay revocation",
+        description: "Rotate refresh token inside transaction and revoke family on reuse.",
+        dependsOn: ["schema-migration"],
+        status: "in_progress",
+        note: "Core transaction path complete; finishing race-condition test.",
+        updatedAt: iso(12)
+      },
+      {
+        id: "audit-telemetry",
+        title: "Add redacted security telemetry & metrics",
+        description: "Record family revocations without logging raw tokens or JWT payloads.",
+        dependsOn: ["schema-migration"],
+        status: "pending",
+        updatedAt: iso(35)
+      },
+      {
+        id: "integration-canary",
+        title: "Run end-to-end replay suite & canary checklist",
+        description: "Verify concurrent refresh races, rollback script, and latency budget.",
+        dependsOn: ["rotation-service", "audit-telemetry"],
+        status: "pending",
+        updatedAt: iso(35)
+      }
+    ],
+    createdAt: iso(55),
+    updatedAt: iso(12)
+  };
+  const draftSpec = {
+    id: "spec-billing-webhook-idempotency",
+    title: "Idempotent Billing Webhook Processor",
+    goal: "Guarantee exactly-once invoice state transitions with HMAC signature validation and bounded dead-letter retries.",
+    acceptanceCriteria: [
+      "Reject invalid or stale webhook signatures before touching application state.",
+      "Deduplicate retried provider deliveries using composite (provider, event_id) keys.",
+      "Surface poison events in a replayable dead-letter queue with redacted payloads."
+    ],
+    planSteps: [
+      "Add raw-body HMAC verification middleware with constant-time digest comparison.",
+      "Introduce idempotency ledger table and transactional handler wrapper.",
+      "Add automated replay tests for duplicate and out-of-order invoice webhooks."
+    ],
+    status: "draft",
+    enforcePlanBeforeWrite: true,
+    requireUiApproval: true,
+    tasks: [
+      {
+        id: "hmac-guard",
+        title: "Implement constant-time HMAC webhook signature guard",
+        dependsOn: [],
+        status: "pending",
+        updatedAt: iso(18)
+      },
+      {
+        id: "idempotency-ledger",
+        title: "Persist provider event idempotency ledger with TTL cleanup",
+        dependsOn: ["hmac-guard"],
+        status: "pending",
+        updatedAt: iso(18)
+      },
+      {
+        id: "webhook-replay-tests",
+        title: "Add duplicate & out-of-order webhook integration tests",
+        dependsOn: ["idempotency-ledger"],
+        status: "pending",
+        updatedAt: iso(18)
+      }
+    ],
+    createdAt: iso(25),
+    updatedAt: iso(18)
+  };
+  return {
+    schemaVersion: 1,
+    activeSpecId: approvedSpec.id,
+    specs: [approvedSpec, draftSpec],
+    updatedAt: iso(12)
+  };
+}
+
+// src/modules/spec/register.ts
+function toHandle6(name, tool) {
+  return {
+    name,
+    enable: () => tool.enable(),
+    disable: () => tool.disable()
+  };
+}
+var SPEC_STATUS_ENUM = external_exports.enum(["draft", "approved", "completed", "archived"]);
+var SPEC_TASK_STATUS_ENUM = external_exports.enum(["pending", "in_progress", "done", "blocked"]);
+var SPEC_TASK_INPUT_SCHEMA = external_exports.object({
+  id: external_exports.string().describe("Unique task ID matching /^[a-zA-Z0-9._-]{1,48}$/"),
+  title: external_exports.string().describe("Short task title"),
+  description: external_exports.string().max(2e3).optional().describe("Optional task details"),
+  dependsOn: external_exports.array(external_exports.string()).max(50).optional().describe("IDs of prerequisite tasks in the same spec"),
+  status: SPEC_TASK_STATUS_ENUM.optional().describe("Optional task status (defaults to pending)"),
+  note: external_exports.string().max(2e3).optional().describe("Optional progress or blocker note")
+});
+var SAVE_SPEC_INPUT_SCHEMA = {
+  id: external_exports.string().max(64).optional().describe("Optional spec ID (auto-generated when omitted; updates existing spec if matched)"),
+  title: external_exports.string().max(200).describe("Spec title"),
+  goal: external_exports.string().max(4e3).describe("High-level engineering goal and scope"),
+  acceptanceCriteria: external_exports.array(external_exports.string().max(500)).max(50).optional().describe("Acceptance criteria list"),
+  planSteps: external_exports.array(external_exports.string().max(500)).max(80).optional().describe("Ordered implementation plan steps"),
+  enforcePlanBeforeWrite: external_exports.boolean().optional().describe("Block workspace write tools while spec is in draft status (default true)"),
+  requireUiApproval: external_exports.boolean().optional().describe("Require manual user approval in the agy-NOV Spec Flow UI (blocks model spec_approve when true; default false)"),
+  tasks: external_exports.array(SPEC_TASK_INPUT_SCHEMA).max(100).optional().describe("Task DAG list validated for uniqueness, valid references, and zero cycles"),
+  setActive: external_exports.boolean().optional().describe("Set this spec as the active spec (defaults to true for newly created specs)")
+};
+function serializeStateView(view) {
+  return {
+    mode: view.mode,
+    activeSpecId: view.activeSpecId,
+    activeSpec: view.activeSpec,
+    specs: view.specs,
+    writeLockActive: view.writeLockActive
+  };
+}
+function formatSpecSummaryText(view) {
+  const lines = [
+    `Spec Flow (${view.mode}): ${view.specs.length} spec(s), activeSpecId=${view.activeSpecId ?? "none"}, writeLockActive=${view.writeLockActive}`
+  ];
+  const spec = view.activeSpec;
+  if (!spec) {
+    lines.push("No active spec selected.");
+    return lines.join("\n");
+  }
+  const doneCount = spec.tasks.filter((t) => t.status === "done").length;
+  const readyTasks = spec.tasks.filter((t) => t.computedState === "ready");
+  lines.push(
+    `Spec "${spec.title}" [${spec.id}] \u2014 status=${spec.status}, enforcePlanBeforeWrite=${spec.enforcePlanBeforeWrite}, requireUiApproval=${spec.requireUiApproval}`
+  );
+  lines.push(
+    `Tasks: ${doneCount}/${spec.tasks.length} done, ${readyTasks.length} ready`
+  );
+  for (const task of spec.tasks.slice(0, 12)) {
+    const deps = task.dependsOn.length > 0 ? ` deps=[${task.dependsOn.join(", ")}]` : "";
+    const unmet = task.unmetDeps.length > 0 ? ` unmet=[${task.unmetDeps.join(", ")}]` : "";
+    lines.push(
+      `- [${task.computedState}] ${task.id} (depth=${task.depth}): ${task.title}${deps}${unmet}`
+    );
+  }
+  if (spec.tasks.length > 12) {
+    lines.push(`... (+${spec.tasks.length - 12} more tasks)`);
+  }
+  return lines.join("\n");
+}
+function registerSpecModule(server, options, uiResourceUri) {
+  const rootDataDir = resolveNovDataDir(options.dataDir);
+  const moduleDataDir = getModuleDataDir(rootDataDir, "spec");
+  const isDemo = options.demoMode === true;
+  const demoState = isDemo ? createDemoSpecState() : null;
+  const APP_ONLY_META2 = {
+    ui: {
+      resourceUri: uiResourceUri,
+      visibility: ["app"]
+    }
+  };
+  const getCurrentStateFile = () => isDemo && demoState ? demoState : loadSpecStateReadOnly(moduleDataDir);
+  const getStateView = (specId) => {
+    const current = getCurrentStateFile();
+    const trimmedSpecId = specId?.trim();
+    if (trimmedSpecId && !current.specs.some((s) => s.id === trimmedSpecId)) {
+      return { ok: false, error: `Spec not found: "${trimmedSpecId}".` };
+    }
+    return {
+      ok: true,
+      view: buildSpecStateView(current, isDemo ? "demo" : "live", trimmedSpecId || void 0)
+    };
+  };
+  const runSaveSpec = (input2, actor) => {
+    if (isDemo && demoState) {
+      const res2 = applySaveSpecInMemory(demoState, input2, actor);
+      if (!res2.ok) return res2;
+      return {
+        ok: true,
+        spec: res2.spec,
+        state: buildSpecStateView(demoState, "demo")
+      };
+    }
+    const res = saveSpec(moduleDataDir, input2, actor);
+    if (!res.ok) return res;
+    return {
+      ok: true,
+      spec: res.spec,
+      state: buildSpecStateView(res.state, "live")
+    };
+  };
+  const runSetStatus = (input2, actor) => {
+    if (isDemo && demoState) {
+      const res2 = applySetSpecStatusInMemory(demoState, input2, actor);
+      if (!res2.ok) return res2;
+      return {
+        ok: true,
+        spec: res2.spec,
+        state: buildSpecStateView(demoState, "demo")
+      };
+    }
+    const res = setSpecStatus(moduleDataDir, input2, actor);
+    if (!res.ok) return res;
+    return {
+      ok: true,
+      spec: res.spec,
+      state: buildSpecStateView(res.state, "live")
+    };
+  };
+  const runUpdateTask = (input2, actor) => {
+    if (isDemo && demoState) {
+      const res2 = applyUpdateSpecTaskInMemory(demoState, input2, actor);
+      if (!res2.ok) return res2;
+      return {
+        ok: true,
+        task: res2.task,
+        state: buildSpecStateView(demoState, "demo")
+      };
+    }
+    const res = updateSpecTask(moduleDataDir, input2, actor);
+    if (!res.ok) return res;
+    return {
+      ok: true,
+      task: res.task,
+      state: buildSpecStateView(res.state, "live")
+    };
+  };
+  const modelTools = [];
+  const getStateTool = server.registerTool(
+    "spec_get_state",
+    {
+      title: "Get Spec Flow & Task DAG State",
+      description: "Read the active (or specified) Spec document, computed Task DAG states/depths, write-lock status, and all tracked specs without modifying disk.",
+      inputSchema: {
+        specId: external_exports.string().max(64).optional().describe("Optional spec ID to inspect; defaults to the active spec")
+      }
+    },
+    async ({ specId }) => {
+      const res = getStateView(specId);
+      if (!res.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      return {
+        content: [{ type: "text", text: formatSpecSummaryText(res.view) }],
+        structuredContent: serializeStateView(res.view)
+      };
+    }
+  );
+  modelTools.push(toHandle6("spec_get_state", getStateTool));
+  const createOrUpdateTool = server.registerTool(
+    "spec_create_or_update",
+    {
+      title: "Create or Update Spec & Task DAG",
+      description: "Create a new draft Spec or update an existing Spec and its Task DAG. Validates task ID format/uniqueness, dependency references, and rejects cycles via Kahn topological sort.",
+      inputSchema: SAVE_SPEC_INPUT_SCHEMA
+    },
+    async (input2) => {
+      const res = runSaveSpec(input2, "model");
+      if (!res.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Saved spec "${res.spec.title}" (${res.spec.id}) [${res.spec.status}] with ${res.spec.tasks.length} task(s). writeLockActive=${res.state.writeLockActive}.`
+          }
+        ],
+        structuredContent: {
+          spec: res.spec,
+          state: res.state
+        }
+      };
+    }
+  );
+  modelTools.push(toHandle6("spec_create_or_update", createOrUpdateTool));
+  const approveTool = server.registerTool(
+    "spec_approve",
+    {
+      title: "Approve Spec",
+      description: "Approve a draft Spec to unlock the pre-approval write gate. Automatically rejected if requireUiApproval is enabled (must be approved by the user in the agy-NOV Spec Flow UI).",
+      inputSchema: {
+        specId: external_exports.string().max(64).optional().describe("Spec ID to approve; defaults to the active spec"),
+        approvalNote: external_exports.string().max(1e3).optional().describe("Optional approval note")
+      }
+    },
+    async ({ specId, approvalNote }) => {
+      const res = runSetStatus(
+        {
+          specId,
+          status: "approved",
+          approvalNote
+        },
+        "model"
+      );
+      if (!res.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Approved spec "${res.spec.title}" (${res.spec.id}). writeLockActive=${res.state.writeLockActive}.`
+          }
+        ],
+        structuredContent: {
+          spec: res.spec,
+          state: res.state
+        }
+      };
+    }
+  );
+  modelTools.push(toHandle6("spec_approve", approveTool));
+  const updateTaskTool = server.registerTool(
+    "spec_update_task",
+    {
+      title: "Update Spec Task Status",
+      description: "Update a task status (pending, in_progress, done, blocked) within a Spec DAG. Rejects transitions to in_progress or done while the spec is in draft with write lock enabled, or when prerequisite dependencies are not done.",
+      inputSchema: {
+        specId: external_exports.string().max(64).optional().describe("Spec ID; defaults to the active spec"),
+        taskId: external_exports.string().max(48).describe("Task ID within the spec"),
+        status: SPEC_TASK_STATUS_ENUM.describe("Target task status"),
+        note: external_exports.string().max(2e3).optional().describe("Optional progress or blocker note")
+      }
+    },
+    async ({ specId, taskId, status, note }) => {
+      const res = runUpdateTask(
+        {
+          specId,
+          taskId,
+          status,
+          note
+        },
+        "model"
+      );
+      if (!res.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Updated task "${res.task.id}" -> ${res.task.status} (computedState=${res.task.computedState}).`
+          }
+        ],
+        structuredContent: {
+          task: res.task,
+          state: res.state
+        }
+      };
+    }
+  );
+  modelTools.push(toHandle6("spec_update_task", updateTaskTool));
+  server.registerTool(
+    "app_spec_get_state",
+    {
+      title: "Get Spec Flow State (App Only)",
+      description: "Read Spec Flow state, active Spec DAG view, and write-lock status for the UI.",
+      inputSchema: {
+        specId: external_exports.string().max(64).optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ specId }) => {
+      const res = getStateView(specId);
+      if (!res.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      return {
+        content: [{ type: "text", text: "ok" }],
+        structuredContent: serializeStateView(res.view)
+      };
+    }
+  );
+  server.registerTool(
+    "app_spec_save",
+    {
+      title: "Save Spec & Task DAG (App Only)",
+      description: "Create or update a Spec document and Task DAG from the Spec Flow UI.",
+      inputSchema: SAVE_SPEC_INPUT_SCHEMA,
+      _meta: APP_ONLY_META2
+    },
+    async (input2) => {
+      const res = runSaveSpec(input2, "user");
+      if (!res.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      return {
+        content: [{ type: "text", text: "saved" }],
+        structuredContent: {
+          spec: res.spec,
+          state: res.state
+        }
+      };
+    }
+  );
+  server.registerTool(
+    "app_spec_set_status",
+    {
+      title: "Set Spec Status & Guardrails (App Only)",
+      description: "Update Spec lifecycle status (draft/approved/completed/archived), write-lock settings, requireUiApproval flag, or active selection as the user.",
+      inputSchema: {
+        specId: external_exports.string().min(1).max(64),
+        status: SPEC_STATUS_ENUM,
+        enforcePlanBeforeWrite: external_exports.boolean().optional(),
+        requireUiApproval: external_exports.boolean().optional(),
+        approvalNote: external_exports.string().max(1e3).optional(),
+        setActive: external_exports.boolean().optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({
+      specId,
+      status,
+      enforcePlanBeforeWrite,
+      requireUiApproval,
+      approvalNote,
+      setActive
+    }) => {
+      const res = runSetStatus(
+        {
+          specId,
+          status,
+          enforcePlanBeforeWrite,
+          requireUiApproval,
+          approvalNote,
+          setActive
+        },
+        "user"
+      );
+      if (!res.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      return {
+        content: [{ type: "text", text: res.spec.status }],
+        structuredContent: {
+          spec: res.spec,
+          state: res.state
+        }
+      };
+    }
+  );
+  server.registerTool(
+    "app_spec_update_task",
+    {
+      title: "Update Spec Task (App Only)",
+      description: "Update a task status and note from the Spec Flow UI with DAG dependency validation.",
+      inputSchema: {
+        specId: external_exports.string().min(1).max(64),
+        taskId: external_exports.string().min(1).max(48),
+        status: SPEC_TASK_STATUS_ENUM,
+        note: external_exports.string().max(2e3).optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ specId, taskId, status, note }) => {
+      const res = runUpdateTask(
+        {
+          specId,
+          taskId,
+          status,
+          note
+        },
+        "user"
+      );
+      if (!res.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      return {
+        content: [{ type: "text", text: res.task.status }],
+        structuredContent: {
+          task: res.task,
+          state: res.state
+        }
+      };
+    }
+  );
+  return {
+    moduleId: "spec",
+    modelTools,
+    exemptReadOnlyAppTools: ["app_spec_get_state"]
+  };
+}
+
+// src/modules/studio/register.ts
+var import_node_path21 = __toESM(require("node:path"), 1);
+
+// src/modules/studio/core.ts
+var import_node_child_process2 = require("node:child_process");
+var import_node_fs15 = __toESM(require("node:fs"), 1);
+var import_node_path20 = __toESM(require("node:path"), 1);
+var import_node_zlib = __toESM(require("node:zlib"), 1);
+var STUDIO_MAX_FILE_BYTES = 10 * 1024 * 1024;
+var STUDIO_MAX_SCAN_FILES = 500;
+var STUDIO_MAX_SCAN_DEPTH = 6;
+var STUDIO_MAX_DATA_ROWS = 100;
+var STUDIO_DEFAULT_DATA_ROWS = 50;
+var STUDIO_MAX_DOC_LINES = 200;
+var STUDIO_DEFAULT_DOC_LINES = 80;
+var STUDIO_ZIP_MAX_ENTRIES = 512;
+var STUDIO_ZIP_MAX_ENTRY_BYTES = 4 * 1024 * 1024;
+var STUDIO_ZIP_MAX_TOTAL_BYTES = 6 * 1024 * 1024;
+var STUDIO_PDF_MAX_STREAM_BYTES = 2 * 1024 * 1024;
+var STUDIO_HTTP_MAX_BODY_BYTES = 64 * 1024;
+var STUDIO_HTTP_MIN_TIMEOUT_MS = 1e3;
+var STUDIO_HTTP_MAX_TIMEOUT_MS = 15e3;
+var STUDIO_HTTP_DEFAULT_TIMEOUT_MS = 5e3;
+var STUDIO_SQLITE_TIMEOUT_MS = 4e3;
+var STUDIO_SQLITE_MAX_BUFFER_BYTES = 2 * 1024 * 1024;
+var STUDIO_SKIP_DIRS = /* @__PURE__ */ new Set([
+  ".git",
+  "node_modules",
+  "dist",
+  "build",
+  "out",
+  ".next",
+  ".nuxt",
+  ".cache",
+  ".turbo",
+  "coverage",
+  "__pycache__",
+  ".venv",
+  "venv",
+  "target",
+  "vendor",
+  ".idea",
+  ".vscode",
+  ".ssh",
+  ".aws",
+  ".gnupg",
+  ".kube",
+  "secrets",
+  "credentials"
+]);
+var SENSITIVE_EXTENSIONS3 = /* @__PURE__ */ new Set([
+  ".pem",
+  ".key",
+  ".p12",
+  ".pfx",
+  ".jks",
+  ".keystore"
+]);
+var SENSITIVE_EXACT_BASENAMES = /* @__PURE__ */ new Set([
+  ".env",
+  ".envrc",
+  ".npmrc",
+  ".netrc",
+  ".pypirc",
+  "id_rsa",
+  "id_ed25519",
+  "id_dsa",
+  "id_ecdsa",
+  "master.key",
+  "credentials",
+  "service-account.json",
+  "service_account.json"
+]);
+var SENSITIVE_DIR_SEGMENTS = /* @__PURE__ */ new Set([
+  ".git",
+  "node_modules",
+  ".ssh",
+  ".aws",
+  ".gnupg",
+  ".kube",
+  "secrets",
+  "credentials"
+]);
+var SKIP_JSON_LOCK_BASENAMES = /* @__PURE__ */ new Set([
+  "package-lock.json",
+  "npm-shrinkwrap.json"
+]);
+var ALLOWED_LOOPBACK_HOSTS = /* @__PURE__ */ new Set([
+  "127.0.0.1",
+  "localhost",
+  "[::1]",
+  "::1"
+]);
+var SENSITIVE_HEADER_NAMES = /* @__PURE__ */ new Set([
+  "authorization",
+  "proxy-authorization",
+  "www-authenticate",
+  "proxy-authenticate",
+  "cookie",
+  "set-cookie",
+  "x-api-key",
+  "api-key",
+  "x-auth-token",
+  "x-access-token",
+  "x-csrf-token",
+  "x-xsrf-token",
+  "x-secret-key",
+  "x-session-token",
+  "private-token"
+]);
+var SENSITIVE_HEADER_SUBSTRINGS = [
+  "authorization",
+  "auth",
+  "cookie",
+  "session",
+  "jwt",
+  "api-key",
+  "apikey",
+  "auth-token",
+  "access-token",
+  "secret",
+  "token",
+  "password",
+  "credential"
+];
+var FORBIDDEN_REQUEST_HEADERS = /* @__PURE__ */ new Set([
+  "host",
+  "content-length",
+  "transfer-encoding",
+  "connection"
+]);
+var ALLOWED_HTTP_METHODS = /* @__PURE__ */ new Set([
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "HEAD",
+  "OPTIONS"
+]);
+function redactStudioSecrets(input2) {
+  if (!input2) return input2;
+  let out = input2;
+  out = out.replace(
+    /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/g,
+    "[REDACTED:PRIVATE_KEY]"
+  );
+  out = out.replace(
+    /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/g,
+    "[REDACTED:PRIVATE_KEY]"
+  );
+  out = out.replace(/\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g, "[REDACTED:AWS_KEY]");
+  out = out.replace(
+    /\b(?:ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|gho_[A-Za-z0-9]{20,}|ghs_[A-Za-z0-9]{20,})\b/g,
+    "[REDACTED:GITHUB_TOKEN]"
+  );
+  out = out.replace(/\bAIza[0-9A-Za-z_-]{35}\b/g, "[REDACTED:GOOGLE_API_KEY]");
+  out = out.replace(
+    /\b(?:sk-ant-[A-Za-z0-9_-]{16,}|sk-proj-[A-Za-z0-9_-]{16,}|sk_live_[A-Za-z0-9]{16,}|sk-[A-Za-z0-9]{24,})\b/g,
+    "[REDACTED:API_SECRET]"
+  );
+  out = out.replace(/\bxox[baprs]-[0-9A-Za-z-]{14,}\b/g, "[REDACTED:SLACK_TOKEN]");
+  out = out.replace(/(\bBearer\s+)[A-Za-z0-9._~+/-]{12,}=*/gi, "$1[REDACTED]");
+  out = out.replace(/(\bBasic\s+)[A-Za-z0-9+/]{8,}={0,2}/gi, "$1[REDACTED]");
+  out = out.replace(
+    /("(?:[^"\r\n]*(?:api[_-]?key|secret|token|password|passwd|private[_-]?key|access[_-]?key|auth[_-]?token|cookie|authorization|session)[^"\r\n]*)"\s*:\s*")([^"\r\n]{4,})(")/gi,
+    "$1[REDACTED]$3"
+  );
+  out = out.replace(
+    /([?&](?:access[_-]?token|auth[_-]?token|token|api[_-]?key|key|secret|password|sig|signature)=)([^&#\s"']+)/gi,
+    "$1[REDACTED]"
+  );
+  out = out.replace(
+    /(\b(?:API_KEY|SECRET_KEY|ACCESS_TOKEN|AUTH_TOKEN|PRIVATE_TOKEN|DB_PASSWORD|DATABASE_PASSWORD|CLIENT_SECRET)\s*[:=]\s*['"`]?)(?!\[REDACTED)([^\s'"`,;}&\r\n]{6,})(['"`]?)/gi,
+    "$1[REDACTED]$3"
+  );
+  return out;
+}
+function isSensitiveStudioPath(relPathInput) {
+  if (!relPathInput) return false;
+  const normalized = relPathInput.replace(/\\/g, "/").trim().replace(/\/+$/, "");
+  if (!normalized) return false;
+  const segments = normalized.split("/").filter(Boolean);
+  for (const seg of segments) {
+    const lower = seg.toLowerCase();
+    if (SENSITIVE_DIR_SEGMENTS.has(lower)) return true;
+    if (lower.startsWith(".env")) return true;
+    if (lower.startsWith("credentials")) return true;
+    if (lower.includes("secret")) return true;
+  }
+  const base = import_node_path20.default.posix.basename(normalized);
+  const lowerBase = base.toLowerCase();
+  if (SENSITIVE_EXACT_BASENAMES.has(lowerBase)) return true;
+  if (lowerBase.startsWith("id_rsa.") || lowerBase.startsWith("id_ed25519.") || lowerBase.startsWith("id_dsa.") || lowerBase.startsWith("id_ecdsa.")) {
+    return true;
+  }
+  if (/service[-_]?account.*\.json$/i.test(lowerBase)) return true;
+  const ext = import_node_path20.default.posix.extname(lowerBase);
+  if (SENSITIVE_EXTENSIONS3.has(ext)) return true;
+  return false;
+}
+function resolveStudioWorkspaceFile(workspaceRoot, targetPath) {
+  if (!workspaceRoot || workspaceRoot.includes("\0")) {
+    throw new Error("Invalid workspace root path");
+  }
+  if (!targetPath || !targetPath.trim() || targetPath.includes("\0")) {
+    throw new Error("Invalid file path");
+  }
+  const realRoot = import_node_fs15.default.realpathSync(import_node_path20.default.resolve(workspaceRoot));
+  const cleanedTarget = targetPath.trim();
+  const candidate = import_node_path20.default.isAbsolute(cleanedTarget) ? import_node_path20.default.resolve(cleanedTarget) : import_node_path20.default.resolve(realRoot, cleanedTarget);
+  if (!import_node_path20.default.isAbsolute(cleanedTarget) && isSensitiveStudioPath(cleanedTarget)) {
+    throw new Error(`Refused to access sensitive or restricted path: ${cleanedTarget}`);
+  }
+  const logicalRel = import_node_path20.default.relative(realRoot, candidate).replace(/\\/g, "/");
+  if (logicalRel && !logicalRel.startsWith("..") && isSensitiveStudioPath(logicalRel)) {
+    throw new Error(`Refused to access sensitive or restricted path: ${logicalRel}`);
+  }
+  let realTarget;
+  try {
+    realTarget = import_node_fs15.default.realpathSync(candidate);
+  } catch {
+    throw new Error(`File does not exist or cannot be resolved: ${cleanedTarget}`);
+  }
+  const prefix = realRoot.endsWith(import_node_path20.default.sep) ? realRoot : `${realRoot}${import_node_path20.default.sep}`;
+  if (realTarget === realRoot || !realTarget.startsWith(prefix)) {
+    throw new Error(`Path escapes workspace boundary: ${cleanedTarget}`);
+  }
+  const relPath = import_node_path20.default.relative(realRoot, realTarget).replace(/\\/g, "/");
+  if (isSensitiveStudioPath(relPath)) {
+    throw new Error(`Refused to access sensitive or restricted path: ${relPath}`);
+  }
+  const stat = import_node_fs15.default.statSync(realTarget);
+  if (!stat.isFile()) {
+    throw new Error(`Target is not a regular file: ${relPath}`);
+  }
+  if (stat.size > STUDIO_MAX_FILE_BYTES) {
+    throw new Error(
+      `File exceeds 10 MiB Studio size limit (${stat.size} bytes > ${STUDIO_MAX_FILE_BYTES} bytes): ${relPath}`
+    );
+  }
+  return { realRoot, realTarget, relPath, stat };
+}
+function looksLikeOpenApiFile(realFilePath, baseLower, ext, bytes) {
+  if (ext !== ".yaml" && ext !== ".yml" && ext !== ".json") return false;
+  if (/(?:^|[-_./])(?:openapi|swagger)(?:[-_.]|$)/i.test(baseLower)) {
+    return true;
+  }
+  if (bytes === 0 || bytes > 256 * 1024) return false;
+  let fd = null;
+  try {
+    fd = import_node_fs15.default.openSync(realFilePath, "r");
+    const probe = Buffer.alloc(Math.min(bytes, 2048));
+    const n = import_node_fs15.default.readSync(fd, probe, 0, probe.length, 0);
+    const head = probe.subarray(0, n).toString("utf8");
+    if (ext === ".json") {
+      return /"(?:openapi|swagger)"\s*:\s*"[23]\./i.test(head);
+    }
+    return /^(?:openapi|swagger)\s*:\s*['"]?[23]\./m.test(head);
+  } catch {
+    return false;
+  } finally {
+    if (fd !== null) {
+      try {
+        import_node_fs15.default.closeSync(fd);
+      } catch {
+      }
+    }
+  }
+}
+function classifyStudioSource(realFilePath, baseName, bytes) {
+  const lower = baseName.toLowerCase();
+  const ext = import_node_path20.default.extname(lower);
+  if (!ext) return null;
+  if (ext === ".json" && SKIP_JSON_LOCK_BASENAMES.has(lower)) {
+    return null;
+  }
+  if (looksLikeOpenApiFile(realFilePath, lower, ext, bytes)) {
+    return { category: "openapi", format: "openapi", extension: ext };
+  }
+  switch (ext) {
+    case ".sqlite":
+    case ".sqlite3":
+    case ".db":
+      return { category: "data", format: "sqlite", extension: ext };
+    case ".csv":
+      return { category: "data", format: "csv", extension: ext };
+    case ".tsv":
+      return { category: "data", format: "tsv", extension: ext };
+    case ".json":
+      return { category: "data", format: "json", extension: ext };
+    case ".ndjson":
+    case ".jsonl":
+      return { category: "data", format: "ndjson", extension: ext };
+    case ".md":
+    case ".mdx":
+      return { category: "document", format: "markdown", extension: ext };
+    case ".txt":
+      return { category: "document", format: "text", extension: ext };
+    case ".docx":
+      return { category: "document", format: "docx", extension: ext };
+    case ".xlsx":
+      return { category: "document", format: "xlsx", extension: ext };
+    case ".pdf":
+      return { category: "document", format: "pdf", extension: ext };
+    case ".html":
+    case ".htm":
+      return { category: "document", format: "html", extension: ext };
+    case ".svg":
+      return { category: "document", format: "svg", extension: ext };
+    case ".yaml":
+    case ".yml":
+      return { category: "document", format: "yaml", extension: ext };
+    case ".xml":
+      return { category: "document", format: "xml", extension: ext };
+    default:
+      return null;
+  }
+}
+function listStudioSources(workspaceRoot, opts = {}) {
+  const category = opts.category ?? "all";
+  const realRoot = import_node_fs15.default.realpathSync(import_node_path20.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path20.default.sep) ? realRoot : `${realRoot}${import_node_path20.default.sep}`;
+  const isInsideRoot = (realCandidate) => realCandidate === realRoot || realCandidate.startsWith(rootPrefix);
+  const allSources = [];
+  const visitedDirs = /* @__PURE__ */ new Set();
+  const seenRealFiles = /* @__PURE__ */ new Set();
+  let skippedSensitive = 0;
+  let skippedSymlinks = 0;
+  let truncated = false;
+  const walk = (dir, depth) => {
+    if (depth > STUDIO_MAX_SCAN_DEPTH || allSources.length >= STUDIO_MAX_SCAN_FILES) {
+      if (allSources.length >= STUDIO_MAX_SCAN_FILES) truncated = true;
+      return;
+    }
+    let realDir;
+    try {
+      realDir = import_node_fs15.default.realpathSync(dir);
+    } catch {
+      skippedSymlinks += 1;
+      return;
+    }
+    if (!isInsideRoot(realDir)) {
+      skippedSymlinks += 1;
+      return;
+    }
+    if (visitedDirs.has(realDir)) return;
+    visitedDirs.add(realDir);
+    let entries;
+    try {
+      entries = import_node_fs15.default.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      if (allSources.length >= STUDIO_MAX_SCAN_FILES) {
+        truncated = true;
+        break;
+      }
+      const fullPath = import_node_path20.default.join(dir, entry.name);
+      const rawRel = import_node_path20.default.relative(realRoot, fullPath).replace(/\\/g, "/");
+      if (entry.isDirectory()) {
+        if (STUDIO_SKIP_DIRS.has(entry.name) || isSensitiveStudioPath(rawRel)) {
+          if (isSensitiveStudioPath(rawRel)) skippedSensitive += 1;
+          continue;
+        }
+        walk(fullPath, depth + 1);
+        continue;
+      }
+      let realFilePath = fullPath;
+      let isFile = entry.isFile();
+      if (entry.isSymbolicLink()) {
+        try {
+          realFilePath = import_node_fs15.default.realpathSync(fullPath);
+          if (!isInsideRoot(realFilePath)) {
+            skippedSymlinks += 1;
+            continue;
+          }
+          const st = import_node_fs15.default.statSync(realFilePath);
+          if (st.isDirectory()) {
+            const realRelDir = import_node_path20.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+            if (STUDIO_SKIP_DIRS.has(import_node_path20.default.basename(realFilePath)) || isSensitiveStudioPath(rawRel) || isSensitiveStudioPath(realRelDir)) {
+              skippedSensitive += 1;
+              continue;
+            }
+            walk(realFilePath, depth + 1);
+            continue;
+          }
+          isFile = st.isFile();
+        } catch {
+          skippedSymlinks += 1;
+          continue;
+        }
+      }
+      if (!isFile) continue;
+      try {
+        realFilePath = import_node_fs15.default.realpathSync(realFilePath);
+      } catch {
+        skippedSymlinks += 1;
+        continue;
+      }
+      if (!isInsideRoot(realFilePath)) {
+        skippedSymlinks += 1;
+        continue;
+      }
+      const realRel = import_node_path20.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+      if (isSensitiveStudioPath(rawRel) || isSensitiveStudioPath(realRel)) {
+        skippedSensitive += 1;
+        continue;
+      }
+      if (seenRealFiles.has(realFilePath)) continue;
+      let stat;
+      try {
+        stat = import_node_fs15.default.statSync(realFilePath);
+      } catch {
+        continue;
+      }
+      if (!stat.isFile()) continue;
+      const classified = classifyStudioSource(realFilePath, entry.name, stat.size);
+      if (!classified) continue;
+      seenRealFiles.add(realFilePath);
+      allSources.push({
+        relPath: rawRel,
+        name: entry.name,
+        category: classified.category,
+        format: classified.format,
+        extension: classified.extension,
+        bytes: stat.size,
+        updatedAt: stat.mtime.toISOString(),
+        ...stat.size > STUDIO_MAX_FILE_BYTES ? { oversized: true } : {}
+      });
+    }
+  };
+  walk(realRoot, 0);
+  allSources.sort((a, b) => a.relPath.localeCompare(b.relPath));
+  const counts = {
+    total: allSources.length,
+    data: allSources.filter((s) => s.category === "data").length,
+    document: allSources.filter((s) => s.category === "document").length,
+    openapi: allSources.filter((s) => s.category === "openapi").length
+  };
+  const filtered = category === "all" ? allSources : allSources.filter((s) => s.category === category);
+  return {
+    mode: "live",
+    workspaceRoot: realRoot,
+    sources: filtered,
+    counts,
+    skippedSensitive,
+    skippedSymlinks,
+    truncated
+  };
+}
+var SQLITE_FORBIDDEN_KEYWORDS_RE = /\b(?:INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE|VACUUM|ATTACH|DETACH|REINDEX|ANALYZE|LOAD_EXTENSION|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|TRIGGER)\b/i;
+var SQLITE_FORBIDDEN_FUNCTIONS_AND_VTABLES_RE = /\b(?:readfile|writefile|edit|fts3_tokenizer|load_extension|shell_putsnl|shell_temp_filename|shell_add_schema|shell_format_schema|shell_module_schema|shell_prompt_test|sqlar_compress|sqlar_uncompress|realpath|sha1_query|sha3_query|sqlite_compileoption_get|sqlite_compileoption_used|sqlite_log|usleep|fsdir|zipfile|zipfile_cds|sqlite_dbpage|sqlite_dbptr|sqlite_dbdata|sqlite_stmt|dbstat|completion|bytecode|tables_used|generate_series)\b/i;
+var SQLITE_FORBIDDEN_PRAGMA_TVF_RE = /\bpragma_[a-z0-9_]+\b/i;
+var SQLITE_ALLOWED_PREFIX_RE = /^(?:SELECT\b|EXPLAIN\s+QUERY\s+PLAN\s+SELECT\b|PRAGMA\s+table_info\s*\()/i;
+var SQLITE_STRICT_PRAGMA_TABLE_INFO_RE = /^PRAGMA\s+table_info\s*\(\s*(?:[A-Za-z_][A-Za-z0-9_]*|"[A-Za-z_][A-Za-z0-9_]*")\s*\)$/i;
+function extractNormalizedSqliteIdentifiers(sql) {
+  let out = "";
+  let i = 0;
+  while (i < sql.length) {
+    const ch = sql[i];
+    if (ch === "'") {
+      i += 1;
+      let closed = false;
+      while (i < sql.length) {
+        if (sql[i] === "'") {
+          if (i + 1 < sql.length && sql[i + 1] === "'") {
+            i += 2;
+            continue;
+          }
+          i += 1;
+          closed = true;
+          break;
+        }
+        i += 1;
+      }
+      if (!closed) {
+        throw new Error("SQLite query contains an unterminated single-quoted string literal");
+      }
+      out += " ";
+      continue;
+    }
+    if (ch === '"') {
+      i += 1;
+      let ident = "";
+      let closed = false;
+      while (i < sql.length) {
+        if (sql[i] === '"') {
+          if (i + 1 < sql.length && sql[i + 1] === '"') {
+            ident += '"';
+            i += 2;
+            continue;
+          }
+          i += 1;
+          closed = true;
+          break;
+        }
+        ident += sql[i];
+        i += 1;
+      }
+      if (!closed) {
+        throw new Error("SQLite query contains an unterminated double-quoted identifier");
+      }
+      out += ` ${ident.replace(/["[\]`]/g, "")} `;
+      continue;
+    }
+    if (ch === "[") {
+      i += 1;
+      let ident = "";
+      let closed = false;
+      while (i < sql.length) {
+        if (sql[i] === "]") {
+          i += 1;
+          closed = true;
+          break;
+        }
+        ident += sql[i];
+        i += 1;
+      }
+      if (!closed) {
+        throw new Error("SQLite query contains an unterminated bracket-quoted identifier");
+      }
+      out += ` ${ident.replace(/["[\]`]/g, "")} `;
+      continue;
+    }
+    if (ch === "`") {
+      i += 1;
+      let ident = "";
+      let closed = false;
+      while (i < sql.length) {
+        if (sql[i] === "`") {
+          if (i + 1 < sql.length && sql[i + 1] === "`") {
+            ident += "`";
+            i += 2;
+            continue;
+          }
+          i += 1;
+          closed = true;
+          break;
+        }
+        ident += sql[i];
+        i += 1;
+      }
+      if (!closed) {
+        throw new Error("SQLite query contains an unterminated backtick-quoted identifier");
+      }
+      out += ` ${ident.replace(/["[\]`]/g, "")} `;
+      continue;
+    }
+    out += ch;
+    i += 1;
+  }
+  return out.replace(/["[\]`]/g, " ").replace(/\s+/g, " ").trim();
+}
+function validateReadOnlySqliteQuery(rawSql) {
+  if (typeof rawSql !== "string") {
+    throw new Error("SQLite query must be a string");
+  }
+  if (rawSql.includes("\0")) {
+    throw new Error("SQLite query must not contain null bytes");
+  }
+  const trimmed = rawSql.trim();
+  if (!trimmed) {
+    throw new Error("SQLite query must not be empty");
+  }
+  if (trimmed.length > 4e3) {
+    throw new Error("SQLite query exceeds maximum length (4000 characters)");
+  }
+  const stripped = trimmed.endsWith(";") ? trimmed.slice(0, -1).trim() : trimmed;
+  if (!stripped) {
+    throw new Error("SQLite query must not be empty");
+  }
+  if (stripped.includes(";")) {
+    throw new Error("SQLite read-only policy blocks multiple statements or embedded semicolons");
+  }
+  if (stripped.includes("--") || stripped.includes("/*") || stripped.includes("*/")) {
+    throw new Error("SQLite read-only policy blocks SQL comments (-- or /* */)");
+  }
+  if (/(?:^|[\r\n\u0085\u2028\u2029])\s*\./.test(stripped)) {
+    throw new Error("SQLite read-only policy blocks sqlite3 CLI dot-commands");
+  }
+  const normalized = stripped.replace(/[\r\n\u0085\u2028\u2029]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!SQLITE_ALLOWED_PREFIX_RE.test(normalized)) {
+    throw new Error(
+      "SQLite query must start with SELECT, EXPLAIN QUERY PLAN SELECT, or PRAGMA table_info(...)"
+    );
+  }
+  const isTopLevelPragma = /^PRAGMA\b/i.test(normalized);
+  if (isTopLevelPragma && !SQLITE_STRICT_PRAGMA_TABLE_INFO_RE.test(normalized)) {
+    throw new Error("Only PRAGMA table_info(<table_name>) is permitted in read-only mode");
+  }
+  const normalizedIdentifiers = extractNormalizedSqliteIdentifiers(normalized);
+  const inspectionViews = [normalized, normalizedIdentifiers];
+  for (const view of inspectionViews) {
+    if (SQLITE_FORBIDDEN_KEYWORDS_RE.test(view)) {
+      throw new Error(
+        "SQLite read-only policy blocked a write, DDL, transaction, or extension keyword"
+      );
+    }
+    if (SQLITE_FORBIDDEN_FUNCTIONS_AND_VTABLES_RE.test(view)) {
+      throw new Error(
+        "SQLite read-only policy blocked a restricted host I/O function, virtual table, or internal diagnostic table"
+      );
+    }
+    if (SQLITE_FORBIDDEN_PRAGMA_TVF_RE.test(view)) {
+      throw new Error("SQLite read-only policy blocked pragma_* table-valued function");
+    }
+    if (!isTopLevelPragma && /\bPRAGMA\b/i.test(view)) {
+      throw new Error("SQLite read-only policy blocked embedded PRAGMA");
+    }
+  }
+  return normalized;
+}
+function clampDataLimit(limit) {
+  if (typeof limit !== "number" || !Number.isFinite(limit)) return STUDIO_DEFAULT_DATA_ROWS;
+  return Math.max(1, Math.min(Math.floor(limit), STUDIO_MAX_DATA_ROWS));
+}
+function sanitizeCellValue(value) {
+  if (typeof value === "string") {
+    const clipped = value.length > 2e3 ? `${value.slice(0, 2e3)}\u2026` : value;
+    return redactStudioSecrets(clipped);
+  }
+  if (value === null || value === void 0 || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+  try {
+    const serialized = JSON.stringify(value);
+    const clipped = serialized.length > 2e3 ? `${serialized.slice(0, 2e3)}\u2026` : serialized;
+    return redactStudioSecrets(clipped);
+  } catch {
+    return String(value);
+  }
+}
+function sanitizeRowRecord(row) {
+  const out = {};
+  for (const [k, v] of Object.entries(row)) {
+    out[k] = sanitizeCellValue(v);
+  }
+  return out;
+}
+function rowMatchesFilter(row, needleLower) {
+  for (const val of Object.values(row)) {
+    if (val === null || val === void 0) continue;
+    const text = typeof val === "string" ? val : JSON.stringify(val);
+    if (text.toLowerCase().includes(needleLower)) return true;
+  }
+  return false;
+}
+function parseDelimitedRecords(rawText, delimiter) {
+  const text = rawText.charCodeAt(0) === 65279 ? rawText.slice(1) : rawText;
+  const records = [];
+  let row = [];
+  let field = "";
+  let inQuotes = false;
+  let i = 0;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < text.length && text[i + 1] === '"') {
+          field += '"';
+          i += 2;
+        } else {
+          inQuotes = false;
+          i += 1;
+        }
+      } else {
+        field += ch;
+        i += 1;
+      }
+      continue;
+    }
+    if (ch === '"' && field.length === 0) {
+      inQuotes = true;
+      i += 1;
+    } else if (ch === delimiter) {
+      row.push(field);
+      field = "";
+      i += 1;
+    } else if (ch === "\r") {
+      row.push(field);
+      field = "";
+      records.push(row);
+      row = [];
+      i += i + 1 < text.length && text[i + 1] === "\n" ? 2 : 1;
+    } else if (ch === "\n") {
+      row.push(field);
+      field = "";
+      records.push(row);
+      row = [];
+      i += 1;
+    } else {
+      field += ch;
+      i += 1;
+    }
+  }
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    records.push(row);
+  }
+  while (records.length > 0) {
+    const last = records[records.length - 1];
+    if (last.length === 1 && last[0] === "") {
+      records.pop();
+    } else {
+      break;
+    }
+  }
+  return records;
+}
+function inspectCsvOrTsv(relPath, format, buf, bytes, filter, limit) {
+  const delimiter = format === "tsv" ? "	" : ",";
+  const records = parseDelimitedRecords(buf.toString("utf8"), delimiter);
+  if (records.length === 0) {
+    return {
+      mode: "live",
+      filePath: relPath,
+      format,
+      bytes,
+      columns: [],
+      rows: [],
+      totalRows: 0,
+      returnedRows: 0,
+      truncated: false,
+      filter,
+      summary: `${relPath} (${format.toUpperCase()}): empty file (0 rows).`
+    };
+  }
+  const rawHeader = records[0];
+  const usedHeaders = /* @__PURE__ */ new Map();
+  const columns = rawHeader.map((h, idx) => {
+    const base = h.trim() || `col_${idx + 1}`;
+    const prev = usedHeaders.get(base) ?? 0;
+    usedHeaders.set(base, prev + 1);
+    return prev === 0 ? base : `${base}_${prev + 1}`;
+  });
+  const needle = filter?.trim().toLowerCase() || "";
+  let totalRows = 0;
+  const rows = [];
+  for (let rIdx = 1; rIdx < records.length; rIdx += 1) {
+    const rec = records[rIdx];
+    const obj = {};
+    const maxCols = Math.max(columns.length, rec.length);
+    for (let cIdx = 0; cIdx < maxCols; cIdx += 1) {
+      if (cIdx >= columns.length) {
+        columns.push(`col_${cIdx + 1}`);
+      }
+      obj[columns[cIdx]] = sanitizeCellValue(rec[cIdx] ?? "");
+    }
+    if (needle && !rowMatchesFilter(obj, needle)) {
+      continue;
+    }
+    totalRows += 1;
+    if (rows.length < limit) {
+      rows.push(obj);
+    }
+  }
+  return {
+    mode: "live",
+    filePath: relPath,
+    format,
+    bytes,
+    columns,
+    rows,
+    totalRows,
+    returnedRows: rows.length,
+    truncated: totalRows > rows.length,
+    filter: filter?.trim() || void 0,
+    summary: `${relPath} (${format.toUpperCase()}): ${columns.length} column(s), ${totalRows} matching row(s), showing ${rows.length}.`
+  };
+}
+function inspectJsonOrNdjson(relPath, format, buf, bytes, filter, limit) {
+  const text = buf.toString("utf8");
+  const needle = filter?.trim().toLowerCase() || "";
+  if (format === "ndjson") {
+    const rawLines = text.split(/\r?\n/);
+    const colSet = /* @__PURE__ */ new Set();
+    const rows = [];
+    let totalValidItems = 0;
+    let totalMatched = 0;
+    let parseErrors = 0;
+    for (const line of rawLines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      let parsed2;
+      try {
+        parsed2 = JSON.parse(trimmed);
+      } catch {
+        parseErrors += 1;
+        continue;
+      }
+      totalValidItems += 1;
+      const record2 = parsed2 && typeof parsed2 === "object" && !Array.isArray(parsed2) ? sanitizeRowRecord(parsed2) : { value: sanitizeCellValue(parsed2) };
+      if (needle && !rowMatchesFilter(record2, needle)) {
+        continue;
+      }
+      totalMatched += 1;
+      if (rows.length < limit) {
+        for (const key of Object.keys(record2)) colSet.add(key);
+        rows.push(record2);
+      }
+    }
+    const columns = Array.from(colSet);
+    return {
+      mode: "live",
+      filePath: relPath,
+      format: "ndjson",
+      bytes,
+      columns,
+      rows,
+      totalRows: totalMatched,
+      returnedRows: rows.length,
+      truncated: totalMatched > rows.length,
+      filter: filter?.trim() || void 0,
+      summary: `${relPath} (NDJSON): ${totalValidItems} record(s), ${totalMatched} matched, showing ${rows.length}${parseErrors > 0 ? ` (${parseErrors} parse errors skipped)` : ""}.`,
+      jsonSummary: {
+        rootType: "ndjson",
+        itemCount: totalValidItems,
+        parseErrors
+      }
+    };
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (err) {
+    throw new Error(`Invalid JSON in ${relPath}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  if (Array.isArray(parsed)) {
+    const colSet = /* @__PURE__ */ new Set();
+    const rows = [];
+    let totalMatched = 0;
+    for (let i = 0; i < parsed.length; i += 1) {
+      const item = parsed[i];
+      const record2 = item && typeof item === "object" && !Array.isArray(item) ? sanitizeRowRecord(item) : { index: i, value: sanitizeCellValue(item) };
+      if (needle && !rowMatchesFilter(record2, needle)) {
+        continue;
+      }
+      totalMatched += 1;
+      if (rows.length < limit) {
+        for (const key of Object.keys(record2)) colSet.add(key);
+        rows.push(record2);
+      }
+    }
+    return {
+      mode: "live",
+      filePath: relPath,
+      format: "json",
+      bytes,
+      columns: Array.from(colSet),
+      rows,
+      totalRows: totalMatched,
+      returnedRows: rows.length,
+      truncated: totalMatched > rows.length,
+      filter: filter?.trim() || void 0,
+      summary: `${relPath} (JSON Array): ${parsed.length} item(s), ${totalMatched} matched, showing ${rows.length}.`,
+      jsonSummary: {
+        rootType: "array",
+        itemCount: parsed.length
+      }
+    };
+  }
+  if (parsed && typeof parsed === "object") {
+    const obj = parsed;
+    const topLevelKeys = Object.keys(obj);
+    const rows = [];
+    let totalMatched = 0;
+    for (const key of topLevelKeys) {
+      const val = obj[key];
+      const valType = Array.isArray(val) ? `array(${val.length})` : val === null ? "null" : typeof val;
+      const preview = sanitizeCellValue(val);
+      const record2 = { key, type: valType, preview };
+      if (needle && !rowMatchesFilter(record2, needle)) {
+        continue;
+      }
+      totalMatched += 1;
+      if (rows.length < limit) {
+        rows.push(record2);
+      }
+    }
+    return {
+      mode: "live",
+      filePath: relPath,
+      format: "json",
+      bytes,
+      columns: ["key", "type", "preview"],
+      rows,
+      totalRows: totalMatched,
+      returnedRows: rows.length,
+      truncated: totalMatched > rows.length,
+      filter: filter?.trim() || void 0,
+      summary: `${relPath} (JSON Object): ${topLevelKeys.length} top-level key(s), showing ${rows.length}.`,
+      jsonSummary: {
+        rootType: "object",
+        topLevelKeys: topLevelKeys.slice(0, 100),
+        itemCount: topLevelKeys.length
+      }
+    };
+  }
+  return {
+    mode: "live",
+    filePath: relPath,
+    format: "json",
+    bytes,
+    columns: ["value"],
+    rows: [{ value: sanitizeCellValue(parsed) }],
+    totalRows: 1,
+    returnedRows: 1,
+    truncated: false,
+    filter: filter?.trim() || void 0,
+    summary: `${relPath} (JSON Primitive): 1 value.`,
+    jsonSummary: {
+      rootType: "primitive",
+      itemCount: 1
+    }
+  };
+}
+function readSqliteHeaderMetadata(realFilePath) {
+  let fd = null;
+  try {
+    fd = import_node_fs15.default.openSync(realFilePath, "r");
+    const header = Buffer.alloc(100);
+    const bytesRead = import_node_fs15.default.readSync(fd, header, 0, 100, 0);
+    if (bytesRead < 16) {
+      return { validHeader: false, headerFormat: "unknown" };
+    }
+    const magic = header.subarray(0, 16).toString("ascii");
+    if (magic !== "SQLite format 3\0") {
+      return { validHeader: false, headerFormat: magic.replace(/\0/g, "") || "unknown" };
+    }
+    const rawPageSize = bytesRead >= 18 ? header.readUInt16BE(16) : 0;
+    const pageSize = rawPageSize === 1 ? 65536 : rawPageSize || void 0;
+    return { validHeader: true, headerFormat: "SQLite format 3", pageSize };
+  } finally {
+    if (fd !== null) {
+      try {
+        import_node_fs15.default.closeSync(fd);
+      } catch {
+      }
+    }
+  }
+}
+var SQLITE_COMPANION_SUFFIXES = ["-wal", "-shm", "-journal"];
+function assertSafeSqliteCompanionFiles(realRoot, realDbPath) {
+  const rootPrefix = realRoot.endsWith(import_node_path20.default.sep) ? realRoot : `${realRoot}${import_node_path20.default.sep}`;
+  for (const suffix of SQLITE_COMPANION_SUFFIXES) {
+    const companionPath = `${realDbPath}${suffix}`;
+    let lstat;
+    try {
+      lstat = import_node_fs15.default.lstatSync(companionPath);
+    } catch (err) {
+      const code = err.code;
+      if (code === "ENOENT") continue;
+      throw new Error(
+        `Refused to open SQLite database: companion file (${suffix}) could not be inspected: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+    if (lstat.isSymbolicLink()) {
+      throw new Error(
+        `Refused to open SQLite database: companion file "${import_node_path20.default.basename(companionPath)}" is a symbolic link`
+      );
+    }
+    if (!lstat.isFile()) {
+      throw new Error(
+        `Refused to open SQLite database: companion file "${import_node_path20.default.basename(companionPath)}" is not a regular file`
+      );
+    }
+    let realCompanion;
+    try {
+      realCompanion = import_node_fs15.default.realpathSync(companionPath);
+    } catch (err) {
+      throw new Error(
+        `Refused to open SQLite database: companion file "${import_node_path20.default.basename(companionPath)}" could not be resolved: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+    if (realCompanion === realRoot || !realCompanion.startsWith(rootPrefix)) {
+      throw new Error(
+        `Refused to open SQLite database: companion file "${import_node_path20.default.basename(companionPath)}" escapes workspace boundary`
+      );
+    }
+    const companionRel = import_node_path20.default.relative(realRoot, realCompanion).replace(/\\/g, "/");
+    if (isSensitiveStudioPath(companionRel)) {
+      throw new Error(
+        `Refused to open SQLite database: companion file "${companionRel}" points to a sensitive path`
+      );
+    }
+  }
+}
+function execSqliteJson(sqliteBin, realRoot, realPath, sql) {
+  assertSafeSqliteCompanionFiles(realRoot, realPath);
+  const runExec = (useSafeFlag) => new Promise((resolve, reject) => {
+    const args = useSafeFlag ? ["-safe", "-readonly", "-json", "-cmd", ".timeout 3000", "--", realPath, sql] : ["-readonly", "-json", "-cmd", ".timeout 3000", "--", realPath, sql];
+    (0, import_node_child_process2.execFile)(
+      sqliteBin,
+      args,
+      {
+        shell: false,
+        timeout: STUDIO_SQLITE_TIMEOUT_MS,
+        maxBuffer: STUDIO_SQLITE_MAX_BUFFER_BYTES,
+        encoding: "utf8"
+      },
+      (err, stdout, stderr) => {
+        if (err) {
+          const code = err.code;
+          if (code === "ENOENT") {
+            resolve({ cliAvailable: false, rows: [] });
+            return;
+          }
+          const detail = (stderr || err.message || "sqlite3 execution failed").trim();
+          if (useSafeFlag && /unknown option:\s*-{1,2}safe\b/i.test(detail)) {
+            runExec(false).then(resolve, reject);
+            return;
+          }
+          reject(new Error(`SQLite query failed: ${redactStudioSecrets(detail)}`));
+          return;
+        }
+        const trimmed = (stdout || "").trim();
+        if (!trimmed) {
+          resolve({ cliAvailable: true, rows: [] });
+          return;
+        }
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (!Array.isArray(parsed)) {
+            resolve({ cliAvailable: true, rows: [] });
+            return;
+          }
+          resolve({
+            cliAvailable: true,
+            rows: parsed.filter(
+              (item) => Boolean(item) && typeof item === "object" && !Array.isArray(item)
+            )
+          });
+        } catch (parseErr) {
+          if (/^EXPLAIN\s+QUERY\s+PLAN\b/i.test(sql)) {
+            const planLines = trimmed.split(/\r?\n/).map((line) => line.trimEnd()).filter((line) => line.length > 0 && line !== "QUERY PLAN");
+            resolve({
+              cliAvailable: true,
+              rows: planLines.map((detail, idx) => ({ step: idx + 1, detail }))
+            });
+            return;
+          }
+          reject(
+            new Error(
+              `Failed to parse sqlite3 JSON output: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`
+            )
+          );
+        }
+      }
+    );
+  });
+  return runExec(true);
+}
+function quoteSqliteIdentifier(ident) {
+  return `"${ident.replace(/"/g, '""')}"`;
+}
+async function inspectSqliteDatabase(realRoot, realPath, relPath, bytes, query, filter, limit, sqliteBin) {
+  const safeSql = query && query.trim() ? validateReadOnlySqliteQuery(query) : void 0;
+  assertSafeSqliteCompanionFiles(realRoot, realPath);
+  const headerInfo = readSqliteHeaderMetadata(realPath);
+  if (!headerInfo.validHeader) {
+    throw new Error(`File is not a valid SQLite 3 database: ${relPath}`);
+  }
+  const masterRes = await execSqliteJson(
+    sqliteBin,
+    realRoot,
+    realPath,
+    "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY type, name LIMIT 50"
+  );
+  if (!masterRes.cliAvailable) {
+    return {
+      mode: "live",
+      filePath: relPath,
+      format: "sqlite",
+      bytes,
+      columns: ["property", "value"],
+      rows: [
+        { property: "headerFormat", value: headerInfo.headerFormat },
+        { property: "pageSize", value: headerInfo.pageSize ?? "unknown" },
+        { property: "bytes", value: bytes }
+      ],
+      totalRows: 3,
+      returnedRows: 3,
+      truncated: false,
+      query: safeSql,
+      summary: `${relPath} (SQLite 3): sqlite3 CLI unavailable on PATH; returned 100-byte header metadata only.`,
+      sqlite: {
+        sqliteCliAvailable: false,
+        headerFormat: headerInfo.headerFormat,
+        pageSize: headerInfo.pageSize,
+        tables: [],
+        note: "sqlite3 CLI was not found on PATH. Install sqlite3 to inspect table schemas and run read-only SELECT queries."
+      }
+    };
+  }
+  const tables = [];
+  for (const row of masterRes.rows.slice(0, 30)) {
+    const name = typeof row.name === "string" ? row.name : "";
+    const type = row.type === "view" ? "view" : "table";
+    if (!name || name.includes("\0")) continue;
+    const pragmaSql = `PRAGMA table_info(${quoteSqliteIdentifier(name)})`;
+    const colRes = await execSqliteJson(sqliteBin, realRoot, realPath, pragmaSql);
+    const columns = colRes.rows.map((c) => ({
+      cid: Number(c.cid ?? 0),
+      name: String(c.name ?? ""),
+      type: String(c.type ?? ""),
+      notnull: Boolean(c.notnull),
+      pk: Boolean(c.pk),
+      dfltValue: c.dflt_value === null || c.dflt_value === void 0 ? null : String(c.dflt_value)
+    }));
+    tables.push({ name, type, columns });
+  }
+  if (!safeSql) {
+    const needle2 = filter?.trim().toLowerCase() || "";
+    const schemaRows = tables.map((t) => ({
+      name: t.name,
+      type: t.type,
+      columnCount: t.columns.length,
+      columns: t.columns.map((c) => `${c.name}${c.type ? ` (${c.type})` : ""}${c.pk ? " PK" : ""}`).join(", ")
+    })).filter((r) => !needle2 ? true : rowMatchesFilter(r, needle2));
+    const sliced = schemaRows.slice(0, limit);
+    return {
+      mode: "live",
+      filePath: relPath,
+      format: "sqlite",
+      bytes,
+      columns: ["name", "type", "columnCount", "columns"],
+      rows: sliced,
+      totalRows: schemaRows.length,
+      returnedRows: sliced.length,
+      truncated: schemaRows.length > sliced.length,
+      filter: filter?.trim() || void 0,
+      summary: `${relPath} (SQLite 3): ${tables.length} table(s)/view(s) discovered (read-only schema view).`,
+      sqlite: {
+        sqliteCliAvailable: true,
+        headerFormat: headerInfo.headerFormat,
+        pageSize: headerInfo.pageSize,
+        tables
+      }
+    };
+  }
+  const isDirectSelect = /^SELECT\b/i.test(safeSql);
+  const wrappedSql = isDirectSelect ? `SELECT * FROM (${safeSql}) LIMIT ${limit + 1}` : safeSql;
+  const queryRes = await execSqliteJson(sqliteBin, realRoot, realPath, wrappedSql);
+  const needle = filter?.trim().toLowerCase() || "";
+  const sanitizedAll = queryRes.rows.map(sanitizeRowRecord);
+  const filteredRows = needle ? sanitizedAll.filter((r) => rowMatchesFilter(r, needle)) : sanitizedAll;
+  const truncated = filteredRows.length > limit;
+  const rows = filteredRows.slice(0, limit);
+  const colSet = /* @__PURE__ */ new Set();
+  for (const r of rows) {
+    for (const k of Object.keys(r)) colSet.add(k);
+  }
+  return {
+    mode: "live",
+    filePath: relPath,
+    format: "sqlite",
+    bytes,
+    columns: Array.from(colSet),
+    rows,
+    totalRows: truncated ? limit + 1 : filteredRows.length,
+    returnedRows: rows.length,
+    truncated,
+    filter: filter?.trim() || void 0,
+    query: safeSql,
+    summary: `${relPath} (SQLite 3 read-only query): returned ${rows.length} row(s)${truncated ? ` (truncated at limit ${limit})` : ""}.`,
+    sqlite: {
+      sqliteCliAvailable: true,
+      headerFormat: headerInfo.headerFormat,
+      pageSize: headerInfo.pageSize,
+      tables,
+      executedSql: wrappedSql
+    }
+  };
+}
+async function inspectStudioData(workspaceRoot, opts) {
+  const resolved = resolveStudioWorkspaceFile(workspaceRoot, opts.filePath);
+  const ext = import_node_path20.default.extname(resolved.relPath).toLowerCase();
+  const limit = clampDataLimit(opts.limit);
+  if (ext === ".sqlite" || ext === ".sqlite3" || ext === ".db") {
+    return inspectSqliteDatabase(
+      resolved.realRoot,
+      resolved.realTarget,
+      resolved.relPath,
+      resolved.stat.size,
+      opts.query,
+      opts.filter,
+      limit,
+      opts.sqliteBin ?? "sqlite3"
+    );
+  }
+  if (ext === ".csv" || ext === ".tsv") {
+    const buf = import_node_fs15.default.readFileSync(resolved.realTarget);
+    return inspectCsvOrTsv(
+      resolved.relPath,
+      ext === ".tsv" ? "tsv" : "csv",
+      buf,
+      resolved.stat.size,
+      opts.filter,
+      limit
+    );
+  }
+  if (ext === ".json" || ext === ".ndjson" || ext === ".jsonl") {
+    const buf = import_node_fs15.default.readFileSync(resolved.realTarget);
+    return inspectJsonOrNdjson(
+      resolved.relPath,
+      ext === ".json" ? "json" : "ndjson",
+      buf,
+      resolved.stat.size,
+      opts.filter,
+      limit
+    );
+  }
+  throw new Error(
+    `Unsupported data format "${ext || "(none)"}" for studio_inspect_data (supported: .csv, .tsv, .json, .ndjson, .jsonl, .sqlite, .sqlite3, .db)`
+  );
+}
+var ReadOnlyZipArchive = class {
+  buf;
+  entries = /* @__PURE__ */ new Map();
+  totalInflatedBytes = 0;
+  constructor(buf) {
+    this.buf = buf;
+    this.parseCentralDirectory();
+  }
+  parseCentralDirectory() {
+    if (this.buf.length < 22) {
+      throw new Error("Invalid ZIP archive: file too small");
+    }
+    const minOffset = Math.max(0, this.buf.length - 65557);
+    let eocdOffset = -1;
+    for (let pos = this.buf.length - 22; pos >= minOffset; pos -= 1) {
+      if (this.buf.readUInt32LE(pos) === 101010256) {
+        const commentLen = this.buf.readUInt16LE(pos + 20);
+        if (pos + 22 + commentLen === this.buf.length) {
+          eocdOffset = pos;
+          break;
+        }
+      }
+    }
+    if (eocdOffset < 0) {
+      throw new Error("Invalid ZIP archive: End of Central Directory record not found");
+    }
+    const entryCount = this.buf.readUInt16LE(eocdOffset + 10);
+    const cdSize = this.buf.readUInt32LE(eocdOffset + 12);
+    const cdOffset = this.buf.readUInt32LE(eocdOffset + 16);
+    if (entryCount > STUDIO_ZIP_MAX_ENTRIES) {
+      throw new Error(
+        `ZIP security guard rejected archive: entry count ${entryCount} exceeds limit (${STUDIO_ZIP_MAX_ENTRIES})`
+      );
+    }
+    if (cdOffset + cdSize > eocdOffset) {
+      throw new Error("Invalid ZIP archive: central directory bounds exceed file size");
+    }
+    let offset = cdOffset;
+    for (let i = 0; i < entryCount; i += 1) {
+      if (offset + 46 > cdOffset + cdSize) {
+        throw new Error("Invalid ZIP archive: truncated central directory entry");
+      }
+      if (this.buf.readUInt32LE(offset) !== 33639248) {
+        throw new Error("Invalid ZIP archive: corrupt central directory signature");
+      }
+      const compressionMethod = this.buf.readUInt16LE(offset + 10);
+      const compressedSize = this.buf.readUInt32LE(offset + 20);
+      const uncompressedSize = this.buf.readUInt32LE(offset + 24);
+      const fileNameLen = this.buf.readUInt16LE(offset + 28);
+      const extraLen = this.buf.readUInt16LE(offset + 30);
+      const commentLen = this.buf.readUInt16LE(offset + 32);
+      const localHeaderOffset = this.buf.readUInt32LE(offset + 42);
+      if (uncompressedSize > STUDIO_ZIP_MAX_ENTRY_BYTES) {
+        throw new Error(
+          `ZIP security guard rejected entry exceeding 4 MiB uncompressed limit (${uncompressedSize} bytes)`
+        );
+      }
+      const nameStart = offset + 46;
+      const nameEnd = nameStart + fileNameLen;
+      if (nameEnd + extraLen + commentLen > cdOffset + cdSize) {
+        throw new Error("Invalid ZIP archive: central directory entry exceeds directory length");
+      }
+      const name = this.buf.subarray(nameStart, nameEnd).toString("utf8");
+      this.entries.set(name, {
+        name,
+        compressionMethod,
+        compressedSize,
+        uncompressedSize,
+        localHeaderOffset
+      });
+      offset = nameEnd + extraLen + commentLen;
+    }
+  }
+  listEntryNames() {
+    return Array.from(this.entries.keys());
+  }
+  hasEntry(name) {
+    return this.entries.has(name);
+  }
+  readEntryBuffer(name) {
+    const entry = this.entries.get(name);
+    if (!entry) {
+      throw new Error(`ZIP entry not found: ${name}`);
+    }
+    const lfh = entry.localHeaderOffset;
+    if (lfh + 30 > this.buf.length || this.buf.readUInt32LE(lfh) !== 67324752) {
+      throw new Error(`Invalid ZIP local file header for entry: ${name}`);
+    }
+    const localNameLen = this.buf.readUInt16LE(lfh + 26);
+    const localExtraLen = this.buf.readUInt16LE(lfh + 28);
+    const dataStart = lfh + 30 + localNameLen + localExtraLen;
+    const dataEnd = dataStart + entry.compressedSize;
+    if (dataEnd > this.buf.length) {
+      throw new Error(`ZIP entry data out of bounds: ${name}`);
+    }
+    const remainingTotal = STUDIO_ZIP_MAX_TOTAL_BYTES - this.totalInflatedBytes;
+    const maxAllowed = Math.min(STUDIO_ZIP_MAX_ENTRY_BYTES, remainingTotal);
+    if (maxAllowed <= 0) {
+      throw new Error(
+        `ZIP security guard rejected archive: total inflated bytes exceeded ${STUDIO_ZIP_MAX_TOTAL_BYTES} bytes`
+      );
+    }
+    const compressedSlice = this.buf.subarray(dataStart, dataEnd);
+    let output2;
+    if (entry.compressionMethod === 0) {
+      if (compressedSlice.length > maxAllowed) {
+        throw new Error(
+          `ZIP security guard rejected stored entry exceeding limit (${compressedSlice.length} > ${maxAllowed})`
+        );
+      }
+      output2 = Buffer.from(compressedSlice);
+    } else if (entry.compressionMethod === 8) {
+      try {
+        output2 = import_node_zlib.default.inflateRawSync(compressedSlice, { maxOutputLength: maxAllowed });
+      } catch (err) {
+        const code = err.code;
+        if (code === "ERR_BUFFER_TOO_LARGE") {
+          throw new Error(
+            `ZIP bomb protection triggered while inflating "${name}": decompressed output exceeded security cap (${maxAllowed} bytes)`
+          );
+        }
+        throw new Error(
+          `Failed to inflate ZIP entry "${name}": ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+    } else {
+      throw new Error(`Unsupported ZIP compression method ${entry.compressionMethod} for "${name}"`);
+    }
+    this.totalInflatedBytes += output2.length;
+    if (this.totalInflatedBytes > STUDIO_ZIP_MAX_TOTAL_BYTES) {
+      throw new Error(
+        `ZIP security guard rejected archive: total inflated size exceeded ${STUDIO_ZIP_MAX_TOTAL_BYTES} bytes`
+      );
+    }
+    return output2;
+  }
+  readEntryText(name) {
+    return this.readEntryBuffer(name).toString("utf8");
+  }
+};
+function decodeXmlEntities(raw) {
+  return raw.replace(/&#x([0-9a-fA-F]+);/g, (_m, hex3) => {
+    const code = Number.parseInt(hex3, 16);
+    return Number.isFinite(code) && code > 0 && code <= 1114111 ? String.fromCodePoint(code) : "";
+  }).replace(/&#(\d+);/g, (_m, dec) => {
+    const code = Number.parseInt(dec, 10);
+    return Number.isFinite(code) && code > 0 && code <= 1114111 ? String.fromCodePoint(code) : "";
+  }).replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+}
+function sliceLines(allLines, startLineInput, maxLinesInput) {
+  const total = allLines.length;
+  const maxLines = Math.max(
+    1,
+    Math.min(
+      typeof maxLinesInput === "number" && Number.isFinite(maxLinesInput) ? Math.floor(maxLinesInput) : STUDIO_DEFAULT_DOC_LINES,
+      STUDIO_MAX_DOC_LINES
+    )
+  );
+  const startLine = Math.max(
+    1,
+    typeof startLineInput === "number" && Number.isFinite(startLineInput) ? Math.floor(startLineInput) : 1
+  );
+  if (total === 0) {
+    return { startLine: 1, endLine: 0, truncated: false, lines: [], content: "" };
+  }
+  const clampedStart = Math.min(startLine, total);
+  const sliceEndExclusive = Math.min(total, clampedStart - 1 + maxLines);
+  const rawSlice = allLines.slice(clampedStart - 1, sliceEndExclusive);
+  const redactedSlice = rawSlice.map((line) => redactStudioSecrets(line));
+  const endLine = clampedStart + redactedSlice.length - 1;
+  return {
+    startLine: clampedStart,
+    endLine,
+    truncated: sliceEndExclusive < total,
+    lines: redactedSlice,
+    content: redactedSlice.join("\n")
+  };
+}
+function extractTextOutline(format, lines) {
+  const outline = [];
+  const push = (item) => {
+    if (outline.length < 100) {
+      outline.push({ ...item, title: redactStudioSecrets(item.title).slice(0, 140) });
+    }
+  };
+  if (format === "json") {
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i];
+      const topKey = /^\s{1,2}"([^"]+)"\s*:/.exec(line);
+      if (topKey) {
+        push({ level: 1, title: topKey[1], line: i + 1, kind: "key" });
+        continue;
+      }
+      const pathKey = /^\s{3,6}"(\/[^"]+)"\s*:/.exec(line);
+      if (pathKey) {
+        push({ level: 2, title: pathKey[1], line: i + 1, kind: "endpoint" });
+      }
+    }
+    return outline;
+  }
+  if (format === "markdown") {
+    let inFence = false;
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i];
+      if (/^\s*(?:```|~~~)/.test(line)) {
+        inFence = !inFence;
+        continue;
+      }
+      if (inFence) continue;
+      const m = /^(#{1,6})\s+(.+?)\s*#*$/.exec(line);
+      if (m) {
+        push({ level: m[1].length, title: m[2].trim(), line: i + 1, kind: "heading" });
+      }
+    }
+    return outline;
+  }
+  if (format === "yaml") {
+    let inPaths = false;
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i];
+      if (/^\s*#/.test(line) || !line.trim()) continue;
+      const top = /^([A-Za-z0-9_.-]+)\s*:/.exec(line);
+      if (top) {
+        inPaths = top[1] === "paths";
+        push({ level: 1, title: top[1], line: i + 1, kind: "section" });
+        continue;
+      }
+      if (inPaths) {
+        const ep = /^\s{2}('\/[^']+'|"\/[^"]+"|\/[^\s:]+)\s*:/.exec(line);
+        if (ep) {
+          push({ level: 2, title: ep[1].replace(/^['"]|['"]$/g, ""), line: i + 1, kind: "endpoint" });
+        }
+      }
+    }
+    return outline;
+  }
+  if (format === "html") {
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i];
+      const titleMatch = /<title[^>]*>([^<]+)<\/title>/i.exec(line);
+      if (titleMatch) {
+        push({ level: 1, title: decodeXmlEntities(titleMatch[1].trim()), line: i + 1, kind: "title" });
+      }
+      const hMatch = /<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1>/i.exec(line);
+      if (hMatch) {
+        const clean = decodeXmlEntities(hMatch[2].replace(/<[^>]+>/g, "").trim());
+        if (clean) {
+          push({ level: Number(hMatch[1]), title: clean, line: i + 1, kind: `h${hMatch[1]}` });
+        }
+      }
+    }
+    return outline;
+  }
+  if (format === "svg") {
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i];
+      const tMatch = /<title[^>]*>([^<]+)<\/title>/i.exec(line);
+      if (tMatch) {
+        push({ level: 1, title: decodeXmlEntities(tMatch[1].trim()), line: i + 1, kind: "title" });
+      }
+      const gMatch = /<(?:svg|g|symbol)\b[^>]*\bid=["']([^"']+)["']/i.exec(line);
+      if (gMatch) {
+        push({ level: 2, title: `#${gMatch[1]}`, line: i + 1, kind: "group" });
+      }
+    }
+    return outline;
+  }
+  if (format === "xml") {
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i];
+      const tagMatch = /^(\s*)<([A-Za-z_][A-Za-z0-9_.:-]*)\b(?![/?!])/.exec(line);
+      if (tagMatch && tagMatch[1].length <= 4) {
+        const level = tagMatch[1].length === 0 ? 1 : 2;
+        push({ level, title: `<${tagMatch[2]}>`, line: i + 1, kind: "element" });
+      }
+    }
+    return outline;
+  }
+  for (let i = 0; i < lines.length; i += 1) {
+    const trimmed = lines[i].trim();
+    if (!trimmed) continue;
+    if (i === 0 || lines[i - 1]?.trim() === "" && trimmed.length <= 90) {
+      push({ level: i === 0 ? 1 : 2, title: trimmed, line: i + 1, kind: "paragraph" });
+    }
+  }
+  return outline;
+}
+function parseDocxDocument(relPath, buf, bytes, startLine, maxLines) {
+  const zip = new ReadOnlyZipArchive(buf);
+  if (!zip.hasEntry("word/document.xml")) {
+    throw new Error(`Invalid DOCX file (missing word/document.xml): ${relPath}`);
+  }
+  const docXml = zip.readEntryText("word/document.xml");
+  const metadata = {
+    entryCount: zip.listEntryNames().length
+  };
+  if (zip.hasEntry("docProps/core.xml")) {
+    try {
+      const coreXml = zip.readEntryText("docProps/core.xml");
+      const titleMatch = /<dc:title[^>]*>([\s\S]*?)<\/dc:title>/i.exec(coreXml);
+      const creatorMatch = /<dc:creator[^>]*>([\s\S]*?)<\/dc:creator>/i.exec(coreXml);
+      if (titleMatch) metadata.title = redactStudioSecrets(decodeXmlEntities(titleMatch[1].trim()));
+      if (creatorMatch) metadata.author = redactStudioSecrets(decodeXmlEntities(creatorMatch[1].trim()));
+    } catch {
+    }
+  }
+  const paragraphs = [];
+  const outline = [];
+  const paraRe = /<w:p\b[^>]*>([\s\S]*?)<\/w:p>/g;
+  let paraMatch;
+  while ((paraMatch = paraRe.exec(docXml)) !== null) {
+    const pBody = paraMatch[1];
+    const normalizedP = pBody.replace(/<w:tab\b[^>]*\/>/g, "	").replace(/<w:br\b[^>]*\/>/g, "\n");
+    const textParts = [];
+    const textRe = /<w:t\b[^>]*>([\s\S]*?)<\/w:t>|\n|\t/g;
+    let tMatch;
+    while ((tMatch = textRe.exec(normalizedP)) !== null) {
+      if (tMatch[0] === "\n" || tMatch[0] === "	") {
+        textParts.push(tMatch[0]);
+      } else if (tMatch[1] !== void 0) {
+        textParts.push(decodeXmlEntities(tMatch[1]));
+      }
+    }
+    const joined = textParts.join("").trim();
+    if (!joined) continue;
+    const subLines = joined.split("\n").map((l) => l.trimEnd());
+    const startIdx = paragraphs.length + 1;
+    paragraphs.push(...subLines);
+    const styleMatch = /<w:pStyle\b[^>]*w:val=["']([^"']+)["']/i.exec(pBody);
+    if (styleMatch) {
+      const styleVal = styleMatch[1];
+      const headingNum = /^Heading([1-6])$/i.exec(styleVal);
+      if (headingNum) {
+        outline.push({
+          level: Number(headingNum[1]),
+          title: redactStudioSecrets(subLines[0]).slice(0, 140),
+          line: startIdx,
+          kind: "heading"
+        });
+      } else if (/^Title$/i.test(styleVal)) {
+        outline.push({
+          level: 1,
+          title: redactStudioSecrets(subLines[0]).slice(0, 140),
+          line: startIdx,
+          kind: "title"
+        });
+      }
+    }
+  }
+  if (paragraphs.length === 0) {
+    const stripped = decodeXmlEntities(docXml.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+    if (stripped) paragraphs.push(stripped);
+  }
+  metadata.paragraphCount = paragraphs.length;
+  const sliced = sliceLines(paragraphs, startLine, maxLines);
+  return {
+    mode: "live",
+    filePath: relPath,
+    format: "docx",
+    bytes,
+    totalLines: paragraphs.length,
+    startLine: sliced.startLine,
+    endLine: sliced.endLine,
+    truncated: sliced.truncated,
+    outline: outline.slice(0, 100),
+    content: sliced.content,
+    lines: sliced.lines,
+    metadata
+  };
+}
+function excelColRefToIndex(cellRef) {
+  const lettersMatch = /^([A-Za-z]+)/.exec(cellRef);
+  if (!lettersMatch) return -1;
+  const letters = lettersMatch[1].toUpperCase();
+  let col = 0;
+  for (let i = 0; i < letters.length; i += 1) {
+    col = col * 26 + (letters.charCodeAt(i) - 64);
+  }
+  return col - 1;
+}
+function parseSharedStringsXml(xml) {
+  const out = [];
+  const siRe = /<si\b[^>]*>([\s\S]*?)<\/si>/g;
+  let siMatch;
+  while ((siMatch = siRe.exec(xml)) !== null) {
+    const body = siMatch[1];
+    const parts = [];
+    const tRe = /<t\b[^>]*>([\s\S]*?)<\/t>/g;
+    let tMatch;
+    while ((tMatch = tRe.exec(body)) !== null) {
+      parts.push(decodeXmlEntities(tMatch[1]));
+    }
+    out.push(parts.join(""));
+  }
+  return out;
+}
+function resolveXlsxSheets(zip) {
+  const sheets = [];
+  const relMap = /* @__PURE__ */ new Map();
+  if (zip.hasEntry("xl/_rels/workbook.xml.rels")) {
+    try {
+      const relsXml = zip.readEntryText("xl/_rels/workbook.xml.rels");
+      const relRe = /<Relationship\b([^>]+)\/?>/g;
+      let m;
+      while ((m = relRe.exec(relsXml)) !== null) {
+        const attrs = m[1];
+        const idM = /\bId=["']([^"']+)["']/.exec(attrs);
+        const targetM = /\bTarget=["']([^"']+)["']/.exec(attrs);
+        if (idM && targetM) {
+          let target = targetM[1].replace(/^\/+/, "");
+          if (!target.startsWith("xl/")) {
+            target = `xl/${target}`;
+          }
+          relMap.set(idM[1], target);
+        }
+      }
+    } catch {
+    }
+  }
+  if (zip.hasEntry("xl/workbook.xml")) {
+    try {
+      const wbXml = zip.readEntryText("xl/workbook.xml");
+      const sheetRe = /<sheet\b([^>]+)\/?>/g;
+      let m;
+      while ((m = sheetRe.exec(wbXml)) !== null) {
+        const attrs = m[1];
+        const nameM = /\bname=["']([^"']+)["']/.exec(attrs);
+        const ridM = /\br:id=["']([^"']+)["']/.exec(attrs);
+        const name = nameM ? decodeXmlEntities(nameM[1]) : `Sheet${sheets.length + 1}`;
+        const mapped = ridM ? relMap.get(ridM[1]) : void 0;
+        const fallbackPath = `xl/worksheets/sheet${sheets.length + 1}.xml`;
+        const resolvedPath = mapped && zip.hasEntry(mapped) ? mapped : fallbackPath;
+        if (zip.hasEntry(resolvedPath)) {
+          sheets.push({ name, path: resolvedPath });
+        }
+      }
+    } catch {
+    }
+  }
+  if (sheets.length === 0) {
+    const candidates = zip.listEntryNames().filter((n) => /^xl\/worksheets\/sheet\d+\.xml$/i.test(n)).sort((a, b) => a.localeCompare(b, void 0, { numeric: true }));
+    for (let i = 0; i < candidates.length; i += 1) {
+      sheets.push({ name: `Sheet${i + 1}`, path: candidates[i] });
+    }
+  }
+  return sheets;
+}
+function parseWorksheetRows(sheetXml, sharedStrings) {
+  const MAX_XLSX_ROWS = 500;
+  const MAX_XLSX_COLS = 64;
+  const rows = [];
+  let totalRows = 0;
+  const rowRe = /<row\b[^>]*>([\s\S]*?)<\/row>/g;
+  let rowMatch;
+  while ((rowMatch = rowRe.exec(sheetXml)) !== null) {
+    totalRows += 1;
+    if (rows.length >= MAX_XLSX_ROWS) continue;
+    const rowBody = rowMatch[1];
+    const cells = [];
+    let nextColIdx = 0;
+    const cellRe = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    let cellMatch;
+    while ((cellMatch = cellRe.exec(rowBody)) !== null) {
+      const attrs = cellMatch[1] ?? "";
+      const inner = cellMatch[2] ?? "";
+      const refM = /\br=["']([^"']+)["']/.exec(attrs);
+      const typeM = /\bt=["']([^"']+)["']/.exec(attrs);
+      const cellType = typeM ? typeM[1] : "";
+      let colIdx = refM ? excelColRefToIndex(refM[1]) : nextColIdx;
+      if (colIdx < 0) colIdx = nextColIdx;
+      nextColIdx = colIdx + 1;
+      if (colIdx >= MAX_XLSX_COLS) continue;
+      while (cells.length <= colIdx) cells.push("");
+      let value = "";
+      if (cellType === "s") {
+        const vM = /<v[^>]*>([\s\S]*?)<\/v>/.exec(inner);
+        const idx = vM ? Number.parseInt(vM[1].trim(), 10) : -1;
+        value = idx >= 0 && idx < sharedStrings.length ? sharedStrings[idx] : "";
+      } else if (cellType === "inlineStr") {
+        const tParts = [];
+        const tRe = /<t\b[^>]*>([\s\S]*?)<\/t>/g;
+        let tM;
+        while ((tM = tRe.exec(inner)) !== null) {
+          tParts.push(decodeXmlEntities(tM[1]));
+        }
+        value = tParts.join("");
+      } else if (cellType === "b") {
+        const vM = /<v[^>]*>([\s\S]*?)<\/v>/.exec(inner);
+        value = vM && vM[1].trim() === "1" ? "TRUE" : "FALSE";
+      } else {
+        const vM = /<v[^>]*>([\s\S]*?)<\/v>/.exec(inner);
+        value = vM ? decodeXmlEntities(vM[1].trim()) : "";
+      }
+      cells[colIdx] = redactStudioSecrets(value);
+    }
+    if (cells.some((c) => c !== "")) {
+      rows.push(cells);
+    }
+  }
+  return { rows, totalRows };
+}
+function parseXlsxDocument(relPath, buf, bytes, startLine, maxLines) {
+  const zip = new ReadOnlyZipArchive(buf);
+  const sheetDefs = resolveXlsxSheets(zip);
+  if (sheetDefs.length === 0) {
+    throw new Error(`Invalid XLSX file (no worksheets found): ${relPath}`);
+  }
+  const sharedStrings = zip.hasEntry("xl/sharedStrings.xml") ? parseSharedStringsXml(zip.readEntryText("xl/sharedStrings.xml")) : [];
+  const primarySheet = sheetDefs[0];
+  const parsedPrimary = parseWorksheetRows(zip.readEntryText(primarySheet.path), sharedStrings);
+  const previewLines = [`# Sheet: ${primarySheet.name}`];
+  for (let i = 0; i < parsedPrimary.rows.length; i += 1) {
+    const row = parsedPrimary.rows[i];
+    previewLines.push(row.join("	"));
+  }
+  const outline = sheetDefs.map((s, idx) => ({
+    level: 1,
+    title: s.name,
+    line: idx === 0 ? 1 : previewLines.length,
+    kind: "sheet"
+  }));
+  const sliced = sliceLines(previewLines, startLine, maxLines);
+  const sheets = [
+    {
+      name: primarySheet.name,
+      rows: parsedPrimary.rows.slice(0, 100),
+      totalRows: parsedPrimary.totalRows
+    }
+  ];
+  return {
+    mode: "live",
+    filePath: relPath,
+    format: "xlsx",
+    bytes,
+    totalLines: previewLines.length,
+    startLine: sliced.startLine,
+    endLine: sliced.endLine,
+    truncated: sliced.truncated,
+    outline,
+    content: sliced.content,
+    lines: sliced.lines,
+    metadata: {
+      sheetNames: sheetDefs.map((s) => s.name),
+      activeSheet: primarySheet.name,
+      sharedStringCount: sharedStrings.length,
+      rowCount: parsedPrimary.totalRows,
+      entryCount: zip.listEntryNames().length
+    },
+    sheets
+  };
+}
+function decodePdfLiteralString(raw) {
+  let out = "";
+  for (let i = 0; i < raw.length; i += 1) {
+    const ch = raw[i];
+    if (ch !== "\\") {
+      out += ch;
+      continue;
+    }
+    if (i + 1 >= raw.length) break;
+    const next = raw[i + 1];
+    switch (next) {
+      case "n":
+        out += "\n";
+        i += 1;
+        break;
+      case "r":
+        out += "\r";
+        i += 1;
+        break;
+      case "t":
+        out += "	";
+        i += 1;
+        break;
+      case "b":
+        out += "\b";
+        i += 1;
+        break;
+      case "f":
+        out += "\f";
+        i += 1;
+        break;
+      case "(":
+      case ")":
+      case "\\":
+        out += next;
+        i += 1;
+        break;
+      case "\r":
+        i += raw[i + 2] === "\n" ? 2 : 1;
+        break;
+      case "\n":
+        i += 1;
+        break;
+      default: {
+        if (next >= "0" && next <= "7") {
+          let oct = next;
+          let j = i + 2;
+          while (j < raw.length && oct.length < 3 && raw[j] >= "0" && raw[j] <= "7") {
+            oct += raw[j];
+            j += 1;
+          }
+          out += String.fromCharCode(Number.parseInt(oct, 8));
+          i = j - 1;
+        } else {
+          out += next;
+          i += 1;
+        }
+      }
+    }
+  }
+  return out;
+}
+function decodePdfHexString(hexRaw) {
+  const cleaned = hexRaw.replace(/\s+/g, "");
+  const padded = cleaned.length % 2 === 1 ? `${cleaned}0` : cleaned;
+  const bytes = Buffer.from(padded, "hex");
+  if (bytes.length >= 2 && bytes[0] === 254 && bytes[1] === 255) {
+    const chars = [];
+    for (let i = 2; i + 1 < bytes.length; i += 2) {
+      chars.push(String.fromCharCode(bytes[i] << 8 | bytes[i + 1]));
+    }
+    return chars.join("");
+  }
+  return bytes.toString("latin1");
+}
+function extractPdfInfoMetadata(latin1Text) {
+  const info = {};
+  const keys = ["Title", "Author", "Subject", "Creator", "Producer", "CreationDate"];
+  for (const key of keys) {
+    const litRe = new RegExp(`/${key}\\s*\\(([^\\\\()]*(?:\\\\.[^\\\\()]*)*)\\)`);
+    const litM = litRe.exec(latin1Text);
+    if (litM) {
+      const val = redactStudioSecrets(decodePdfLiteralString(litM[1]).trim());
+      if (val) info[key.toLowerCase()] = val;
+      continue;
+    }
+    const hexRe = new RegExp(`/${key}\\s*<([0-9A-Fa-f\\s]+)>`);
+    const hexM = hexRe.exec(latin1Text);
+    if (hexM) {
+      const val = redactStudioSecrets(decodePdfHexString(hexM[1]).trim());
+      if (val) info[key.toLowerCase()] = val;
+    }
+  }
+  return info;
+}
+function extractPdfTextFromContentStream(streamText) {
+  const lines = [];
+  const btEtRe = /\bBT\b([\s\S]*?)\bET\b/g;
+  let blockMatch;
+  while ((blockMatch = btEtRe.exec(streamText)) !== null) {
+    const block = blockMatch[1];
+    let currentLine = "";
+    let i = 0;
+    const flushLine = () => {
+      const cleaned = currentLine.replace(/\s+/g, " ").trim();
+      if (cleaned) lines.push(cleaned);
+      currentLine = "";
+    };
+    while (i < block.length) {
+      const ch = block[i];
+      if (ch === "(") {
+        let depth = 1;
+        let j = i + 1;
+        let escaped = false;
+        while (j < block.length && depth > 0) {
+          const c = block[j];
+          if (escaped) {
+            escaped = false;
+          } else if (c === "\\") {
+            escaped = true;
+          } else if (c === "(") {
+            depth += 1;
+          } else if (c === ")") {
+            depth -= 1;
+          }
+          j += 1;
+        }
+        const literalRaw = block.slice(i + 1, j - 1);
+        const after = block.slice(j, j + 12).trimStart();
+        if (after.startsWith("Tj") || after.startsWith("'") || after.startsWith('"')) {
+          currentLine += decodePdfLiteralString(literalRaw);
+          if (after.startsWith("'") || after.startsWith('"')) {
+            flushLine();
+          }
+        }
+        i = j;
+        continue;
+      }
+      if (ch === "[") {
+        let j = i + 1;
+        let parts = "";
+        let inParen = false;
+        let parenDepth = 0;
+        let escaped = false;
+        let tokenStart = -1;
+        while (j < block.length) {
+          const c = block[j];
+          if (inParen) {
+            if (escaped) {
+              escaped = false;
+            } else if (c === "\\") {
+              escaped = true;
+            } else if (c === "(") {
+              parenDepth += 1;
+            } else if (c === ")") {
+              parenDepth -= 1;
+              if (parenDepth === 0) {
+                parts += decodePdfLiteralString(block.slice(tokenStart, j));
+                inParen = false;
+              }
+            }
+          } else if (c === "(") {
+            inParen = true;
+            parenDepth = 1;
+            tokenStart = j + 1;
+          } else if (c === "]") {
+            j += 1;
+            break;
+          } else if (c === "-" && j + 1 < block.length && /\d/.test(block[j + 1])) {
+            const numMatch = /^-(\d+(?:\.\d+)?)/.exec(block.slice(j));
+            if (numMatch && Number(numMatch[1]) >= 120 && parts && !parts.endsWith(" ")) {
+              parts += " ";
+            }
+          }
+          j += 1;
+        }
+        const after = block.slice(j, j + 12).trimStart();
+        if (after.startsWith("TJ") && parts) {
+          currentLine += parts;
+        }
+        i = j;
+        continue;
+      }
+      if (ch === "T" && (block[i + 1] === "*" || block[i + 1] === "d" || block[i + 1] === "D") && (i === 0 || /\s/.test(block[i - 1]))) {
+        flushLine();
+        i += 2;
+        continue;
+      }
+      i += 1;
+    }
+    flushLine();
+  }
+  return lines;
+}
+function parsePdfDocument(relPath, buf, bytes, startLine, maxLines) {
+  const headText = buf.subarray(0, Math.min(buf.length, 1024)).toString("latin1");
+  const versionMatch = /%PDF-(\d+\.\d+)/.exec(headText);
+  if (!versionMatch) {
+    throw new Error(`Invalid PDF file (missing %PDF header): ${relPath}`);
+  }
+  const pdfVersion = versionMatch[1];
+  const fullLatin1 = buf.toString("latin1");
+  const pageMatches = fullLatin1.match(/\/Type\s*\/Page(?![A-Za-z])/g);
+  let estimatedPages = pageMatches ? pageMatches.length : 0;
+  if (estimatedPages === 0) {
+    const countMatch = /\/Count\s+(\d+)/.exec(fullLatin1);
+    if (countMatch) estimatedPages = Number.parseInt(countMatch[1], 10) || 0;
+  }
+  const info = extractPdfInfoMetadata(fullLatin1);
+  const streamKeyword = Buffer.from("stream");
+  const endstreamKeyword = Buffer.from("endstream");
+  const extractedLines = [];
+  let totalDecompressed = 0;
+  let streamsInspected = 0;
+  let searchPos = 0;
+  while (searchPos < buf.length && streamsInspected < 256) {
+    const kwIdx = buf.indexOf(streamKeyword, searchPos);
+    if (kwIdx < 0) break;
+    searchPos = kwIdx + streamKeyword.length;
+    if (kwIdx > 0) {
+      const prevByte = buf[kwIdx - 1];
+      const validPrev = prevByte === 10 || prevByte === 13 || prevByte === 32 || prevByte === 9 || prevByte === 62 || // '>'
+      prevByte === 93;
+      if (!validPrev) continue;
+    }
+    let dataStart = kwIdx + streamKeyword.length;
+    if (buf[dataStart] === 13 && buf[dataStart + 1] === 10) {
+      dataStart += 2;
+    } else if (buf[dataStart] === 10) {
+      dataStart += 1;
+    } else {
+      continue;
+    }
+    const endIdx = buf.indexOf(endstreamKeyword, dataStart);
+    if (endIdx < 0) break;
+    searchPos = endIdx + endstreamKeyword.length;
+    streamsInspected += 1;
+    let dataEnd = endIdx;
+    if (dataEnd > dataStart && buf[dataEnd - 1] === 10) dataEnd -= 1;
+    if (dataEnd > dataStart && buf[dataEnd - 1] === 13) dataEnd -= 1;
+    const dictWindowStart = Math.max(0, kwIdx - 512);
+    const dictText = buf.subarray(dictWindowStart, kwIdx).toString("latin1");
+    const rawStream = buf.subarray(dataStart, dataEnd);
+    if (/\/(?:DCTDecode|JPXDecode|JBIG2Decode|CCITTFaxDecode)\b/.test(dictText)) {
+      continue;
+    }
+    let decodedText = null;
+    if (/\/FlateDecode\b/.test(dictText)) {
+      const remaining = STUDIO_PDF_MAX_STREAM_BYTES - totalDecompressed;
+      if (remaining <= 0) continue;
+      try {
+        const inflated = import_node_zlib.default.inflateSync(rawStream, { maxOutputLength: remaining });
+        totalDecompressed += inflated.length;
+        decodedText = inflated.toString("latin1");
+      } catch {
+        continue;
+      }
+    } else if (rawStream.length <= STUDIO_PDF_MAX_STREAM_BYTES - totalDecompressed) {
+      const textCandidate = rawStream.toString("latin1");
+      if (textCandidate.includes("BT") && textCandidate.includes("ET")) {
+        totalDecompressed += rawStream.length;
+        decodedText = textCandidate;
+      }
+    }
+    if (decodedText && decodedText.includes("BT")) {
+      const streamLines = extractPdfTextFromContentStream(decodedText);
+      extractedLines.push(...streamLines);
+    }
+  }
+  const outline = [];
+  if (info.title) {
+    outline.push({ level: 1, title: info.title, line: 1, kind: "title" });
+  }
+  for (let i = 0; i < extractedLines.length && outline.length < 30; i += 1) {
+    const line = extractedLines[i];
+    if (line.length >= 3 && line.length <= 90 && (i === 0 || /^\d+(?:\.\d+)*\s+\S/.test(line))) {
+      outline.push({
+        level: i === 0 ? 1 : 2,
+        title: redactStudioSecrets(line),
+        line: i + 1,
+        kind: "section"
+      });
+    }
+  }
+  const sliced = sliceLines(extractedLines, startLine, maxLines);
+  return {
+    mode: "live",
+    filePath: relPath,
+    format: "pdf",
+    bytes,
+    totalLines: extractedLines.length,
+    startLine: sliced.startLine,
+    endLine: sliced.endLine,
+    truncated: sliced.truncated,
+    outline,
+    content: sliced.content,
+    lines: sliced.lines,
+    metadata: {
+      pdfVersion,
+      estimatedPages,
+      info,
+      streamsInspected,
+      decompressedStreamBytes: totalDecompressed
+    }
+  };
+}
+function inspectStudioDocument(workspaceRoot, opts) {
+  const resolved = resolveStudioWorkspaceFile(workspaceRoot, opts.filePath);
+  const ext = import_node_path20.default.extname(resolved.relPath).toLowerCase();
+  const buf = import_node_fs15.default.readFileSync(resolved.realTarget);
+  if (ext === ".docx") {
+    return parseDocxDocument(resolved.relPath, buf, resolved.stat.size, opts.startLine, opts.maxLines);
+  }
+  if (ext === ".xlsx") {
+    return parseXlsxDocument(resolved.relPath, buf, resolved.stat.size, opts.startLine, opts.maxLines);
+  }
+  if (ext === ".pdf") {
+    return parsePdfDocument(resolved.relPath, buf, resolved.stat.size, opts.startLine, opts.maxLines);
+  }
+  let textFormat;
+  switch (ext) {
+    case ".md":
+    case ".mdx":
+      textFormat = "markdown";
+      break;
+    case ".txt":
+      textFormat = "text";
+      break;
+    case ".html":
+    case ".htm":
+      textFormat = "html";
+      break;
+    case ".svg":
+      textFormat = "svg";
+      break;
+    case ".yaml":
+    case ".yml":
+      textFormat = "yaml";
+      break;
+    case ".xml":
+      textFormat = "xml";
+      break;
+    case ".json":
+      textFormat = "json";
+      break;
+    default:
+      throw new Error(
+        `Unsupported document format "${ext || "(none)"}" for studio_inspect_document (supported: .md, .txt, .html, .svg, .yaml, .yml, .xml, .json, .docx, .xlsx, .pdf)`
+      );
+  }
+  const rawText = buf.toString("utf8");
+  const allLines = rawText.split(/\r?\n/);
+  const outline = extractTextOutline(textFormat, allLines);
+  const sliced = sliceLines(allLines, opts.startLine, opts.maxLines);
+  const metadata = {
+    extension: ext,
+    lineCount: allLines.length,
+    charCount: rawText.length
+  };
+  if (textFormat === "svg") {
+    const vbMatch = /\bviewBox=["']([^"']+)["']/i.exec(rawText);
+    if (vbMatch) metadata.viewBox = vbMatch[1];
+  }
+  return {
+    mode: "live",
+    filePath: resolved.relPath,
+    format: textFormat,
+    bytes: resolved.stat.size,
+    totalLines: allLines.length,
+    startLine: sliced.startLine,
+    endLine: sliced.endLine,
+    truncated: sliced.truncated,
+    outline,
+    content: sliced.content,
+    lines: sliced.lines,
+    metadata
+  };
+}
+var STRICT_LOOPBACK_URL_PREFIX_RE = /^(https?):\/\/(127\.0\.0\.1|localhost|\[::1\])(?::(\d{1,5}))?(?:[/?#]|$)/i;
+function validateLoopbackProbeUrl(rawUrl) {
+  if (typeof rawUrl !== "string" || !rawUrl.trim()) {
+    throw new Error("HTTP probe URL is required");
+  }
+  const trimmed = rawUrl.trim();
+  if (trimmed.length > 2048) {
+    throw new Error("HTTP probe URL exceeds maximum length (2048)");
+  }
+  if (/[\x00-\x1f\x7f]/.test(trimmed)) {
+    throw new Error("HTTP probe URL contains forbidden control characters");
+  }
+  if (trimmed.includes("#@")) {
+    throw new Error('HTTP probe URL must not contain "#@" confusion sequence');
+  }
+  const schemeSepIdx = trimmed.indexOf("://");
+  if (schemeSepIdx <= 0) {
+    throw new Error(
+      "HTTP probe URL must start with strict http:// or https:// followed by a loopback host"
+    );
+  }
+  const rawScheme = trimmed.slice(0, schemeSepIdx);
+  if (/[\s\\]/.test(rawScheme)) {
+    throw new Error("HTTP probe URL scheme contains forbidden whitespace or backslash");
+  }
+  const afterScheme = trimmed.slice(schemeSepIdx + 3);
+  const rawAuthority = afterScheme.split(/[/?#]/, 1)[0] ?? "";
+  if (!rawAuthority || /[\s\\@]/.test(rawAuthority)) {
+    throw new Error(
+      'HTTP probe URL authority must not contain whitespace, backslashes, or "@" credentials'
+    );
+  }
+  const prefixMatch = STRICT_LOOPBACK_URL_PREFIX_RE.exec(trimmed);
+  if (!prefixMatch) {
+    throw new Error(
+      "SSRF guard blocked non-canonical or non-loopback URL (strictly limited to http(s)://127.0.0.1, localhost, or [::1])"
+    );
+  }
+  const matchedHostLower = prefixMatch[2].toLowerCase();
+  const rawPort = prefixMatch[3];
+  let expectedPortNum = null;
+  if (rawPort !== void 0) {
+    if (rawPort.startsWith("0")) {
+      throw new Error(`HTTP probe URL contains invalid port "${rawPort}"`);
+    }
+    expectedPortNum = Number(rawPort);
+    if (!Number.isInteger(expectedPortNum) || expectedPortNum < 1 || expectedPortNum > 65535) {
+      throw new Error(`HTTP probe URL port "${rawPort}" is out of range (1..65535)`);
+    }
+  }
+  let parsed;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new Error(`Invalid HTTP probe URL: ${trimmed}`);
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(
+      `HTTP probe protocol "${parsed.protocol}" is forbidden (only http: and https: are allowed)`
+    );
+  }
+  if (parsed.username !== "" || parsed.password !== "") {
+    throw new Error("HTTP probe URL must not contain embedded username or password credentials");
+  }
+  const hostLower = parsed.hostname.toLowerCase();
+  if (!ALLOWED_LOOPBACK_HOSTS.has(hostLower)) {
+    throw new Error(
+      `SSRF guard blocked non-loopback host "${parsed.hostname}" (strictly limited to 127.0.0.1, localhost, or [::1])`
+    );
+  }
+  const matchedHostUnbracketed = matchedHostLower.replace(/^\[|\]$/g, "");
+  if (hostLower !== matchedHostLower && hostLower !== matchedHostUnbracketed) {
+    throw new Error(
+      `SSRF guard rejected URL host mismatch between raw authority "${matchedHostLower}" and parsed host "${hostLower}"`
+    );
+  }
+  if (expectedPortNum !== null && parsed.port !== "" && parsed.port !== String(expectedPortNum)) {
+    throw new Error(
+      `HTTP probe URL port mismatch between raw authority "${expectedPortNum}" and parsed port "${parsed.port}"`
+    );
+  }
+  return parsed;
+}
+function isSensitiveHeaderName(name) {
+  const lower = name.trim().toLowerCase();
+  if (SENSITIVE_HEADER_NAMES.has(lower)) return true;
+  return SENSITIVE_HEADER_SUBSTRINGS.some((sub) => lower.includes(sub));
+}
+function sanitizeHeadersMap(headers) {
+  const out = {};
+  for (const [k, v] of Object.entries(headers)) {
+    out[k] = isSensitiveHeaderName(k) ? "[REDACTED]" : redactStudioSecrets(v);
+  }
+  return out;
+}
+async function runLoopbackHttpProbe(opts) {
+  const parsedUrl = validateLoopbackProbeUrl(opts.url);
+  const method = (opts.method ?? "GET").toUpperCase();
+  if (!ALLOWED_HTTP_METHODS.has(method)) {
+    throw new Error(`Unsupported HTTP method: ${method}`);
+  }
+  const rawTimeout = typeof opts.timeoutMs === "number" && Number.isFinite(opts.timeoutMs) ? Math.round(opts.timeoutMs) : STUDIO_HTTP_DEFAULT_TIMEOUT_MS;
+  const clampedTimeoutMs = Math.max(
+    STUDIO_HTTP_MIN_TIMEOUT_MS,
+    Math.min(rawTimeout, STUDIO_HTTP_MAX_TIMEOUT_MS)
+  );
+  const outgoingHeaders = {};
+  if (opts.headers && typeof opts.headers === "object") {
+    for (const [rawKey, rawVal] of Object.entries(opts.headers)) {
+      const key = rawKey.trim();
+      if (!key || /[\r\n:]/.test(key)) continue;
+      if (FORBIDDEN_REQUEST_HEADERS.has(key.toLowerCase())) continue;
+      const val = String(rawVal ?? "");
+      if (/[\r\n]/.test(val)) {
+        throw new Error(`Invalid newline character in request header "${key}"`);
+      }
+      outgoingHeaders[key] = val;
+    }
+  }
+  const canSendBody = method !== "GET" && method !== "HEAD" && typeof opts.body === "string";
+  const requestBody = canSendBody ? opts.body : void 0;
+  const startedAt = Date.now();
+  const response = await fetch(parsedUrl.toString(), {
+    method,
+    headers: outgoingHeaders,
+    body: requestBody,
+    redirect: "manual",
+    signal: AbortSignal.timeout(clampedTimeoutMs)
+  });
+  const chunks = [];
+  let collectedBytes = 0;
+  let truncated = false;
+  if (response.body) {
+    const reader = response.body.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (!value || value.byteLength === 0) continue;
+        const remaining = STUDIO_HTTP_MAX_BODY_BYTES - collectedBytes;
+        if (value.byteLength <= remaining) {
+          chunks.push(value);
+          collectedBytes += value.byteLength;
+        } else {
+          if (remaining > 0) {
+            chunks.push(value.subarray(0, remaining));
+            collectedBytes += remaining;
+          }
+          truncated = true;
+          await reader.cancel();
+          break;
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+  const elapsedMs = Date.now() - startedAt;
+  const rawBodyBuf = Buffer.concat(chunks, collectedBytes);
+  const bodyText = redactStudioSecrets(rawBodyBuf.toString("utf8"));
+  const rawResponseHeaders = {};
+  response.headers.forEach((value, key) => {
+    rawResponseHeaders[key] = value;
+  });
+  const locationRaw = response.headers.get("location");
+  const redirected = response.status >= 300 && response.status < 400;
+  const redirectedLocation = locationRaw ? redactStudioSecrets(locationRaw) : void 0;
+  return {
+    mode: "live",
+    url: redactStudioSecrets(parsedUrl.toString()),
+    method,
+    status: response.status,
+    statusText: response.statusText,
+    ok: response.ok,
+    elapsedMs,
+    redirected,
+    ...redirectedLocation ? { location: redirectedLocation } : {},
+    requestHeaders: sanitizeHeadersMap(outgoingHeaders),
+    responseHeaders: sanitizeHeadersMap(rawResponseHeaders),
+    contentType: response.headers.get("content-type") ?? "",
+    bodyText,
+    bodyBytes: collectedBytes,
+    truncated
+  };
+}
+var DEMO_UPDATED_AT = "2026-11-27T06:00:00.000Z";
+var DEMO_SOURCES = [
+  {
+    relPath: "data/analytics.sqlite",
+    name: "analytics.sqlite",
+    category: "data",
+    format: "sqlite",
+    extension: ".sqlite",
+    bytes: 184320,
+    updatedAt: DEMO_UPDATED_AT
+  },
+  {
+    relPath: "data/metrics.csv",
+    name: "metrics.csv",
+    category: "data",
+    format: "csv",
+    extension: ".csv",
+    bytes: 4280,
+    updatedAt: DEMO_UPDATED_AT
+  },
+  {
+    relPath: "docs/architecture.docx",
+    name: "architecture.docx",
+    category: "document",
+    format: "docx",
+    extension: ".docx",
+    bytes: 38912,
+    updatedAt: DEMO_UPDATED_AT
+  },
+  {
+    relPath: "docs/q4-budget.xlsx",
+    name: "q4-budget.xlsx",
+    category: "document",
+    format: "xlsx",
+    extension: ".xlsx",
+    bytes: 24576,
+    updatedAt: DEMO_UPDATED_AT
+  },
+  {
+    relPath: "docs/spec.pdf",
+    name: "spec.pdf",
+    category: "document",
+    format: "pdf",
+    extension: ".pdf",
+    bytes: 142848,
+    updatedAt: DEMO_UPDATED_AT
+  },
+  {
+    relPath: "api/openapi.yaml",
+    name: "openapi.yaml",
+    category: "openapi",
+    format: "openapi",
+    extension: ".yaml",
+    bytes: 6144,
+    updatedAt: DEMO_UPDATED_AT
+  }
+];
+var DEMO_SQLITE_TABLES = [
+  {
+    name: "events",
+    type: "table",
+    columns: [
+      { cid: 0, name: "id", type: "INTEGER", notnull: true, pk: true, dfltValue: null },
+      { cid: 1, name: "service", type: "TEXT", notnull: true, pk: false, dfltValue: null },
+      { cid: 2, name: "status", type: "TEXT", notnull: true, pk: false, dfltValue: null },
+      { cid: 3, name: "latency_ms", type: "REAL", notnull: true, pk: false, dfltValue: null },
+      { cid: 4, name: "created_at", type: "TEXT", notnull: true, pk: false, dfltValue: null }
+    ]
+  },
+  {
+    name: "sessions",
+    type: "table",
+    columns: [
+      { cid: 0, name: "session_id", type: "TEXT", notnull: true, pk: true, dfltValue: null },
+      { cid: 1, name: "preset", type: "TEXT", notnull: true, pk: false, dfltValue: "'core'" },
+      { cid: 2, name: "cached_ratio", type: "REAL", notnull: false, pk: false, dfltValue: null }
+    ]
+  }
+];
+var DEMO_SQLITE_EVENT_ROWS = [
+  { id: 101, service: "mcp-gateway", status: "ok", latency_ms: 14.2, created_at: "2026-11-27T05:50:00Z" },
+  { id: 102, service: "studio-slicer", status: "ok", latency_ms: 8.7, created_at: "2026-11-27T05:52:10Z" },
+  { id: 103, service: "guard-hook", status: "blocked", latency_ms: 1.9, created_at: "2026-11-27T05:54:45Z" },
+  { id: 104, service: "xray-indexer", status: "ok", latency_ms: 21.6, created_at: "2026-11-27T05:58:12Z" }
+];
+var DEMO_METRICS_ROWS = [
+  { date: "2026-11-24", module: "review", p95_ms: 18, tool_calls: 142, cache_hit_pct: 91.4 },
+  { date: "2026-11-25", module: "guard", p95_ms: 4, tool_calls: 318, cache_hit_pct: 96.2 },
+  { date: "2026-11-26", module: "studio", p95_ms: 24, tool_calls: 67, cache_hit_pct: 88.9 },
+  { date: "2026-11-27", module: "xray", p95_ms: 15, tool_calls: 205, cache_hit_pct: 94.1 }
+];
+function createDemoStudioService(workspaceRoot) {
+  const listSources = (category = "all") => {
+    const all = DEMO_SOURCES.map((s) => ({ ...s }));
+    const filtered = category === "all" ? all : all.filter((s) => s.category === category);
+    return {
+      mode: "demo",
+      workspaceRoot,
+      sources: filtered,
+      counts: {
+        total: all.length,
+        data: all.filter((s) => s.category === "data").length,
+        document: all.filter((s) => s.category === "document").length,
+        openapi: all.filter((s) => s.category === "openapi").length
+      },
+      skippedSensitive: 2,
+      skippedSymlinks: 0,
+      truncated: false
+    };
+  };
+  const inspectData = (opts) => {
+    const filePath = (opts.filePath ?? "").trim();
+    if (!filePath || isSensitiveStudioPath(filePath)) {
+      throw new Error(`Refused to access sensitive or invalid path: ${filePath}`);
+    }
+    const limit = clampDataLimit(opts.limit);
+    const needle = opts.filter?.trim().toLowerCase() || "";
+    const base = import_node_path20.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
+    if (base === "analytics.sqlite" || base.endsWith(".sqlite") || base.endsWith(".db")) {
+      const safeSql = opts.query && opts.query.trim() ? validateReadOnlySqliteQuery(opts.query) : void 0;
+      if (!safeSql) {
+        const schemaRows = DEMO_SQLITE_TABLES.map((t) => ({
+          name: t.name,
+          type: t.type,
+          columnCount: t.columns.length,
+          columns: t.columns.map((c) => `${c.name} (${c.type})${c.pk ? " PK" : ""}`).join(", ")
+        })).filter((r) => !needle ? true : rowMatchesFilter(r, needle));
+        const sliced2 = schemaRows.slice(0, limit);
+        return {
+          mode: "demo",
+          filePath: "data/analytics.sqlite",
+          format: "sqlite",
+          bytes: 184320,
+          columns: ["name", "type", "columnCount", "columns"],
+          rows: sliced2,
+          totalRows: schemaRows.length,
+          returnedRows: sliced2.length,
+          truncated: schemaRows.length > sliced2.length,
+          filter: opts.filter?.trim() || void 0,
+          summary: "data/analytics.sqlite (demo SQLite 3): 2 tables discovered (read-only schema view).",
+          sqlite: {
+            sqliteCliAvailable: true,
+            headerFormat: "SQLite format 3",
+            pageSize: 4096,
+            tables: DEMO_SQLITE_TABLES.map((t) => ({
+              ...t,
+              columns: t.columns.map((c) => ({ ...c }))
+            }))
+          }
+        };
+      }
+      const matched = DEMO_SQLITE_EVENT_ROWS.filter((r) => !needle ? true : rowMatchesFilter(r, needle));
+      const sliced = matched.slice(0, limit);
+      return {
+        mode: "demo",
+        filePath: "data/analytics.sqlite",
+        format: "sqlite",
+        bytes: 184320,
+        columns: ["id", "service", "status", "latency_ms", "created_at"],
+        rows: sliced,
+        totalRows: matched.length,
+        returnedRows: sliced.length,
+        truncated: matched.length > sliced.length,
+        filter: opts.filter?.trim() || void 0,
+        query: safeSql,
+        summary: `data/analytics.sqlite (demo read-only query): returned ${sliced.length} synthetic row(s).`,
+        sqlite: {
+          sqliteCliAvailable: true,
+          headerFormat: "SQLite format 3",
+          pageSize: 4096,
+          tables: DEMO_SQLITE_TABLES.map((t) => ({
+            ...t,
+            columns: t.columns.map((c) => ({ ...c }))
+          })),
+          executedSql: safeSql
+        }
+      };
+    }
+    if (base === "metrics.csv" || base.endsWith(".csv") || base.endsWith(".tsv")) {
+      const matched = DEMO_METRICS_ROWS.filter((r) => !needle ? true : rowMatchesFilter(r, needle));
+      const sliced = matched.slice(0, limit);
+      return {
+        mode: "demo",
+        filePath: "data/metrics.csv",
+        format: base.endsWith(".tsv") ? "tsv" : "csv",
+        bytes: 4280,
+        columns: ["date", "module", "p95_ms", "tool_calls", "cache_hit_pct"],
+        rows: sliced,
+        totalRows: matched.length,
+        returnedRows: sliced.length,
+        truncated: matched.length > sliced.length,
+        filter: opts.filter?.trim() || void 0,
+        summary: `data/metrics.csv (demo CSV): 5 columns, ${matched.length} matching rows, showing ${sliced.length}.`
+      };
+    }
+    throw new Error(`Demo data source not found: ${filePath} (available: data/analytics.sqlite, data/metrics.csv)`);
+  };
+  const inspectDocument = (opts) => {
+    const filePath = (opts.filePath ?? "").trim();
+    if (!filePath || isSensitiveStudioPath(filePath)) {
+      throw new Error(`Refused to access sensitive or invalid path: ${filePath}`);
+    }
+    const base = import_node_path20.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
+    if (base === "architecture.docx" || base.endsWith(".docx")) {
+      const allLines = [
+        "agy-NOV v0.4.0 Workspace Studio Architecture",
+        "1. Offline-First Design",
+        "All parsers run inside Node.js without invoking external binaries or network services.",
+        "2. Security Boundaries",
+        "Every file path is verified with realpathSync against workspaceRoot before any read.",
+        "ZIP bomb caps enforce <= 512 entries, <= 4 MiB per entry, and <= 6 MiB total inflated."
+      ];
+      const sliced = sliceLines(allLines, opts.startLine, opts.maxLines);
+      return {
+        mode: "demo",
+        filePath: "docs/architecture.docx",
+        format: "docx",
+        bytes: 38912,
+        totalLines: allLines.length,
+        startLine: sliced.startLine,
+        endLine: sliced.endLine,
+        truncated: sliced.truncated,
+        outline: [
+          { level: 1, title: "agy-NOV v0.4.0 Workspace Studio Architecture", line: 1, kind: "title" },
+          { level: 2, title: "1. Offline-First Design", line: 2, kind: "heading" },
+          { level: 2, title: "2. Security Boundaries", line: 4, kind: "heading" }
+        ],
+        content: sliced.content,
+        lines: sliced.lines,
+        metadata: { title: "Workspace Studio Architecture", author: "agy-NOV Team", paragraphCount: allLines.length }
+      };
+    }
+    if (base === "q4-budget.xlsx" || base.endsWith(".xlsx")) {
+      const sheetRows = [
+        ["Department", "Q4 Planned (USD)", "Q4 Actual (USD)", "Status"],
+        ["Core Runtime", "42000", "39800", "On Track"],
+        ["Security Audit", "18500", "18200", "Completed"],
+        ["Local UI Polish", "12000", "11450", "On Track"]
+      ];
+      const allLines = ["# Sheet: Q4 Summary", ...sheetRows.map((r) => r.join("	"))];
+      const sliced = sliceLines(allLines, opts.startLine, opts.maxLines);
+      return {
+        mode: "demo",
+        filePath: "docs/q4-budget.xlsx",
+        format: "xlsx",
+        bytes: 24576,
+        totalLines: allLines.length,
+        startLine: sliced.startLine,
+        endLine: sliced.endLine,
+        truncated: sliced.truncated,
+        outline: [
+          { level: 1, title: "Q4 Summary", line: 1, kind: "sheet" },
+          { level: 1, title: "Vendor Breakdown", line: allLines.length, kind: "sheet" }
+        ],
+        content: sliced.content,
+        lines: sliced.lines,
+        metadata: {
+          sheetNames: ["Q4 Summary", "Vendor Breakdown"],
+          activeSheet: "Q4 Summary",
+          rowCount: sheetRows.length
+        },
+        sheets: [{ name: "Q4 Summary", rows: sheetRows, totalRows: sheetRows.length }]
+      };
+    }
+    if (base === "spec.pdf" || base.endsWith(".pdf")) {
+      const allLines = [
+        "agy-NOV Modular Workbench Technical Specification",
+        "1.1 Zero ASAR and Zero CDP Invariant",
+        "Plugins operate exclusively over official MCP Apps and lifecycle hooks.",
+        "1.2 Loopback HTTP Probe Safety",
+        "Only 127.0.0.1, localhost, and [::1] targets are permitted with redirect: manual."
+      ];
+      const sliced = sliceLines(allLines, opts.startLine, opts.maxLines);
+      return {
+        mode: "demo",
+        filePath: "docs/spec.pdf",
+        format: "pdf",
+        bytes: 142848,
+        totalLines: allLines.length,
+        startLine: sliced.startLine,
+        endLine: sliced.endLine,
+        truncated: sliced.truncated,
+        outline: [
+          { level: 1, title: "agy-NOV Modular Workbench Technical Specification", line: 1, kind: "title" },
+          { level: 2, title: "1.1 Zero ASAR and Zero CDP Invariant", line: 2, kind: "section" },
+          { level: 2, title: "1.2 Loopback HTTP Probe Safety", line: 4, kind: "section" }
+        ],
+        content: sliced.content,
+        lines: sliced.lines,
+        metadata: {
+          pdfVersion: "1.7",
+          estimatedPages: 8,
+          info: { title: "agy-NOV Technical Specification", author: "agy-NOV Engineering" },
+          decompressedStreamBytes: 12480
+        }
+      };
+    }
+    if (base === "openapi.yaml" || base.endsWith(".yaml") || base.endsWith(".yml")) {
+      const allLines = [
+        "openapi: 3.1.0",
+        "info:",
+        "  title: Local Sandbox Dev API",
+        "  version: 0.4.0",
+        "servers:",
+        "  - url: http://127.0.0.1:4399",
+        "paths:",
+        "  /api/health:",
+        "    get:",
+        "      summary: Loopback service health check",
+        "  /api/items:",
+        "    get:",
+        "      summary: List local workspace preview items"
+      ];
+      const sliced = sliceLines(allLines, opts.startLine, opts.maxLines);
+      return {
+        mode: "demo",
+        filePath: "api/openapi.yaml",
+        format: "yaml",
+        bytes: 6144,
+        totalLines: allLines.length,
+        startLine: sliced.startLine,
+        endLine: sliced.endLine,
+        truncated: sliced.truncated,
+        outline: extractTextOutline("yaml", allLines),
+        content: sliced.content,
+        lines: sliced.lines,
+        metadata: { extension: ".yaml", lineCount: allLines.length, openapi: "3.1.0" }
+      };
+    }
+    throw new Error(
+      `Demo document not found: ${filePath} (available: docs/architecture.docx, docs/q4-budget.xlsx, docs/spec.pdf, api/openapi.yaml)`
+    );
+  };
+  const httpProbe = (opts) => {
+    const parsed = validateLoopbackProbeUrl(opts.url);
+    const method = (opts.method ?? "GET").toUpperCase();
+    if (!ALLOWED_HTTP_METHODS.has(method)) {
+      throw new Error(`Unsupported HTTP method: ${method}`);
+    }
+    const demoPayload = JSON.stringify(
+      {
+        status: "ok",
+        service: "agy-nov-demo-loopback",
+        version: "0.4.0",
+        path: parsed.pathname,
+        method,
+        timestamp: DEMO_UPDATED_AT,
+        checks: { sqlite: "ready", slicer: "ready", ssrfGuard: "loopback-only" }
+      },
+      null,
+      2
+    );
+    const requestHeaders = sanitizeHeadersMap(opts.headers ?? {});
+    const responseHeaders = sanitizeHeadersMap({
+      "content-type": "application/json; charset=utf-8",
+      "x-studio-mode": "demo",
+      "cache-control": "no-store"
+    });
+    return {
+      mode: "demo",
+      url: redactStudioSecrets(parsed.toString()),
+      method,
+      status: 200,
+      statusText: "OK",
+      ok: true,
+      elapsedMs: 6,
+      redirected: false,
+      requestHeaders,
+      responseHeaders,
+      contentType: "application/json; charset=utf-8",
+      bodyText: demoPayload,
+      bodyBytes: Buffer.byteLength(demoPayload, "utf8"),
+      truncated: false
+    };
+  };
+  return {
+    listSources,
+    inspectData,
+    inspectDocument,
+    httpProbe
+  };
+}
+
+// src/modules/studio/register.ts
+function toHandle7(name, tool) {
+  return {
+    name,
+    enable: () => tool.enable(),
+    disable: () => tool.disable()
+  };
+}
+function formatErrorMessage(err) {
+  return err instanceof Error ? err.message : String(err);
+}
+var SOURCE_CATEGORY_ENUM = external_exports.enum(["all", "data", "document", "openapi"]);
+var HTTP_METHOD_ENUM = external_exports.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
+function formatSourcesSummary(result) {
+  const lines = [
+    `Workspace Studio sources (${result.mode}) \u2014 total=${result.counts.total} (data=${result.counts.data}, document=${result.counts.document}, openapi=${result.counts.openapi}), showing ${result.sources.length}`
+  ];
+  if (result.sources.length === 0) {
+    lines.push("(no matching local data, document, or OpenAPI sources found)");
+    return lines.join("\n");
+  }
+  for (const src of result.sources.slice(0, 40)) {
+    const oversizedTag = src.oversized ? " [>10MiB]" : "";
+    lines.push(`- [${src.category}/${src.format}] ${src.relPath} (${src.bytes} B)${oversizedTag}`);
+  }
+  if (result.sources.length > 40) {
+    lines.push(`\u2026 and ${result.sources.length - 40} more source(s).`);
+  }
+  return lines.join("\n");
+}
+function formatDataSummary(result) {
+  const lines = [result.summary];
+  if (result.columns.length > 0) {
+    lines.push(`Columns: ${result.columns.join(", ")}`);
+  }
+  if (result.sqlite && !result.sqlite.sqliteCliAvailable && result.sqlite.note) {
+    lines.push(`Note: ${result.sqlite.note}`);
+  }
+  for (const row of result.rows.slice(0, 10)) {
+    lines.push(`  ${JSON.stringify(row)}`);
+  }
+  if (result.rows.length > 10) {
+    lines.push(`  \u2026 (${result.rows.length - 10} more row(s) in structuredContent)`);
+  }
+  return lines.join("\n");
+}
+function formatDocumentSummary(result) {
+  const lines = [
+    `${result.filePath} (${result.format}, ${result.bytes} B, lines ${result.startLine}-${result.endLine}/${result.totalLines}${result.truncated ? ", truncated" : ""})`
+  ];
+  if (result.outline.length > 0) {
+    lines.push(
+      `Outline (${result.outline.length}):
+${result.outline.slice(0, 20).map((item) => `  L${item.line} [${item.kind}] ${item.title}`).join("\n")}`
+    );
+  }
+  lines.push(result.content ? `Content:
+${result.content}` : "Content: (empty)");
+  return lines.join("\n");
+}
+function formatHttpProbeSummary(result) {
+  const lines = [
+    `Loopback HTTP Probe (${result.mode}): ${result.method} ${result.url} -> ${result.status} ${result.statusText} (${result.elapsedMs}ms, ${result.bodyBytes} B${result.truncated ? ", truncated at 64 KiB" : ""})`
+  ];
+  if (result.redirected && result.location) {
+    lines.push(`Redirect (not followed): Location -> ${result.location}`);
+  }
+  if (result.bodyText) {
+    const preview = result.bodyText.length > 1200 ? `${result.bodyText.slice(0, 1200)}\u2026` : result.bodyText;
+    lines.push(`Body:
+${preview}`);
+  }
+  return lines.join("\n");
+}
+function registerStudioModule(server, options, uiResourceUri) {
+  const workspaceRoot = import_node_path21.default.resolve(options.workspaceRoot);
+  const isDemo = options.demoMode === true;
+  const demoService = isDemo ? createDemoStudioService(workspaceRoot) : null;
+  const APP_ONLY_META2 = {
+    ui: {
+      resourceUri: uiResourceUri,
+      visibility: ["app"]
+    }
+  };
+  const runListSources = (category) => isDemo && demoService ? demoService.listSources(category) : listStudioSources(workspaceRoot, { category });
+  const runInspectData = async (opts) => isDemo && demoService ? demoService.inspectData(opts) : inspectStudioData(workspaceRoot, opts);
+  const runInspectDocument = (opts) => isDemo && demoService ? demoService.inspectDocument(opts) : inspectStudioDocument(workspaceRoot, opts);
+  const runHttpProbe = async (opts) => isDemo && demoService ? demoService.httpProbe(opts) : runLoopbackHttpProbe(opts);
+  const modelTools = [];
+  const listSourcesTool = server.registerTool(
+    "studio_list_sources",
+    {
+      title: "List Workspace Studio Sources",
+      description: "Discover local data files (SQLite/CSV/TSV/JSON/NDJSON), offline documents (DOCX/XLSX/PDF/Markdown/HTML/SVG/YAML/XML), and OpenAPI specs inside the workspace while strictly skipping sensitive paths and escaping symlinks.",
+      inputSchema: {
+        category: SOURCE_CATEGORY_ENUM.optional().describe(
+          "Optional category filter: all, data, document, or openapi"
+        )
+      }
+    },
+    async ({ category }) => {
+      try {
+        const result = runListSources(category);
+        return {
+          content: [{ type: "text", text: formatSourcesSummary(result) }],
+          structuredContent: { ...result }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  modelTools.push(toHandle7("studio_list_sources", listSourcesTool));
+  const inspectDataTool = server.registerTool(
+    "studio_inspect_data",
+    {
+      title: "Inspect Local Dataset or SQLite (Read-Only)",
+      description: "Inspect CSV/TSV, JSON/NDJSON, or SQLite (.sqlite/.db/.sqlite3) files inside the workspace (<= 10 MiB). For SQLite, returns schema overview by default or executes strictly validated single-statement read-only SELECT / EXPLAIN QUERY PLAN SELECT / PRAGMA table_info(...) queries.",
+      inputSchema: {
+        filePath: external_exports.string().min(1).describe("Relative or workspace-scoped data file path"),
+        query: external_exports.string().max(4e3).optional().describe("Optional read-only SQLite query (SELECT / EXPLAIN QUERY PLAN SELECT / PRAGMA table_info)"),
+        filter: external_exports.string().max(200).optional().describe("Optional case-insensitive substring filter applied to rows"),
+        limit: external_exports.number().int().min(1).max(STUDIO_MAX_DATA_ROWS).optional().describe("Maximum rows to return (1-100, default 50)")
+      }
+    },
+    async ({ filePath, query, filter, limit }) => {
+      try {
+        const result = await runInspectData({ filePath, query, filter, limit });
+        return {
+          content: [{ type: "text", text: formatDataSummary(result) }],
+          structuredContent: { ...result }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  modelTools.push(toHandle7("studio_inspect_data", inspectDataTool));
+  const inspectDocumentTool = server.registerTool(
+    "studio_inspect_document",
+    {
+      title: "Inspect & Slice Document Offline",
+      description: "Extract outlines, metadata, and bounded line slices (<= 200 lines) from Markdown, TXT, HTML, SVG, YAML, XML, DOCX, XLSX, or PDF files purely in Node.js with zero external binaries and ZIP-bomb protection.",
+      inputSchema: {
+        filePath: external_exports.string().min(1).describe("Relative or workspace-scoped document file path"),
+        startLine: external_exports.number().int().min(1).optional().describe("1-based starting line number (default 1)"),
+        maxLines: external_exports.number().int().min(1).max(STUDIO_MAX_DOC_LINES).optional().describe("Maximum lines to return (1-200, default 80)")
+      }
+    },
+    async ({ filePath, startLine, maxLines }) => {
+      try {
+        const result = runInspectDocument({ filePath, startLine, maxLines });
+        return {
+          content: [{ type: "text", text: formatDocumentSummary(result) }],
+          structuredContent: { ...result }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  modelTools.push(toHandle7("studio_inspect_document", inspectDocumentTool));
+  const httpProbeTool = server.registerTool(
+    "studio_http_probe",
+    {
+      title: "Loopback-Only HTTP Probe",
+      description: "Send a bounded HTTP probe strictly to local loopback targets (127.0.0.1, localhost, or [::1]) with redirect: manual, 64 KiB response cap, and automatic header/body secret redaction.",
+      inputSchema: {
+        url: external_exports.string().min(1).max(2048).describe("Loopback URL (http/https to 127.0.0.1, localhost, or [::1] only)"),
+        method: HTTP_METHOD_ENUM.optional().describe("HTTP method (default GET)"),
+        headers: external_exports.record(external_exports.string(), external_exports.string()).optional().describe("Optional HTTP request headers (sensitive values are redacted in results)"),
+        body: external_exports.string().max(128 * 1024).optional().describe("Optional request body for non-GET/HEAD requests"),
+        timeoutMs: external_exports.number().int().min(STUDIO_HTTP_MIN_TIMEOUT_MS).max(STUDIO_HTTP_MAX_TIMEOUT_MS).optional().describe("Request timeout in milliseconds (1000-15000, default 5000)")
+      }
+    },
+    async ({ url: url2, method, headers, body, timeoutMs }) => {
+      try {
+        const result = await runHttpProbe({ url: url2, method, headers, body, timeoutMs });
+        return {
+          content: [{ type: "text", text: formatHttpProbeSummary(result) }],
+          structuredContent: { ...result }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  modelTools.push(toHandle7("studio_http_probe", httpProbeTool));
+  server.registerTool(
+    "app_studio_list_sources",
+    {
+      title: "List Workspace Studio Sources (App Only)",
+      description: "Fetch categorized workspace data, document, and OpenAPI assets for the Studio UI tab.",
+      inputSchema: {
+        category: SOURCE_CATEGORY_ENUM.optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ category }) => {
+      try {
+        const result = runListSources(category);
+        return {
+          content: [{ type: "text", text: "ok" }],
+          structuredContent: { ...result }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  server.registerTool(
+    "app_studio_inspect_data",
+    {
+      title: "Inspect Local Dataset (App Only)",
+      description: "Inspect CSV/TSV/JSON/NDJSON or run a read-only SQLite query from the Studio UI.",
+      inputSchema: {
+        filePath: external_exports.string().min(1),
+        query: external_exports.string().max(4e3).optional(),
+        filter: external_exports.string().max(200).optional(),
+        limit: external_exports.number().int().min(1).max(STUDIO_MAX_DATA_ROWS).optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ filePath, query, filter, limit }) => {
+      try {
+        const result = await runInspectData({ filePath, query, filter, limit });
+        return {
+          content: [{ type: "text", text: "ok" }],
+          structuredContent: { ...result }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  server.registerTool(
+    "app_studio_inspect_document",
+    {
+      title: "Inspect Document Offline (App Only)",
+      description: "Slice Markdown/TXT/HTML/SVG/YAML/XML/DOCX/XLSX/PDF documents from the Studio UI.",
+      inputSchema: {
+        filePath: external_exports.string().min(1),
+        startLine: external_exports.number().int().min(1).optional(),
+        maxLines: external_exports.number().int().min(1).max(STUDIO_MAX_DOC_LINES).optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ filePath, startLine, maxLines }) => {
+      try {
+        const result = runInspectDocument({ filePath, startLine, maxLines });
+        return {
+          content: [{ type: "text", text: "ok" }],
+          structuredContent: { ...result }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  server.registerTool(
+    "app_studio_http_probe",
+    {
+      title: "Loopback HTTP Probe (App Only)",
+      description: "Execute a strict loopback-only HTTP probe from the Studio UI.",
+      inputSchema: {
+        url: external_exports.string().min(1).max(2048),
+        method: HTTP_METHOD_ENUM.optional(),
+        headers: external_exports.record(external_exports.string(), external_exports.string()).optional(),
+        body: external_exports.string().max(128 * 1024).optional(),
+        timeoutMs: external_exports.number().int().min(STUDIO_HTTP_MIN_TIMEOUT_MS).max(STUDIO_HTTP_MAX_TIMEOUT_MS).optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ url: url2, method, headers, body, timeoutMs }) => {
+      try {
+        const result = await runHttpProbe({ url: url2, method, headers, body, timeoutMs });
+        return {
+          content: [{ type: "text", text: "ok" }],
+          structuredContent: { ...result }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  return {
+    moduleId: "studio",
+    modelTools,
+    exemptReadOnlyAppTools: ["app_studio_list_sources"]
+  };
+}
+
+// src/modules/turbo/core.ts
+var import_node_crypto12 = __toESM(require("node:crypto"), 1);
+var import_node_fs16 = __toESM(require("node:fs"), 1);
+var import_node_path22 = __toESM(require("node:path"), 1);
 var TURBO_MAX_QUERIES = 8;
 var TURBO_MAX_QUERY_LENGTH = 128;
 var TURBO_MAX_FILE_BYTES = 512 * 1024;
@@ -46701,8 +51836,8 @@ var BINARY_EXTENSIONS = /* @__PURE__ */ new Set([
   ".dmg",
   ".iso"
 ]);
-var SENSITIVE_EXTENSIONS3 = /* @__PURE__ */ new Set([".pem", ".key", ".p12", ".pfx", ".jks", ".keystore"]);
-var SENSITIVE_EXACT_BASENAMES = /* @__PURE__ */ new Set([
+var SENSITIVE_EXTENSIONS4 = /* @__PURE__ */ new Set([".pem", ".key", ".p12", ".pfx", ".jks", ".keystore"]);
+var SENSITIVE_EXACT_BASENAMES2 = /* @__PURE__ */ new Set([
   ".env",
   ".envrc",
   ".npmrc",
@@ -46870,14 +52005,14 @@ function isSensitiveTurboPath(inputPath) {
       return true;
     }
   }
-  const base = import_node_path19.default.posix.basename(normalized);
+  const base = import_node_path22.default.posix.basename(normalized);
   const lowerBase = base.toLowerCase();
-  if (SENSITIVE_EXACT_BASENAMES.has(lowerBase)) return true;
+  if (SENSITIVE_EXACT_BASENAMES2.has(lowerBase)) return true;
   if (lowerBase.startsWith("id_rsa.") || lowerBase.startsWith("id_ed25519.") || lowerBase.startsWith("id_dsa.") || lowerBase.startsWith("id_ecdsa.")) {
     return true;
   }
-  const ext = import_node_path19.default.posix.extname(lowerBase);
-  if (SENSITIVE_EXTENSIONS3.has(ext)) return true;
+  const ext = import_node_path22.default.posix.extname(lowerBase);
+  if (SENSITIVE_EXTENSIONS4.has(ext)) return true;
   return false;
 }
 function resolveInsideWorkspaceReal(workspaceRoot, targetPath) {
@@ -46887,23 +52022,23 @@ function resolveInsideWorkspaceReal(workspaceRoot, targetPath) {
   if (!targetPath || targetPath.includes("\0")) {
     throw new Error("Invalid target path");
   }
-  const realRoot = import_node_fs14.default.realpathSync(import_node_path19.default.resolve(workspaceRoot));
-  const candidate = import_node_path19.default.isAbsolute(targetPath) ? import_node_path19.default.resolve(targetPath) : import_node_path19.default.resolve(realRoot, targetPath);
+  const realRoot = import_node_fs16.default.realpathSync(import_node_path22.default.resolve(workspaceRoot));
+  const candidate = import_node_path22.default.isAbsolute(targetPath) ? import_node_path22.default.resolve(targetPath) : import_node_path22.default.resolve(realRoot, targetPath);
   let realTarget;
   try {
-    realTarget = import_node_fs14.default.realpathSync(candidate);
+    realTarget = import_node_fs16.default.realpathSync(candidate);
   } catch {
     throw new Error(`Target path does not exist or cannot be resolved: ${targetPath}`);
   }
-  const prefix = realRoot.endsWith(import_node_path19.default.sep) ? realRoot : `${realRoot}${import_node_path19.default.sep}`;
+  const prefix = realRoot.endsWith(import_node_path22.default.sep) ? realRoot : `${realRoot}${import_node_path22.default.sep}`;
   if (realTarget !== realRoot && !realTarget.startsWith(prefix)) {
     throw new Error(`Path escapes workspace boundary: ${targetPath}`);
   }
-  const relPath = realTarget === realRoot ? "." : import_node_path19.default.relative(realRoot, realTarget).replace(/\\/g, "/");
+  const relPath = realTarget === realRoot ? "." : import_node_path22.default.relative(realRoot, realTarget).replace(/\\/g, "/");
   return { realRoot, realTarget, relPath };
 }
 function isBinaryFilename(filePath) {
-  const ext = import_node_path19.default.extname(filePath).toLowerCase();
+  const ext = import_node_path22.default.extname(filePath).toLowerCase();
   return BINARY_EXTENSIONS.has(ext);
 }
 function isBufferBinary(buf) {
@@ -46986,13 +52121,13 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
   if (cleanedQueries.length === 0) {
     throw new Error("At least one non-empty query is required");
   }
-  const realRoot = import_node_fs14.default.realpathSync(import_node_path19.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path19.default.sep) ? realRoot : `${realRoot}${import_node_path19.default.sep}`;
+  const realRoot = import_node_fs16.default.realpathSync(import_node_path22.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path22.default.sep) ? realRoot : `${realRoot}${import_node_path22.default.sep}`;
   let searchRoot = realRoot;
   let scope = ".";
   if (opts.directory && opts.directory.trim()) {
     const resolved = resolveInsideWorkspaceReal(realRoot, opts.directory.trim());
-    if (!import_node_path19.default.isAbsolute(opts.directory.trim()) && isSensitiveTurboPath(opts.directory) || isSensitiveTurboPath(resolved.relPath)) {
+    if (!import_node_path22.default.isAbsolute(opts.directory.trim()) && isSensitiveTurboPath(opts.directory) || isSensitiveTurboPath(resolved.relPath)) {
       throw new Error(`Refused to search sensitive directory: ${opts.directory}`);
     }
     searchRoot = resolved.realTarget;
@@ -47029,7 +52164,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
     visitedDirs.add(currentDir);
     let entries;
     try {
-      entries = import_node_fs14.default.readdirSync(currentDir, { withFileTypes: true });
+      entries = import_node_fs16.default.readdirSync(currentDir, { withFileTypes: true });
     } catch {
       continue;
     }
@@ -47039,20 +52174,20 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
         truncated = true;
         break;
       }
-      const fullPath = import_node_path19.default.join(currentDir, entry.name);
-      const rawRel = import_node_path19.default.relative(realRoot, fullPath).replace(/\\/g, "/");
+      const fullPath = import_node_path22.default.join(currentDir, entry.name);
+      const rawRel = import_node_path22.default.relative(realRoot, fullPath).replace(/\\/g, "/");
       if (entry.isDirectory()) {
         if (SKIP_DIRS2.has(entry.name) || isSensitiveTurboPath(rawRel)) {
           if (isSensitiveTurboPath(rawRel)) skippedSensitive += 1;
           continue;
         }
         try {
-          const realSub = import_node_fs14.default.realpathSync(fullPath);
+          const realSub = import_node_fs16.default.realpathSync(fullPath);
           if (!isInsideRealRoot(realSub)) {
             skippedSymlinks += 1;
             continue;
           }
-          const realSubRel = import_node_path19.default.relative(realRoot, realSub).replace(/\\/g, "/");
+          const realSubRel = import_node_path22.default.relative(realRoot, realSub).replace(/\\/g, "/");
           if (isSensitiveTurboPath(realSubRel)) {
             skippedSensitive += 1;
             continue;
@@ -47067,15 +52202,15 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       let isFile = entry.isFile();
       if (entry.isSymbolicLink()) {
         try {
-          realFilePath = import_node_fs14.default.realpathSync(fullPath);
+          realFilePath = import_node_fs16.default.realpathSync(fullPath);
           if (!isInsideRealRoot(realFilePath)) {
             skippedSymlinks += 1;
             continue;
           }
-          const st = import_node_fs14.default.statSync(realFilePath);
+          const st = import_node_fs16.default.statSync(realFilePath);
           if (st.isDirectory()) {
-            const realRelDir = import_node_path19.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
-            if (SKIP_DIRS2.has(import_node_path19.default.basename(realFilePath)) || isSensitiveTurboPath(realRelDir)) {
+            const realRelDir = import_node_path22.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+            if (SKIP_DIRS2.has(import_node_path22.default.basename(realFilePath)) || isSensitiveTurboPath(realRelDir)) {
               skippedSensitive += 1;
               continue;
             }
@@ -47090,7 +52225,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       }
       if (!isFile) continue;
       try {
-        realFilePath = import_node_fs14.default.realpathSync(realFilePath);
+        realFilePath = import_node_fs16.default.realpathSync(realFilePath);
       } catch {
         skippedSymlinks += 1;
         continue;
@@ -47099,7 +52234,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
         skippedSymlinks += 1;
         continue;
       }
-      const realRel = import_node_path19.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+      const realRel = import_node_path22.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
       if (isSensitiveTurboPath(rawRel) || isSensitiveTurboPath(realRel)) {
         skippedSensitive += 1;
         continue;
@@ -47110,7 +52245,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       }
       let stat;
       try {
-        stat = import_node_fs14.default.statSync(realFilePath);
+        stat = import_node_fs16.default.statSync(realFilePath);
       } catch {
         skippedFiles += 1;
         continue;
@@ -47121,7 +52256,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       }
       let buf;
       try {
-        buf = import_node_fs14.default.readFileSync(realFilePath);
+        buf = import_node_fs16.default.readFileSync(realFilePath);
       } catch {
         skippedFiles += 1;
         continue;
@@ -47176,7 +52311,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
   };
 }
 function detectLanguage(filePath) {
-  const ext = import_node_path19.default.extname(filePath).toLowerCase();
+  const ext = import_node_path22.default.extname(filePath).toLowerCase();
   if (ext === ".ts" || ext === ".tsx" || ext === ".mts" || ext === ".cts") return "typescript";
   if (ext === ".js" || ext === ".jsx" || ext === ".mjs" || ext === ".cjs") return "javascript";
   if (ext === ".py" || ext === ".pyi") return "python";
@@ -47288,20 +52423,20 @@ function extractOutlineSymbols(content, language, maxItems = 120) {
 }
 function readFileOutlineAndSlice(workspaceRoot, filePath, opts = {}) {
   const { realTarget, relPath } = resolveInsideWorkspaceReal(workspaceRoot, filePath);
-  if (!import_node_path19.default.isAbsolute(filePath) && isSensitiveTurboPath(filePath) || isSensitiveTurboPath(relPath)) {
-    throw new Error(`Refused to read sensitive file: ${import_node_path19.default.basename(filePath)}`);
+  if (!import_node_path22.default.isAbsolute(filePath) && isSensitiveTurboPath(filePath) || isSensitiveTurboPath(relPath)) {
+    throw new Error(`Refused to read sensitive file: ${import_node_path22.default.basename(filePath)}`);
   }
   if (isBinaryFilename(realTarget)) {
     throw new Error(`Refused to read binary file: ${relPath}`);
   }
-  const stat = import_node_fs14.default.statSync(realTarget);
+  const stat = import_node_fs16.default.statSync(realTarget);
   if (!stat.isFile()) {
     throw new Error(`Target is not a regular file: ${relPath}`);
   }
   if (stat.size > TURBO_MAX_OUTLINE_FILE_BYTES) {
     throw new Error(`File exceeds ${TURBO_MAX_OUTLINE_FILE_BYTES} byte limit: ${relPath}`);
   }
-  const buf = import_node_fs14.default.readFileSync(realTarget);
+  const buf = import_node_fs16.default.readFileSync(realTarget);
   if (isBufferBinary(buf)) {
     throw new Error(`Detected binary content in file: ${relPath}`);
   }
@@ -47317,8 +52452,8 @@ function readFileOutlineAndSlice(workspaceRoot, filePath, opts = {}) {
   const requestedEnd = opts.endLine !== void 0 ? Math.max(startLine, Math.floor(opts.endLine)) : Math.min(totalLines, startLine + Math.min(maxSliceLines, 60) - 1);
   const clampedEnd = Math.min(totalLines, startLine + maxSliceLines - 1, requestedEnd);
   const sliceTruncated = clampedEnd < requestedEnd || clampedEnd < totalLines;
-  const sliceLines = lines.slice(startLine - 1, clampedEnd);
-  const numberedContent = sliceLines.map((lineText, idx) => `${startLine + idx} | ${lineText}`).join("\n");
+  const sliceLines2 = lines.slice(startLine - 1, clampedEnd);
+  const numberedContent = sliceLines2.map((lineText, idx) => `${startLine + idx} | ${lineText}`).join("\n");
   const estimatedFullTokens = Math.ceil(text.length / 4);
   const outlineChars = symbols.reduce((sum, s) => sum + s.signature.length + 16, 0);
   const estimatedReturnedTokens = Math.ceil((numberedContent.length + outlineChars) / 4);
@@ -47341,10 +52476,436 @@ function readFileOutlineAndSlice(workspaceRoot, filePath, opts = {}) {
     estimatedSavedTokens
   };
 }
+var ANSI_ESCAPE_RE = /\x1b(?:\[[0-9;?]*[A-Za-z]|\][^\x07\x1b]*(?:\x07|\x1b\\))/g;
 var ERROR_LINE_RE = /\b(?:error|err!|fail|failed|failure|exception|fatal|panic|traceback|assertionerror|typeerror|syntaxerror|referenceerror|enoent|eacces|ts\d{4})\b|^\s*(?:✗|✖|×|FAIL\b)/i;
 var WARN_LINE_RE = /\b(?:warn|warning|deprecated)\b|^\s*⚠/i;
+function stripAnsiSequences(text) {
+  return text.replace(ANSI_ESCAPE_RE, "");
+}
+function cleanLogLine(line) {
+  const noAnsi = stripAnsiSequences(line);
+  if (!noAnsi.includes("\r")) return noAnsi;
+  const segments = noAnsi.split("\r");
+  for (let i = segments.length - 1; i >= 0; i -= 1) {
+    if (segments[i].length > 0) return segments[i];
+  }
+  return "";
+}
 function normalizeDiagKey(line) {
   return line.trim().replace(/\b\d+\b/g, "#").replace(/\s+/g, " ").slice(0, 120);
+}
+var TEST_PASS_LINE_RE = /^\s*(?:(?:✔|✓)\s+(?!built in\b|\d+\s+modules?\s+transformed\b)\S|ok\s+\d+(?:\s|-|$)|PASS(?:\s+\S|\s*$)|---\s+PASS:|test\s+.+\.\.\.\s+ok\s*$|.+::.+PASSED(?:\s+\[\s*\d+%\])?\s*$)/;
+var TEST_FAIL_START_RE = /^\s*(?:FAIL(?:\s|:|$)|not ok\s+\d+|---\s+FAIL:|(?:✖|✗|×)\s+|AssertionError\b|Error:|TypeError:|SyntaxError:|ReferenceError:|Traceback\b|FAILURES\b|short test summary|thread '[^']*' panicked|panicked at|E\s{3,})|\.\.\.\s+FAILED\s*$|\bFAILED(?:\s+\[\s*\d+%\])?\s*$/;
+var TEST_STACK_OR_DIFF_RE = /^\s*(?:at\s+\S|File\s+"|Expected\b|Received\b|Actual\b|expected\b|actual\b|stack:|[-+]\s|\|\s|\d+\s*\||>?\s*\d+\s*\||[~^]{2,}|Difference:)/;
+var TEST_SUMMARY_LINE_RE = /^\s*(?:Tests:|Test Suites:|Test Files\b|Snapshots:|Time:|Duration\b|Start at\b|Summary:|Ran\s+\d+\s+tests?|test result:|ℹ\s+(?:tests|suites|pass|fail|cancelled|skipped|todo|duration_ms)\b|={3,}.*(?:passed|failed|error).*={3,}|FAILED\s*\(|exitCode=|exit code\b)/i;
+var TEST_VERBOSE_NOISE_RE = /^\s*(?:info\s+\[|debug\s+\[|\[(?:info|debug)\]|#\s*Subtest:)/i;
+var BUILD_NOISE_LINE_RE = /transforming\s*\(\d+\)|\b\d+\s+modules?\s+transformed\b|^\s*(?:transforming\b|Compiling\s+|Checking\s+|Downloading\s+|Unpacking\s+|Resolving\s+|Fetching\s+|Updating\s+|Fresh\s+|Copying\s+|Bundling\s+|Generating\s+|Rendering\s+chunks|Computing\s+gzip|reify:|npm\s+(?:timing|http)\b|info\s+\[|debug\s+\[|\[(?:info|debug)\]|\[\d+\/\d+\]\s+(?:Building|Compiling|Resolving|Fetching|Linking)|\d{1,3}%\s+(?:building|sealing|emitting|compiling|hashing|asset))/i;
+var BUILD_FILE_LOC_RE = /[A-Za-z0-9_./-]+\.[A-Za-z0-9]+(?:\(\d+,\d+\)|:\d+:\d+)/;
+var BUILD_DIAG_CONTEXT_RE = /^\s*(?:\d+\s*\||\|\s|[~^]{2,}|-->\s+|=\s*(?:note|help):|at\s+\S)/;
+var BUILD_SUMMARY_LINE_RE = /(?:✓|✔)?\s*built in\s+\d|^\s*(?:Finished\s+|Found\s+\d+\s+errors?|Compiled\s+|Build\s+(?:succeeded|failed|complete)|Done in\s+|added\s+\d+\s+packages|found\s+\d+\s+vulnerabilities|Summary:|FAILED\b|dist\/\S+\s+[\d.]+\s*(?:kB|KB|MB|B)\b|webpack\b.*compiled)/i;
+var LOCK_OR_GENERATED_PATH_RE = /(?:^|\/)(?:package-lock\.json|pnpm-lock\.yaml|yarn\.lock|Cargo\.lock|Gemfile\.lock|poetry\.lock|composer\.lock|go\.sum|Podfile\.lock|uv\.lock|flake\.lock|bun\.lock|bun\.lockb)$|(?:^|\/)(?:dist|build|vendor|generated)\/|\.(?:min\.js|min\.css|bundle\.js|map|snap|pb\.go)$|\.generated\.[^/]+$/i;
+function detectOutputPreset(text) {
+  const raw = typeof text === "string" ? text : String(text ?? "");
+  if (!raw.trim()) return "generic";
+  const rawLines = raw.split(/\r?\n/);
+  const sampleLines = [];
+  if (rawLines.length <= 800) {
+    for (const l of rawLines) sampleLines.push(cleanLogLine(l));
+  } else {
+    for (let i = 0; i < 600; i += 1) sampleLines.push(cleanLogLine(rawLines[i]));
+    for (let i = rawLines.length - 200; i < rawLines.length; i += 1) {
+      sampleLines.push(cleanLogLine(rawLines[i]));
+    }
+  }
+  let gitScore = 0;
+  let testScore = 0;
+  let buildScore = 0;
+  let gitDiffHeaders = 0;
+  let gitHunks = 0;
+  let gitMetaHits = 0;
+  let testPassHits = 0;
+  let testStrongHits = 0;
+  let buildNoiseHits = 0;
+  let buildStrongHits = 0;
+  for (const rawLine of sampleLines) {
+    if (!rawLine) continue;
+    const line = rawLine.length > 512 ? rawLine.slice(0, 512) : rawLine;
+    if (/^diff --git\s+/.test(line)) {
+      gitDiffHeaders += 1;
+      gitScore += 6;
+    } else if (/^@@\s+-\d+(?:,\d+)?\s+\+\d+(?:,\d+)?\s+@@/.test(line)) {
+      gitHunks += 1;
+      if (gitHunks <= 4) gitScore += 4;
+    } else if (/^commit\s+[0-9a-f]{7,40}\b/.test(line)) {
+      gitMetaHits += 1;
+      if (gitMetaHits <= 4) gitScore += 3;
+    } else if (/^(?:index\s+[0-9a-f]{7,}\.\.[0-9a-f]{7,}|---\s+a\/|\+\+\+\s+b\/)/.test(line) || /^\s*(?:modified|new file|deleted|renamed):\s+\S/.test(line) || /\b\d+\s+files?\s+changed,\s+\d+\s+(?:insertions?|deletions?)/.test(line)) {
+      gitMetaHits += 1;
+      if (gitMetaHits <= 6) gitScore += 2;
+    }
+    if (/^\s*(?:---\s+(?:FAIL|PASS):|Tests:|Test Suites:|Test Files\b|TAP version \d+|ℹ\s+(?:pass|fail|tests)\b|test result:\s*(?:ok|FAILED))/.test(
+      line
+    ) || /\b(?:pytest|cargo test)\b/i.test(line)) {
+      testStrongHits += 1;
+      if (testStrongHits <= 6) testScore += 4;
+    } else if (/^\s*(?:PASS|FAIL)\s+\S/.test(line) || /^\s*not ok\s+\d+/.test(line)) {
+      testStrongHits += 1;
+      if (testStrongHits <= 6) testScore += 3;
+    } else if (TEST_PASS_LINE_RE.test(line) || /^\s*(?:✖|✗)\s+\S/.test(line)) {
+      testPassHits += 1;
+      if (testPassHits <= 6) testScore += 2;
+    }
+    if (/\berror\s+TS\d{4}\b|\bTS\d{4}:/.test(line) || /transforming\s*\(\d+\)|\b\d+\s+modules?\s+transformed\b|(?:✓|✔)?\s*built in\s+\d/.test(line) || /\b(?:vite|esbuild|webpack|eslint)\b/i.test(line)) {
+      buildStrongHits += 1;
+      if (buildStrongHits <= 6) buildScore += 4;
+    } else if (/^\s*(?:Compiling|Checking|Finished|Bundling)\s+\S/.test(line) || /\bwarning:\s+\S/i.test(line) || BUILD_FILE_LOC_RE.test(line) && /\b(?:error|warning)\b/i.test(line)) {
+      buildNoiseHits += 1;
+      if (buildNoiseHits <= 6) buildScore += 2;
+    }
+  }
+  if (gitDiffHeaders > 0) {
+    return "git";
+  }
+  const best = Math.max(gitScore, testScore, buildScore);
+  if (best < 3) return "generic";
+  if (gitScore >= testScore && gitScore >= buildScore) return "git";
+  if (testScore >= buildScore) return "test";
+  return "build";
+}
+var TURBO_DEFAULT_MAX_COMPACT_LINES = 180;
+var TURBO_MIN_COMPACT_LINES = 20;
+var TURBO_MAX_COMPACT_LINES = 300;
+var TURBO_MAX_COMPACT_BYTES = 48 * 1024;
+function capCompactedLines(lines, maxLines = TURBO_DEFAULT_MAX_COMPACT_LINES, maxBytes = TURBO_MAX_COMPACT_BYTES) {
+  const cap = Math.max(
+    TURBO_MIN_COMPACT_LINES,
+    Math.min(
+      Math.floor(Number.isFinite(maxLines) ? maxLines : TURBO_DEFAULT_MAX_COMPACT_LINES),
+      TURBO_MAX_COMPACT_LINES
+    )
+  );
+  const byteLimit = Math.max(
+    2048,
+    Math.floor(Number.isFinite(maxBytes) ? maxBytes : TURBO_MAX_COMPACT_BYTES)
+  );
+  const clipLine = (l) => l.length > 240 ? l.slice(0, 240) : l;
+  const calcBytes = (arr) => Buffer.byteLength(arr.join("\n"), "utf8");
+  if (lines.length <= cap) {
+    const bounded = lines.map(clipLine);
+    if (calcBytes(bounded) <= byteLimit) {
+      return bounded;
+    }
+  }
+  const buildCapped = (budget2) => {
+    const contentBudget = Math.max(2, budget2 - 1);
+    const headKeep = Math.max(1, Math.floor(contentBudget * 0.6));
+    const tailKeep = Math.max(1, contentBudget - headKeep);
+    const omitted = lines.length - headKeep - tailKeep;
+    if (omitted <= 0) {
+      return lines.map(clipLine);
+    }
+    const marker = `... [truncated ${omitted} additional diagnostic lines; query full indexed log via chunkId]`;
+    return [
+      ...lines.slice(0, headKeep).map(clipLine),
+      marker,
+      ...lines.slice(lines.length - tailKeep).map(clipLine)
+    ];
+  };
+  let budget = Math.min(cap, Math.max(3, lines.length - 1));
+  let result = buildCapped(budget);
+  while (calcBytes(result) > byteLimit && budget > 3) {
+    const nextBudget = Math.max(3, Math.floor(budget * 0.75));
+    if (nextBudget >= budget) break;
+    budget = nextBudget;
+    result = buildCapped(budget);
+  }
+  return result;
+}
+function compactTestOutputLines(cleanedLines, maxLines = TURBO_DEFAULT_MAX_COMPACT_LINES) {
+  const out = [];
+  let passingRun = [];
+  let noiseRun = [];
+  let inFailureBlock = false;
+  let failureBlankStreak = 0;
+  const flushPassing = () => {
+    if (passingRun.length === 0) return;
+    if (passingRun.length === 1) {
+      out.push(passingRun[0].slice(0, 240));
+    } else {
+      out.push(`... [collapsed ${passingRun.length} passing test lines]`);
+    }
+    passingRun = [];
+  };
+  const flushNoise = () => {
+    if (noiseRun.length === 0) return;
+    if (noiseRun.length <= 2) {
+      for (const l of noiseRun) out.push(l.slice(0, 240));
+    } else {
+      out.push(`... [collapsed ${noiseRun.length} verbose log lines]`);
+    }
+    noiseRun = [];
+  };
+  for (let i = 0; i < cleanedLines.length; i += 1) {
+    const line = cleanedLines[i];
+    const probe = line.length > 512 ? line.slice(0, 512) : line;
+    const trimmed = probe.trim();
+    if (TEST_SUMMARY_LINE_RE.test(probe)) {
+      flushPassing();
+      flushNoise();
+      inFailureBlock = false;
+      failureBlankStreak = 0;
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (TEST_FAIL_START_RE.test(probe)) {
+      flushPassing();
+      flushNoise();
+      inFailureBlock = true;
+      failureBlankStreak = 0;
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (inFailureBlock) {
+      if (TEST_PASS_LINE_RE.test(probe)) {
+        inFailureBlock = false;
+        failureBlankStreak = 0;
+        passingRun.push(line);
+        continue;
+      }
+      if (!trimmed) {
+        failureBlankStreak += 1;
+        if (failureBlankStreak <= 2) {
+          out.push("");
+        } else {
+          inFailureBlock = false;
+        }
+        continue;
+      }
+      if (TEST_VERBOSE_NOISE_RE.test(probe) && !ERROR_LINE_RE.test(probe)) {
+        inFailureBlock = false;
+        failureBlankStreak = 0;
+        noiseRun.push(line);
+        continue;
+      }
+      failureBlankStreak = 0;
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (TEST_PASS_LINE_RE.test(probe)) {
+      flushNoise();
+      passingRun.push(line);
+      continue;
+    }
+    if (!trimmed) {
+      if (passingRun.length === 0 && noiseRun.length === 0 && out.length > 0 && out[out.length - 1] !== "") {
+        out.push("");
+      }
+      continue;
+    }
+    if (ERROR_LINE_RE.test(probe) || WARN_LINE_RE.test(probe) || TEST_STACK_OR_DIFF_RE.test(probe)) {
+      flushPassing();
+      flushNoise();
+      if (ERROR_LINE_RE.test(probe)) {
+        inFailureBlock = true;
+        failureBlankStreak = 0;
+      }
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (i < 3) {
+      flushPassing();
+      flushNoise();
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (TEST_VERBOSE_NOISE_RE.test(probe)) {
+      flushPassing();
+      noiseRun.push(line);
+      continue;
+    }
+    if (passingRun.length > 0) {
+      flushPassing();
+    }
+    noiseRun.push(line);
+  }
+  flushPassing();
+  flushNoise();
+  return capCompactedLines(out, maxLines);
+}
+function compactBuildOutputLines(cleanedLines, maxLines = TURBO_DEFAULT_MAX_COMPACT_LINES) {
+  const out = [];
+  let noiseRun = [];
+  let diagFollowRemaining = 0;
+  const flushNoise = () => {
+    if (noiseRun.length === 0) return;
+    if (noiseRun.length === 1) {
+      out.push(noiseRun[0].slice(0, 240));
+    } else {
+      out.push(`... [collapsed ${noiseRun.length} build progress lines]`);
+    }
+    noiseRun = [];
+  };
+  for (let i = 0; i < cleanedLines.length; i += 1) {
+    const line = cleanedLines[i];
+    const probe = line.length > 512 ? line.slice(0, 512) : line;
+    const trimmed = probe.trim();
+    const isErrorOrWarn = ERROR_LINE_RE.test(probe) || WARN_LINE_RE.test(probe) || /^\s*\d+:\d+\s+(?:error|warning)\b/i.test(probe) || BUILD_FILE_LOC_RE.test(probe) && !BUILD_NOISE_LINE_RE.test(probe);
+    if (isErrorOrWarn) {
+      flushNoise();
+      out.push(line.slice(0, 240));
+      diagFollowRemaining = 3;
+      continue;
+    }
+    if (diagFollowRemaining > 0) {
+      if (trimmed && (BUILD_DIAG_CONTEXT_RE.test(probe) || /^\s{2,}\S/.test(probe)) && !BUILD_NOISE_LINE_RE.test(probe)) {
+        flushNoise();
+        out.push(line.slice(0, 240));
+        diagFollowRemaining -= 1;
+        continue;
+      }
+      diagFollowRemaining = 0;
+    }
+    if (BUILD_SUMMARY_LINE_RE.test(probe)) {
+      flushNoise();
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    if (BUILD_NOISE_LINE_RE.test(probe)) {
+      noiseRun.push(line);
+      continue;
+    }
+    if (!trimmed) {
+      if (noiseRun.length === 0 && out.length > 0 && out[out.length - 1] !== "") {
+        out.push("");
+      }
+      continue;
+    }
+    if (i < 2 || i >= cleanedLines.length - 3) {
+      flushNoise();
+      out.push(line.slice(0, 240));
+      continue;
+    }
+    noiseRun.push(line);
+  }
+  flushNoise();
+  return capCompactedLines(out, maxLines);
+}
+function extractGitDiffPath(diffHeaderLine) {
+  const m = /^diff --git\s+"?a\/(.+?)"?\s+"?b\/(.+?)"?\s*$/.exec(diffHeaderLine);
+  if (m) return m[2];
+  return diffHeaderLine;
+}
+function compactGitOutputLines(cleanedLines, maxLines = TURBO_DEFAULT_MAX_COMPACT_LINES) {
+  const hasDiff = cleanedLines.some((l) => l.startsWith("diff --git "));
+  if (!hasDiff) {
+    const out2 = [];
+    let listRun = [];
+    const flushList = () => {
+      if (listRun.length === 0) return;
+      if (listRun.length <= 20) {
+        for (const l of listRun) out2.push(l.slice(0, 240));
+      } else {
+        for (const l of listRun.slice(0, 12)) out2.push(l.slice(0, 240));
+        out2.push(`... [collapsed ${listRun.length - 16} git file status lines]`);
+        for (const l of listRun.slice(-4)) out2.push(l.slice(0, 240));
+      }
+      listRun = [];
+    };
+    for (const line of cleanedLines) {
+      if (/^\s*(?:modified|new file|deleted|renamed|untracked):\s+/.test(line) || /^\t\S/.test(line)) {
+        listRun.push(line);
+      } else {
+        flushList();
+        out2.push(line.slice(0, 240));
+      }
+    }
+    flushList();
+    return capCompactedLines(out2, maxLines);
+  }
+  const out = [];
+  const preamble = [];
+  const blocks = [];
+  let current = null;
+  let inBody = false;
+  for (const line of cleanedLines) {
+    if (line.startsWith("diff --git ")) {
+      current = {
+        headerLine: line,
+        filePath: extractGitDiffPath(line),
+        metaLines: [],
+        bodyLines: []
+      };
+      blocks.push(current);
+      inBody = false;
+      continue;
+    }
+    if (!current) {
+      preamble.push(line);
+      continue;
+    }
+    if (!inBody && (line.startsWith("index ") || line.startsWith("--- ") || line.startsWith("+++ ") || line.startsWith("new file mode") || line.startsWith("deleted file mode") || line.startsWith("old mode") || line.startsWith("new mode") || line.startsWith("similarity index") || line.startsWith("rename from") || line.startsWith("rename to") || line.startsWith("Binary files"))) {
+      current.metaLines.push(line);
+    } else {
+      inBody = true;
+      current.bodyLines.push(line);
+    }
+  }
+  for (const line of preamble.slice(0, 25)) {
+    out.push(line.slice(0, 240));
+  }
+  if (preamble.length > 25) {
+    out.push(`... [collapsed ${preamble.length - 25} git preamble lines]`);
+  }
+  for (let bIdx = 0; bIdx < blocks.length; bIdx += 1) {
+    const block = blocks[bIdx];
+    out.push(block.headerLine.slice(0, 240));
+    for (const m of block.metaLines) {
+      out.push(m.slice(0, 240));
+    }
+    if (block.bodyLines.length === 0) continue;
+    let added = 0;
+    let removed = 0;
+    for (const l of block.bodyLines) {
+      if (l.startsWith("+") && !l.startsWith("+++")) added += 1;
+      else if (l.startsWith("-") && !l.startsWith("---")) removed += 1;
+    }
+    const isLockOrGenerated = LOCK_OR_GENERATED_PATH_RE.test(block.filePath);
+    if (isLockOrGenerated || block.bodyLines.length > 200 || bIdx >= 35) {
+      const kindLabel = isLockOrGenerated ? "lockfile/generated diff" : "large file diff";
+      out.push(`... [collapsed ${kindLabel}: ${block.bodyLines.length} lines (+${added} / -${removed})]`);
+      continue;
+    }
+    const hunks = [];
+    let currentHunk = [];
+    for (const l of block.bodyLines) {
+      if (l.startsWith("@@ ")) {
+        if (currentHunk.length > 0) hunks.push(currentHunk);
+        currentHunk = [l];
+      } else {
+        currentHunk.push(l);
+      }
+    }
+    if (currentHunk.length > 0) hunks.push(currentHunk);
+    for (const hunk of hunks) {
+      if (hunk.length <= 36) {
+        for (const l of hunk) out.push(l.slice(0, 240));
+      } else {
+        const keepHead = 12;
+        const keepTail = 6;
+        const middle = hunk.slice(keepHead, hunk.length - keepTail);
+        let midAdd = 0;
+        let midDel = 0;
+        for (const ml of middle) {
+          if (ml.startsWith("+")) midAdd += 1;
+          else if (ml.startsWith("-")) midDel += 1;
+        }
+        for (const l of hunk.slice(0, keepHead)) out.push(l.slice(0, 240));
+        out.push(`... [collapsed ${middle.length} hunk lines (+${midAdd} / -${midDel})]`);
+        for (const l of hunk.slice(-keepTail)) out.push(l.slice(0, 240));
+      }
+    }
+  }
+  return capCompactedLines(out, maxLines);
 }
 var CompactedChunkStore = class {
   entries = /* @__PURE__ */ new Map();
@@ -47358,14 +52919,22 @@ var CompactedChunkStore = class {
   compact(dataDir, label, rawText, opts = {}) {
     const safeLabel = (label || "output").replace(/[\r\n\t\x00-\x1f]/g, " ").trim().slice(0, 80) || "output";
     const raw = typeof rawText === "string" ? rawText : String(rawText ?? "");
-    const lines = raw.split(/\r?\n/);
+    const rawLines = raw.split(/\r?\n/);
+    const lines = rawLines.map(cleanLogLine);
     const totalLines = lines.length;
+    const linesBefore = totalLines;
     const rawBytes = Buffer.byteLength(raw, "utf8");
     const estimatedRawTokens = Math.ceil(raw.length / 4);
     const headCount = Math.max(1, Math.min(opts.headLines ?? 12, 50));
     const tailCount = Math.max(1, Math.min(opts.tailLines ?? 15, 50));
     const maxErrorLines = Math.max(1, Math.min(opts.maxErrorLines ?? 20, 60));
+    const maxCompactedLines = typeof opts.maxErrorLines === "number" && Number.isFinite(opts.maxErrorLines) ? Math.max(
+      TURBO_MIN_COMPACT_LINES,
+      Math.min(Math.floor(opts.maxErrorLines), TURBO_MAX_COMPACT_LINES)
+    ) : TURBO_DEFAULT_MAX_COMPACT_LINES;
     const chunkLines = Math.max(10, Math.min(opts.chunkLines ?? 40, 200));
+    const requestedPreset = opts.preset ?? "auto";
+    const detectedPreset = requestedPreset === "auto" ? detectOutputPreset(raw) : requestedPreset;
     const diagMap = /* @__PURE__ */ new Map();
     let errorCount = 0;
     let warningCount = 0;
@@ -47399,40 +52968,62 @@ var CompactedChunkStore = class {
       if (b.count !== a.count) return b.count - a.count;
       return a.line - b.line;
     }).slice(0, maxErrorLines);
-    const headSlice = lines.slice(0, Math.min(headCount, totalLines));
-    const tailStart = Math.max(headSlice.length, totalLines - tailCount);
-    const tailSlice = tailStart < totalLines ? lines.slice(tailStart) : [];
-    const omittedMid = Math.max(0, tailStart - headSlice.length);
-    const sections = [
-      `[Turbo Compact] ${safeLabel} \u2014 ${totalLines} lines, ${rawBytes} bytes (~${estimatedRawTokens} tokens), errors=${errorCount}, warnings=${warningCount}`
-    ];
-    if (diagnostics.length > 0) {
-      sections.push("--- Errors & Warnings (aggregated) ---");
-      for (const d of diagnostics) {
-        const repeat = d.count > 1 ? ` (x${d.count})` : "";
-        sections.push(`[${d.severity.toUpperCase()} L${d.line}]${repeat} ${d.text}`);
+    const bodySections = [];
+    if (detectedPreset === "test") {
+      bodySections.push(...compactTestOutputLines(lines, maxCompactedLines));
+    } else if (detectedPreset === "build") {
+      bodySections.push(...compactBuildOutputLines(lines, maxCompactedLines));
+    } else if (detectedPreset === "git") {
+      bodySections.push(...compactGitOutputLines(lines, maxCompactedLines));
+    } else {
+      const headSlice = lines.slice(0, Math.min(headCount, totalLines));
+      const tailStart = Math.max(headSlice.length, totalLines - tailCount);
+      const tailSlice = tailStart < totalLines ? lines.slice(tailStart) : [];
+      const omittedMid = Math.max(0, tailStart - headSlice.length);
+      if (diagnostics.length > 0) {
+        bodySections.push("--- Errors & Warnings (aggregated) ---");
+        for (const d of diagnostics) {
+          const repeat = d.count > 1 ? ` (x${d.count})` : "";
+          bodySections.push(`[${d.severity.toUpperCase()} L${d.line}]${repeat} ${d.text}`);
+        }
+      }
+      bodySections.push(`--- Head (L1-L${headSlice.length}) ---`);
+      bodySections.push(
+        headSlice.map((l, idx) => `${idx + 1} | ${l.slice(0, 220)}`).join("\n")
+      );
+      if (omittedMid > 0) {
+        bodySections.push(`... (${omittedMid} middle lines indexed in memory; query via chunkId) ...`);
+      }
+      if (tailSlice.length > 0) {
+        bodySections.push(`--- Tail (L${tailStart + 1}-L${totalLines}) ---`);
+        bodySections.push(
+          tailSlice.map((l, idx) => `${tailStart + idx + 1} | ${l.slice(0, 220)}`).join("\n")
+        );
       }
     }
-    sections.push(`--- Head (L1-L${headSlice.length}) ---`);
-    sections.push(
-      headSlice.map((l, idx) => `${idx + 1} | ${l.slice(0, 220)}`).join("\n")
-    );
-    if (omittedMid > 0) {
-      sections.push(`... (${omittedMid} middle lines indexed in memory; query via chunkId) ...`);
+    const buildSummary = (pct) => {
+      const header = `[Turbo Compact] ${safeLabel} [preset=${detectedPreset}, saved ${pct}%] \u2014 ${totalLines} lines, ${rawBytes} bytes (~${estimatedRawTokens} tokens), errors=${errorCount}, warnings=${warningCount}`;
+      return [header, ...bodySections].join("\n");
+    };
+    const draftText = buildSummary(0);
+    const draftBytes = Buffer.byteLength(draftText, "utf8");
+    const draftRatio = rawBytes > 0 ? Number((1 - Math.min(draftBytes, rawBytes) / rawBytes).toFixed(3)) : 0;
+    const draftSavedPct = Math.max(0, Math.min(100, Math.round(draftRatio * 100)));
+    let summaryText = buildSummary(draftSavedPct);
+    let summaryBytes = Buffer.byteLength(summaryText, "utf8");
+    let compressionRatio = rawBytes > 0 ? Number((1 - Math.min(summaryBytes, rawBytes) / rawBytes).toFixed(3)) : 0;
+    let savedPercent = Math.max(0, Math.min(100, Math.round(compressionRatio * 100)));
+    if (savedPercent !== draftSavedPct) {
+      summaryText = buildSummary(savedPercent);
+      summaryBytes = Buffer.byteLength(summaryText, "utf8");
+      compressionRatio = rawBytes > 0 ? Number((1 - Math.min(summaryBytes, rawBytes) / rawBytes).toFixed(3)) : 0;
+      savedPercent = Math.max(0, Math.min(100, Math.round(compressionRatio * 100)));
     }
-    if (tailSlice.length > 0) {
-      sections.push(`--- Tail (L${tailStart + 1}-L${totalLines}) ---`);
-      sections.push(
-        tailSlice.map((l, idx) => `${tailStart + idx + 1} | ${l.slice(0, 220)}`).join("\n")
-      );
-    }
-    const summaryText = sections.join("\n");
-    const summaryBytes = Buffer.byteLength(summaryText, "utf8");
+    const linesAfter = summaryText.split(/\r?\n/).length;
     const estimatedSummaryTokens = Math.ceil(summaryText.length / 4);
     const estimatedSavedTokens = Math.max(0, estimatedRawTokens - estimatedSummaryTokens);
-    const compressionRatio = rawBytes > 0 ? Number((1 - Math.min(summaryBytes, rawBytes) / rawBytes).toFixed(3)) : 0;
     const chunkCount = Math.max(1, Math.ceil(totalLines / chunkLines));
-    const chunkId = `chk_${Date.now().toString(36)}_${import_node_crypto11.default.randomBytes(3).toString("hex")}`;
+    const chunkId = `chk_${Date.now().toString(36)}_${import_node_crypto12.default.randomBytes(3).toString("hex")}`;
     const createdAt = (/* @__PURE__ */ new Date()).toISOString();
     const meta3 = {
       chunkId,
@@ -47445,7 +53036,9 @@ var CompactedChunkStore = class {
       estimatedSavedTokens,
       chunkCount,
       errorCount,
-      warningCount
+      warningCount,
+      detectedPreset,
+      savedPercent
     };
     if (this.entries.size >= this.maxEntries) {
       const oldestKey = this.entries.keys().next().value;
@@ -47459,7 +53052,7 @@ var CompactedChunkStore = class {
     this.totalRawBytes += rawBytes;
     if (opts.persistStats && dataDir) {
       try {
-        atomicWriteJson(import_node_path19.default.join(dataDir, "stats.json"), {
+        atomicWriteJson(import_node_path22.default.join(dataDir, "stats.json"), {
           schemaVersion: 1,
           totalCompactions: this.totalCompactions,
           totalSavedTokens: this.totalSavedTokens,
@@ -47474,7 +53067,11 @@ var CompactedChunkStore = class {
       summaryBytes,
       compressionRatio,
       diagnostics,
-      summaryText
+      summaryText,
+      detectedPreset,
+      linesBefore,
+      linesAfter,
+      savedPercent
     };
   }
   query(chunkId, query, limit = 10) {
@@ -47543,18 +53140,18 @@ var defaultCompactedChunkStore = new CompactedChunkStore(TURBO_MAX_COMPACTED_CHU
 var SNAPSHOT_EXPAND_DIRS = /* @__PURE__ */ new Set(["src", "app", "apps", "packages", "lib", "ui", "test", "tests", "scripts", "cmd", "pkg", "internal"]);
 function buildWorkspaceSnapshot(workspaceRoot) {
   const startedAt = Date.now();
-  const realRoot = import_node_fs14.default.realpathSync(import_node_path19.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path19.default.sep) ? realRoot : `${realRoot}${import_node_path19.default.sep}`;
-  const workspaceName = import_node_path19.default.basename(realRoot) || "workspace";
+  const realRoot = import_node_fs16.default.realpathSync(import_node_path22.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path22.default.sep) ? realRoot : `${realRoot}${import_node_path22.default.sep}`;
+  const workspaceName = import_node_path22.default.basename(realRoot) || "workspace";
   const techStack = [];
   const scripts = [];
   let packageName;
   let packageVersion;
   const hasFile = (name) => {
     try {
-      const candidate = import_node_path19.default.join(realRoot, name);
-      const real = import_node_fs14.default.realpathSync(candidate);
-      return real.startsWith(rootPrefix) && import_node_fs14.default.statSync(real).isFile();
+      const candidate = import_node_path22.default.join(realRoot, name);
+      const real = import_node_fs16.default.realpathSync(candidate);
+      return real.startsWith(rootPrefix) && import_node_fs16.default.statSync(real).isFile();
     } catch {
       return false;
     }
@@ -47562,7 +53159,7 @@ function buildWorkspaceSnapshot(workspaceRoot) {
   if (hasFile("package.json")) {
     techStack.push("Node.js");
     try {
-      const pkg = JSON.parse(import_node_fs14.default.readFileSync(import_node_path19.default.join(realRoot, "package.json"), "utf8"));
+      const pkg = JSON.parse(import_node_fs16.default.readFileSync(import_node_path22.default.join(realRoot, "package.json"), "utf8"));
       if (typeof pkg.name === "string") packageName = pkg.name.slice(0, 64);
       if (typeof pkg.version === "string") packageVersion = pkg.version.slice(0, 32);
       if (pkg.scripts && typeof pkg.scripts === "object") {
@@ -47590,7 +53187,7 @@ function buildWorkspaceSnapshot(workspaceRoot) {
   const maxTreeLines = 28;
   let extraEntries = 0;
   try {
-    const entries = import_node_fs14.default.readdirSync(realRoot, { withFileTypes: true }).sort((a, b) => {
+    const entries = import_node_fs16.default.readdirSync(realRoot, { withFileTypes: true }).sort((a, b) => {
       if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
       return a.name.localeCompare(b.name);
     });
@@ -47598,8 +53195,8 @@ function buildWorkspaceSnapshot(workspaceRoot) {
       if (SKIP_DIRS2.has(entry.name) || isSensitiveTurboPath(entry.name)) continue;
       if (entry.isSymbolicLink()) {
         try {
-          const realEntry = import_node_fs14.default.realpathSync(import_node_path19.default.join(realRoot, entry.name));
-          const realEntryRel = import_node_path19.default.relative(realRoot, realEntry).replace(/\\/g, "/");
+          const realEntry = import_node_fs16.default.realpathSync(import_node_path22.default.join(realRoot, entry.name));
+          const realEntryRel = import_node_path22.default.relative(realRoot, realEntry).replace(/\\/g, "/");
           if (!realEntry.startsWith(rootPrefix) || isSensitiveTurboPath(realEntryRel)) continue;
         } catch {
           continue;
@@ -47613,14 +53210,14 @@ function buildWorkspaceSnapshot(workspaceRoot) {
         treeLines.push(`- ${entry.name}/`);
         if (SNAPSHOT_EXPAND_DIRS.has(entry.name) && treeLines.length < maxTreeLines) {
           try {
-            const subEntries = import_node_fs14.default.readdirSync(import_node_path19.default.join(realRoot, entry.name), { withFileTypes: true }).filter((sub) => {
+            const subEntries = import_node_fs16.default.readdirSync(import_node_path22.default.join(realRoot, entry.name), { withFileTypes: true }).filter((sub) => {
               if (SKIP_DIRS2.has(sub.name) || isSensitiveTurboPath(`${entry.name}/${sub.name}`)) {
                 return false;
               }
               if (sub.isSymbolicLink()) {
                 try {
-                  const realSub = import_node_fs14.default.realpathSync(import_node_path19.default.join(realRoot, entry.name, sub.name));
-                  const realSubRel = import_node_path19.default.relative(realRoot, realSub).replace(/\\/g, "/");
+                  const realSub = import_node_fs16.default.realpathSync(import_node_path22.default.join(realRoot, entry.name, sub.name));
+                  const realSubRel = import_node_path22.default.relative(realRoot, realSub).replace(/\\/g, "/");
                   return realSub.startsWith(rootPrefix) && !isSensitiveTurboPath(realSubRel);
                 } catch {
                   return false;
@@ -47675,7 +53272,8 @@ function buildWorkspaceSnapshot(workspaceRoot) {
 }
 
 // src/modules/turbo/register.ts
-function toHandle6(name, tool) {
+var COMPACT_PRESET_ENUM = external_exports.enum(["auto", "test", "build", "git", "generic"]);
+function toHandle8(name, tool) {
   return {
     name,
     enable: () => tool.enable(),
@@ -47880,7 +53478,7 @@ ${top}` : ""}`;
       }
     }
   );
-  modelTools.push(toHandle6("turbo_batch_search", batchSearchTool));
+  modelTools.push(toHandle8("turbo_batch_search", batchSearchTool));
   const readOutlineTool = server.registerTool(
     "turbo_read_outline",
     {
@@ -47925,15 +53523,16 @@ ${result.slice.content}`
       }
     }
   );
-  modelTools.push(toHandle6("turbo_read_outline", readOutlineTool));
+  modelTools.push(toHandle8("turbo_read_outline", readOutlineTool));
   const compactOutputTool = server.registerTool(
     "turbo_compact_output",
     {
       title: "Compact Large Output",
-      description: "Compress oversized test/build/log output into head/tail + aggregated errors/warnings while indexing full chunks in memory (LRU 24) for follow-up queries.",
+      description: "Compress oversized test/build/git/log output with RTK-style smart presets (auto/test/build/git/generic) while indexing full chunks in memory (LRU 24) for follow-up queries.",
       inputSchema: {
         label: external_exports.string().min(1).max(120).optional().describe("Short label for the command or log output"),
         rawText: external_exports.string().optional().describe("Raw command/log text to compact"),
+        preset: COMPACT_PRESET_ENUM.optional().describe("Smart compression preset (auto, test, build, git, generic)"),
         headLines: external_exports.number().int().min(1).max(50).optional(),
         tailLines: external_exports.number().int().min(1).max(50).optional(),
         maxErrorLines: external_exports.number().int().min(1).max(60).optional(),
@@ -47941,7 +53540,7 @@ ${result.slice.content}`
         chunkId: external_exports.string().optional().describe("Optional existing chunkId to search instead of compacting")
       }
     },
-    async ({ label, rawText, headLines, tailLines, maxErrorLines, query, chunkId }) => {
+    async ({ label, rawText, preset, headLines, tailLines, maxErrorLines, query, chunkId }) => {
       if (chunkId && query !== void 0) {
         const hit = chunkStore.query(chunkId, query, 10);
         return {
@@ -47963,19 +53562,23 @@ ${m.snippet}`).join("\n---\n")}` : `Chunk ${chunkId} not found in memory LRU.`
         };
       }
       const result = chunkStore.compact(moduleDataDir, label ?? "output", rawText, {
+        preset,
         headLines,
         tailLines,
         maxErrorLines,
         persistStats: false
       });
       lastCompact = result;
+      const presetTag = `[preset=${result.detectedPreset}, saved ${result.savedPercent}%]`;
+      const textSummary = result.summaryText.includes(presetTag) ? result.summaryText : `${presetTag}
+${result.summaryText}`;
       return {
-        content: [{ type: "text", text: result.summaryText }],
+        content: [{ type: "text", text: textSummary }],
         structuredContent: { ...result }
       };
     }
   );
-  modelTools.push(toHandle6("turbo_compact_output", compactOutputTool));
+  modelTools.push(toHandle8("turbo_compact_output", compactOutputTool));
   server.registerTool(
     "app_turbo_get_state",
     {
@@ -48060,6 +53663,7 @@ ${m.snippet}`).join("\n---\n")}` : `Chunk ${chunkId} not found in memory LRU.`
       inputSchema: {
         label: external_exports.string().min(1).max(120),
         rawText: external_exports.string(),
+        preset: COMPACT_PRESET_ENUM.optional(),
         headLines: external_exports.number().int().min(1).max(50).optional(),
         tailLines: external_exports.number().int().min(1).max(50).optional(),
         maxErrorLines: external_exports.number().int().min(1).max(60).optional()
@@ -48068,6 +53672,7 @@ ${m.snippet}`).join("\n---\n")}` : `Chunk ${chunkId} not found in memory LRU.`
     },
     async (input2) => {
       const result = chunkStore.compact(moduleDataDir, input2.label, input2.rawText, {
+        preset: input2.preset,
         headLines: input2.headLines,
         tailLines: input2.tailLines,
         maxErrorLines: input2.maxErrorLines,
@@ -48107,10 +53712,10 @@ ${m.snippet}`).join("\n---\n")}` : `Chunk ${chunkId} not found in memory LRU.`
 }
 
 // src/modules/verify/core.ts
-var import_node_child_process2 = require("node:child_process");
-var import_node_crypto12 = __toESM(require("node:crypto"), 1);
-var import_node_fs15 = __toESM(require("node:fs"), 1);
-var import_node_path20 = __toESM(require("node:path"), 1);
+var import_node_child_process3 = require("node:child_process");
+var import_node_crypto13 = __toESM(require("node:crypto"), 1);
+var import_node_fs17 = __toESM(require("node:fs"), 1);
+var import_node_path23 = __toESM(require("node:path"), 1);
 var ALLOWED_VERIFY_EXECUTABLES = /* @__PURE__ */ new Set([
   "npm",
   "pnpm",
@@ -48322,7 +53927,7 @@ function redactVerifyOutput(input2) {
   return out;
 }
 function getVerifyStatePath(moduleDataDir) {
-  return import_node_path20.default.join(moduleDataDir, "state.json");
+  return import_node_path23.default.join(moduleDataDir, "state.json");
 }
 function clampCommandTimeout(raw) {
   if (typeof raw !== "number" || !Number.isFinite(raw)) {
@@ -48862,11 +54467,11 @@ function normalizeEvidenceFromDisk(raw) {
 }
 function loadVerifyStateReadOnly(moduleDataDir) {
   const statePath = getVerifyStatePath(moduleDataDir);
-  if (!import_node_fs15.default.existsSync(statePath)) {
+  if (!import_node_fs17.default.existsSync(statePath)) {
     return createDefaultVerifyState();
   }
   try {
-    const raw = JSON.parse(import_node_fs15.default.readFileSync(statePath, "utf8"));
+    const raw = JSON.parse(import_node_fs17.default.readFileSync(statePath, "utf8"));
     const policy = normalizePolicyFromDisk(raw.policy);
     const sessions = {};
     if (raw.sessions && typeof raw.sessions === "object" && !Array.isArray(raw.sessions)) {
@@ -48955,33 +54560,33 @@ function resolveRealPathWithMissingTail2(inputPath, depth = 0) {
   if (depth > MAX_SYMLINK_DEPTH2) {
     throw new Error(`Too many levels of symbolic links: ${inputPath}`);
   }
-  const resolved = import_node_path20.default.resolve(inputPath);
+  const resolved = import_node_path23.default.resolve(inputPath);
   const missingSegments = [];
   let current = resolved;
   while (true) {
     try {
-      const realBase = import_node_fs15.default.realpathSync(current);
-      return missingSegments.length > 0 ? import_node_path20.default.join(realBase, ...missingSegments.reverse()) : realBase;
+      const realBase = import_node_fs17.default.realpathSync(current);
+      return missingSegments.length > 0 ? import_node_path23.default.join(realBase, ...missingSegments.reverse()) : realBase;
     } catch (err) {
       const code = err?.code;
       if (code !== "ENOENT" && code !== "ENOTDIR") {
         throw err;
       }
       try {
-        const lstat = import_node_fs15.default.lstatSync(current);
+        const lstat = import_node_fs17.default.lstatSync(current);
         if (lstat.isSymbolicLink()) {
-          const linkTarget = import_node_fs15.default.readlinkSync(current);
-          const resolvedLink = import_node_path20.default.resolve(import_node_path20.default.dirname(current), linkTarget);
-          const nextTarget = missingSegments.length > 0 ? import_node_path20.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
+          const linkTarget = import_node_fs17.default.readlinkSync(current);
+          const resolvedLink = import_node_path23.default.resolve(import_node_path23.default.dirname(current), linkTarget);
+          const nextTarget = missingSegments.length > 0 ? import_node_path23.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
           return resolveRealPathWithMissingTail2(nextTarget, depth + 1);
         }
       } catch {
       }
-      const parent = import_node_path20.default.dirname(current);
+      const parent = import_node_path23.default.dirname(current);
       if (parent === current) {
         return resolved;
       }
-      missingSegments.push(import_node_path20.default.basename(current));
+      missingSegments.push(import_node_path23.default.basename(current));
       current = parent;
     }
   }
@@ -48992,16 +54597,16 @@ function inspectWorkspaceFile(workspaceRoot, targetPath) {
   }
   try {
     const realRoot = resolveRealPathWithMissingTail2(workspaceRoot);
-    const candidate = import_node_path20.default.isAbsolute(targetPath) ? targetPath : import_node_path20.default.resolve(workspaceRoot, targetPath);
+    const candidate = import_node_path23.default.isAbsolute(targetPath) ? targetPath : import_node_path23.default.resolve(workspaceRoot, targetPath);
     const realTarget = resolveRealPathWithMissingTail2(candidate);
-    const rootPrefix = realRoot.endsWith(import_node_path20.default.sep) ? realRoot : `${realRoot}${import_node_path20.default.sep}`;
+    const rootPrefix = realRoot.endsWith(import_node_path23.default.sep) ? realRoot : `${realRoot}${import_node_path23.default.sep}`;
     if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
       return { inside: false };
     }
     if (realTarget === realRoot) {
       return { inside: false };
     }
-    const relPath = import_node_path20.default.relative(realRoot, realTarget).split(import_node_path20.default.sep).join("/");
+    const relPath = import_node_path23.default.relative(realRoot, realTarget).split(import_node_path23.default.sep).join("/");
     if (!relPath || relPath === "." || relPath.startsWith("../")) {
       return { inside: false };
     }
@@ -49009,7 +54614,7 @@ function inspectWorkspaceFile(workspaceRoot, targetPath) {
     let isFile = false;
     let isEmpty = false;
     try {
-      const stat = import_node_fs15.default.statSync(realTarget);
+      const stat = import_node_fs17.default.statSync(realTarget);
       exists = true;
       isFile = stat.isFile();
       isEmpty = isFile && stat.size === 0;
@@ -49091,8 +54696,8 @@ function executeVerifyCommand(command, workspaceRoot, options = {}) {
   );
   let resolvedCwd;
   try {
-    resolvedCwd = import_node_fs15.default.realpathSync(import_node_path20.default.resolve(workspaceRoot));
-    if (!import_node_fs15.default.statSync(resolvedCwd).isDirectory()) {
+    resolvedCwd = import_node_fs17.default.realpathSync(import_node_path23.default.resolve(workspaceRoot));
+    if (!import_node_fs17.default.statSync(resolvedCwd).isDirectory()) {
       throw new Error("Workspace root is not a directory.");
     }
   } catch (err) {
@@ -49163,7 +54768,7 @@ function executeVerifyCommand(command, workspaceRoot, options = {}) {
     };
     let child;
     try {
-      child = (0, import_node_child_process2.spawn)(safeCmd.executable, safeCmd.args, {
+      child = (0, import_node_child_process3.spawn)(safeCmd.executable, safeCmd.args, {
         cwd: resolvedCwd,
         shell: false,
         windowsHide: true,
@@ -49336,7 +54941,7 @@ async function runVerifyCommands(commands, workspaceRoot, options = {}) {
   };
 }
 function createEvidenceId(prefix = "ver") {
-  return `${prefix}-${Date.now().toString(36)}-${import_node_crypto12.default.randomBytes(3).toString("hex")}`;
+  return `${prefix}-${Date.now().toString(36)}-${import_node_crypto13.default.randomBytes(3).toString("hex")}`;
 }
 function appendEvidenceToState(state, record2) {
   state.evidence.unshift(record2);
@@ -49367,7 +54972,7 @@ function clearVerifyHistory(moduleDataDir) {
   const statePath = getVerifyStatePath(moduleDataDir);
   const state = loadVerifyStateReadOnly(moduleDataDir);
   const cleared = clearVerifyHistoryInState(state);
-  if (cleared === 0 && !import_node_fs15.default.existsSync(statePath)) {
+  if (cleared === 0 && !import_node_fs17.default.existsSync(statePath)) {
     return { cleared: 0, state };
   }
   const saved = saveVerifyState(moduleDataDir, state);
@@ -49608,7 +55213,7 @@ function createDemoVerifyState(nowMs = Date.now()) {
 }
 
 // src/modules/verify/register.ts
-function toHandle7(name, tool) {
+function toHandle9(name, tool) {
   return {
     name,
     enable: () => tool.enable(),
@@ -49739,7 +55344,7 @@ function registerVerifyModule(server, options, uiResourceUri) {
       };
     }
   );
-  modelTools.push(toHandle7("verify_get_policy", getPolicyTool));
+  modelTools.push(toHandle9("verify_get_policy", getPolicyTool));
   const setPolicyTool = server.registerTool(
     "verify_set_policy",
     {
@@ -49770,7 +55375,7 @@ function registerVerifyModule(server, options, uiResourceUri) {
       };
     }
   );
-  modelTools.push(toHandle7("verify_set_policy", setPolicyTool));
+  modelTools.push(toHandle9("verify_set_policy", setPolicyTool));
   const runChecksTool = server.registerTool(
     "verify_run_checks",
     {
@@ -49806,7 +55411,7 @@ function registerVerifyModule(server, options, uiResourceUri) {
       };
     }
   );
-  modelTools.push(toHandle7("verify_run_checks", runChecksTool));
+  modelTools.push(toHandle9("verify_run_checks", runChecksTool));
   const getEvidenceTool = server.registerTool(
     "verify_get_evidence",
     {
@@ -49839,7 +55444,7 @@ function registerVerifyModule(server, options, uiResourceUri) {
       };
     }
   );
-  modelTools.push(toHandle7("verify_get_evidence", getEvidenceTool));
+  modelTools.push(toHandle9("verify_get_evidence", getEvidenceTool));
   server.registerTool(
     "app_verify_get_state",
     {
@@ -49952,12 +55557,12 @@ function registerVerifyModule(server, options, uiResourceUri) {
 }
 
 // src/modules/worktree/register.ts
-var import_node_path22 = __toESM(require("node:path"), 1);
+var import_node_path25 = __toESM(require("node:path"), 1);
 
 // src/modules/worktree/core.ts
-var import_node_child_process3 = require("node:child_process");
-var import_node_fs16 = __toESM(require("node:fs"), 1);
-var import_node_path21 = __toESM(require("node:path"), 1);
+var import_node_child_process4 = require("node:child_process");
+var import_node_fs18 = __toESM(require("node:fs"), 1);
+var import_node_path24 = __toESM(require("node:path"), 1);
 var WORKTREE_MANAGED_DIR = ".agy-worktrees";
 var GIT_TIMEOUT_MS = 1e4;
 var GIT_MAX_BUFFER_BYTES = 2 * 1024 * 1024;
@@ -50030,29 +55635,29 @@ function deriveSafeWorktreeSlug(branch) {
   return validateWorktreeDirName(slug);
 }
 function isPathInside(parentReal, childReal) {
-  const rel = import_node_path21.default.relative(parentReal, childReal);
-  return rel !== "" && !rel.startsWith("..") && !import_node_path21.default.isAbsolute(rel);
+  const rel = import_node_path24.default.relative(parentReal, childReal);
+  return rel !== "" && !rel.startsWith("..") && !import_node_path24.default.isAbsolute(rel);
 }
 function canonicalizePath(inputPath) {
   if (typeof inputPath !== "string" || inputPath.length === 0 || inputPath.includes("\0")) {
     throw new Error("Invalid path: must be a non-empty string without NUL bytes.");
   }
-  const resolved = import_node_path21.default.resolve(inputPath);
+  const resolved = import_node_path24.default.resolve(inputPath);
   try {
-    return import_node_fs16.default.realpathSync(resolved);
+    return import_node_fs18.default.realpathSync(resolved);
   } catch {
     const missingSegments = [];
     let cursor = resolved;
     while (true) {
-      const parent = import_node_path21.default.dirname(cursor);
+      const parent = import_node_path24.default.dirname(cursor);
       if (parent === cursor) {
         return resolved;
       }
-      missingSegments.unshift(import_node_path21.default.basename(cursor));
+      missingSegments.unshift(import_node_path24.default.basename(cursor));
       cursor = parent;
       try {
-        const realAncestor = import_node_fs16.default.realpathSync(cursor);
-        return import_node_path21.default.join(realAncestor, ...missingSegments);
+        const realAncestor = import_node_fs18.default.realpathSync(cursor);
+        return import_node_path24.default.join(realAncestor, ...missingSegments);
       } catch {
       }
     }
@@ -50060,7 +55665,7 @@ function canonicalizePath(inputPath) {
 }
 function runGit2(cwd, args, stdinText) {
   return new Promise((resolve) => {
-    const child = (0, import_node_child_process3.execFile)(
+    const child = (0, import_node_child_process4.execFile)(
       "git",
       ["-c", "core.quotepath=false", ...args],
       {
@@ -50224,7 +55829,7 @@ function computeCounts(worktrees) {
   };
 }
 async function resolveGitContext(workspaceRoot) {
-  if (!workspaceRoot || !import_node_fs16.default.existsSync(workspaceRoot)) {
+  if (!workspaceRoot || !import_node_fs18.default.existsSync(workspaceRoot)) {
     return {
       isGitRepo: false,
       toplevelReal: workspaceRoot,
@@ -50234,7 +55839,7 @@ async function resolveGitContext(workspaceRoot) {
   }
   let stat;
   try {
-    stat = import_node_fs16.default.statSync(workspaceRoot);
+    stat = import_node_fs18.default.statSync(workspaceRoot);
   } catch {
     return {
       isGitRepo: false,
@@ -50307,38 +55912,38 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot) {
     const commonRes = await runGit2(repoRoot, ["rev-parse", "--git-common-dir"]);
     if (!commonRes.ok || !commonRes.stdout.trim()) return;
     const rawCommonDir = commonRes.stdout.trim();
-    const commonDir = import_node_path21.default.isAbsolute(rawCommonDir) ? rawCommonDir : import_node_path21.default.resolve(repoRoot, rawCommonDir);
-    const commonStat = import_node_fs16.default.lstatSync(commonDir);
+    const commonDir = import_node_path24.default.isAbsolute(rawCommonDir) ? rawCommonDir : import_node_path24.default.resolve(repoRoot, rawCommonDir);
+    const commonStat = import_node_fs18.default.lstatSync(commonDir);
     if (commonStat.isSymbolicLink() || !commonStat.isDirectory()) return;
-    const realCommonDir = import_node_fs16.default.realpathSync(commonDir);
-    if (!import_node_fs16.default.statSync(realCommonDir).isDirectory()) return;
-    const infoDir = import_node_path21.default.join(realCommonDir, "info");
+    const realCommonDir = import_node_fs18.default.realpathSync(commonDir);
+    if (!import_node_fs18.default.statSync(realCommonDir).isDirectory()) return;
+    const infoDir = import_node_path24.default.join(realCommonDir, "info");
     if (!isPathInside(realCommonDir, infoDir)) return;
     let infoExists = false;
     try {
-      const infoStat = import_node_fs16.default.lstatSync(infoDir);
+      const infoStat = import_node_fs18.default.lstatSync(infoDir);
       if (infoStat.isSymbolicLink() || !infoStat.isDirectory()) return;
       infoExists = true;
     } catch (err) {
       if (err?.code !== "ENOENT") return;
     }
     if (!infoExists) {
-      import_node_fs16.default.mkdirSync(infoDir);
-      const createdInfoStat = import_node_fs16.default.lstatSync(infoDir);
+      import_node_fs18.default.mkdirSync(infoDir);
+      const createdInfoStat = import_node_fs18.default.lstatSync(infoDir);
       if (createdInfoStat.isSymbolicLink() || !createdInfoStat.isDirectory()) return;
     }
-    const realInfoDir = import_node_fs16.default.realpathSync(infoDir);
+    const realInfoDir = import_node_fs18.default.realpathSync(infoDir);
     if (!isPathInside(realCommonDir, realInfoDir)) return;
-    const excludeFile = import_node_path21.default.join(realInfoDir, "exclude");
+    const excludeFile = import_node_path24.default.join(realInfoDir, "exclude");
     if (!isPathInside(realCommonDir, excludeFile) || !isPathInside(realInfoDir, excludeFile)) {
       return;
     }
     let excludeExists = false;
     let realExcludeFile = excludeFile;
     try {
-      const excludeStat = import_node_fs16.default.lstatSync(excludeFile);
+      const excludeStat = import_node_fs18.default.lstatSync(excludeFile);
       if (excludeStat.isSymbolicLink() || !excludeStat.isFile()) return;
-      realExcludeFile = import_node_fs16.default.realpathSync(excludeFile);
+      realExcludeFile = import_node_fs18.default.realpathSync(excludeFile);
       if (!isPathInside(realCommonDir, realExcludeFile) || !isPathInside(realInfoDir, realExcludeFile)) {
         return;
       }
@@ -50348,7 +55953,7 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot) {
     }
     let existing = "";
     if (excludeExists) {
-      existing = import_node_fs16.default.readFileSync(realExcludeFile, "utf8");
+      existing = import_node_fs18.default.readFileSync(realExcludeFile, "utf8");
     }
     const pattern = `/${WORKTREE_MANAGED_DIR}/`;
     const hasEntry = existing.split(/\r?\n/).some((line) => {
@@ -50359,29 +55964,29 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot) {
     const prefix = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
     const lineToWrite = `${prefix}${pattern}
 `;
-    const noFollow = import_node_fs16.default.constants.O_NOFOLLOW ?? 0;
+    const noFollow = import_node_fs18.default.constants.O_NOFOLLOW ?? 0;
     if (excludeExists) {
-      const reStat = import_node_fs16.default.lstatSync(realExcludeFile);
+      const reStat = import_node_fs18.default.lstatSync(realExcludeFile);
       if (reStat.isSymbolicLink() || !reStat.isFile()) return;
-      const fd = import_node_fs16.default.openSync(
+      const fd = import_node_fs18.default.openSync(
         realExcludeFile,
-        import_node_fs16.default.constants.O_WRONLY | import_node_fs16.default.constants.O_APPEND | noFollow
+        import_node_fs18.default.constants.O_WRONLY | import_node_fs18.default.constants.O_APPEND | noFollow
       );
       try {
-        import_node_fs16.default.writeSync(fd, lineToWrite, void 0, "utf8");
+        import_node_fs18.default.writeSync(fd, lineToWrite, void 0, "utf8");
       } finally {
-        import_node_fs16.default.closeSync(fd);
+        import_node_fs18.default.closeSync(fd);
       }
     } else {
-      const fd = import_node_fs16.default.openSync(
+      const fd = import_node_fs18.default.openSync(
         excludeFile,
-        import_node_fs16.default.constants.O_WRONLY | import_node_fs16.default.constants.O_CREAT | import_node_fs16.default.constants.O_EXCL | noFollow,
+        import_node_fs18.default.constants.O_WRONLY | import_node_fs18.default.constants.O_CREAT | import_node_fs18.default.constants.O_EXCL | noFollow,
         420
       );
       try {
-        import_node_fs16.default.writeSync(fd, lineToWrite, void 0, "utf8");
+        import_node_fs18.default.writeSync(fd, lineToWrite, void 0, "utf8");
       } finally {
-        import_node_fs16.default.closeSync(fd);
+        import_node_fs18.default.closeSync(fd);
       }
     }
   } catch {
@@ -50421,7 +56026,7 @@ async function inspectWorktrees(workspaceRoot) {
   }
   const worktrees = await Promise.all(
     ctx.rawEntries.map(async (raw) => {
-      const exists = import_node_fs16.default.existsSync(raw.path);
+      const exists = import_node_fs18.default.existsSync(raw.path);
       let isDirty2 = false;
       let changedFilesCount = 0;
       if (exists && !raw.bare) {
@@ -50515,35 +56120,35 @@ async function createWorktree(workspaceRoot, opts) {
   const branch = validateGitRef(opts.branch);
   const baseRef = opts.baseRef !== void 0 && opts.baseRef !== "" ? validateGitRef(opts.baseRef) : void 0;
   const safeSlug = opts.dirName !== void 0 && opts.dirName !== "" ? validateWorktreeDirName(opts.dirName) : deriveSafeWorktreeSlug(branch);
-  const repoRealRoot = import_node_fs16.default.realpathSync(ctx.mainRootReal);
+  const repoRealRoot = import_node_fs18.default.realpathSync(ctx.mainRootReal);
   const alreadyCheckedOut = ctx.rawEntries.find((w) => w.branch === branch);
   if (alreadyCheckedOut) {
     throw new Error(
       `Branch "${branch}" is already checked out in worktree: ${alreadyCheckedOut.path}`
     );
   }
-  const managedRootCandidate = import_node_path21.default.join(repoRealRoot, WORKTREE_MANAGED_DIR);
+  const managedRootCandidate = import_node_path24.default.join(repoRealRoot, WORKTREE_MANAGED_DIR);
   if (!isPathInside(repoRealRoot, managedRootCandidate)) {
     throw new Error("Controlled worktree root escapes repository boundary.");
   }
-  if (import_node_fs16.default.existsSync(managedRootCandidate)) {
-    const lstat = import_node_fs16.default.lstatSync(managedRootCandidate);
+  if (import_node_fs18.default.existsSync(managedRootCandidate)) {
+    const lstat = import_node_fs18.default.lstatSync(managedRootCandidate);
     if (lstat.isSymbolicLink() || !lstat.isDirectory()) {
       throw new Error(
         `Controlled worktree root "${managedRootCandidate}" must be a real directory (not a symlink or file).`
       );
     }
-    const realManaged = import_node_fs16.default.realpathSync(managedRootCandidate);
+    const realManaged = import_node_fs18.default.realpathSync(managedRootCandidate);
     if (!isPathInside(repoRealRoot, realManaged)) {
       throw new Error("Controlled worktree root symlink escapes repository boundary.");
     }
   }
-  const preTargetPath = import_node_path21.default.join(managedRootCandidate, safeSlug);
+  const preTargetPath = import_node_path24.default.join(managedRootCandidate, safeSlug);
   if (!isPathInside(managedRootCandidate, preTargetPath)) {
     throw new Error(`Target worktree path escapes controlled directory "${WORKTREE_MANAGED_DIR}".`);
   }
   try {
-    import_node_fs16.default.lstatSync(preTargetPath);
+    import_node_fs18.default.lstatSync(preTargetPath);
     throw new Error(
       `Target worktree directory already exists (refusing to overwrite): ${preTargetPath}`
     );
@@ -50565,13 +56170,13 @@ async function createWorktree(workspaceRoot, opts) {
     `refs/heads/${branch}`
   ]);
   const branchExists = branchRefRes.ok;
-  import_node_fs16.default.mkdirSync(managedRootCandidate, { recursive: true });
-  const realManagedRoot = import_node_fs16.default.realpathSync(managedRootCandidate);
+  import_node_fs18.default.mkdirSync(managedRootCandidate, { recursive: true });
+  const realManagedRoot = import_node_fs18.default.realpathSync(managedRootCandidate);
   if (!isPathInside(repoRealRoot, realManagedRoot)) {
     throw new Error("Controlled worktree root escapes repository boundary after creation.");
   }
-  const targetPath = import_node_path21.default.join(realManagedRoot, safeSlug);
-  if (import_node_path21.default.dirname(targetPath) !== realManagedRoot || !isPathInside(realManagedRoot, targetPath)) {
+  const targetPath = import_node_path24.default.join(realManagedRoot, safeSlug);
+  if (import_node_path24.default.dirname(targetPath) !== realManagedRoot || !isPathInside(realManagedRoot, targetPath)) {
     throw new Error("Resolved target worktree path escapes controlled worktree root.");
   }
   await ensureWorktreeDirExcludedInGitInfo(repoRealRoot);
@@ -50643,7 +56248,7 @@ async function getWorktreeDiffSummary(workspaceRoot, worktreePath, baseRef) {
   }
   let normalizedInput;
   try {
-    normalizedInput = import_node_fs16.default.realpathSync(import_node_path21.default.resolve(worktreePath));
+    normalizedInput = import_node_fs18.default.realpathSync(import_node_path24.default.resolve(worktreePath));
   } catch {
     throw new Error(`Worktree path does not exist or is not accessible: ${worktreePath}`);
   }
@@ -50787,10 +56392,10 @@ async function cleanupWorktree(workspaceRoot, opts) {
   };
 }
 function createDemoWorktreeStore(workspaceRoot) {
-  const repoRoot = import_node_path21.default.resolve(workspaceRoot);
-  const managedRoot = import_node_path21.default.join(repoRoot, WORKTREE_MANAGED_DIR);
-  const featPath = import_node_path21.default.join(managedRoot, "feat-verify-gate");
-  const fixPath = import_node_path21.default.join(managedRoot, "fix-cache-leak");
+  const repoRoot = import_node_path24.default.resolve(workspaceRoot);
+  const managedRoot = import_node_path24.default.join(repoRoot, WORKTREE_MANAGED_DIR);
+  const featPath = import_node_path24.default.join(managedRoot, "feat-verify-gate");
+  const fixPath = import_node_path24.default.join(managedRoot, "fix-cache-leak");
   let seq = 1;
   const entries = [
     {
@@ -50894,7 +56499,7 @@ function createDemoWorktreeStore(workspaceRoot) {
         validateGitRef(opts.baseRef);
       }
       const safeSlug = opts.dirName !== void 0 && opts.dirName !== "" ? validateWorktreeDirName(opts.dirName) : deriveSafeWorktreeSlug(branch);
-      const targetPath = import_node_path21.default.join(managedRoot, safeSlug);
+      const targetPath = import_node_path24.default.join(managedRoot, safeSlug);
       if (!isPathInside(managedRoot, targetPath)) {
         throw new Error("Target worktree path escapes controlled worktree root.");
       }
@@ -50937,7 +56542,7 @@ function createDemoWorktreeStore(workspaceRoot) {
         throw new Error("Invalid worktreePath: must be a non-empty filesystem path.");
       }
       const resolvedBaseRef = baseRef !== void 0 && baseRef !== "" ? validateGitRef(baseRef) : "main";
-      const normalized = import_node_path21.default.resolve(worktreePath);
+      const normalized = import_node_path24.default.resolve(worktreePath);
       const entry = entries.find((e) => e.path === normalized);
       if (!entry) {
         throw new Error(
@@ -50975,7 +56580,7 @@ function createDemoWorktreeStore(workspaceRoot) {
       if (!opts.worktreePath || !opts.worktreePath.trim()) {
         throw new Error("Either worktreePath or pruneOnly: true must be provided.");
       }
-      const normalized = import_node_path21.default.resolve(opts.worktreePath);
+      const normalized = import_node_path24.default.resolve(opts.worktreePath);
       const idx = entries.findIndex((e) => e.path === normalized);
       if (idx < 0) {
         throw new Error(
@@ -51010,14 +56615,14 @@ function createDemoWorktreeStore(workspaceRoot) {
 }
 
 // src/modules/worktree/register.ts
-function toHandle8(name, tool) {
+function toHandle10(name, tool) {
   return {
     name,
     enable: () => tool.enable(),
     disable: () => tool.disable()
   };
 }
-function formatErrorMessage(err) {
+function formatErrorMessage2(err) {
   return err instanceof Error ? err.message : String(err);
 }
 function formatListSummary(state) {
@@ -51059,7 +56664,7 @@ function formatDiffSummary(diff) {
   return lines.join("\n");
 }
 function registerWorktreeModule(server, options, uiResourceUri) {
-  const workspaceRoot = import_node_path22.default.resolve(options.workspaceRoot);
+  const workspaceRoot = import_node_path25.default.resolve(options.workspaceRoot);
   const isDemo = options.demoMode === true;
   const demoStore = isDemo ? createDemoWorktreeStore(workspaceRoot) : null;
   const APP_ONLY_META2 = {
@@ -51090,12 +56695,12 @@ function registerWorktreeModule(server, options, uiResourceUri) {
       } catch (err) {
         return {
           isError: true,
-          content: [{ type: "text", text: formatErrorMessage(err) }]
+          content: [{ type: "text", text: formatErrorMessage2(err) }]
         };
       }
     }
   );
-  modelTools.push(toHandle8("worktree_list", listTool));
+  modelTools.push(toHandle10("worktree_list", listTool));
   const createTool = server.registerTool(
     "worktree_create",
     {
@@ -51125,12 +56730,12 @@ function registerWorktreeModule(server, options, uiResourceUri) {
       } catch (err) {
         return {
           isError: true,
-          content: [{ type: "text", text: formatErrorMessage(err) }]
+          content: [{ type: "text", text: formatErrorMessage2(err) }]
         };
       }
     }
   );
-  modelTools.push(toHandle8("worktree_create", createTool));
+  modelTools.push(toHandle10("worktree_create", createTool));
   const diffSummaryTool = server.registerTool(
     "worktree_diff_summary",
     {
@@ -51151,12 +56756,12 @@ function registerWorktreeModule(server, options, uiResourceUri) {
       } catch (err) {
         return {
           isError: true,
-          content: [{ type: "text", text: formatErrorMessage(err) }]
+          content: [{ type: "text", text: formatErrorMessage2(err) }]
         };
       }
     }
   );
-  modelTools.push(toHandle8("worktree_diff_summary", diffSummaryTool));
+  modelTools.push(toHandle10("worktree_diff_summary", diffSummaryTool));
   const cleanupTool = server.registerTool(
     "worktree_cleanup",
     {
@@ -51178,12 +56783,12 @@ function registerWorktreeModule(server, options, uiResourceUri) {
       } catch (err) {
         return {
           isError: true,
-          content: [{ type: "text", text: formatErrorMessage(err) }]
+          content: [{ type: "text", text: formatErrorMessage2(err) }]
         };
       }
     }
   );
-  modelTools.push(toHandle8("worktree_cleanup", cleanupTool));
+  modelTools.push(toHandle10("worktree_cleanup", cleanupTool));
   server.registerTool(
     "app_worktree_list",
     {
@@ -51202,7 +56807,7 @@ function registerWorktreeModule(server, options, uiResourceUri) {
       } catch (err) {
         return {
           isError: true,
-          content: [{ type: "text", text: formatErrorMessage(err) }]
+          content: [{ type: "text", text: formatErrorMessage2(err) }]
         };
       }
     }
@@ -51230,7 +56835,7 @@ function registerWorktreeModule(server, options, uiResourceUri) {
       } catch (err) {
         return {
           isError: true,
-          content: [{ type: "text", text: formatErrorMessage(err) }]
+          content: [{ type: "text", text: formatErrorMessage2(err) }]
         };
       }
     }
@@ -51256,7 +56861,7 @@ function registerWorktreeModule(server, options, uiResourceUri) {
       } catch (err) {
         return {
           isError: true,
-          content: [{ type: "text", text: formatErrorMessage(err) }]
+          content: [{ type: "text", text: formatErrorMessage2(err) }]
         };
       }
     }
@@ -51283,7 +56888,7 @@ function registerWorktreeModule(server, options, uiResourceUri) {
       } catch (err) {
         return {
           isError: true,
-          content: [{ type: "text", text: formatErrorMessage(err) }]
+          content: [{ type: "text", text: formatErrorMessage2(err) }]
         };
       }
     }
@@ -51296,12 +56901,12 @@ function registerWorktreeModule(server, options, uiResourceUri) {
 }
 
 // src/modules/xray/register.ts
-var import_node_path26 = __toESM(require("node:path"), 1);
+var import_node_path29 = __toESM(require("node:path"), 1);
 
 // src/modules/xray/discovery.ts
-var import_node_fs18 = __toESM(require("node:fs"), 1);
+var import_node_fs20 = __toESM(require("node:fs"), 1);
 var import_node_os4 = __toESM(require("node:os"), 1);
-var import_node_path24 = __toESM(require("node:path"), 1);
+var import_node_path27 = __toESM(require("node:path"), 1);
 
 // src/modules/xray/demo-data.ts
 function buildDemoSessions() {
@@ -51609,8 +57214,8 @@ function searchDemoSessions(query) {
 }
 
 // src/modules/xray/transcript.ts
-var import_node_fs17 = __toESM(require("node:fs"), 1);
-var import_node_path23 = __toESM(require("node:path"), 1);
+var import_node_fs19 = __toESM(require("node:fs"), 1);
+var import_node_path26 = __toESM(require("node:path"), 1);
 var import_node_url3 = require("node:url");
 
 // src/modules/xray/sanitize.ts
@@ -51703,7 +57308,7 @@ function cleanUserRequest(raw) {
 function toSafeFileUri(filePath) {
   if (filePath.startsWith("file://")) return filePath;
   try {
-    return (0, import_node_url3.pathToFileURL)(import_node_path23.default.resolve(filePath)).href;
+    return (0, import_node_url3.pathToFileURL)(import_node_path26.default.resolve(filePath)).href;
   } catch {
     return `file://${filePath}`;
   }
@@ -51729,17 +57334,17 @@ function extractFilePathsFromArgs(args) {
   return results;
 }
 function listArtifactsInBrainDir(brainDir) {
-  if (!brainDir || !import_node_fs17.default.existsSync(brainDir)) return [];
+  if (!brainDir || !import_node_fs19.default.existsSync(brainDir)) return [];
   const artifacts = [];
   try {
-    for (const entry of import_node_fs17.default.readdirSync(brainDir, { withFileTypes: true })) {
+    for (const entry of import_node_fs19.default.readdirSync(brainDir, { withFileTypes: true })) {
       if (!entry.isFile()) continue;
       if (!/\.(md|txt|json|html|svg)$/i.test(entry.name)) continue;
       if (entry.name.startsWith(".")) continue;
-      const fullPath = import_node_path23.default.join(brainDir, entry.name);
+      const fullPath = import_node_path26.default.join(brainDir, entry.name);
       try {
-        const stat = import_node_fs17.default.statSync(fullPath);
-        const content = import_node_fs17.default.readFileSync(fullPath, "utf8").slice(0, 800);
+        const stat = import_node_fs19.default.statSync(fullPath);
+        const content = import_node_fs19.default.readFileSync(fullPath, "utf8").slice(0, 800);
         artifacts.push({
           name: entry.name,
           path: fullPath,
@@ -51804,9 +57409,9 @@ function isSubagentToolCall(toolName, args) {
   return false;
 }
 function listSiblingBrainDirs(siblingBrainRoot, parentSessionId) {
-  if (!siblingBrainRoot || !import_node_fs17.default.existsSync(siblingBrainRoot)) return [];
+  if (!siblingBrainRoot || !import_node_fs19.default.existsSync(siblingBrainRoot)) return [];
   try {
-    const entries = import_node_fs17.default.readdirSync(siblingBrainRoot, { withFileTypes: true });
+    const entries = import_node_fs19.default.readdirSync(siblingBrainRoot, { withFileTypes: true });
     return entries.filter((entry) => entry.isDirectory() && isSafeChildId(entry.name, parentSessionId)).map((entry) => entry.name).sort((a, b) => b.length - a.length);
   } catch {
     return [];
@@ -51892,25 +57497,25 @@ function extractChildIdFromStep(step, parentSessionId, siblingDirNames, usedIds)
   return extractChildIdFromText(content, parentSessionId, siblingDirNames, usedIds);
 }
 function resolveChildTranscriptPath(siblingBrainRoot, childId) {
-  if (!siblingBrainRoot || !import_node_fs17.default.existsSync(siblingBrainRoot)) return null;
+  if (!siblingBrainRoot || !import_node_fs19.default.existsSync(siblingBrainRoot)) return null;
   let realRoot;
   try {
-    realRoot = import_node_fs17.default.realpathSync(siblingBrainRoot);
+    realRoot = import_node_fs19.default.realpathSync(siblingBrainRoot);
   } catch {
     return null;
   }
   const candidates = [
-    import_node_path23.default.join(siblingBrainRoot, childId, ".system_generated", "logs", "transcript.jsonl"),
-    import_node_path23.default.join(siblingBrainRoot, childId, "transcript.jsonl")
+    import_node_path26.default.join(siblingBrainRoot, childId, ".system_generated", "logs", "transcript.jsonl"),
+    import_node_path26.default.join(siblingBrainRoot, childId, "transcript.jsonl")
   ];
   for (const candidate of candidates) {
-    if (!import_node_fs17.default.existsSync(candidate)) continue;
+    if (!import_node_fs19.default.existsSync(candidate)) continue;
     try {
-      const realCandidate = import_node_fs17.default.realpathSync(candidate);
-      if (realCandidate !== realRoot && !realCandidate.startsWith(`${realRoot}${import_node_path23.default.sep}`)) {
+      const realCandidate = import_node_fs19.default.realpathSync(candidate);
+      if (realCandidate !== realRoot && !realCandidate.startsWith(`${realRoot}${import_node_path26.default.sep}`)) {
         continue;
       }
-      const stat = import_node_fs17.default.statSync(realCandidate);
+      const stat = import_node_fs19.default.statSync(realCandidate);
       if (!stat.isFile()) continue;
       return realCandidate;
     } catch {
@@ -51949,11 +57554,11 @@ var MAX_CHILD_TRANSCRIPT_BYTES = 20 * 1024 * 1024;
 function readChildTranscriptStats(transcriptPath) {
   let rawText;
   try {
-    const st = import_node_fs17.default.statSync(transcriptPath);
+    const st = import_node_fs19.default.statSync(transcriptPath);
     if (!st.isFile() || st.size > MAX_CHILD_TRANSCRIPT_BYTES) {
       return null;
     }
-    rawText = import_node_fs17.default.readFileSync(transcriptPath, "utf8");
+    rawText = import_node_fs19.default.readFileSync(transcriptPath, "utf8");
   } catch {
     return null;
   }
@@ -52017,11 +57622,11 @@ function hasRetrySignalInStep(step) {
   return parts.some((part) => Boolean(part) && RETRY_SIGNAL_RE.test(part));
 }
 function parseTranscriptFile(transcriptPath, opts = {}) {
-  const rawText = import_node_fs17.default.readFileSync(transcriptPath, "utf8");
+  const rawText = import_node_fs19.default.readFileSync(transcriptPath, "utf8");
   return parseTranscriptLines(rawText.split(/\r?\n/), {
     transcriptPath,
-    brainDir: opts.brainDir ?? import_node_path23.default.resolve(import_node_path23.default.dirname(transcriptPath), "..", ".."),
-    sessionId: opts.sessionId ?? import_node_path23.default.basename(import_node_path23.default.resolve(import_node_path23.default.dirname(transcriptPath), "..", "..")),
+    brainDir: opts.brainDir ?? import_node_path26.default.resolve(import_node_path26.default.dirname(transcriptPath), "..", ".."),
+    sessionId: opts.sessionId ?? import_node_path26.default.basename(import_node_path26.default.resolve(import_node_path26.default.dirname(transcriptPath), "..", "..")),
     source: opts.source ?? "desktop",
     siblingBrainRoot: opts.siblingBrainRoot
   });
@@ -52197,11 +57802,11 @@ function parseTranscriptLines(lines, meta3) {
         const op = classifyToolFileOp(name);
         if (op) {
           for (const fp of extractFilePathsFromArgs(tc.args)) {
-            const normalized = import_node_path23.default.resolve(fp);
+            const normalized = import_node_path26.default.resolve(fp);
             const cur = fileMap.get(normalized) ?? {
               path: normalized,
-              basename: import_node_path23.default.basename(normalized),
-              dir: import_node_path23.default.dirname(normalized),
+              basename: import_node_path26.default.basename(normalized),
+              dir: import_node_path26.default.dirname(normalized),
               uri: toSafeFileUri(normalized),
               ops: [],
               readCount: 0,
@@ -52605,18 +58210,18 @@ function renderRedactedBrief(detail) {
 function getDefaultBrainDirs() {
   const home = import_node_os4.default.homedir();
   const candidates = [
-    { dir: import_node_path24.default.join(home, ".gemini", "antigravity", "brain"), source: "desktop" },
-    { dir: import_node_path24.default.join(home, ".gemini", "antigravity-cli", "brain"), source: "cli" },
-    { dir: import_node_path24.default.join(home, ".gemini", "antigravity-ide", "brain"), source: "ide" }
+    { dir: import_node_path27.default.join(home, ".gemini", "antigravity", "brain"), source: "desktop" },
+    { dir: import_node_path27.default.join(home, ".gemini", "antigravity-cli", "brain"), source: "cli" },
+    { dir: import_node_path27.default.join(home, ".gemini", "antigravity-ide", "brain"), source: "ide" }
   ];
-  return candidates.filter((c) => import_node_fs18.default.existsSync(c.dir));
+  return candidates.filter((c) => import_node_fs20.default.existsSync(c.dir));
 }
 function readLiveHookState(dataDir) {
   if (!dataDir) return { recentEvents: [] };
-  const statePath = import_node_path24.default.join(dataDir, "live-state.json");
-  if (!import_node_fs18.default.existsSync(statePath)) return { recentEvents: [] };
+  const statePath = import_node_path27.default.join(dataDir, "live-state.json");
+  if (!import_node_fs20.default.existsSync(statePath)) return { recentEvents: [] };
   try {
-    const parsed = JSON.parse(import_node_fs18.default.readFileSync(statePath, "utf8"));
+    const parsed = JSON.parse(import_node_fs20.default.readFileSync(statePath, "utf8"));
     return {
       ...parsed,
       recentEvents: Array.isArray(parsed.recentEvents) ? parsed.recentEvents : []
@@ -52630,26 +58235,26 @@ function discoverTranscriptEntries(opts = {}) {
   const entries = [];
   const seen = /* @__PURE__ */ new Set();
   for (const root of roots) {
-    if (!import_node_fs18.default.existsSync(root.dir)) continue;
+    if (!import_node_fs20.default.existsSync(root.dir)) continue;
     let children;
     try {
-      children = import_node_fs18.default.readdirSync(root.dir, { withFileTypes: true });
+      children = import_node_fs20.default.readdirSync(root.dir, { withFileTypes: true });
     } catch {
       continue;
     }
     for (const child of children) {
       if (!child.isDirectory()) continue;
-      const brainDir = import_node_path24.default.join(root.dir, child.name);
+      const brainDir = import_node_path27.default.join(root.dir, child.name);
       const candidates = [
-        import_node_path24.default.join(brainDir, ".system_generated", "logs", "transcript.jsonl"),
-        import_node_path24.default.join(brainDir, "transcript.jsonl")
+        import_node_path27.default.join(brainDir, ".system_generated", "logs", "transcript.jsonl"),
+        import_node_path27.default.join(brainDir, "transcript.jsonl")
       ];
       for (const transcriptPath of candidates) {
-        if (!import_node_fs18.default.existsSync(transcriptPath)) continue;
+        if (!import_node_fs20.default.existsSync(transcriptPath)) continue;
         if (seen.has(transcriptPath)) continue;
         seen.add(transcriptPath);
         try {
-          const stat = import_node_fs18.default.statSync(transcriptPath);
+          const stat = import_node_fs20.default.statSync(transcriptPath);
           if (stat.size === 0) continue;
           entries.push({
             id: child.name,
@@ -52702,18 +58307,18 @@ function loadSessionDetail(sessionId, opts = {}) {
         sessionId: match.id,
         source: match.source,
         brainDir: match.brainDir,
-        siblingBrainRoot: import_node_path24.default.dirname(match.brainDir)
+        siblingBrainRoot: import_node_path27.default.dirname(match.brainDir)
       });
     }
   }
-  if (!sessionId && hookState.activeTranscriptPath && import_node_fs18.default.existsSync(hookState.activeTranscriptPath)) {
-    const parentDir = import_node_path24.default.dirname(hookState.activeTranscriptPath);
-    const activeBrainDir = import_node_path24.default.basename(parentDir) === "logs" && import_node_path24.default.basename(import_node_path24.default.dirname(parentDir)) === ".system_generated" ? import_node_path24.default.resolve(parentDir, "..", "..") : parentDir;
+  if (!sessionId && hookState.activeTranscriptPath && import_node_fs20.default.existsSync(hookState.activeTranscriptPath)) {
+    const parentDir = import_node_path27.default.dirname(hookState.activeTranscriptPath);
+    const activeBrainDir = import_node_path27.default.basename(parentDir) === "logs" && import_node_path27.default.basename(import_node_path27.default.dirname(parentDir)) === ".system_generated" ? import_node_path27.default.resolve(parentDir, "..", "..") : parentDir;
     return parseTranscriptFile(hookState.activeTranscriptPath, {
-      sessionId: hookState.activeConversationId ?? import_node_path24.default.basename(activeBrainDir) ?? "active",
+      sessionId: hookState.activeConversationId ?? import_node_path27.default.basename(activeBrainDir) ?? "active",
       source: "desktop",
       brainDir: activeBrainDir,
-      siblingBrainRoot: import_node_path24.default.dirname(activeBrainDir)
+      siblingBrainRoot: import_node_path27.default.dirname(activeBrainDir)
     });
   }
   const latest = entries[0];
@@ -52722,13 +58327,13 @@ function loadSessionDetail(sessionId, opts = {}) {
     sessionId: latest.id,
     source: latest.source,
     brainDir: latest.brainDir,
-    siblingBrainRoot: import_node_path24.default.dirname(latest.brainDir)
+    siblingBrainRoot: import_node_path27.default.dirname(latest.brainDir)
   });
 }
 
 // src/modules/xray/search.ts
-var import_node_fs19 = __toESM(require("node:fs"), 1);
-var import_node_path25 = __toESM(require("node:path"), 1);
+var import_node_fs21 = __toESM(require("node:fs"), 1);
+var import_node_path28 = __toESM(require("node:path"), 1);
 var import_node_url4 = require("node:url");
 function tokenize2(text) {
   const lower = text.toLowerCase();
@@ -52773,7 +58378,7 @@ function collectDocuments(opts) {
     const updatedAt = new Date(entry.mtimeMs).toISOString();
     const transcriptChunks = [];
     try {
-      const lines = import_node_fs19.default.readFileSync(entry.transcriptPath, "utf8").split(/\r?\n/);
+      const lines = import_node_fs21.default.readFileSync(entry.transcriptPath, "utf8").split(/\r?\n/);
       for (const line of lines) {
         if (!line.trim()) continue;
         try {
@@ -52814,14 +58419,14 @@ function collectDocuments(opts) {
       });
     }
     try {
-      for (const dirent of import_node_fs19.default.readdirSync(entry.brainDir, { withFileTypes: true })) {
+      for (const dirent of import_node_fs21.default.readdirSync(entry.brainDir, { withFileTypes: true })) {
         if (!dirent.isFile() || !/\.md$/i.test(dirent.name) || dirent.name.startsWith(".")) continue;
-        const artPath = import_node_path25.default.join(entry.brainDir, dirent.name);
-        const content = import_node_fs19.default.readFileSync(artPath, "utf8").slice(0, 4e4);
+        const artPath = import_node_path28.default.join(entry.brainDir, dirent.name);
+        const content = import_node_fs21.default.readFileSync(artPath, "utf8").slice(0, 4e4);
         docs.push({
           sessionId: entry.id,
           sessionTitle,
-          updatedAt: import_node_fs19.default.statSync(artPath).mtime.toISOString(),
+          updatedAt: import_node_fs21.default.statSync(artPath).mtime.toISOString(),
           sourceKind: "artifact",
           sourceLabel: dirent.name,
           filePath: artPath,
@@ -52916,7 +58521,7 @@ function registerXrayModule(server, opts, uiResourceUri) {
   const moduleDataDir = getModuleDataDir(opts.dataDir, "xray");
   const discoveryOpts = {
     dataDir: moduleDataDir,
-    brainDirs: opts.brainDir ? [{ dir: import_node_path26.default.resolve(opts.brainDir), source: "custom" }] : void 0,
+    brainDirs: opts.brainDir ? [{ dir: import_node_path29.default.resolve(opts.brainDir), source: "custom" }] : void 0,
     demoMode: opts.demoMode
   };
   const INLINE_META = {
@@ -53139,7 +58744,7 @@ function registerXrayModule(server, opts, uiResourceUri) {
 
 // src/server/index.ts
 var UI_RESOURCE_URI = "ui://agy-nov/app.html";
-var NOV_VERSION = "0.3.0";
+var NOV_VERSION = "0.4.0";
 var UI_ENTRYPOINT_META = {
   ui: { resourceUri: UI_RESOURCE_URI },
   "com.google.antigravity/ui": {
@@ -53158,14 +58763,14 @@ function resolveUiHtmlPath(override) {
   const candidates = [
     override,
     envOverride,
-    import_node_path27.default.resolve(process.cwd(), "dist/ui/app.html"),
-    import_node_path27.default.resolve(import_node_path27.default.dirname(process.argv[1] || process.cwd()), "ui/app.html"),
-    import_node_path27.default.resolve(import_node_path27.default.dirname(process.argv[1] || process.cwd()), "../dist/ui/app.html")
+    import_node_path30.default.resolve(process.cwd(), "dist/ui/app.html"),
+    import_node_path30.default.resolve(import_node_path30.default.dirname(process.argv[1] || process.cwd()), "ui/app.html"),
+    import_node_path30.default.resolve(import_node_path30.default.dirname(process.argv[1] || process.cwd()), "../dist/ui/app.html")
   ].filter((p) => Boolean(p));
   for (const candidate of candidates) {
-    if (import_node_fs20.default.existsSync(candidate)) return candidate;
+    if (import_node_fs22.default.existsSync(candidate)) return candidate;
   }
-  return candidates[0] ?? import_node_path27.default.resolve(process.cwd(), "dist/ui/app.html");
+  return candidates[0] ?? import_node_path30.default.resolve(process.cwd(), "dist/ui/app.html");
 }
 var DEFAULT_CONFIG_POLL_MS = 1500;
 function hasConfigChanged(prev, next) {
@@ -53178,7 +58783,7 @@ function readDiskConfigForSync(rootDataDir) {
   const cfgPath = getConfigPath(rootDataDir);
   let rawText;
   try {
-    rawText = import_node_fs20.default.readFileSync(cfgPath, "utf8");
+    rawText = import_node_fs22.default.readFileSync(cfgPath, "utf8");
   } catch (err) {
     if (err?.code === "ENOENT") {
       return { status: "missing", config: createDefaultConfig() };
@@ -53198,7 +58803,7 @@ function readDiskConfigForSync(rootDataDir) {
 function createNovServer(rawOpts = {}) {
   const options = {
     dataDir: resolveNovDataDir(rawOpts.dataDir),
-    workspaceRoot: import_node_path27.default.resolve(rawOpts.workspaceRoot ?? process.cwd()),
+    workspaceRoot: import_node_path30.default.resolve(rawOpts.workspaceRoot ?? process.cwd()),
     demoMode: Boolean(rawOpts.demoMode),
     brainDir: rawOpts.brainDir,
     uiHtmlPath: rawOpts.uiHtmlPath,
@@ -53224,7 +58829,7 @@ function createNovServer(rawOpts = {}) {
     },
     async () => {
       const htmlPath = resolveUiHtmlPath(options.uiHtmlPath);
-      const html = import_node_fs20.default.existsSync(htmlPath) ? import_node_fs20.default.readFileSync(htmlPath, "utf8") : "<!doctype html><html><body><p>agy-NOV UI bundle missing. Run npm run build.</p></body></html>";
+      const html = import_node_fs22.default.existsSync(htmlPath) ? import_node_fs22.default.readFileSync(htmlPath, "utf8") : "<!doctype html><html><body><p>agy-NOV UI bundle missing. Run npm run build.</p></body></html>";
       return {
         contents: [
           {
@@ -53419,6 +59024,8 @@ function createNovServer(rawOpts = {}) {
     registerWithAppTracking((s) => registerRadarModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerVerifyModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerWorktreeModule(s, options, UI_RESOURCE_URI)),
+    registerWithAppTracking((s) => registerSpecModule(s, options, UI_RESOURCE_URI)),
+    registerWithAppTracking((s) => registerStudioModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerCanvasModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerMemModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerOpsModule(s, options, UI_RESOURCE_URI)),

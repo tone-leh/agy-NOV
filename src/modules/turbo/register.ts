@@ -19,6 +19,8 @@ import {
   type WorkspaceSnapshot,
 } from './core.js';
 
+const COMPACT_PRESET_ENUM = z.enum(['auto', 'test', 'build', 'git', 'generic']);
+
 function toHandle(name: string, tool: RegisteredTool): ModuleToolHandle {
   return {
     name,
@@ -316,10 +318,11 @@ export function registerTurboModule(
     {
       title: 'Compact Large Output',
       description:
-        'Compress oversized test/build/log output into head/tail + aggregated errors/warnings while indexing full chunks in memory (LRU 24) for follow-up queries.',
+        'Compress oversized test/build/git/log output with RTK-style smart presets (auto/test/build/git/generic) while indexing full chunks in memory (LRU 24) for follow-up queries.',
       inputSchema: {
         label: z.string().min(1).max(120).optional().describe('Short label for the command or log output'),
         rawText: z.string().optional().describe('Raw command/log text to compact'),
+        preset: COMPACT_PRESET_ENUM.optional().describe('Smart compression preset (auto, test, build, git, generic)'),
         headLines: z.number().int().min(1).max(50).optional(),
         tailLines: z.number().int().min(1).max(50).optional(),
         maxErrorLines: z.number().int().min(1).max(60).optional(),
@@ -327,7 +330,7 @@ export function registerTurboModule(
         chunkId: z.string().optional().describe('Optional existing chunkId to search instead of compacting'),
       },
     },
-    async ({ label, rawText, headLines, tailLines, maxErrorLines, query, chunkId }) => {
+    async ({ label, rawText, preset, headLines, tailLines, maxErrorLines, query, chunkId }) => {
       if (chunkId && query !== undefined) {
         const hit = chunkStore.query(chunkId, query, 10);
         return {
@@ -351,14 +354,19 @@ export function registerTurboModule(
       }
 
       const result = chunkStore.compact(moduleDataDir, label ?? 'output', rawText, {
+        preset,
         headLines,
         tailLines,
         maxErrorLines,
         persistStats: false,
       });
       lastCompact = result;
+      const presetTag = `[preset=${result.detectedPreset}, saved ${result.savedPercent}%]`;
+      const textSummary = result.summaryText.includes(presetTag)
+        ? result.summaryText
+        : `${presetTag}\n${result.summaryText}`;
       return {
-        content: [{ type: 'text', text: result.summaryText }],
+        content: [{ type: 'text', text: textSummary }],
         structuredContent: { ...result },
       };
     },
@@ -453,6 +461,7 @@ export function registerTurboModule(
       inputSchema: {
         label: z.string().min(1).max(120),
         rawText: z.string(),
+        preset: COMPACT_PRESET_ENUM.optional(),
         headLines: z.number().int().min(1).max(50).optional(),
         tailLines: z.number().int().min(1).max(50).optional(),
         maxErrorLines: z.number().int().min(1).max(60).optional(),
@@ -461,6 +470,7 @@ export function registerTurboModule(
     },
     async (input) => {
       const result = chunkStore.compact(moduleDataDir, input.label, input.rawText, {
+        preset: input.preset,
         headLines: input.headLines,
         tailLines: input.tailLines,
         maxErrorLines: input.maxErrorLines,

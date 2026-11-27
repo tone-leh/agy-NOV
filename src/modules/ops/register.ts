@@ -1,16 +1,21 @@
 import type { McpServer, RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { getModuleDataDir, resolveNovDataDir } from '../../core/config.js';
+import {
+  countEnabledModelTools,
+  getModuleDataDir,
+  loadNovConfigReadOnly,
+  resolveNovDataDir,
+} from '../../core/config.js';
 import type {
   ModuleRegistrationResult,
   ModuleToolHandle,
   NovRuntimeOptions,
 } from '../../core/types.js';
 import {
-  auditWorkspaceAssets,
+  auditWorkspaceReadOnly,
   buildPromptRecordFromInput,
   BUILTIN_PROMPTS,
-  createDemoOpsAuditReport,
+  createDemoWorkspaceAudit,
   deletePromptTemplate,
   filterPromptTemplates,
   listPromptTemplates,
@@ -67,7 +72,7 @@ export function registerOpsModule(
           tags: ['release', 'checklist', 'demo'],
           body: '请核对 {{version}} 发布前的门禁清单：确认 UI 包体积小于 {{max_mb}} MiB，全部单元测试通过，并检查 {{module_scope}} 的默认关闭边界。',
           variables: [
-            { name: 'version', defaultValue: 'v0.3.0' },
+            { name: 'version', defaultValue: 'v0.4.0' },
             { name: 'max_mb', defaultValue: '10' },
             { name: 'module_scope', defaultValue: 'opt-in remote' },
           ],
@@ -92,9 +97,11 @@ export function registerOpsModule(
   };
 
   const runAudit = (): WorkspaceAuditReport => {
+    const cfg = loadNovConfigReadOnly(rootDataDir);
+    const enabledNovTools = countEnabledModelTools(cfg.modules);
     const report = isDemo
-      ? createDemoOpsAuditReport(workspaceRoot)
-      : auditWorkspaceAssets(workspaceRoot, rootDataDir);
+      ? createDemoWorkspaceAudit(workspaceRoot, enabledNovTools)
+      : auditWorkspaceReadOnly(workspaceRoot, rootDataDir, { enabledNovTools });
     cachedAudit = report;
     return report;
   };
@@ -197,18 +204,29 @@ export function registerOpsModule(
     {
       title: 'Audit Workspace Assets & Storage',
       description:
-        'Read-only inspection of workspace agent rules, skills, manifests, MCP/hook configs, token estimates, and local agy-NOV storage usage.',
+        'Read-only inspection of workspace rules (24KB/20K bloat guard), 100-tool MCP budget meter, static MCP config health, skills/manifests, token estimates, and local agy-NOV storage usage.',
       inputSchema: {},
     },
     async () => {
       try {
         const report = runAudit();
+        const largestKb = (report.ruleBloat.largestFileBytes / 1024).toFixed(1);
+        const limitKb = Math.round(report.ruleBloat.singleFileLimitBytes / 1024);
         const lines = [
           `Workspace Audit (${report.workspaceName}, score=${report.healthScore}/100): ${report.summary.assetCount} asset(s), ~${report.summary.totalEstimatedTokens} tokens (${report.summary.totalBytes} bytes)`,
+          `Rule Bloat: [${report.ruleBloat.status.toUpperCase()}] largest=${largestKb}KB/${limitKb}KB${report.ruleBloat.largestFilePath ? ` (${report.ruleBloat.largestFilePath})` : ''}, total=~${report.ruleBloat.totalRuleTokens}/${report.ruleBloat.aggregateTokenLimit} tokens`,
+          `Tool Budget (${report.toolBudget.estimatedTotalTools}/${report.toolBudget.hardLimit}): [${report.toolBudget.status.toUpperCase()}] ${report.toolBudget.usagePercent}% (agy-NOV=${report.toolBudget.agyNovTools}, external MCP=${report.toolBudget.externalServersCount} server(s) ~${report.toolBudget.estimatedExternalTools} tools)`,
+          `MCP Health: ${report.mcpHealthFindings.length} finding(s)`,
           `Local storage: ${report.storage.rootDataDirExists ? `${report.storage.totalFiles} files, ${report.storage.totalBytes} bytes` : 'not initialized (0 bytes)'}`,
           ...report.assets.slice(0, 12).map(
             (a) => `- [${a.kind}] ${a.relPath}: ~${a.estimatedTokens} tokens (${a.bytes}B, ${a.lineCount}L)`,
           ),
+          ...report.mcpHealthFindings
+            .slice(0, 8)
+            .map(
+              (f) =>
+                `! [MCP ${f.severity.toUpperCase()}] ${f.file}${f.serverName ? ` (${f.serverName})` : ''}: ${f.message}`,
+            ),
           ...report.recommendations.map((r) => `• [${r.level.toUpperCase()}] ${r.title}: ${r.detail}`),
         ];
         return {

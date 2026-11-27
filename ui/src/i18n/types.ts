@@ -121,6 +121,58 @@ export interface WorktreePanelI18n {
   aheadBehind: string;
 }
 
+export interface SpecPanelI18n {
+  title: string;
+  subtitle: string;
+  tabBoard: string;
+  tabCreate: string;
+  writeLockOn: string;
+  writeLockOff: string;
+  statusDraft: string;
+  statusApproved: string;
+  statusCompleted: string;
+  statusArchived: string;
+  approveBtn: string;
+  revertDraftBtn: string;
+  enforceLockLabel: string;
+  requireUiApprovalLabel: string;
+  tasksTitle: string;
+  readyBadge: string;
+  waitingBadge: string;
+  doneBadge: string;
+  inProgressBadge: string;
+  blockedBadge: string;
+  specTitlePlaceholder: string;
+  specGoalPlaceholder: string;
+  addTaskPlaceholder: string;
+  createSpecBtn: string;
+  emptySpecs: string;
+  acceptanceTitle: string;
+}
+
+export interface StudioPanelI18n {
+  title: string;
+  subtitle: string;
+  tabData: string;
+  tabDocs: string;
+  tabHttp: string;
+  sourcesTitle: string;
+  refreshSources: string;
+  filePathPlaceholder: string;
+  sqlQueryPlaceholder: string;
+  filterPlaceholder: string;
+  inspectBtn: string;
+  probeBtn: string;
+  urlPlaceholder: string;
+  loopbackOnlyNote: string;
+  headersPlaceholder: string;
+  bodyPlaceholder: string;
+  emptySources: string;
+  rowsCount: string;
+  statusCode: string;
+  truncatedNotice: string;
+}
+
 export interface CanvasPanelI18n {
   title: string;
   publishNew: string;
@@ -169,6 +221,8 @@ export interface PanelsI18n {
   xray: XrayPanelI18n;
   verify: VerifyPanelI18n;
   worktree: WorktreePanelI18n;
+  spec: SpecPanelI18n;
+  studio: StudioPanelI18n;
   canvas: CanvasPanelI18n;
   mem: MemPanelI18n;
   remote: RemotePanelI18n;
@@ -249,6 +303,8 @@ export interface UiDictionary {
     queryChunkBtn: string;
     savedTokens: string;
     safetyNote: string;
+    presetLabel: string;
+    compressionSaved: string;
   };
   radar: {
     title: string;
@@ -291,6 +347,9 @@ export interface UiDictionary {
     auditEstTokens: string;
     auditFindings: string;
     auditCleanNote: string;
+    ruleBloatTitle: string;
+    toolBudgetTitle: string;
+    mcpHealthTitle: string;
   };
   panels: PanelsI18n;
 }

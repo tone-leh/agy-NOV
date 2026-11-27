@@ -11,6 +11,7 @@ import { handleMemSessionStartHook, handleMemStopHook } from '../modules/mem/hoo
 import { handleRadarHook } from '../modules/radar/hook.js';
 import { handleRemotePreToolHook, handleRemoteStopHook } from '../modules/remote/hook.js';
 import { handleReviewHook } from '../modules/review/hook.js';
+import { handleSpecPreToolHook, handleSpecSessionStartHook } from '../modules/spec/hook.js';
 import { handleTurboSessionStartHook } from '../modules/turbo/hook.js';
 import { handleVerifyPostToolHook, handleVerifyStopHook } from '../modules/verify/hook.js';
 import { handleXrayHook } from '../modules/xray/hook.js';
@@ -33,7 +34,7 @@ export async function dispatchNovHook(
   const { modules } = config;
 
   if (payload.event === 'SessionStart') {
-    if (!modules.mem && !modules.turbo) return {};
+    if (!modules.mem && !modules.turbo && !modules.spec) return {};
     const injectSteps: unknown[] = [];
 
     if (modules.turbo) {
@@ -41,6 +42,17 @@ export async function dispatchNovHook(
         const turboOut = handleTurboSessionStartHook(payload, rootDataDir);
         if (turboOut && Array.isArray(turboOut.injectSteps) && turboOut.injectSteps.length > 0) {
           injectSteps.push(...turboOut.injectSteps);
+        }
+      } catch {
+        // fail-open
+      }
+    }
+
+    if (modules.spec) {
+      try {
+        const specOut = handleSpecSessionStartHook(payload, rootDataDir);
+        if (specOut && Array.isArray(specOut.injectSteps) && specOut.injectSteps.length > 0) {
+          injectSteps.push(...specOut.injectSteps);
         }
       } catch {
         // fail-open
@@ -62,7 +74,7 @@ export async function dispatchNovHook(
   }
 
   if (payload.event === 'PreToolUse') {
-    if (!modules.guard && !modules.remote && !modules.radar) {
+    if (!modules.guard && !modules.spec && !modules.remote && !modules.radar) {
       return {};
     }
 
@@ -77,7 +89,7 @@ export async function dispatchNovHook(
     let finalDecision: 'allow' | 'ask' | 'deny' | undefined;
     const reasons: string[] = [];
 
-    // Guard always takes strict precedence over remote
+    // Guard always takes strict precedence over spec and remote
     if (modules.guard) {
       try {
         const guardRes = handleGuardPreToolHook(payload, rootDataDir);
@@ -89,6 +101,18 @@ export async function dispatchNovHook(
           if (guardRes.reason) reasons.push(guardRes.reason);
         } else if (guardRes.decision === 'allow') {
           finalDecision = 'allow';
+        }
+      } catch {
+        // fail-open on unexpected hook error
+      }
+    }
+
+    // Spec write-lock gate blocks workspace mutations while active spec stays in DRAFT
+    if (modules.spec) {
+      try {
+        const specRes = handleSpecPreToolHook(payload, rootDataDir);
+        if (specRes.decision === 'deny') {
+          return { decision: 'deny', reason: specRes.reason };
         }
       } catch {
         // fail-open on unexpected hook error

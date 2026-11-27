@@ -64,19 +64,19 @@ export const FR_DICT: UiDictionary = {
       description: 'Review + Guard + X-Ray — essentiels 100 % locaux hors ligne (12 outils de modèle).',
     },
     power: {
-      label: 'Power Dev (8 hors ligne)',
+      label: 'Power Dev (9 hors ligne)',
       description:
-        'Essentiel + Turbo + Radar + Verify + Worktree + Ops — suite rapide avec portes de vérification strictes et zéro trafic réseau (28 outils de modèle).',
+        'Essentiel + Turbo + Radar + Verify + Worktree + Spec + Ops — flux complet hors ligne de la spécification à la vérification avec zéro trafic réseau (32 outils de modèle).',
     },
     'local-all': {
-      label: 'Tout Local (10 hors ligne)',
+      label: 'Tout Local (12 hors ligne)',
       description:
-        'Les 10 modules natifs hors ligne activés ; Remote reste éteint avec zéro port ouvert (35 outils de modèle).',
+        'Les 12 modules natifs hors ligne activés dont Workspace Studio ; Remote reste éteint avec zéro port ouvert (43 outils de modèle).',
     },
     full: {
-      label: 'Suite Complète (Les 11)',
+      label: 'Suite Complète (Les 13)',
       description:
-        'Les 11 modules natifs activés, y compris le hub distant optionnel PWA mobile et IM (39 outils de modèle).',
+        'Les 13 modules natifs activés, y compris le hub distant optionnel PWA mobile et IM (47 outils de modèle).',
     },
     minimal: {
       label: 'Bouclier Minimal',
@@ -109,9 +109,9 @@ export const FR_DICT: UiDictionary = {
     turbo: {
       name: 'Turbo et Garde de Sortie',
       shortLabel: 'Turbo',
-      tagline: 'Recherche groupée, découpage de symboles et compression des longs logs',
+      tagline: 'Recherche groupée, découpage de symboles et compression de sortie style RTK',
       description:
-        'Réduisez les tours inutiles et l’inflation du contexte grâce à la recherche multi-motifs, l’extraction de symboles et l’indexation compacte des sorties volumineuses.',
+        'Réduisez les tours inutiles et l’inflation du contexte grâce à la recherche multi-motifs, l’extraction de symboles et les préréglages intelligents style RTK (test/build/git/auto) pour les longs journaux.',
     },
     radar: {
       name: 'Radar de Sessions',
@@ -134,6 +134,20 @@ export const FR_DICT: UiDictionary = {
       description:
         'Créez des worktrees Git isolés avec transfert optionnel des modifications non validées, inspectez les résumés de diffs, détectez les risques extensions.worktreeConfig et purgez les arbres fusionnés ou orphelins.',
     },
+    spec: {
+      name: 'Flux Spec et DAG de Tâches',
+      shortLabel: 'Spec',
+      tagline: 'Développement piloté par spécification, DAG de dépendances et verrou d’écriture',
+      description:
+        'Maintenez des workflows structurés Spec -> Plan -> Task DAG avec détection de cycles, rappel de la prochaine tâche au SessionStart et porte PreToolUse gardant le code en lecture seule jusqu’à approbation.',
+    },
+    studio: {
+      name: 'Studio de l’Espace de Travail',
+      shortLabel: 'Studio',
+      tagline: 'Visionneuse SQLite/CSV/JSON à la demande, découpeur DOCX/XLSX/PDF et sonde HTTP locale',
+      description:
+        'Inspectez des jeux de données SQLite/CSV/JSON locaux, découpez des documents DOCX/XLSX/PDF/Markdown hors ligne sans binaire externe et sondez les API localhost/127.0.0.1 ; désactivez-le pour zéro coût d’outils.',
+    },
     canvas: {
       name: 'Canevas Visuel',
       shortLabel: 'Canvas',
@@ -149,11 +163,11 @@ export const FR_DICT: UiDictionary = {
         'Enregistrez vos décisions d’architecture liées aux empreintes SHA-256 des fichiers, rappelez le contexte dès SessionStart et signalez les entrées obsolètes après modification.',
     },
     ops: {
-      name: 'Coffre de Prompts et Doctor',
+      name: 'Coffre de Prompts et Doctor de Budget',
       shortLabel: 'Ops',
-      tagline: 'Modèles paramétrés, audit d’actifs du projet et hygiène du stockage',
+      tagline: 'Modèles paramétrés, contrôle d’enflure 24KB/20K et budget de 100 outils',
       description:
-        'Gérez des modèles de prompts réutilisables {{var}}, inspectez en lecture seule l’empreinte en tokens des Rules/Skills/MCP et vérifiez le stockage local agy-NOV.',
+        'Gérez des modèles de prompts réutilisables {{var}}, vérifiez l’enflure des règles 24KB/20K causant de faux 429, suivez le budget de 100 outils MCP et contrôlez l’hygiène du stockage local.',
     },
     remote: {
       name: 'Mobile et IM Distant',
@@ -201,6 +215,8 @@ export const FR_DICT: UiDictionary = {
     savedTokens: 'Tokens économisés est. : ~{tokens} ({ratio} % de réduction)',
     safetyNote:
       'Confiné à l’espace de travail via realpath · ignore automatiquement .env, clés SSH, .git et node_modules.',
+    presetLabel: 'Préréglage de compression',
+    compressionSaved: 'Compression RTK : {percent} % économisés',
   },
   radar: {
     title: 'Radar de Sessions et Carillon',
@@ -246,6 +262,9 @@ export const FR_DICT: UiDictionary = {
     auditFindings: 'Points de diagnostic',
     auditCleanNote:
       'Analyse 100 % en lecture seule · aucune valeur de secret ou de variable d’environnement n’est lue ni affichée.',
+    ruleBloatTitle: 'Contrôle d’enflure des règles (24 Ko / 20 K tokens)',
+    toolBudgetTitle: 'Budget d’outils MCP (limite 100 outils)',
+    mcpHealthTitle: 'Santé de la configuration et des serveurs MCP',
   },
   panels: {
     review: {
@@ -348,6 +367,59 @@ export const FR_DICT: UiDictionary = {
       emptyWorktrees: 'Aucun worktree Git trouvé pour cet espace de travail.',
       diffTitle: 'Résumé du Diff de Branche',
       aheadBehind: '+{ahead} en avance / -{behind} en retard',
+    },
+    spec: {
+      title: 'Flux Spec et DAG de Tâches',
+      subtitle:
+        'Rédigez des spécifications structurées, cartographiez les dépendances en DAG et verrouillez les écritures jusqu’à approbation.',
+      tabBoard: 'Spec et DAG de tâches',
+      tabCreate: 'Nouvelle Spec',
+      writeLockOn: 'Verrou d’écriture brouillon ACTIF',
+      writeLockOff: 'Verrou d’écriture débloqué',
+      statusDraft: 'Brouillon',
+      statusApproved: 'Approuvée',
+      statusCompleted: 'Terminée',
+      statusArchived: 'Archivée',
+      approveBtn: 'Approuver la Spec',
+      revertDraftBtn: 'Revenir au brouillon',
+      enforceLockLabel: 'Bloquer les écritures tant que la spec active reste au stade Brouillon',
+      requireUiApprovalLabel: 'Exiger une approbation explicite dans l’UI avant de débloquer les écritures',
+      tasksTitle: 'DAG des tâches dépendantes',
+      readyBadge: 'Prête',
+      waitingBadge: 'Dépendances en attente',
+      doneBadge: 'Terminée',
+      inProgressBadge: 'En cours',
+      blockedBadge: 'Bloquée',
+      specTitlePlaceholder: 'Titre de la spec (ex. Refonte Auth Modulaire)',
+      specGoalPlaceholder: 'Décrivez l’objectif d’implémentation, les limites et le résultat attendu…',
+      addTaskPlaceholder: 'Titre de tâche (ex. Définir le schéma de validation de jeton)',
+      createSpecBtn: 'Créer la Spec',
+      emptySpecs: 'Aucune spec créée pour le moment. Créez-en une pour orchestrer les tâches et protéger les écritures.',
+      acceptanceTitle: 'Critères d’acceptation',
+    },
+    studio: {
+      title: 'Studio de l’Espace de Travail',
+      subtitle:
+        'Inspectez les données locales SQLite/CSV/JSON, découpez les documents bureautiques/PDF et sondez les API HTTP locales.',
+      tabData: 'Données locales',
+      tabDocs: 'Découpeur de documents',
+      tabHttp: 'HTTP Loopback',
+      sourcesTitle: 'Actifs détectés dans le projet',
+      refreshSources: 'Actualiser les actifs',
+      filePathPlaceholder: 'Chemin relatif au projet (ex. data/app.db ou docs/spec.docx)',
+      sqlQueryPlaceholder: 'SQL en lecture seule optionnel (ex. SELECT * FROM items LIMIT 50)',
+      filterPlaceholder: 'Filtre optionnel par mot-clé…',
+      inspectBtn: 'Inspecter',
+      probeBtn: 'Envoyer la sonde',
+      urlPlaceholder: 'http://127.0.0.1:3000/health',
+      loopbackOnlyNote:
+        'Boucle locale uniquement : strictement limité à 127.0.0.1, localhost et [::1] — zéro accès réseau externe.',
+      headersPlaceholder: 'En-têtes JSON optionnels, ex. {"Accept": "application/json"}',
+      bodyPlaceholder: 'Corps de requête optionnel (JSON ou texte brut)…',
+      emptySources: 'Aucun actif SQLite, CSV, JSON, DOCX, XLSX, PDF ou Markdown détecté pour le moment.',
+      rowsCount: 'Lignes',
+      statusCode: 'Statut',
+      truncatedNotice: 'Sortie tronquée pour respecter les limites sûres d’aperçu.',
     },
     canvas: {
       title: 'Canevas Visuel',

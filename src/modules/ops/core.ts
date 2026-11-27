@@ -1,7 +1,12 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { MODULE_IDS } from '../../core/catalog.js';
+import {
+  countEnabledModelTools,
+  createDefaultConfig,
+  loadNovConfigReadOnly,
+  MODULE_IDS,
+} from '../../core/config.js';
 import { atomicWriteJson } from '../../core/utils.js';
 
 export type PromptCategory =
@@ -82,11 +87,55 @@ export interface StorageAuditSummary {
   modules: ModuleStorageStat[];
 }
 
+export const RULE_SINGLE_FILE_LIMIT_BYTES = 24 * 1024; // 24576 bytes (24 KB)
+export const RULE_AGGREGATE_TOKEN_LIMIT = 20_000;
+export const TOOL_BUDGET_HARD_LIMIT = 100;
+export const DEFAULT_TOOLS_PER_EXTERNAL_MCP_SERVER = 10;
+
 export interface AuditRecommendation {
   level: 'info' | 'warn' | 'critical';
   code: string;
   title: string;
   detail: string;
+}
+
+export interface RuleBloatOffender {
+  path: string;
+  bytes: number;
+  estimatedTokens: number;
+  reason: string;
+}
+
+export interface RuleBloatAssessment {
+  status: 'ok' | 'warn' | 'critical';
+  singleFileLimitBytes: 24576;
+  aggregateTokenLimit: 20000;
+  largestFileBytes: number;
+  largestFilePath?: string;
+  totalRuleBytes: number;
+  totalRuleTokens: number;
+  offendingFiles: RuleBloatOffender[];
+}
+
+export interface ToolBudgetAssessment {
+  agyNovTools: number;
+  externalServersCount: number;
+  estimatedExternalTools: number;
+  estimatedTotalTools: number;
+  hardLimit: 100;
+  usagePercent: number;
+  status: 'ok' | 'warn' | 'critical';
+}
+
+export interface McpHealthFinding {
+  severity: 'info' | 'warn' | 'error';
+  serverName?: string;
+  file: string;
+  message: string;
+}
+
+export interface AuditWorkspaceOptions {
+  enabledNovTools?: number;
 }
 
 export interface WorkspaceAuditReport {
@@ -106,6 +155,9 @@ export interface WorkspaceAuditReport {
   assets: WorkspaceAssetEntry[];
   storage: StorageAuditSummary;
   recommendations: AuditRecommendation[];
+  ruleBloat: RuleBloatAssessment;
+  toolBudget: ToolBudgetAssessment;
+  mcpHealthFindings: McpHealthFinding[];
 }
 
 const VALID_CATEGORIES = new Set<PromptCategory>([
@@ -608,44 +660,543 @@ export function isSensitiveOpsPath(inputPath: string): boolean {
   return false;
 }
 
-function summarizeMcpConfigSafe(rawText: string): {
+const PURE_ENV_REF_RE = /^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?$/;
+const ENV_VAR_EMBED_RE = /\$\{?[A-Za-z_][A-Za-z0-9_]*\}?/;
+const UNRESOLVED_PLACEHOLDER_RE =
+  /\{\{[^}]+\}\}|<YOUR_[A-Z0-9_-]+>|\bYOUR_[A-Z0-9_]*(?:KEY|TOKEN|SECRET|ID|URL|HOST|EMAIL)\b|\b(?:REPLACE_ME|CHANGEME|TODO_SET_[A-Z0-9_]+)\b/i;
+const SENSITIVE_KEY_NAME_RE =
+  /token|secret|key|auth|bearer|oauth|password|passwd|credential|cookie|private/i;
+const OAUTH_OR_EXPIRING_KEY_RE =
+  /oauth|access_?token|refresh_?token|id_?token|bearer|expires|expiry|session_?token/i;
+const JWT_LIKE_RE = /^eyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]*$/;
+const SECRET_VALUE_PATTERN_RE =
+  /\b(?:ghp_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9_]{10,}|gh[ousr]_[A-Za-z0-9]{10,}|sk-(?:proj-|live-|test-)?[A-Za-z0-9_-]{12,}|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20,}|xox[baprs]-[0-9A-Za-z-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})\b/;
+const SECRET_VALUE_REDACT_GLOBAL_RE =
+  /\b(?:ghp_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9_]{10,}|gh[ousr]_[A-Za-z0-9]{10,}|sk-(?:proj-|live-|test-)?[A-Za-z0-9_-]{12,}|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20,}|xox[baprs]-[0-9A-Za-z-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}(?:\.[A-Za-z0-9_-]+)?)\b/g;
+const LOCAL_RUNTIME_COMMANDS = new Set([
+  'node',
+  'tsx',
+  'ts-node',
+  'python',
+  'python3',
+  'bash',
+  'sh',
+  'zsh',
+  'bun',
+  'deno',
+  'ruby',
+  'perl',
+  'php',
+]);
+const SCRIPT_EXT_RE = /\.(?:[cm]?js|[cm]?ts|py|sh|bash|zsh|rb|pl|php|exe|bin|cmd|bat)$/i;
+
+function containsSecretPattern(value: string): boolean {
+  return SECRET_VALUE_PATTERN_RE.test(value);
+}
+
+function redactSecretsInMessage(message: string): string {
+  if (!containsSecretPattern(message)) return message;
+  return message.replace(SECRET_VALUE_REDACT_GLOBAL_RE, '<redacted-path>');
+}
+
+function sanitizeMcpIdentifier(raw: string): string {
+  return containsSecretPattern(raw) ? '<redacted-path>' : raw;
+}
+
+function sanitizeDisplayPath(raw: string): string {
+  const cleaned = raw.split(/[?#]/)[0].trim();
+  if (
+    !cleaned ||
+    SENSITIVE_KEY_NAME_RE.test(cleaned) ||
+    containsSecretPattern(raw) ||
+    containsSecretPattern(cleaned) ||
+    cleaned.includes('=')
+  ) {
+    return '<redacted-path>';
+  }
+  return cleaned.slice(0, 100);
+}
+
+function findDuplicateServerKeysInJson(rawText: string): string[] {
+  const duplicates = new Set<string>();
+  try {
+    let i = 0;
+    const len = rawText.length;
+    const skipWs = () => {
+      while (i < len && /\s/.test(rawText[i])) i += 1;
+    };
+    const readString = (): string | null => {
+      if (rawText[i] !== '"') return null;
+      i += 1;
+      let out = '';
+      while (i < len) {
+        const ch = rawText[i];
+        if (ch === '\\') {
+          if (i + 1 < len) out += rawText[i + 1];
+          i += 2;
+          continue;
+        }
+        if (ch === '"') {
+          i += 1;
+          return out;
+        }
+        out += ch;
+        i += 1;
+      }
+      return null;
+    };
+    const skipValue = (): void => {
+      skipWs();
+      if (i >= len) return;
+      const ch = rawText[i];
+      if (ch === '"') {
+        readString();
+        return;
+      }
+      if (ch === '{' || ch === '[') {
+        const open = ch;
+        const close = ch === '{' ? '}' : ']';
+        let depth = 1;
+        i += 1;
+        while (i < len && depth > 0) {
+          const c = rawText[i];
+          if (c === '"') {
+            readString();
+            continue;
+          }
+          if (c === open) depth += 1;
+          else if (c === close) depth -= 1;
+          i += 1;
+        }
+        return;
+      }
+      while (i < len && !/[,}\]\s]/.test(rawText[i])) i += 1;
+    };
+    const scanServersObject = (): void => {
+      skipWs();
+      if (rawText[i] !== '{') {
+        skipValue();
+        return;
+      }
+      i += 1;
+      const seen = new Set<string>();
+      while (i < len) {
+        skipWs();
+        if (rawText[i] === '}') {
+          i += 1;
+          return;
+        }
+        const key = readString();
+        if (key === null) return;
+        if (seen.has(key)) duplicates.add(key);
+        else seen.add(key);
+        skipWs();
+        if (rawText[i] !== ':') return;
+        i += 1;
+        skipValue();
+        skipWs();
+        if (rawText[i] === ',') i += 1;
+      }
+    };
+
+    skipWs();
+    if (rawText[i] !== '{') return [];
+    i += 1;
+    while (i < len) {
+      skipWs();
+      if (rawText[i] === '}') break;
+      const topKey = readString();
+      if (topKey === null) break;
+      skipWs();
+      if (rawText[i] !== ':') break;
+      i += 1;
+      if (topKey === 'mcpServers' || topKey === 'servers') {
+        scanServersObject();
+      } else {
+        skipValue();
+      }
+      skipWs();
+      if (rawText[i] === ',') i += 1;
+    }
+  } catch {
+    // ignore scanner failures; JSON.parse handles syntax reporting
+  }
+  return Array.from(duplicates);
+}
+
+interface McpConfigInspectionResult {
   serverCount: number;
   serverNames: string[];
   envKeyCount: number;
-} | null {
-  try {
-    const parsed = JSON.parse(rawText) as Record<string, unknown>;
-    const serversObj =
-      (parsed.mcpServers && typeof parsed.mcpServers === 'object'
-        ? (parsed.mcpServers as Record<string, unknown>)
-        : parsed.servers && typeof parsed.servers === 'object'
-          ? (parsed.servers as Record<string, unknown>)
-          : null);
-    if (!serversObj) return null;
+  activeExternalServers: number;
+  estimatedExternalTools: number;
+  findings: McpHealthFinding[];
+}
 
-    const serverNames = Object.keys(serversObj).slice(0, 30);
-    let envKeyCount = 0;
-    for (const key of serverNames) {
-      const def = serversObj[key];
-      if (def && typeof def === 'object') {
-        const envObj = (def as Record<string, unknown>).env;
-        if (envObj && typeof envObj === 'object') {
-          for (const [, val] of Object.entries(envObj as Record<string, unknown>)) {
-            if (typeof val === 'string' && val.trim().length > 0 && !/^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?$/.test(val.trim())) {
-              envKeyCount += 1;
-            }
+function inspectMcpConfigSafe(
+  rawText: string,
+  relPath: string,
+  realFilePath: string,
+  realRoot: string,
+  rootPrefix: string,
+  seenServerFiles: Map<string, string>,
+): McpConfigInspectionResult {
+  const findings: McpHealthFinding[] = [];
+  const pushFinding = (finding: McpHealthFinding): void => {
+    findings.push({
+      severity: finding.severity,
+      ...(finding.serverName !== undefined
+        ? { serverName: sanitizeMcpIdentifier(finding.serverName) }
+        : {}),
+      file: redactSecretsInMessage(finding.file),
+      message: redactSecretsInMessage(finding.message),
+    });
+  };
+
+  let parsed: Record<string, unknown>;
+  try {
+    const rawParsed = JSON.parse(rawText);
+    if (!rawParsed || typeof rawParsed !== 'object' || Array.isArray(rawParsed)) {
+      pushFinding({
+        severity: 'error',
+        file: relPath,
+        message: 'MCP configuration root must be a JSON object.',
+      });
+      return {
+        serverCount: 0,
+        serverNames: [],
+        envKeyCount: 0,
+        activeExternalServers: 0,
+        estimatedExternalTools: 0,
+        findings,
+      };
+    }
+    parsed = rawParsed as Record<string, unknown>;
+  } catch {
+    pushFinding({
+      severity: 'error',
+      file: relPath,
+      message: 'Invalid JSON syntax in MCP configuration file.',
+    });
+    return {
+      serverCount: 0,
+      serverNames: [],
+      envKeyCount: 0,
+      activeExternalServers: 0,
+      estimatedExternalTools: 0,
+      findings,
+    };
+  }
+
+  for (const dupName of findDuplicateServerKeysInJson(rawText)) {
+    const safeDupName = sanitizeMcpIdentifier(dupName);
+    pushFinding({
+      severity: 'warn',
+      serverName: safeDupName,
+      file: relPath,
+      message: `Duplicate MCP server key "${safeDupName}" within the same configuration file.`,
+    });
+  }
+
+  const serversObj =
+    parsed.mcpServers && typeof parsed.mcpServers === 'object' && !Array.isArray(parsed.mcpServers)
+      ? (parsed.mcpServers as Record<string, unknown>)
+      : parsed.servers && typeof parsed.servers === 'object' && !Array.isArray(parsed.servers)
+        ? (parsed.servers as Record<string, unknown>)
+        : null;
+
+  if (!serversObj) {
+    pushFinding({
+      severity: 'warn',
+      file: relPath,
+      message: 'No "mcpServers" or "servers" object found in MCP configuration.',
+    });
+    return {
+      serverCount: 0,
+      serverNames: [],
+      envKeyCount: 0,
+      activeExternalServers: 0,
+      estimatedExternalTools: 0,
+      findings,
+    };
+  }
+
+  const allKeys = Object.keys(serversObj);
+  const serverNames = allKeys.slice(0, 30).map(sanitizeMcpIdentifier);
+  const configDir = path.dirname(realFilePath);
+  const isInsideWorkspace = (p: string): boolean => p === realRoot || p.startsWith(rootPrefix);
+
+  const checkLocalRelativeScript = (
+    serverName: string,
+    candidate: string,
+    sourceLabel: 'command' | 'args',
+  ): void => {
+    const trimmed = candidate.trim();
+    if (!trimmed || trimmed.startsWith('-') || trimmed.includes('://') || trimmed.includes('=')) return;
+    if (UNRESOLVED_PLACEHOLDER_RE.test(trimmed) || ENV_VAR_EMBED_RE.test(trimmed)) return;
+    if (path.isAbsolute(trimmed)) return;
+
+    const fromConfigDir = path.resolve(configDir, trimmed);
+    const fromWorkspaceRoot = path.resolve(realRoot, trimmed);
+    const configInside = isInsideWorkspace(fromConfigDir);
+    const rootInside = isInsideWorkspace(fromWorkspaceRoot);
+
+    if (!configInside && !rootInside) {
+      pushFinding({
+        severity: 'error',
+        serverName,
+        file: relPath,
+        message: `Relative script in ${sourceLabel} escapes workspace boundary (${sanitizeDisplayPath(trimmed)}).`,
+      });
+      return;
+    }
+
+    const existsSafe = (absPath: string): boolean => {
+      if (!isInsideWorkspace(absPath)) return false;
+      try {
+        if (!fs.existsSync(absPath)) return false;
+        const real = fs.realpathSync(absPath);
+        return isInsideWorkspace(real);
+      } catch {
+        return false;
+      }
+    };
+
+    if (!existsSafe(fromConfigDir) && !existsSafe(fromWorkspaceRoot)) {
+      pushFinding({
+        severity: 'error',
+        serverName,
+        file: relPath,
+        message: `Local script referenced in ${sourceLabel} does not exist: ${sanitizeDisplayPath(trimmed)}`,
+      });
+    }
+  };
+
+  let envKeyCount = 0;
+  let activeExternalServers = 0;
+  let estimatedExternalTools = 0;
+
+  for (const serverName of allKeys) {
+    const safeServerName = sanitizeMcpIdentifier(serverName);
+    const prevFile = seenServerFiles.get(serverName);
+    const isDuplicateAcrossFiles = prevFile !== undefined && prevFile !== relPath;
+    if (isDuplicateAcrossFiles) {
+      pushFinding({
+        severity: 'warn',
+        serverName: safeServerName,
+        file: relPath,
+        message: `Duplicate MCP server "${safeServerName}" (already defined in ${prevFile}).`,
+      });
+    } else if (!prevFile) {
+      seenServerFiles.set(serverName, relPath);
+    }
+
+    const rawDef = serversObj[serverName];
+    if (!rawDef || typeof rawDef !== 'object' || Array.isArray(rawDef)) {
+      pushFinding({
+        severity: 'error',
+        serverName: safeServerName,
+        file: relPath,
+        message: `Server "${safeServerName}" definition must be a JSON object.`,
+      });
+      continue;
+    }
+
+    const def = rawDef as Record<string, unknown>;
+    const disabled = def.disabled === true || def.enabled === false;
+    if (!disabled && !isDuplicateAcrossFiles) {
+      activeExternalServers += 1;
+      if (Array.isArray(def.tools)) {
+        estimatedExternalTools += def.tools.length;
+      } else {
+        estimatedExternalTools += DEFAULT_TOOLS_PER_EXTERNAL_MCP_SERVER;
+      }
+    }
+
+    const command = typeof def.command === 'string' ? def.command.trim() : '';
+    const urlCandidate =
+      typeof def.url === 'string'
+        ? def.url.trim()
+        : typeof def.serverUrl === 'string'
+          ? def.serverUrl.trim()
+          : typeof def.httpUrl === 'string'
+            ? def.httpUrl.trim()
+            : '';
+
+    if (!command && !urlCandidate) {
+      pushFinding({
+        severity: 'error',
+        serverName: safeServerName,
+        file: relPath,
+        message: `Server "${safeServerName}" is missing required "command" or "url" transport field.`,
+      });
+    }
+
+    if (command) {
+      if (UNRESOLVED_PLACEHOLDER_RE.test(command) || ENV_VAR_EMBED_RE.test(command)) {
+        pushFinding({
+          severity: 'warn',
+          serverName: safeServerName,
+          file: relPath,
+          message: `Server "${safeServerName}" contains an unresolved placeholder in "command" (value redacted).`,
+        });
+      } else if (
+        command.startsWith('./') ||
+        command.startsWith('../') ||
+        (!path.isAbsolute(command) && !command.startsWith('@') && (command.includes('/') || SCRIPT_EXT_RE.test(command)))
+      ) {
+        checkLocalRelativeScript(safeServerName, command, 'command');
+      } else if (containsSecretPattern(command)) {
+        pushFinding({
+          severity: 'warn',
+          serverName: safeServerName,
+          file: relPath,
+          message: `Server "${safeServerName}" contains a hardcoded secret-like value in "command" (<redacted-path>).`,
+        });
+      }
+    }
+
+    if (urlCandidate) {
+      if (UNRESOLVED_PLACEHOLDER_RE.test(urlCandidate) || ENV_VAR_EMBED_RE.test(urlCandidate)) {
+        pushFinding({
+          severity: 'warn',
+          serverName: safeServerName,
+          file: relPath,
+          message: `Server "${safeServerName}" contains an unresolved placeholder in "url" (value redacted).`,
+        });
+      } else if (containsSecretPattern(urlCandidate)) {
+        pushFinding({
+          severity: 'warn',
+          serverName: safeServerName,
+          file: relPath,
+          message: `Server "${safeServerName}" contains a hardcoded secret-like token in "url" (<redacted-path>).`,
+        });
+      }
+    }
+
+    const cmdBase = path.basename(command).toLowerCase();
+    const isLocalRuntime = LOCAL_RUNTIME_COMMANDS.has(cmdBase);
+    if (Array.isArray(def.args)) {
+      let warnedArgPlaceholder = false;
+      for (const rawArg of def.args) {
+        if (typeof rawArg !== 'string') continue;
+        const arg = rawArg.trim();
+        if (!arg) continue;
+        if (UNRESOLVED_PLACEHOLDER_RE.test(arg)) {
+          if (!warnedArgPlaceholder) {
+            warnedArgPlaceholder = true;
+            pushFinding({
+              severity: 'warn',
+              serverName: safeServerName,
+              file: relPath,
+              message: `Server "${safeServerName}" contains an unresolved placeholder in "args" (value redacted).`,
+            });
           }
+          continue;
+        }
+        const explicitRelative = arg.startsWith('./') || arg.startsWith('../');
+        const runtimeScriptCandidate =
+          isLocalRuntime &&
+          !arg.startsWith('-') &&
+          !arg.startsWith('@') &&
+          !arg.includes('://') &&
+          !arg.includes('=') &&
+          !path.isAbsolute(arg) &&
+          (arg.includes('/') || SCRIPT_EXT_RE.test(arg));
+        if (explicitRelative || runtimeScriptCandidate) {
+          checkLocalRelativeScript(safeServerName, arg, 'args');
+        } else if (containsSecretPattern(arg)) {
+          pushFinding({
+            severity: 'warn',
+            serverName: safeServerName,
+            file: relPath,
+            message: `Server "${safeServerName}" contains a hardcoded secret-like argument in "args" (<redacted-path>).`,
+          });
         }
       }
     }
-    return {
-      serverCount: Object.keys(serversObj).length,
-      serverNames,
-      envKeyCount,
+
+    const inspectKeyValueMap = (mapObj: unknown, containerName: 'env' | 'headers', countLiterals: boolean) => {
+      if (!mapObj || typeof mapObj !== 'object' || Array.isArray(mapObj)) return;
+      for (const [k, v] of Object.entries(mapObj as Record<string, unknown>)) {
+        if (typeof v !== 'string') continue;
+        const val = v.trim();
+        if (!val) continue;
+        const cleanedKey = k.replace(/[^\w.-]/g, '').slice(0, 64) || 'key';
+        const safeKey = sanitizeMcpIdentifier(cleanedKey);
+
+        if (UNRESOLVED_PLACEHOLDER_RE.test(val)) {
+          pushFinding({
+            severity: 'warn',
+            serverName: safeServerName,
+            file: relPath,
+            message: `Server "${safeServerName}" has an unresolved placeholder in ${containerName}.${safeKey} (value redacted).`,
+          });
+          continue;
+        }
+
+        const isEnvRef = PURE_ENV_REF_RE.test(val);
+        if (!isEnvRef) {
+          if (countLiterals) {
+            envKeyCount += 1;
+          }
+          if (OAUTH_OR_EXPIRING_KEY_RE.test(k) || JWT_LIKE_RE.test(val)) {
+            pushFinding({
+              severity: 'warn',
+              serverName: safeServerName,
+              file: relPath,
+              message: `Server "${safeServerName}" has a static OAuth/token value in ${containerName}.${safeKey} (value redacted) that may expire or leak.`,
+            });
+          } else if (SENSITIVE_KEY_NAME_RE.test(k) || containsSecretPattern(val)) {
+            pushFinding({
+              severity: 'warn',
+              serverName: safeServerName,
+              file: relPath,
+              message: `Server "${safeServerName}" hardcodes a literal secret in ${containerName}.${safeKey} (value redacted); use an env var placeholder instead.`,
+            });
+          }
+        }
+      }
     };
-  } catch {
-    return null;
+
+    inspectKeyValueMap(def.env, 'env', true);
+    inspectKeyValueMap(def.headers, 'headers', false);
+
+    // Check top-level OAuth / token expiry hints (strictly redacted)
+    const expiryRaw = def.expiresAt ?? def.tokenExpiry ?? def.expires_at;
+    if (typeof expiryRaw === 'string' || typeof expiryRaw === 'number') {
+      const ts = typeof expiryRaw === 'number' ? expiryRaw : Date.parse(expiryRaw);
+      const expired = Number.isFinite(ts) && ts < Date.now();
+      pushFinding({
+        severity: expired ? 'error' : 'warn',
+        serverName: safeServerName,
+        file: relPath,
+        message: expired
+          ? `Server "${safeServerName}" contains an expired static OAuth/token expiry field (value redacted).`
+          : `Server "${safeServerName}" defines a static OAuth/token expiry field (value redacted); verify auto-refresh is enabled.`,
+      });
+    } else if (
+      (typeof def.accessToken === 'string' && def.accessToken.trim() && !PURE_ENV_REF_RE.test(def.accessToken.trim())) ||
+      (typeof def.refreshToken === 'string' && def.refreshToken.trim() && !PURE_ENV_REF_RE.test(def.refreshToken.trim())) ||
+      (def.oauth && typeof def.oauth === 'object')
+    ) {
+      pushFinding({
+        severity: 'warn',
+        serverName: safeServerName,
+        file: relPath,
+        message: `Server "${safeServerName}" contains static OAuth/token configuration (values redacted); ensure credentials are not committed and refresh cleanly.`,
+      });
+    }
   }
+
+  return {
+    serverCount: allKeys.length,
+    serverNames,
+    envKeyCount,
+    activeExternalServers,
+    estimatedExternalTools,
+    findings,
+  };
 }
 
 function measureDirReadOnly(
@@ -764,14 +1315,47 @@ function auditStorageReadOnly(rootDataDir: string | undefined): StorageAuditSumm
   };
 }
 
+function isRuleBloatTarget(asset: WorkspaceAssetEntry): boolean {
+  if (asset.kind === 'rules') return true;
+  const lower = asset.relPath.toLowerCase();
+  if (
+    (lower.startsWith('.agents/rules/') || lower.startsWith('.gemini/')) &&
+    (lower.endsWith('.md') || lower.endsWith('.mdx') || lower.endsWith('.txt'))
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function resolveEnabledNovTools(
+  rootDataDir: string | undefined,
+  optsOrCount?: number | AuditWorkspaceOptions,
+): number {
+  const explicit =
+    typeof optsOrCount === 'number' ? optsOrCount : optsOrCount?.enabledNovTools;
+  if (typeof explicit === 'number' && Number.isFinite(explicit) && explicit >= 0) {
+    return Math.floor(explicit);
+  }
+  if (rootDataDir) {
+    try {
+      const cfg = loadNovConfigReadOnly(rootDataDir);
+      return countEnabledModelTools(cfg.modules);
+    } catch {
+      // fall through to default config count
+    }
+  }
+  return countEnabledModelTools(createDefaultConfig().modules);
+}
+
 /**
- * 100% read-only audit of workspace agent assets (rules/skills/manifests/MCP/hooks/.agents)
- * and agy-NOV local storage footprint. Zero disk writes, strict realpath containment,
- * and zero echoing of sensitive env values or secret files.
+ * 100% read-only audit of workspace agent assets (rules/skills/manifests/MCP/hooks/.agents/.gemini),
+ * 24KB/20K rule bloat guard, 100-tool budget meter, MCP static health check, and agy-NOV local storage footprint.
+ * Zero disk writes, strict realpath containment, and zero echoing of sensitive env values or secret files.
  */
 export function auditWorkspaceAssets(
   workspaceRoot: string,
   rootDataDir?: string,
+  optsOrEnabledNovTools?: number | AuditWorkspaceOptions,
 ): WorkspaceAuditReport {
   const realRoot = fs.realpathSync(path.resolve(workspaceRoot));
   const rootPrefix = realRoot.endsWith(path.sep) ? realRoot : `${realRoot}${path.sep}`;
@@ -779,9 +1363,13 @@ export function auditWorkspaceAssets(
 
   const assets: WorkspaceAssetEntry[] = [];
   const seenRealPaths = new Set<string>();
+  const seenMcpServerFiles = new Map<string, string>();
+  const mcpHealthFindings: McpHealthFinding[] = [];
   let skippedSymlinks = 0;
   let skippedSensitive = 0;
   let mcpLiteralEnvCount = 0;
+  let externalServersCount = 0;
+  let estimatedExternalTools = 0;
 
   const isInsideWorkspace = (realCandidate: string): boolean =>
     realCandidate === realRoot || realCandidate.startsWith(rootPrefix);
@@ -856,15 +1444,26 @@ export function auditWorkspaceAssets(
 
     let meta: Record<string, unknown> | undefined;
     if (kind === 'mcp') {
-      const mcpInfo = summarizeMcpConfigSafe(text);
-      if (mcpInfo) {
-        mcpLiteralEnvCount += mcpInfo.envKeyCount;
-        meta = {
-          serverCount: mcpInfo.serverCount,
-          serverNames: mcpInfo.serverNames,
-          literalEnvEntries: mcpInfo.envKeyCount,
-        };
+      const mcpInfo = inspectMcpConfigSafe(
+        text,
+        rawRel,
+        realPath,
+        realRoot,
+        rootPrefix,
+        seenMcpServerFiles,
+      );
+      mcpLiteralEnvCount += mcpInfo.envKeyCount;
+      externalServersCount += mcpInfo.activeExternalServers;
+      estimatedExternalTools += mcpInfo.estimatedExternalTools;
+      if (mcpInfo.findings.length > 0) {
+        mcpHealthFindings.push(...mcpInfo.findings);
       }
+      meta = {
+        serverCount: mcpInfo.serverCount,
+        serverNames: mcpInfo.serverNames,
+        literalEnvEntries: mcpInfo.envKeyCount,
+        estimatedTools: mcpInfo.estimatedExternalTools,
+      };
     }
 
     const chars = text.length;
@@ -880,7 +1479,7 @@ export function auditWorkspaceAssets(
     });
   };
 
-  // 1. Direct well-known root files
+  // 1. Direct well-known root & standard workspace MCP config files
   const fixedCandidates: Array<{ rel: string; kind: WorkspaceAssetKind }> = [
     { rel: 'AGENTS.md', kind: 'rules' },
     { rel: 'CLAUDE.md', kind: 'rules' },
@@ -891,6 +1490,10 @@ export function auditWorkspaceAssets(
     { rel: '.claude-plugin/plugin.json', kind: 'manifest' },
     { rel: 'mcp_config.json', kind: 'mcp' },
     { rel: '.mcp.json', kind: 'mcp' },
+    { rel: '.cursor/mcp.json', kind: 'mcp' },
+    { rel: '.vscode/mcp.json', kind: 'mcp' },
+    { rel: '.antigravity/mcp.json', kind: 'mcp' },
+    { rel: '.gemini/mcp_config.json', kind: 'mcp' },
     { rel: 'hooks.json', kind: 'hooks' },
     { rel: 'hooks/hooks.json', kind: 'hooks' },
   ];
@@ -899,7 +1502,7 @@ export function auditWorkspaceAssets(
     inspectFile(path.join(realRoot, item.rel), item.kind);
   }
 
-  // 2. Recursive scanner for skills/**/SKILL.md and .agents/**/*
+  // 2. Recursive scanner for skills/**/SKILL.md, .agents/**/* and .gemini/**/*.md
   const walkBounded = (
     relBaseDir: string,
     maxDepth: number,
@@ -992,9 +1595,22 @@ export function auditWorkspaceAssets(
   });
 
   walkBounded('.agents', 4, (fullPath, entryName) => {
-    const ext = path.extname(entryName).toLowerCase();
+    const lowerName = entryName.toLowerCase();
+    if (lowerName === 'mcp.json' || lowerName === 'mcp_config.json') {
+      inspectFile(fullPath, 'mcp');
+      return;
+    }
+    const ext = path.extname(lowerName);
     if (ALLOWED_AGENT_CONFIG_EXTS.has(ext)) {
       inspectFile(fullPath, 'agent-config');
+    }
+  });
+
+  // Read-only scan of non-sensitive markdown/text rule documents inside workspace .gemini/
+  walkBounded('.gemini', 4, (fullPath, entryName) => {
+    const ext = path.extname(entryName).toLowerCase();
+    if (ext === '.md' || ext === '.mdx' || ext === '.txt') {
+      inspectFile(fullPath, 'rules');
     }
   });
 
@@ -1020,9 +1636,137 @@ export function auditWorkspaceAssets(
     byKind[a.kind].estimatedTokens += a.estimatedTokens;
   }
 
+  // 3. Rule Bloat Guard (24 KB single file / 20K aggregate estimated tokens)
+  const ruleAssets = assets.filter(isRuleBloatTarget);
+  const singleWarnBytes = Math.floor(RULE_SINGLE_FILE_LIMIT_BYTES * 0.8);
+  const aggregateWarnTokens = Math.floor(RULE_AGGREGATE_TOKEN_LIMIT * 0.8);
+
+  let largestFileBytes = 0;
+  let largestFilePath: string | undefined;
+  let totalRuleBytes = 0;
+  let totalRuleTokens = 0;
+  const offendingFiles: RuleBloatOffender[] = [];
+
+  for (const r of ruleAssets) {
+    totalRuleBytes += r.bytes;
+    totalRuleTokens += r.estimatedTokens;
+    if (r.bytes > largestFileBytes) {
+      largestFileBytes = r.bytes;
+      largestFilePath = r.relPath;
+    }
+    if (r.bytes > RULE_SINGLE_FILE_LIMIT_BYTES) {
+      offendingFiles.push({
+        path: r.relPath,
+        bytes: r.bytes,
+        estimatedTokens: r.estimatedTokens,
+        reason: `Exceeds 24 KB single-file limit (${(r.bytes / 1024).toFixed(1)} KB); may trigger false 429 retry loops.`,
+      });
+    } else if (r.bytes >= singleWarnBytes) {
+      offendingFiles.push({
+        path: r.relPath,
+        bytes: r.bytes,
+        estimatedTokens: r.estimatedTokens,
+        reason: `Approaching 24 KB single-file limit (${(r.bytes / 1024).toFixed(1)} KB, >= 80%).`,
+      });
+    }
+  }
+
+  let ruleBloatStatus: 'ok' | 'warn' | 'critical' = 'ok';
+  if (largestFileBytes > RULE_SINGLE_FILE_LIMIT_BYTES || totalRuleTokens > RULE_AGGREGATE_TOKEN_LIMIT) {
+    ruleBloatStatus = 'critical';
+    if (offendingFiles.length === 0 && totalRuleTokens > RULE_AGGREGATE_TOKEN_LIMIT) {
+      const topRules = [...ruleAssets].sort((a, b) => b.estimatedTokens - a.estimatedTokens).slice(0, 3);
+      for (const r of topRules) {
+        offendingFiles.push({
+          path: r.relPath,
+          bytes: r.bytes,
+          estimatedTokens: r.estimatedTokens,
+          reason: `Contributes to aggregate rule bloat (~${totalRuleTokens} > 20,000 tokens); may trigger false 429 retry loops.`,
+        });
+      }
+    }
+  } else if (largestFileBytes >= singleWarnBytes || totalRuleTokens >= aggregateWarnTokens) {
+    ruleBloatStatus = 'warn';
+  }
+
+  const ruleBloat: RuleBloatAssessment = {
+    status: ruleBloatStatus,
+    singleFileLimitBytes: 24576,
+    aggregateTokenLimit: 20000,
+    largestFileBytes,
+    ...(largestFilePath ? { largestFilePath } : {}),
+    totalRuleBytes,
+    totalRuleTokens,
+    offendingFiles,
+  };
+
+  // 4. 100-Tool Hard Limit Budget Meter
+  const agyNovTools = resolveEnabledNovTools(rootDataDir, optsOrEnabledNovTools);
+  const estimatedTotalTools = agyNovTools + estimatedExternalTools;
+  const usagePercent = Math.round((estimatedTotalTools / TOOL_BUDGET_HARD_LIMIT) * 100);
+  const toolBudgetStatus: 'ok' | 'warn' | 'critical' =
+    estimatedTotalTools >= 95 ? 'critical' : estimatedTotalTools >= 75 ? 'warn' : 'ok';
+
+  const toolBudget: ToolBudgetAssessment = {
+    agyNovTools,
+    externalServersCount,
+    estimatedExternalTools,
+    estimatedTotalTools,
+    hardLimit: 100,
+    usagePercent,
+    status: toolBudgetStatus,
+  };
+
   const storage = auditStorageReadOnly(rootDataDir);
   const recommendations: AuditRecommendation[] = [];
   let penalty = 0;
+
+  if (ruleBloat.status === 'critical') {
+    penalty += 25;
+    recommendations.push({
+      level: 'critical',
+      code: 'ops.rule-bloat',
+      title: 'Rule bloat exceeds 24 KB / 20K token safety limit',
+      detail: `Largest rule file ${ruleBloat.largestFilePath ?? '(rules)'} is ${(ruleBloat.largestFileBytes / 1024).toFixed(1)} KB; aggregate rules total ~${ruleBloat.totalRuleTokens} tokens. Oversized always-on rules can trigger false 429 retry loops — split reference content into on-demand skills.`,
+    });
+  } else if (ruleBloat.status === 'warn') {
+    penalty += 12;
+    recommendations.push({
+      level: 'warn',
+      code: 'ops.rule-bloat-warn',
+      title: 'Rule files approaching 24 KB / 20K token ceiling (>= 80%)',
+      detail: `Largest rule file ${ruleBloat.largestFilePath ?? '(rules)'} is ${(ruleBloat.largestFileBytes / 1024).toFixed(1)} KB; aggregate rules total ~${ruleBloat.totalRuleTokens} tokens. Trim redundant instructions to prevent false 429 retry loops.`,
+    });
+  }
+
+  if (toolBudget.status === 'critical') {
+    penalty += 20;
+    recommendations.push({
+      level: 'critical',
+      code: 'ops.tool-budget',
+      title: `Tool budget critical (${toolBudget.estimatedTotalTools}/100 tools)`,
+      detail: `Estimated ${toolBudget.estimatedTotalTools} active tools (agy-NOV ${toolBudget.agyNovTools} + ${toolBudget.externalServersCount} external MCP server(s) ~${toolBudget.estimatedExternalTools}) approaches or exceeds the 100-tool hard ceiling. Disable unused modules or external MCP servers.`,
+    });
+  } else if (toolBudget.status === 'warn') {
+    penalty += 10;
+    recommendations.push({
+      level: 'warn',
+      code: 'ops.tool-budget-warn',
+      title: `Tool budget elevated (${toolBudget.estimatedTotalTools}/100 tools)`,
+      detail: `Estimated ${toolBudget.estimatedTotalTools} active tools (${toolBudget.usagePercent}% of the 100-tool hard ceiling). Keep unused modules switched off for headroom.`,
+    });
+  }
+
+  const mcpErrorCount = mcpHealthFindings.filter((f) => f.severity === 'error').length;
+  if (mcpErrorCount > 0) {
+    penalty += Math.min(24, mcpErrorCount * 8);
+    recommendations.push({
+      level: 'warn',
+      code: 'ops.mcp-health-errors',
+      title: `MCP static health check found ${mcpErrorCount} configuration error(s)`,
+      detail: `Inspect mcpHealthFindings for missing local scripts, invalid JSON, or missing transport fields.`,
+    });
+  }
 
   if (totalEstimatedTokens > 8000) {
     penalty += 15;
@@ -1090,7 +1834,7 @@ export function auditWorkspaceAssets(
     mode: 'live',
     workspaceName,
     scannedAt: new Date().toISOString(),
-    healthScore: Math.max(20, 100 - penalty),
+    healthScore: Math.max(10, 100 - penalty),
     summary: {
       assetCount: assets.length,
       totalBytes,
@@ -1103,18 +1847,45 @@ export function auditWorkspaceAssets(
     assets,
     storage,
     recommendations,
+    ruleBloat,
+    toolBudget,
+    mcpHealthFindings,
   };
 }
 
-export function createDemoOpsAuditReport(workspaceRoot: string): WorkspaceAuditReport {
+export const auditWorkspaceReadOnly = auditWorkspaceAssets;
+
+export function createDemoOpsAuditReport(
+  workspaceRoot: string,
+  enabledNovTools?: number,
+): WorkspaceAuditReport {
   const workspaceName = path.basename(path.resolve(workspaceRoot)) || 'agy-NOV';
+  const novTools =
+    typeof enabledNovTools === 'number' && Number.isFinite(enabledNovTools) && enabledNovTools >= 0
+      ? Math.floor(enabledNovTools)
+      : countEnabledModelTools(createDefaultConfig().modules);
+  const externalServersCount = 3;
+  const estimatedExternalTools = 28;
+  const estimatedTotalTools = novTools + estimatedExternalTools;
+  const usagePercent = Math.round((estimatedTotalTools / TOOL_BUDGET_HARD_LIMIT) * 100);
+  const toolBudgetStatus: 'ok' | 'warn' | 'critical' =
+    estimatedTotalTools >= 95 ? 'critical' : estimatedTotalTools >= 75 ? 'warn' : 'ok';
+
   const assets: WorkspaceAssetEntry[] = [
     {
       relPath: 'AGENTS.md',
       kind: 'rules',
+      bytes: 4280,
+      chars: 4020,
+      estimatedTokens: 1005,
+      lineCount: 68,
+    },
+    {
+      relPath: '.agents/rules/security.md',
+      kind: 'agent-config',
       bytes: 2840,
-      chars: 2620,
-      estimatedTokens: 655,
+      chars: 2680,
+      estimatedTokens: 670,
       lineCount: 44,
     },
     {
@@ -1124,6 +1895,20 @@ export function createDemoOpsAuditReport(workspaceRoot: string): WorkspaceAuditR
       chars: 1840,
       estimatedTokens: 460,
       lineCount: 38,
+    },
+    {
+      relPath: '.mcp.json',
+      kind: 'mcp',
+      bytes: 880,
+      chars: 880,
+      estimatedTokens: 220,
+      lineCount: 34,
+      meta: {
+        serverCount: externalServersCount,
+        serverNames: ['github', 'postgres-readonly', 'docs-search'],
+        literalEnvEntries: 0,
+        estimatedTools: estimatedExternalTools,
+      },
     },
     {
       relPath: 'plugin.json',
@@ -1146,21 +1931,21 @@ export function createDemoOpsAuditReport(workspaceRoot: string): WorkspaceAuditR
     mode: 'demo',
     workspaceName,
     scannedAt: new Date().toISOString(),
-    healthScore: 96,
+    healthScore: 94,
     summary: {
       assetCount: assets.length,
-      totalBytes: 6460,
-      totalChars: 6120,
-      totalEstimatedTokens: 1530,
+      totalBytes: 11_620,
+      totalChars: 11_080,
+      totalEstimatedTokens: 2770,
       skippedSymlinks: 0,
       skippedSensitive: 0,
       byKind: {
-        rules: { count: 1, estimatedTokens: 655 },
+        rules: { count: 1, estimatedTokens: 1005 },
         skill: { count: 1, estimatedTokens: 460 },
         manifest: { count: 1, estimatedTokens: 180 },
-        mcp: { count: 0, estimatedTokens: 0 },
+        mcp: { count: 1, estimatedTokens: 220 },
         hooks: { count: 1, estimatedTokens: 235 },
-        'agent-config': { count: 0, estimatedTokens: 0 },
+        'agent-config': { count: 1, estimatedTokens: 670 },
       },
     },
     assets,
@@ -1180,9 +1965,44 @@ export function createDemoOpsAuditReport(workspaceRoot: string): WorkspaceAuditR
       {
         level: 'info',
         code: 'ops.healthy',
-        title: 'Workspace asset footprint looks healthy',
-        detail: 'Scanned 4 asset(s) (~1,530 tokens) with compact startup overhead and zero boundary issues.',
+        title: 'Workspace rules & tool budget are within safe bounds',
+        detail: `Largest rule file is 4.2 KB (< 24 KB limit) and estimated tool load is ${estimatedTotalTools}/100 (${usagePercent}%).`,
+      },
+    ],
+    ruleBloat: {
+      status: 'ok',
+      singleFileLimitBytes: 24576,
+      aggregateTokenLimit: 20000,
+      largestFileBytes: 4280,
+      largestFilePath: 'AGENTS.md',
+      totalRuleBytes: 7120,
+      totalRuleTokens: 1675,
+      offendingFiles: [],
+    },
+    toolBudget: {
+      agyNovTools: novTools,
+      externalServersCount,
+      estimatedExternalTools,
+      estimatedTotalTools,
+      hardLimit: 100,
+      usagePercent,
+      status: toolBudgetStatus,
+    },
+    mcpHealthFindings: [
+      {
+        severity: 'info',
+        serverName: 'postgres-readonly',
+        file: '.mcp.json',
+        message: 'Server "postgres-readonly" uses env var placeholder references (zero hardcoded literals detected).',
+      },
+      {
+        severity: 'warn',
+        serverName: 'docs-search',
+        file: '.mcp.json',
+        message: 'Server "docs-search" defines a static OAuth/token expiry field (value redacted); verify auto-refresh is enabled.',
       },
     ],
   };
 }
+
+export const createDemoWorkspaceAudit = createDemoOpsAuditReport;

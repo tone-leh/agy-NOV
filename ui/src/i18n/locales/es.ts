@@ -64,19 +64,19 @@ export const ES_DICT: UiDictionary = {
       description: 'Review + Guard + X-Ray — esenciales 100% locales sin conexión (12 herramientas).',
     },
     power: {
-      label: 'Power Dev (8 sin conexión)',
+      label: 'Power Dev (9 sin conexión)',
       description:
-        'Esencial + Turbo + Radar + Verify + Worktree + Ops — suite rápida con compuertas de verificación y cero tráfico de red (28 herramientas).',
+        'Esencial + Turbo + Radar + Verify + Worktree + Spec + Ops — flujo completo offline desde especificación hasta verificación con cero tráfico de red (32 herramientas).',
     },
     'local-all': {
-      label: 'Todo Local (10 sin conexión)',
+      label: 'Todo Local (12 sin conexión)',
       description:
-        'Activa los 10 módulos nativos sin conexión; Remote permanece apagado con cero puertos (35 herramientas).',
+        'Activa los 12 módulos nativos sin conexión incluido Workspace Studio; Remote permanece apagado con cero puertos (43 herramientas).',
     },
     full: {
-      label: 'Suite Completa (Los 11)',
+      label: 'Suite Completa (Los 13)',
       description:
-        'Activa los 11 módulos nativos, incluido el hub remoto opcional para PWA móvil e IM (39 herramientas).',
+        'Activa los 13 módulos nativos, incluido el hub remoto opcional para PWA móvil e IM (47 herramientas).',
     },
     minimal: {
       label: 'Escudo Mínimo',
@@ -109,9 +109,9 @@ export const ES_DICT: UiDictionary = {
     turbo: {
       name: 'Turbo y Control de Salida',
       shortLabel: 'Turbo',
-      tagline: 'Búsqueda por lotes, esquemas de símbolos y compresión de logs largos',
+      tagline: 'Búsqueda por lotes, esquemas de símbolos y compresión de salida estilo RTK',
       description:
-        'Reduce turnos y crecimiento del contexto mediante búsqueda multipatrón, cortes de símbolos y resúmenes indexados para salidas extensas de terminal.',
+        'Reduce turnos y crecimiento del contexto mediante búsqueda multipatrón, cortes de símbolos y preajustes inteligentes estilo RTK (test/build/git/auto) para logs extensos.',
     },
     radar: {
       name: 'Radar de Sesiones',
@@ -134,6 +134,20 @@ export const ES_DICT: UiDictionary = {
       description:
         'Crea worktrees Git aislados con traslado opcional de cambios sin confirmar, revisa resúmenes de diffs por rama, detecta riesgos de extensions.worktreeConfig y limpia árboles fusionados o huérfanos.',
     },
+    spec: {
+      name: 'Flujo Spec y DAG de Tareas',
+      shortLabel: 'Spec',
+      tagline: 'Desarrollo guiado por especificaciones, DAG de dependencias y bloqueo previo a aprobación',
+      description:
+        'Gestiona flujos estructurados Spec -> Plan -> Task DAG con detección de ciclos, recordatorio de siguiente tarea en SessionStart y una compuerta PreToolUse de solo lectura hasta aprobar la especificación.',
+    },
+    studio: {
+      name: 'Estudio del Espacio de Trabajo',
+      shortLabel: 'Studio',
+      tagline: 'Visor SQLite/CSV/JSON bajo demanda, extractor DOCX/XLSX/PDF y sonda HTTP local',
+      description:
+        'Inspecciona datos locales SQLite/CSV/JSON, extrae fragmentos de DOCX/XLSX/PDF/Markdown sin binarios externos y prueba APIs en localhost/127.0.0.1; desactívalo para cero consumo de presupuesto de herramientas.',
+    },
     canvas: {
       name: 'Lienzo Visual',
       shortLabel: 'Canvas',
@@ -149,11 +163,11 @@ export const ES_DICT: UiDictionary = {
         'Registra decisiones de arquitectura vinculadas a hashes SHA-256 de archivos, recupera contexto en SessionStart y marca recuerdos obsoletos cuando cambia el código.',
     },
     ops: {
-      name: 'Bóveda de Prompts y Doctor',
+      name: 'Bóveda de Prompts y Doctor de Presupuesto',
       shortLabel: 'Ops',
-      tagline: 'Plantillas de prompts parametrizadas, auditoría del proyecto e higiene local',
+      tagline: 'Plantillas parametrizadas, control de reglas 24KB/20K y presupuesto de 100 herramientas',
       description:
-        'Administra plantillas reutilizables con {{var}}, inspecciona el consumo estimado de tokens de Rules/Skills/MCP en solo lectura y audita el almacenamiento local de agy-NOV.',
+        'Administra plantillas reutilizables con {{var}}, audita reglas infladas de 24KB/20K que causan falsos 429, vigila el presupuesto de 100 herramientas MCP y verifica la higiene del almacenamiento local.',
     },
     remote: {
       name: 'Móvil e IM Remoto',
@@ -201,6 +215,8 @@ export const ES_DICT: UiDictionary = {
     savedTokens: 'Tokens ahorrados est.: ~{tokens} ({ratio}% de reducción)',
     safetyNote:
       'Limitado al espacio de trabajo por realpath · omite automáticamente .env, claves SSH, .git y node_modules.',
+    presetLabel: 'Preajuste de compresión',
+    compressionSaved: 'Compresión RTK ahorró {percent}%',
   },
   radar: {
     title: 'Radar de Sesiones y Avisos',
@@ -246,6 +262,9 @@ export const ES_DICT: UiDictionary = {
     auditFindings: 'Hallazgos de estado',
     auditCleanNote:
       'Escaneo 100% de solo lectura · nunca lee ni muestra valores de secretos ni variables de entorno.',
+    ruleBloatTitle: 'Control de Inflación de Reglas (24KB / 20K Tokens)',
+    toolBudgetTitle: 'Presupuesto de Herramientas MCP (Límite 100)',
+    mcpHealthTitle: 'Salud de Configuración y Servidores MCP',
   },
   panels: {
     review: {
@@ -348,6 +367,59 @@ export const ES_DICT: UiDictionary = {
       emptyWorktrees: 'No se encontraron worktrees Git en este espacio de trabajo.',
       diffTitle: 'Resumen de Diff de Rama',
       aheadBehind: '+{ahead} adelante / -{behind} atrás',
+    },
+    spec: {
+      title: 'Flujo Spec y DAG de Tareas',
+      subtitle:
+        'Redacta especificaciones estructuradas, mapea dependencias en DAG y bloquea escrituras hasta su aprobación.',
+      tabBoard: 'Spec y DAG de Tareas',
+      tabCreate: 'Nueva Spec',
+      writeLockOn: 'Bloqueo de escritura activo',
+      writeLockOff: 'Escritura desbloqueada',
+      statusDraft: 'Borrador',
+      statusApproved: 'Aprobada',
+      statusCompleted: 'Completada',
+      statusArchived: 'Archivada',
+      approveBtn: 'Aprobar Spec',
+      revertDraftBtn: 'Volver a Borrador',
+      enforceLockLabel: 'Bloquear escrituras del proyecto mientras la spec activa sea Borrador',
+      requireUiApprovalLabel: 'Exigir aprobación explícita en la UI antes de desbloquear escrituras',
+      tasksTitle: 'DAG de Tareas Dependientes',
+      readyBadge: 'Lista',
+      waitingBadge: 'Esperando deps',
+      doneBadge: 'Hecha',
+      inProgressBadge: 'En curso',
+      blockedBadge: 'Bloqueada',
+      specTitlePlaceholder: 'Título de la spec (ej. Refactorización de Autenticación Modular)',
+      specGoalPlaceholder: 'Describe el objetivo de implementación, límites y resultado esperado…',
+      addTaskPlaceholder: 'Título de la tarea (ej. Definir esquema validador de tokens)',
+      createSpecBtn: 'Crear Spec',
+      emptySpecs: 'Aún no hay especificaciones. Crea una para organizar tareas y proteger escrituras.',
+      acceptanceTitle: 'Criterios de Aceptación',
+    },
+    studio: {
+      title: 'Estudio del Espacio de Trabajo',
+      subtitle:
+        'Inspecciona datos locales SQLite/CSV/JSON, extrae fragmentos de oficina/PDF y prueba APIs HTTP locales.',
+      tabData: 'Datos Locales',
+      tabDocs: 'Extractor de Documentos',
+      tabHttp: 'HTTP Loopback',
+      sourcesTitle: 'Activos Detectados del Proyecto',
+      refreshSources: 'Actualizar Activos',
+      filePathPlaceholder: 'Ruta relativa del proyecto (ej. data/app.db o docs/spec.docx)',
+      sqlQueryPlaceholder: 'SQL de solo lectura opcional (ej. SELECT * FROM items LIMIT 50)',
+      filterPlaceholder: 'Filtro opcional por palabra clave…',
+      inspectBtn: 'Inspeccionar',
+      probeBtn: 'Enviar Sonda',
+      urlPlaceholder: 'http://127.0.0.1:3000/health',
+      loopbackOnlyNote:
+        'Solo loopback: restringido estrictamente a 127.0.0.1, localhost y [::1] — cero acceso a redes externas.',
+      headersPlaceholder: 'Cabeceras JSON opcionales, ej. {"Accept": "application/json"}',
+      bodyPlaceholder: 'Cuerpo de solicitud opcional (JSON o texto plano)…',
+      emptySources: 'Aún no se detectaron activos SQLite, CSV, JSON, DOCX, XLSX, PDF o Markdown.',
+      rowsCount: 'Filas',
+      statusCode: 'Estado',
+      truncatedNotice: 'Salida truncada para mantenerse dentro de los límites seguros de vista previa.',
     },
     canvas: {
       title: 'Lienzo Visual',

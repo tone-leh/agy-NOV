@@ -64,17 +64,18 @@ export const ZH_CN_DICT: UiDictionary = {
       description: '审阅 + 护盾 + 透视 — 100% 离线核心三件套（仅 12 个模型工具）。',
     },
     power: {
-      label: '高频提效 (8 离线)',
+      label: '高频提效 (9 离线)',
       description:
-        '核心三件套 + 极速省流 + 会话雷达 + 验收门禁 + 工作树编排 + 运维提示词库，纯离线高效率强校验组合（28 个模型工具）。',
+        '核心三件套 + 极速省流 + 会话雷达 + 验收门禁 + 工作树编排 + 规格任务流 + 运维体检，纯离线规格到验收闭环组合（32 个模型工具）。',
     },
     'local-all': {
-      label: '本地全开 (10 离线)',
-      description: '开启全部 10 个纯离线原生模块；远程网关保持关闭且零端口监听（35 个模型工具）。',
+      label: '本地全开 (12 离线)',
+      description:
+        '开启全部 12 个纯离线原生模块（含工作区工坊）；远程网关保持关闭且零端口监听（43 个模型工具）。',
     },
     full: {
-      label: '全功能套装 (全部 11 个)',
-      description: '开启全部 11 个原生模块，包含按需手机 PWA 与 IM 远程审批中枢（39 个模型工具）。',
+      label: '全功能套装 (全部 13 个)',
+      description: '开启全部 13 个原生模块，包含按需手机 PWA 与 IM 远程审批中枢（47 个模型工具）。',
     },
     minimal: {
       label: '极简安全网',
@@ -106,9 +107,9 @@ export const ZH_CN_DICT: UiDictionary = {
     turbo: {
       name: '极速批处理与防刷屏',
       shortLabel: '极速',
-      tagline: '多词并行检索、符号大纲切片与超大日志压缩索引',
+      tagline: '多词并行检索、符号大纲切片与 RTK 风格日志压缩',
       description:
-        '用单次批量多模式搜索、符号大纲精准切片和超大日志智能摘要索引大幅压减无效回合与上下文膨胀，避免长日志冲爆窗口。',
+        '用单次批量多模式搜索、符号大纲精准切片和 RTK 风格智能压缩预设（test/build/git/auto）大幅压减无效回合与长日志上下文膨胀。',
     },
     radar: {
       name: '多会话雷达与提醒',
@@ -131,6 +132,20 @@ export const ZH_CN_DICT: UiDictionary = {
       description:
         '一键创建隔离 Git 工作树并可选携带未提交改动，预览分支差异摘要，预警 extensions.worktreeConfig 风险，并安全清理已合并或孤儿工作树。',
     },
+    spec: {
+      name: '规格任务流与 DAG',
+      shortLabel: '规格',
+      tagline: '规格驱动开发、依赖任务 DAG 与审批前写门禁',
+      description:
+        '维护结构化 Spec -> Plan -> Task DAG 工作流，内置环路检测、SessionStart 下一任务自动召回，以及在规格批准前保持代码只读的 PreToolUse 写门禁。',
+    },
+    studio: {
+      name: '工作区工坊',
+      shortLabel: '工坊',
+      tagline: '按需 SQLite/CSV/JSON 数据查看、DOCX/XLSX/PDF 切片与本机回环 HTTP 探测',
+      description:
+        '免外部依赖离线查看本地 SQLite/CSV/JSON 数据、切片预览 DOCX/XLSX/PDF/Markdown 文档，并探测 localhost/127.0.0.1 接口；关闭即享零工具预算税。',
+    },
     canvas: {
       name: '视觉批注画布',
       shortLabel: '画布',
@@ -146,11 +161,11 @@ export const ZH_CN_DICT: UiDictionary = {
         '把架构决策绑定到源码文件 SHA-256 哈希，新会话在 SessionStart 自动召回相关记忆，代码演进后自动标记过期条目。',
     },
     ops: {
-      name: '提示词库与配置体检',
+      name: '提示词库与预算体检',
       shortLabel: '运维',
-      tagline: '变量化提示词模板库、工作区资产 Token 体检与存储统计',
+      tagline: '变量化提示词库、24KB/20K 规则膨胀与 100 工具预算体检',
       description:
-        '集中管理带 {{var}} 占位符的高频提示词模板，只读体检工作区 Rules/Skills/MCP 的估算 Token 开销与本地 agy-NOV 存储占用。',
+        '集中管理带 {{var}} 占位符的高频提示词模板，检测触发误报 429 的 24KB/20K 规则膨胀，追踪 100 工具 MCP 预算，并审计本地存储健康度。',
     },
     remote: {
       name: '手机与 IM 遥控',
@@ -198,6 +213,8 @@ export const ZH_CN_DICT: UiDictionary = {
     savedTokens: '预计节省上下文：约 {tokens} Tokens（压减 {ratio}%）',
     safetyNote:
       '严格受 realpath 工作区边界约束 · 自动跳过 .env、SSH 密钥、.git 与 node_modules。',
+    presetLabel: '压缩预设',
+    compressionSaved: 'RTK 压缩节省 {percent}%',
   },
   radar: {
     title: '多会话状态雷达与完成提醒',
@@ -240,6 +257,9 @@ export const ZH_CN_DICT: UiDictionary = {
     auditEstTokens: '估算系统上下文',
     auditFindings: '体检建议',
     auditCleanNote: '100% 只读工作区扫描 · 绝不读取或回显任何密钥与环境变量值。',
+    ruleBloatTitle: '规则膨胀检查（24KB / 20K Token 阈值）',
+    toolBudgetTitle: 'MCP 工具预算（100 工具上限）',
+    mcpHealthTitle: 'MCP 配置与服务健康度',
   },
   panels: {
     review: {
@@ -337,6 +357,57 @@ export const ZH_CN_DICT: UiDictionary = {
       emptyWorktrees: '当前工作区未检测到 Git 工作树。',
       diffTitle: '分支 Diff 摘要',
       aheadBehind: '领先 +{ahead} / 落后 -{behind}',
+    },
+    spec: {
+      title: '规格任务流与 DAG',
+      subtitle: '起草结构化规格、编排依赖任务 DAG，并在人工批准前保持工作区代码只读。',
+      tabBoard: '规格与任务 DAG',
+      tabCreate: '新建规格',
+      writeLockOn: '草稿写门禁已开启',
+      writeLockOff: '写门禁已解锁',
+      statusDraft: '草稿',
+      statusApproved: '已批准',
+      statusCompleted: '已完成',
+      statusArchived: '已归档',
+      approveBtn: '批准规格',
+      revertDraftBtn: '退回草稿',
+      enforceLockLabel: '活动规格处于草稿状态时拦截工作区写入',
+      requireUiApprovalLabel: '解锁写入前必须经由界面显式批准',
+      tasksTitle: '依赖任务 DAG',
+      readyBadge: '可开始',
+      waitingBadge: '等待前置',
+      doneBadge: '已完成',
+      inProgressBadge: '进行中',
+      blockedBadge: '已阻塞',
+      specTitlePlaceholder: '规格标题（如 模块化鉴权重构）',
+      specGoalPlaceholder: '描述实现目标、改动边界与预期产出…',
+      addTaskPlaceholder: '任务标题（如 定义令牌校验结构）',
+      createSpecBtn: '创建规格',
+      emptySpecs: '当前暂无规格记录。新建规格即可编排任务依赖并守护代码写入。',
+      acceptanceTitle: '验收标准',
+    },
+    studio: {
+      title: '工作区工坊',
+      subtitle: '离线检视本地 SQLite/CSV/JSON 数据、切片办公与 PDF 文档，并探测本机回环 HTTP 接口。',
+      tabData: '本地数据',
+      tabDocs: '文档切片',
+      tabHttp: '回环 HTTP',
+      sourcesTitle: '工作区可调试资产',
+      refreshSources: '刷新资产',
+      filePathPlaceholder: '工作区相对路径（如 data/app.db 或 docs/spec.docx）',
+      sqlQueryPlaceholder: '可选只读 SQL（如 SELECT * FROM items LIMIT 50）',
+      filterPlaceholder: '可选关键词过滤…',
+      inspectBtn: '立即检视',
+      probeBtn: '发送探测',
+      urlPlaceholder: 'http://127.0.0.1:3000/health',
+      loopbackOnlyNote:
+        '仅限本机回环：严格限定 127.0.0.1、localhost 与 [::1]，严禁发起任何外部网络请求。',
+      headersPlaceholder: '可选 JSON 请求头，如 {"Accept": "application/json"}',
+      bodyPlaceholder: '可选请求体（JSON 或纯文本）…',
+      emptySources: '当前工作区暂未发现 SQLite、CSV、JSON、DOCX、XLSX、PDF 或 Markdown 资产。',
+      rowsCount: '行数',
+      statusCode: '状态码',
+      truncatedNotice: '结果已按安全预览上限截断。',
     },
     canvas: {
       title: '视觉批注画布',

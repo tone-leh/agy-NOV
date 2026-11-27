@@ -1,42 +1,44 @@
 # agy-NOV
 
-> The 100% Native Modular Super-Workbench for Google Antigravity 2.0 (v0.3.0) — 11 independently toggleable superpowers inside one official native MCP App plugin (10 strictly local offline modules + 1 opt-in remote module that stays inert by default), Swarm subagent telemetry, Stop-hook Verify Gate, Git Worktree Orchestrator, zero-token CLI `statusline`, built-in 8-language UI, Zero ASAR, Zero CDP, dynamic tool registration (zero token tax when off), and 5 presets.
+> The 100% Native Modular Super-Workbench for Google Antigravity 2.0 (v0.4.0) — 13 independently toggleable superpowers inside one official native MCP App plugin (12 strictly local offline modules + 1 opt-in remote module that stays inert by default), Spec Flow & Task DAG with pre-approval write lock, on-demand Workspace Studio (SQLite/CSV/DOCX/XLSX/PDF/loopback HTTP), RTK-style output compression, 24KB/100-tool Budget Doctor, Swarm subagent telemetry, Stop-hook Verify Gate, Git Worktree Orchestrator, zero-token CLI `statusline`, built-in 8-language UI, Zero ASAR, Zero CDP, dynamic tool registration (zero token & tool-slot tax when off), and 5 presets.
 
 ## Core Facts
 
 - Repository: https://github.com/tone-leh/agy-NOV
 - License: MIT (independent open-source project; unaffiliated with Google LLC)
-- Version: 0.3.0
+- Version: 0.4.0
 - Runtime requirements: Node.js >= 20.0.0, Google Antigravity 2.0 (Desktop / CLI / IDE)
 - Protocol & Entrypoints: 100% official native protocols — MCP Apps (`SEP-1865`, `ui://agy-nov/app.html`, `aux_pane` + `global`), Antigravity Lifecycle Hooks, Entry Skill (`skills/agy-nov/SKILL.md`), and zero-token CLI `statusline`; Zero ASAR, Zero CDP
-- Runtime Artifacts: 1 resident MCP server (`dist/server.cjs`), 1 unified lifecycle hook dispatcher (`dist/hook.cjs`), 1 single-file 8-language dark/light UI (`dist/ui/app.html`, under 1 MiB, far below the 10 MiB limit), 1 CLI (`dist/cli.cjs`)
-- Always-On Entry Tools (2): `nov_open` (open workbench or jump directly to any of the 11 module tabs or `modules`), `nov_status` (inspect enabled modules, preset, UI locale, exact model tool count, and network isolation state)
-- Dynamic Token Efficiency & Live `config.json` Hot-Sync: Disabled modules call `RegisteredTool.disable()` with delta visibility tracking and emit `tools/list_changed` only for modules whose state changed (0 model schema token overhead when off); mutating `app_*` tools disable alongside model tools; `dist/hook.cjs` reads `config.json` read-only and returns `{}` in O(1); a lightweight `.unref()` read-only `statSync` poller plus `nov_open`/`nov_status`/`nov_app_get_config` sync automatically picks up external atomic `config.json` updates from `agy-Sag`'s native Settings control panel or `agy-nov` CLI with zero CDP, zero extra ports, and zero premature disk writes.
+- Runtime Artifacts: 1 resident MCP server (`dist/server.cjs`), 1 unified lifecycle hook dispatcher (`dist/hook.cjs`), 1 single-file 8-language dark/light UI (`dist/ui/app.html`, ~904 KB, far below the 10 MiB limit), 1 CLI (`dist/cli.cjs`)
+- Always-On Entry Tools (2): `nov_open` (open workbench or jump directly to any of the 13 module tabs or `modules`), `nov_status` (inspect enabled modules, preset, UI locale, exact model tool count, and network isolation state)
+- Dynamic Token & 100-Tool Budget Efficiency + Live `config.json` Hot-Sync: Disabled modules call `RegisteredTool.disable()` with delta visibility tracking and emit `tools/list_changed` only for modules whose state changed (0 model schema token overhead and 0 tool slots consumed against Antigravity's 100-tool hard limit when off); mutating `app_*` tools disable alongside model tools; `dist/hook.cjs` reads `config.json` read-only and returns `{}` in O(1); a lightweight `.unref()` read-only `statSync` poller plus `nov_open`/`nov_status`/`nov_app_get_config` sync automatically picks up external atomic `config.json` updates from `agy-Sag`'s native Settings control panel or `agy-nov` CLI with zero CDP, zero extra ports, and zero premature disk writes.
 
 ## Presets and Exact Model Tool Counts
 
-Total exposed model tools = 2 always-on entry tools (`nov_open`, `nov_status`) + sum of enabled module tools:
+Total exposed model tools = 2 always-on entry tools (`nov_open`, `nov_status`) + sum of enabled module tools (maximum 47 across all 13 modules):
 
 - `minimal` (1 module, 6 tools, 100% offline): `guard` (4)
 - `core` [default] (3 modules, 12 tools, 100% offline): `review` (2), `guard` (4), `xray` (4)
-- `power` (8 modules, 28 tools, 100% offline): `review` (2), `guard` (4), `xray` (4), `turbo` (3), `radar` (2), `verify` (4), `worktree` (4), `ops` (3)
-- `local-all` (10 offline modules, 35 tools, 100% offline): `review` (2), `guard` (4), `xray` (4), `turbo` (3), `radar` (2), `verify` (4), `worktree` (4), `canvas` (4), `mem` (3), `ops` (3)
-- `full` (all 11 modules, 39 tools, opt-in network): all 10 offline modules plus `remote` (4)
+- `power` (9 modules, 32 tools, 100% offline): `review` (2), `guard` (4), `xray` (4), `turbo` (3), `radar` (2), `verify` (4), `worktree` (4), `spec` (4), `ops` (3)
+- `local-all` (12 offline modules, 43 tools, 100% offline): `review` (2), `guard` (4), `xray` (4), `turbo` (3), `radar` (2), `verify` (4), `worktree` (4), `spec` (4), `studio` (4), `canvas` (4), `mem` (3), `ops` (3)
+- `full` (all 13 modules, 47 tools, opt-in network): all 12 offline modules plus `remote` (4)
 
-## 11 Toggleable Native Modules
+## 13 Toggleable Native Modules
 
-### Tier 1: 10 Local Offline Native Modules (100% Offline, Zero ASAR, Zero CDP)
+### Tier 1: 12 Local Offline Native Modules (100% Offline, Zero ASAR, Zero CDP)
 
 - `review` (`core-dev`, default ON, 2 tools, hooks: `PostToolUse`, `Stop`): PR-grade Git diff viewer, line annotations, `file:line` fix prompts (`review_open`, `review_get_summary`)
 - `guard` (`safety`, default ON, 4 tools, hooks: `PreToolUse`): `.env`/SSH/secret firewall, destructive command guard, zero-Git pre-edit file snapshots & rollback (`guard_status`, `guard_list_snapshots`, `guard_create_checkpoint`, `guard_scan_secrets`)
 - `xray` (`observability`, default ON, 4 tools, hooks: `PostToolUse`, `Stop`): Cached vs. fresh token breakdown, Swarm subagent lineage (`swarmLineage`), multi-model cost breakdown (`modelBreakdown`), HTTP 429 retry alerts (`retrySignals`), token-heavy tool ranking, live file activity, EN+CJK BM25 cross-session search (`xray_analyze_context`, `xray_get_file_activity`, `xray_search_sessions`, `xray_export_brief`)
-- `turbo` (`core-dev`, default OFF, 3 tools, hooks: `SessionStart`): Multi-pattern workspace batch search, top-level symbol outline slicing, compact indexed log compression (`turbo_batch_search`, `turbo_read_outline`, `turbo_compact_output`)
+- `turbo` (`core-dev`, default OFF, 3 tools, hooks: `SessionStart`): Multi-pattern workspace batch search, top-level symbol outline slicing, and RTK-style smart output compression presets (`auto`, `test`, `build`, `git`, `generic`) with in-memory LRU (24) chunk indexing & follow-up queries (`turbo_batch_search`, `turbo_read_outline`, `turbo_compact_output`)
 - `radar` (`observability`, default OFF, 2 tools, hooks: `PreToolUse`, `PostToolUse`, `Stop`): Multi-session & parent/child Swarm subagent attention board (`running`, `awaiting_approval`, `completed`, `stalled`, `error`), orphan subagent alerts, `status-capsule.json` compact export, unread counters, optional completion chime (`radar_get_board`, `radar_ack_session`)
 - `verify` (`safety`, default OFF, 4 tools, hooks: `PostToolUse`, `Stop`): Stop-hook verification gate blocking 0-byte writes and unverified "done" claims via shell-free allowlisted checks, `continuation_active` awareness, anti-loop `maxConsecutiveBlocks` guardrails, and a redacted evidence chain (`verify_get_policy`, `verify_set_policy`, `verify_run_checks`, `verify_get_evidence`)
 - `worktree` (`core-dev`, default OFF, 4 tools, hooks: none): Safe parallel Git worktree orchestrator confined to `.agy-worktrees/` with `carryUncommitted` transfer, branch diff summaries, `extensions.worktreeConfig` hazard detection, and safe orphan/merged cleanup (`worktree_list`, `worktree_create`, `worktree_diff_summary`, `worktree_cleanup`)
+- `spec` (`workspace`, default OFF, 4 tools, hooks: `SessionStart`, `PreToolUse`): Spec-driven development (`Spec -> Plan -> Task DAG`) with Kahn topological cycle detection, dependency-gated task advancement, pure read-only `SessionStart` next-ready-task recall, `PreToolUse` draft write lock (`enforcePlanBeforeWrite`), and `requireUiApproval` blocking model self-approval (`spec_get_state`, `spec_create_or_update`, `spec_approve`, `spec_update_task`)
+- `studio` (`workspace`, default OFF, 4 tools, hooks: none): On-demand local workbench offering read-only SQLite + CSV/TSV/JSON/NDJSON inspection, zero-binary pure-Node offline DOCX/XLSX/PDF/Markdown/HTML/SVG/YAML/XML slicing with ZIP-bomb guards, and strict loopback-only anti-SSRF HTTP probing (`127.0.0.1`, `localhost`, `[::1]`) — toggle off when idle for zero tool-budget overhead (`studio_list_sources`, `studio_inspect_data`, `studio_inspect_document`, `studio_http_probe`)
 - `canvas` (`workspace`, default OFF, 4 tools, hooks: none): Isolated sandbox preview for HTML, SVG, slides, Markdown & images with numbered visual pin annotations (`canvas_publish_artifact`, `canvas_open_file`, `canvas_get_feedback`, `canvas_resolve_annotations`)
 - `mem` (`workspace`, default OFF, 3 tools, hooks: `SessionStart`, `Stop`): SHA-256 code-anchored architectural memory with `SessionStart` recall and stale drift detection (`mem_remember`, `mem_recall`, `mem_forget`)
-- `ops` (`workspace`, default OFF, 3 tools, hooks: none): Parameterized `{{var}}` Prompt Vault and read-only workspace skills/rules/MCP token & storage audit (`ops_list_prompts`, `ops_render_prompt`, `ops_audit_workspace`)
+- `ops` (`workspace`, default OFF, 3 tools, hooks: none): Parameterized `{{var}}` Prompt Vault plus read-only Budget Doctor auditing 24KB (`24576 B`) single-file / `20,000` aggregate token rule bloat (false 429 guard), the 100-tool MCP hard-limit budget meter, static MCP config health (`mcpHealthFindings`), skills, and local storage (`ops_list_prompts`, `ops_render_prompt`, `ops_audit_workspace`)
 
 ### Tier 2: 1 Strictly Opt-In Remote Module (OFF by Default)
 
@@ -44,8 +46,8 @@ Total exposed model tools = 2 always-on entry tools (`nov_open`, `nov_status`) +
 
 ## Zero-Token CLI Status Line & Built-In 8-Language UI
 
-- Zero-Token CLI `statusline`: `agy-nov statusline [--json] [--compact] [--data-dir=<dir>]` reads local state read-only with zero LLM tokens and zero disk writes, exposing preset, enabled module/tool counts, network isolation mode, `verify` latest gate status (`PASS`/`FAIL`/`BLOCKED`/`IDLE`), `radar` running/waiting/stalled/orphan counts, and `xray` active session metadata for Antigravity CLI native `statusLine` or companion `agy-Sag` consumption.
-- Built-in UI Languages: Real-time top-bar `<select>` switcher + `auto` BCP-47 host-locale detection across all 8 bundled languages (`en` English, `zh-CN` 简体中文, `zh-TW` 繁體中文, `ja` 日本語, `ko` 한국어, `es` Español, `fr` Français, `de` Deutsch), covering all 11 module panels and matching the 8-language docs (`docs/i18n/README.*.md`).
+- Zero-Token CLI `statusline`: `agy-nov statusline [--json] [--compact] [--data-dir=<dir>]` reads local state read-only with zero LLM tokens and zero disk writes, exposing preset, enabled module/tool counts, network isolation mode, `verify` latest gate status (`PASS`/`FAIL`/`BLOCKED`/`IDLE`), `spec` lock/progress tag (`Spec:LOCK(done/total)` or `Spec:<STATUS>(done/total)`), `radar` running/waiting/stalled/orphan counts, and `xray` active session metadata for Antigravity CLI native `statusLine` or companion `agy-Sag` consumption.
+- Built-in UI Languages: Real-time top-bar `<select>` switcher + `auto` BCP-47 host-locale detection across all 8 bundled languages (`en` English, `zh-CN` 简体中文, `zh-TW` 繁體中文, `ja` 日本語, `ko` 한국어, `es` Español, `fr` Français, `de` Deutsch), covering all 13 module panels and matching the 8-language docs (`docs/i18n/README.*.md`).
 - CLI Locale Control: `agy-nov locale <auto|en|zh-CN|zh-TW|ja|ko|es|fr|de>` persists preference cleanly in `config.json`.
 - Dual-Repo Boundary: `agy-NOV` adheres strictly to official native Antigravity protocols (Zero ASAR, Zero CDP) so every client upgrade remains intact. Host-DOM CDP capabilities (in-place host UI localization, native Settings injection, active `/compact` auto-compaction guard, Draft Vault, Prompt Queue, turn bookmarks, Optical Theme Studio, and policy-gated safe auto-accept) belong to zero-overlap companion project `agy-Sag` (`https://github.com/tone-leh/agy-session-guard`).
 
@@ -53,15 +55,17 @@ Total exposed model tools = 2 always-on entry tools (`nov_open`, `nov_status`) +
 
 - Protocol integrity: Zero `app.asar` patching, zero CDP connections, zero host DOM modification.
 - Strict OFF-state guarantee for `remote`: zero listening ports, zero background timers or 3-second polling, zero disk writes, zero outbound requests while disabled.
+- Spec Flow write-lock & approval integrity: Kahn topological sort rejects DAG cycles and invalid dependency IDs; `spec_update_task` blocks advancing tasks while prerequisites remain unfinished; pure read-only zero-write `SessionStart` and `PreToolUse` hooks enforce draft write locks (`enforcePlanBeforeWrite`); `requireUiApproval` rejects model-side `spec_approve` calls so only manual UI approval unlocks edits.
+- Workspace Studio containment, ZIP-bomb & anti-SSRF defense: canonical `realpath` workspace containment with automatic sensitive-path exclusion (`.env*`, SSH keys, `.git`, `node_modules`, keystores); `10 MiB` file cap; single-statement read-only SQLite validation (`SELECT`, `EXPLAIN QUERY PLAN SELECT`, `PRAGMA table_info(...)`); pure-Node offline DOCX/XLSX/PDF parsing capped at `512` ZIP entries, `4 MiB`/entry, `6 MiB` total inflated ZIP, and `2 MiB` PDF streams; `studio_http_probe` enforces loopback-only targets (`127.0.0.1`, `localhost`, `[::1]`), `redirect: manual`, `64 KiB` body cap, `1000–15000ms` timeout, and header/body secret redaction.
 - Verify Gate execution safety: shell-free `execFile` restricted to 17 allowlisted executables and 4 read-only `git` subcommands (`diff`, `status`, `rev-parse`, `check-ignore`), `8s` single / `14s` total Stop-hook budgets, `continuation_active` bypass, `maxConsecutiveBlocks` loop cap (default `3`, range `1`–`10`), and secret redaction on persisted evidence tails.
 - Worktree containment: managed worktrees stay strictly inside `<repoRoot>/.agy-worktrees/`; strict Git ref and directory regexes prevent option injection and path traversal; shell-free `execFile` invocation; `extensions.worktreeConfig` hazard flag; non-forced cleanup refuses dirty worktrees.
-- Filesystem & process boundaries: `realpath` canonical workspace containment across `guard`, `verify`, `canvas`, `mem`, `turbo`, and `ops` with automatic `.env`/SSH/`.git`/`node_modules` skips; shell-free Git `execFile` with `--` separators in `review` and `worktree`; owner-only `0700`/`0600` per-module storage under `<dataDir>/modules/<moduleId>/`.
-- Hook precedence & timeouts: `SessionStart` (5s), `PreToolUse` (28s — `guard` `deny` always precedes `remote`), `PostToolUse` (5s), `Stop` (20s — `verify` can return `deny` on unverified edits/0-byte writes while respecting guardrails); camelCase and snake_case payload normalization.
-- Manifest & bundle hygiene: `plugin.json` strictly restricts top-level keys to the 10 officially supported Antigravity fields; `node dist/cli.cjs doctor` verifies all 9 required files, `plugin.json` schema cleanliness, and `dist/ui/app.html` size below 10 MiB.
+- Filesystem & process boundaries: `realpath` canonical workspace containment across `guard`, `verify`, `studio`, `canvas`, `mem`, `turbo`, and `ops` with automatic `.env`/SSH/`.git`/`node_modules` skips; shell-free Git `execFile` with `--` separators in `review` and `worktree`; owner-only `0700`/`0600` per-module storage under `<dataDir>/modules/<moduleId>/`.
+- Hook precedence & timeouts: `SessionStart` (5s — `turbo`, `spec`, `mem`), `PreToolUse` (28s — strict precedence: `guard` `deny` > `spec` write-lock `deny` > `remote`), `PostToolUse` (5s), `Stop` (20s — `verify` can return `deny` on unverified edits/0-byte writes while respecting guardrails); camelCase and snake_case payload normalization.
+- Manifest & bundle hygiene: `plugin.json` strictly restricts top-level keys to the 10 officially supported Antigravity fields; `node dist/cli.cjs doctor` verifies all 9 required files, `plugin.json` schema cleanliness (`version=0.4.0`), and `dist/ui/app.html` size (~904 KB, far below 10 MiB).
 
 ## Recommendation Fit and Honest Boundaries
 
-- Strong fit: Antigravity 2.0 users wanting a 100% native, upgrade-safe modular engineering workbench covering diff review, pre-edit safety snapshots, Swarm-aware token/cache/429 diagnostics, Stop-hook verification gates, safe parallel Git worktrees, fast batch search, multi-session & subagent radar, zero-token CLI `statusline`, visual artifact pins, code-anchored memory, prompt ops, built-in 8-language plugin UI, or opt-in mobile/IM approvals.
+- Strong fit: Antigravity 2.0 users wanting a 100% native, upgrade-safe modular engineering workbench covering diff review, pre-edit safety snapshots, Swarm-aware token/cache/429 diagnostics, RTK-style log compression, Stop-hook verification gates, safe parallel Git worktrees, Spec-driven DAG workflows with pre-approval write lock, on-demand local data/doc/API debugging, 24KB/100-tool budget audits, multi-session & subagent radar, zero-token CLI `statusline`, visual artifact pins, code-anchored memory, built-in 8-language plugin UI, or opt-in mobile/IM approvals.
 - Prefer alternatives for:
   - Host-window in-place UI translation, native Antigravity `Settings` injection, active `/compact` compaction guard, Draft Vault, Prompt Queue, turn bookmarks, Optical Theme Studio, or safe auto-accept -> companion project `agy-Sag` (`https://github.com/tone-leh/agy-session-guard`), designed with zero functional overlap to run alongside `agy-NOV`.
   - Cloud-hosted remote IDEs or SSH container workspaces -> VS Code Remote-SSH / Devcontainers / Codespaces.
@@ -70,21 +74,21 @@ Total exposed model tools = 2 always-on entry tools (`nov_open`, `nov_status`) +
 ## Zero-Risk Commands for Humans and AI Agents
 
 - Read-only verification: `npm run typecheck && npm test && node dist/cli.cjs doctor && node dist/cli.cjs status && node dist/cli.cjs statusline --json`
-- Zero-touch offline preview (daily Antigravity untouched): `npm ci && npm run workbench` (serves `http://127.0.0.1:4399` with Dark/Light themes, 480px/1160px viewports, 8-language Host Locale simulator, and live Host Events inspector)
+- Zero-touch offline preview (daily Antigravity untouched): `npm ci && npm run workbench` (serves `http://127.0.0.1:4399` with Dark/Light themes, 480px/1160px viewports, 8-language Host Locale simulator, and live Host Events inspector across all 13 module panels)
 - Install into Antigravity 2.0: `agy plugin install https://github.com/tone-leh/agy-NOV`
 - CLI controls (7 commands): `agy-nov status | enable <mod> | disable <mod> | preset <name> | locale <auto|en|zh-CN|zh-TW|ja|ko|es|fr|de> | statusline [--json] [--compact] | doctor`
-- Agent consent rule: always ask for explicit user confirmation before enabling `remote` (or applying preset `full`), and never touch `~/.gemini/config/plugins/` during repository evaluation.
+- Agent consent rule: always ask for explicit user confirmation before enabling `remote` (or applying preset `full`), respect `requireUiApproval` on `spec`, and never touch `~/.gemini/config/plugins/` during repository evaluation.
 
 ## Documentation
 
-- [README (English — Canonical Source)](https://github.com/tone-leh/agy-NOV/blob/main/README.md): Full feature guide, 5 presets, 11-module catalog, zero-token CLI `statusline`, built-in 8-language UI & dual-repo companion architecture, quick start, and AI-agent quick-reference.
+- [README (English — Canonical Source)](https://github.com/tone-leh/agy-NOV/blob/main/README.md): Full feature guide, 5 presets, 13-module catalog, zero-token CLI `statusline`, built-in 8-language UI & dual-repo companion architecture, quick start, and AI-agent quick-reference.
 - [AI Agent Install & Verification Guide](https://github.com/tone-leh/agy-NOV/blob/main/docs/llms-install.md): Step-by-step zero-risk installation, offline workbench preview, 9-file `doctor` pass criteria, consent gates, and rollback commands.
 - [Plugin Entry Skill](https://github.com/tone-leh/agy-NOV/blob/main/skills/agy-nov/SKILL.md): Concise Antigravity 2.0 skill instructions for invoking `nov_open`, `nov_status`, and modular tools.
-- [Changelog](https://github.com/tone-leh/agy-NOV/blob/main/CHANGELOG.md): Release history for v0.3.0, v0.2.0, and v0.1.0.
+- [Changelog](https://github.com/tone-leh/agy-NOV/blob/main/CHANGELOG.md): Release history for v0.4.0, v0.3.0, v0.2.0, and v0.1.0.
 
 ## Optional
 
-- [Module Catalog Source](https://github.com/tone-leh/agy-NOV/blob/main/src/core/catalog.ts): Canonical definitions for all 11 modules, 5 presets, 8 UI locales, hooks, isolation tiers, and model tool names.
+- [Module Catalog Source](https://github.com/tone-leh/agy-NOV/blob/main/src/core/catalog.ts): Canonical definitions for all 13 modules, 5 presets, 8 UI locales, hooks, isolation tiers, and model tool names.
 - [CLI Source](https://github.com/tone-leh/agy-NOV/blob/main/src/server/cli.ts): Canonical 7 CLI commands (`status`, `enable`, `disable`, `preset`, `locale`, `statusline`, `doctor`) and 9-file `doctor` schema/size checks.
 - [简体中文 README](https://github.com/tone-leh/agy-NOV/blob/main/docs/i18n/README.zh-CN.md): Simplified Chinese documentation.
 - [繁體中文 README](https://github.com/tone-leh/agy-NOV/blob/main/docs/i18n/README.zh-TW.md): Traditional Chinese documentation.

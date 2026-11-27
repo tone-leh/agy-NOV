@@ -64,19 +64,19 @@ export const DE_DICT: UiDictionary = {
       description: 'Review + Guard + X-Ray — 100 % lokale Offline-Grundausstattung (12 Modell-Tools).',
     },
     power: {
-      label: 'Power Dev (8 Offline)',
+      label: 'Power Dev (9 Offline)',
       description:
-        'Basis + Turbo + Radar + Verify + Worktree + Ops — schnelle Offline-Suite mit starken Prüfschranken und null Netzwerkverkehr (28 Modell-Tools).',
+        'Basis + Turbo + Radar + Verify + Worktree + Spec + Ops — durchgängiger Offline-Workflow von der Spezifikation bis zur Prüfung ohne Netzwerkverkehr (32 Modell-Tools).',
     },
     'local-all': {
-      label: 'Lokal Komplett (10 Offline)',
+      label: 'Lokal Komplett (12 Offline)',
       description:
-        'Alle 10 nativen Offline-Module aktiv; Remote bleibt komplett aus mit null offenen Ports (35 Modell-Tools).',
+        'Alle 12 nativen Offline-Module inklusive Workspace Studio aktiv; Remote bleibt komplett aus mit null offenen Ports (43 Modell-Tools).',
     },
     full: {
-      label: 'Vollausstattung (Alle 11)',
+      label: 'Vollausstattung (Alle 13)',
       description:
-        'Alle 11 nativen Module einschließlich optionaler mobiler PWA und IM-Freigabezentrale (39 Modell-Tools).',
+        'Alle 13 nativen Module einschließlich optionaler mobiler PWA und IM-Freigabezentrale (47 Modell-Tools).',
     },
     minimal: {
       label: 'Minimalschutz',
@@ -109,9 +109,9 @@ export const DE_DICT: UiDictionary = {
     turbo: {
       name: 'Turbo & Ausgabeschutz',
       shortLabel: 'Turbo',
-      tagline: 'Stapelsuche im Code, Symbol-Umrisse & Kompression langer Logs',
+      tagline: 'Stapelsuche im Code, Symbol-Umrisse & RTK-artige Ausgabekompression',
       description:
-        'Sparen Sie Durchläufe und Kontextvolumen durch Mehrfachmuster-Suche, Symbol-Umriss-Auszüge und kompakte indizierte Zusammenfassungen großer Build- oder Testlogs.',
+        'Sparen Sie Durchläufe und Kontextvolumen durch Mehrfachmuster-Suche, Symbol-Umriss-Auszüge und RTK-artige Kompressionspresets (test/build/git/auto) für lange Logs.',
     },
     radar: {
       name: 'Sitzungs-Radar & Signal',
@@ -134,6 +134,20 @@ export const DE_DICT: UiDictionary = {
       description:
         'Erstellt isolierte Git-Worktrees mit optionaler Mitnahme uncommitteter Änderungen, zeigt Branch-Diff-Zusammenfassungen, warnt vor extensions.worktreeConfig und bereinigt gemergte oder verwaiste Worktrees sicher.',
     },
+    spec: {
+      name: 'Spec-Flow & Aufgaben-DAG',
+      shortLabel: 'Spec',
+      tagline: 'Spezifikationsgetriebene Entwicklung, Abhängigkeits-DAG & Schreibsperre vor Freigabe',
+      description:
+        'Pflegt strukturierte Spec -> Plan -> Task DAG-Workflows mit Zykluserkennung, automatischem Abruf der nächsten Aufgabe bei SessionStart und PreToolUse-Schreibsperre bis zur Freigabe.',
+    },
+    studio: {
+      name: 'Workspace Studio',
+      shortLabel: 'Studio',
+      tagline: 'On-Demand SQLite/CSV/JSON-Viewer, DOCX/XLSX/PDF-Slicer & Loopback-HTTP-Sonde',
+      description:
+        'Prüft lokale SQLite/CSV/JSON-Daten, zerlegt DOCX/XLSX/PDF/Markdown-Dokumente offline ohne externe Programme und testet localhost/127.0.0.1-APIs — ausgeschaltet bei null Tool-Budgetkosten.',
+    },
     canvas: {
       name: 'Visueller Canvas',
       shortLabel: 'Canvas',
@@ -149,11 +163,11 @@ export const DE_DICT: UiDictionary = {
         'Speichern Sie Architekturentscheidungen verknüpft mit SHA-256-Dateihashes, laden Sie relevanten Kontext bei SessionStart automatisch nach und markieren Sie veraltete Einträge bei Codeänderungen.',
     },
     ops: {
-      name: 'Prompt-Tresor & Diagnose',
+      name: 'Prompt-Tresor & Budget-Doktor',
       shortLabel: 'Ops',
-      tagline: 'Parametrisierte Prompts, Arbeitsbereich-Audit & Speicherpflege',
+      tagline: 'Parametrisierte Prompts, 24KB/20K-Regelprüfung & 100-Tool-Budget-Doktor',
       description:
-        'Verwalten Sie wiederverwendbare {{var}}-Prompt-Vorlagen, prüfen Sie den geschätzten Token-Bedarf von Rules/Skills/MCP schreibgeschützt und kontrollieren Sie den lokalen agy-NOV-Speicher.',
+        'Verwalten Sie wiederverwendbare {{var}}-Prompt-Vorlagen, prüfen Sie Arbeitsbereich-Regeln auf 24KB/20K-Aufblähung gegen falsche 429-Fehler, überwachen Sie das 100-Tool-MCP-Budget und die lokale Speicherpflege.',
     },
     remote: {
       name: 'Mobil- & IM-Remote',
@@ -201,6 +215,8 @@ export const DE_DICT: UiDictionary = {
     savedTokens: 'Geschätzte Ersparnis: ~{tokens} Tokens ({ratio} % Reduktion)',
     safetyNote:
       'Strikt über realpath auf den Arbeitsbereich begrenzt · überspringt automatisch .env, SSH-Schlüssel, .git & node_modules.',
+    presetLabel: 'Kompressions-Preset',
+    compressionSaved: 'RTK-Kompression sparte {percent} %',
   },
   radar: {
     title: 'Sitzungs-Radar & Signal',
@@ -246,6 +262,9 @@ export const DE_DICT: UiDictionary = {
     auditFindings: 'Diagnosehinweise',
     auditCleanNote:
       '100 % schreibgeschützter Scan · keinerlei Secret- oder Umgebungsvariablenwerte werden gelesen oder ausgegeben.',
+    ruleBloatTitle: 'Regel-Aufblähungsprüfung (24 KB / 20K Tokens)',
+    toolBudgetTitle: 'MCP-Tool-Budget (Limit: 100 Tools)',
+    mcpHealthTitle: 'MCP-Konfiguration & Serverzustand',
   },
   panels: {
     review: {
@@ -348,6 +367,59 @@ export const DE_DICT: UiDictionary = {
       emptyWorktrees: 'Für diesen Arbeitsbereich wurden keine Git-Worktrees gefunden.',
       diffTitle: 'Branch-Diff-Zusammenfassung',
       aheadBehind: '+{ahead} voraus / -{behind} zurück',
+    },
+    spec: {
+      title: 'Spec-Flow & Aufgaben-DAG',
+      subtitle:
+        'Strukturierte Spezifikationen entwerfen, Aufgabenabhängigkeiten als DAG abbilden und Schreibzugriffe bis zur Freigabe sperren.',
+      tabBoard: 'Spec & Aufgaben-DAG',
+      tabCreate: 'Neue Spec',
+      writeLockOn: 'Entwurfs-Schreibsperre AKTIV',
+      writeLockOff: 'Schreibsperre entsperrt',
+      statusDraft: 'Entwurf',
+      statusApproved: 'Freigegeben',
+      statusCompleted: 'Abgeschlossen',
+      statusArchived: 'Archiviert',
+      approveBtn: 'Spec freigeben',
+      revertDraftBtn: 'Zurück zu Entwurf',
+      enforceLockLabel: 'Schreibzugriffe blockieren, solange die aktive Spec ein Entwurf ist',
+      requireUiApprovalLabel: 'Explizite Freigabe in der UI vor dem Entsperren verlangen',
+      tasksTitle: 'Abhängigkeits-Aufgaben-DAG',
+      readyBadge: 'Bereit',
+      waitingBadge: 'Wartet auf Abh.',
+      doneBadge: 'Erledigt',
+      inProgressBadge: 'In Arbeit',
+      blockedBadge: 'Blockiert',
+      specTitlePlaceholder: 'Spec-Titel (z. B. Modulares Auth-Refactoring)',
+      specGoalPlaceholder: 'Implementierungsziel, Grenzen und erwartetes Ergebnis beschreiben…',
+      addTaskPlaceholder: 'Aufgabentitel (z. B. Token-Validator-Schema definieren)',
+      createSpecBtn: 'Spec erstellen',
+      emptySpecs: 'Noch keine Specs vorhanden. Erstellen Sie eine Spec, um Aufgaben und Schreibsperre zu steuern.',
+      acceptanceTitle: 'Abnahmekriterien',
+    },
+    studio: {
+      title: 'Workspace Studio',
+      subtitle:
+        'Lokale SQLite/CSV/JSON-Daten prüfen, Office-/PDF-Dokumente offline zerlegen und Loopback-HTTP-APIs testen.',
+      tabData: 'Lokale Daten',
+      tabDocs: 'Dokument-Slicer',
+      tabHttp: 'Loopback-HTTP',
+      sourcesTitle: 'Erkannte Arbeitsbereich-Assets',
+      refreshSources: 'Assets aktualisieren',
+      filePathPlaceholder: 'Relativer Pfad im Arbeitsbereich (z. B. data/app.db oder docs/spec.docx)',
+      sqlQueryPlaceholder: 'Optionales Nur-Lese-SQL (z. B. SELECT * FROM items LIMIT 50)',
+      filterPlaceholder: 'Optionaler Stichwortfilter…',
+      inspectBtn: 'Prüfen',
+      probeBtn: 'Sonde senden',
+      urlPlaceholder: 'http://127.0.0.1:3000/health',
+      loopbackOnlyNote:
+        'Nur Loopback: strikt auf 127.0.0.1, localhost und [::1] begrenzt — kein externer Netzwerkzugriff.',
+      headersPlaceholder: 'Optionale JSON-Header, z. B. {"Accept": "application/json"}',
+      bodyPlaceholder: 'Optionaler Request-Body (JSON oder Klartext)…',
+      emptySources: 'Noch keine SQLite-, CSV-, JSON-, DOCX-, XLSX-, PDF- oder Markdown-Assets gefunden.',
+      rowsCount: 'Zeilen',
+      statusCode: 'Status',
+      truncatedNotice: 'Ausgabe wurde auf das sichere Vorschau-Limit gekürzt.',
     },
     canvas: {
       title: 'Visueller Canvas',

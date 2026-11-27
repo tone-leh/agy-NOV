@@ -9,6 +9,16 @@ export interface NovModulePanelProps {
   incomingEvent?: { toolName?: string; structuredContent: Record<string, unknown> } | null;
 }
 
+type CompactPresetOption = 'auto' | 'test' | 'build' | 'git' | 'generic';
+
+const COMPACT_PRESET_CHOICES: ReadonlyArray<{ value: CompactPresetOption; label: string }> = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'test', label: 'Test' },
+  { value: 'build', label: 'Build' },
+  { value: 'git', label: 'Git' },
+  { value: 'generic', label: 'Generic' },
+];
+
 interface TurboState {
   mode: string;
   stats: {
@@ -23,6 +33,8 @@ interface TurboState {
     label: string;
     totalLines: number;
     estimatedSavedTokens: number;
+    detectedPreset?: Exclude<CompactPresetOption, 'auto'>;
+    savedPercent?: number;
   }>;
   lastSearch: {
     scannedFiles: number;
@@ -51,6 +63,10 @@ interface TurboState {
     estimatedSummaryTokens: number;
     estimatedSavedTokens: number;
     compressionRatio?: number;
+    detectedPreset?: Exclude<CompactPresetOption, 'auto'>;
+    linesBefore?: number;
+    linesAfter?: number;
+    savedPercent?: number;
   } | null;
 }
 
@@ -65,6 +81,7 @@ export const TurboPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
   const [startLine, setStartLine] = useState('1');
   const [endLine, setEndLine] = useState('45');
   const [rawOutput, setRawOutput] = useState('');
+  const [compactPreset, setCompactPreset] = useState<CompactPresetOption>('auto');
   const [chunkQuery, setChunkQuery] = useState('');
   const [chunkHits, setChunkHits] = useState<Array<{ matchedLine: number; snippet: string }> | null>(null);
 
@@ -126,6 +143,7 @@ export const TurboPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
       const res = await bridge.callTool<{ state: TurboState }>('app_turbo_compact_output', {
         label: 'pasted-log',
         rawText: rawOutput,
+        preset: compactPreset,
       });
       setState(res.state);
     } catch (err) {
@@ -152,14 +170,16 @@ export const TurboPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
 
   const lastCompact = state?.lastCompact;
   const savedRatio = lastCompact
-    ? typeof lastCompact.compressionRatio === 'number'
-      ? Math.max(0, Math.round(lastCompact.compressionRatio * 100))
-      : lastCompact.estimatedRawTokens > 0
-        ? Math.max(
-            0,
-            Math.round((lastCompact.estimatedSavedTokens / lastCompact.estimatedRawTokens) * 100),
-          )
-        : 0
+    ? typeof lastCompact.savedPercent === 'number'
+      ? Math.max(0, Math.min(100, Math.round(lastCompact.savedPercent)))
+      : typeof lastCompact.compressionRatio === 'number'
+        ? Math.max(0, Math.round(lastCompact.compressionRatio * 100))
+        : lastCompact.estimatedRawTokens > 0
+          ? Math.max(
+              0,
+              Math.round((lastCompact.estimatedSavedTokens / lastCompact.estimatedRawTokens) * 100),
+            )
+          : 0
     : 0;
 
   return (
@@ -334,7 +354,27 @@ export const TurboPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
 
       {tab === 'compact' && (
         <section className="nov-p-card">
-          <label style={{ fontSize: '12px', fontWeight: 600 }}>{dict.turbo.rawOutputLabel}</label>
+          <div className="nov-p-row">
+            <label style={{ fontSize: '12px', fontWeight: 600 }}>{dict.turbo.rawOutputLabel}</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <label htmlFor="nov-turbo-preset" style={{ fontSize: '11.5px', color: 'var(--nov-text-1)' }}>
+                {dict.turbo.presetLabel}
+              </label>
+              <select
+                id="nov-turbo-preset"
+                className="nov-p-select"
+                style={{ width: 'auto', minWidth: '118px', padding: '5px 9px' }}
+                value={compactPreset}
+                onChange={(e) => setCompactPreset(e.target.value as CompactPresetOption)}
+              >
+                {COMPACT_PRESET_CHOICES.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           <textarea
             className="nov-p-textarea"
             value={rawOutput}
@@ -351,12 +391,27 @@ export const TurboPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
               {busy ? dict.common.loading : dict.turbo.compactBtn}
             </button>
             {lastCompact && (
-              <span className="nov-badge is-offline">
-                {t(dict.turbo.savedTokens, {
-                  tokens: lastCompact.estimatedSavedTokens,
-                  ratio: savedRatio,
-                })}
-              </span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                {lastCompact.detectedPreset && (
+                  <span className="nov-badge is-accent">
+                    {dict.turbo.presetLabel}: {lastCompact.detectedPreset.toUpperCase()}
+                  </span>
+                )}
+                <span className="nov-badge is-accent">
+                  {t(dict.turbo.compressionSaved, { percent: savedRatio })}
+                </span>
+                {typeof lastCompact.linesBefore === 'number' && typeof lastCompact.linesAfter === 'number' && (
+                  <span className="nov-badge">
+                    {lastCompact.linesBefore} → {lastCompact.linesAfter}
+                  </span>
+                )}
+                <span className="nov-badge is-offline">
+                  {t(dict.turbo.savedTokens, {
+                    tokens: lastCompact.estimatedSavedTokens,
+                    ratio: savedRatio,
+                  })}
+                </span>
+              </div>
             )}
           </div>
 

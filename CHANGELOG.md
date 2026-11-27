@@ -2,6 +2,32 @@
 
 All notable changes to **agy-NOV** will be documented in this file.
 
+## [0.4.0] - 2026-11-27
+
+### Added
+- **Expanded Modular Super-Workbench from 11 to 13 Toggleable Native Superpowers (12 Local Offline + 1 Opt-In Remote, 100% Zero ASAR / Zero CDP):**
+  - **`spec` (Spec Flow & Task DAG, `workspace` category, default OFF, 4 model tools):** Spec-driven development workflow (`spec_get_state`, `spec_create_or_update`, `spec_approve`, `spec_update_task`; hooks: `SessionStart`, `PreToolUse`) maintaining `Spec -> Plan -> Task DAG` documents with Kahn topological cycle detection, dependency-gated task advancement (rejects `in_progress`/`done` when prerequisite tasks remain unfinished), pure read-only `SessionStart` active-spec and ready-task recall, `PreToolUse` draft write lock (`enforcePlanBeforeWrite`) blocking workspace mutations until approved, and `requireUiApproval` preventing model-side self-approval via `spec_approve`.
+  - **`studio` (Workspace Studio, `workspace` category, default OFF, 4 model tools):** On-demand local workspace debugger (`studio_list_sources`, `studio_inspect_data`, `studio_inspect_document`, `studio_http_probe`; hooks: none) providing read-only SQLite + CSV/TSV/JSON/NDJSON dataset inspection (`<= 10 MiB`, `1–100` rows), zero-binary pure-Node offline DOCX/XLSX/PDF/Markdown/HTML/SVG/YAML/XML slicing (`<= 200` lines) with ZIP-bomb and PDF-stream caps, and a strict loopback-only anti-SSRF HTTP probe (`127.0.0.1`, `localhost`, `[::1]`) — designed to toggle off when idle for zero tool-budget overhead against Antigravity's 100-tool hard limit.
+- **Turbo RTK-Style Smart Output Compression Presets (`turbo`):** Upgraded `turbo_compact_output` and `app_turbo_compact_output` with smart compression presets (`auto`, `test`, `build`, `git`, `generic`), automatic preset detection, saved-percentage accounting, and in-memory LRU (24) chunk querying.
+- **Ops Budget Doctor Upgrades (`ops`):** Upgraded `ops_audit_workspace` with a **24 KB (`24576 B`) single-file / `20,000` aggregate token rule-bloat guard** to prevent false HTTP 429s, a **100-tool MCP hard-limit budget meter** (`toolBudget`, combining active `agy-NOV` model tools with external MCP server estimates), and **static MCP config health auditing** (`mcpHealthFindings`).
+- **CLI `statusline` Spec Flow Read-Only Summary:** Extended `agy-nov statusline` (text, `--compact`, and `--json`) with zero-token read-only `spec` state reporting (`Spec:LOCK(done/total)` while draft write lock is active, or `Spec:<STATUS>(done/total)`).
+- **Expanded 8-Language UI, Dual-Theme Visuals & Automated Test Coverage:** Added full 8-language UI panels for `spec` and `studio`, upgraded `turbo` preset controls and `ops` Budget Doctor views, refreshed dual-theme Hero (`1280×480`) and Architecture (`1280×620`) SVGs, and added `test/spec-module.test.ts`, `test/studio-module.test.ts`, and `test/v04-turbo-ops.test.ts` alongside expanded integration coverage.
+
+### Changed
+- **Updated 5 Presets & Exact Model Tool Accounting (including `nov_open` + `nov_status`):**
+  - `minimal`: 1 module (`guard`) = **6** tools (100% offline)
+  - `core` *(default)*: 3 modules (`review`, `guard`, `xray`) = **12** tools (100% offline)
+  - `power`: 9 modules (`review`, `guard`, `xray`, `turbo`, `radar`, `verify`, `worktree`, `spec`, `ops`) = **32** tools (100% offline)
+  - `local-all`: all 12 offline native modules (including `studio`, `canvas`, `mem`) = **43** tools (100% offline)
+  - `full`: all 13 native modules including opt-in `remote` = **47** tools (opt-in network)
+- **Unified Hook Dispatcher Integration:** Wired `spec` into `SessionStart` (alongside `turbo` and `mem`) and `PreToolUse` with strict `guard` > `spec` > `remote` precedence while preserving O(1) read-only short-circuiting for disabled modules.
+- **CLI, Bundle & Metadata Alignment:** Updated `src/core/catalog.ts`, `src/server/cli.ts`, `plugin.json`, `package.json`, `skills/agy-nov/SKILL.md`, `README.md`, `llms.txt`, and `docs/llms-install.md` to v0.4.0 (`dist/ui/app.html` ~904 KB, well below the 10 MiB cap).
+
+### Security
+- **Spec Flow Write-Lock & Approval Integrity:** Enforced pure read-only zero-write `SessionStart` and `PreToolUse` hooks, draft write-lock blocking across workspace write/edit/delete tools when `enforcePlanBeforeWrite` is enabled, Kahn topological cycle validation, dependency-gated task transitions, and `requireUiApproval` blocking model-side `spec_approve` bypasses.
+- **Workspace Studio Containment, ZIP-Bomb & Anti-SSRF Hardening:** Enforced canonical `realpath` workspace containment with automatic `.env*`/SSH/`.git`/`node_modules`/keystore exclusion, `10 MiB` file cap, single-statement read-only SQLite validation (`SELECT` / `EXPLAIN QUERY PLAN SELECT` / `PRAGMA table_info(...)`), pure-Node ZIP-bomb and PDF stream limits (`512` entries, `4 MiB`/entry, `6 MiB` total ZIP inflated, `2 MiB` PDF streams), and strict loopback-only HTTP probing (`127.0.0.1`, `localhost`, `[::1]`, `redirect: manual`, `64 KiB` response cap, `1–15s` timeout, automatic header/body secret redaction).
+- **Zero-Touch Invariants Preserved:** Maintained strict 100% Zero ASAR / Zero CDP boundaries, zero-port/zero-write OFF-state guarantees for `remote`, and strictly read-only zero-write execution for `ops_audit_workspace`, `agy-nov statusline`, and `agy-nov doctor`.
+
 ## [0.3.0] - 2026-11-27
 
 ### Added

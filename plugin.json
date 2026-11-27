@@ -1,8 +1,8 @@
 {
   "name": "agy-nov",
   "displayName": "agy-NOV",
-  "version": "0.3.0",
-  "description": "The 100% Native Modular Super-Workbench for Google Antigravity 2.0 (Zero ASAR · Zero CDP) — 11 toggleable superpowers (Diff Review, Secret Shield & Snapshots, Context X-Ray with Swarm Lineage, Turbo Output Guard, Session Radar, Verify Gate, Git Worktree Orchestrator, Visual Canvas, Memory Graph, Prompt Vault & Doctor, and Opt-In Mobile/IM Remote), built-in 8-language UI, CLI statusLine, and zero token tax when off.",
+  "version": "0.4.0",
+  "description": "The 100% Native Modular Super-Workbench for Google Antigravity 2.0 (Zero ASAR · Zero CDP) — 13 toggleable superpowers (Diff Review, Secret Shield & Snapshots, Context X-Ray with Swarm Lineage, Turbo RTK Output Guard, Session Radar, Verify Gate, Worktree Orchestrator, Spec Flow & Task DAG, Workspace Studio, Visual Canvas, Memory Graph, Prompt Vault & Budget Doctor, and Opt-In Mobile/IM Remote), built-in 8-language UI, CLI statusLine, and zero token tax when off.",
   "logo": "assets/logo.svg",
   "author": {
     "name": "tone-leh",
@@ -11,8 +11,8 @@
   "homepage": "https://github.com/tone-leh/agy-NOV",
   "repository": "https://github.com/tone-leh/agy-NOV",
   "suggestedPrompts": [
-    "Open agy-NOV to pick a preset, switch the built-in 8-language UI, or toggle any of the 11 native superpowers",
-    "Enable Verify Gate and Worktree Orchestrator in agy-NOV to enforce Stop-hook checks and run parallel Git worktrees",
-    "Inspect Swarm subagent lineage, cache hit rates, and workspace diffs in agy-NOV"
+    "Open agy-NOV to pick a preset, switch the built-in 8-language UI, or toggle any of the 13 native superpowers",
+    "Enable Spec Flow & Verify Gate in agy-NOV to enforce Spec-first planning and Stop-hook verification checks",
+    "Use Workspace Studio and Ops Budget Doctor in agy-NOV to inspect local SQLite/CSV/DOCX/PDF files and audit 24KB rule bloat or 100-tool limits"
   ]
 }

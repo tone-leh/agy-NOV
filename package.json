@@ -1,7 +1,7 @@
 {
   "name": "agy-nov",
-  "version": "0.3.0",
-  "description": "The 100% Native Modular Super-Workbench for Google Antigravity 2.0 — 11 toggleable superpowers (Diff Review, Guard & Snapshots, Context X-Ray, Turbo Output Guard, Session Radar, Verify Gate, Worktree Orchestrator, Visual Canvas, Memory Graph, Prompt Vault & Doctor, and Opt-In Mobile/IM Remote), native 8-language UI, CLI statusLine, Zero ASAR, Zero CDP, zero token tax when off.",
+  "version": "0.4.0",
+  "description": "The 100% Native Modular Super-Workbench for Google Antigravity 2.0 — 13 toggleable superpowers (Diff Review, Guard & Snapshots, Context X-Ray, Turbo RTK Compression, Session Radar, Verify Gate, Worktree Orchestrator, Spec Flow & Task DAG, Workspace Studio, Visual Canvas, Memory Graph, Prompt Vault & Budget Doctor, and Opt-In Mobile/IM Remote), native 8-language UI, CLI statusLine, Zero ASAR, Zero CDP, zero token tax when off.",
   "type": "module",
   "license": "MIT",
   "engines": {

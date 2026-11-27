@@ -64,17 +64,18 @@ export const ZH_TW_DICT: UiDictionary = {
       description: '審閱 + 護盾 + 透視 — 100% 離線核心三件組（僅 12 個模型工具）。',
     },
     power: {
-      label: '高效開發 (8 離線)',
+      label: '高效開發 (9 離線)',
       description:
-        '核心三件組 + 極速批處理 + 對話雷達 + 驗收門禁 + 工作樹編排 + 維運提示詞庫，零連網強校驗高效組合（28 個模型工具）。',
+        '核心三件組 + 極速批處理 + 對話雷達 + 驗收門禁 + 工作樹編排 + 規格任務流 + 維運健檢，零連網規格到驗收完整組合（32 個模型工具）。',
     },
     'local-all': {
-      label: '本機全開 (10 離線)',
-      description: '啟用全部 10 個純離線原生模組；遠端閘道維持關閉且零連接埠監聽（35 個模型工具）。',
+      label: '本機全開 (12 離線)',
+      description:
+        '啟用全部 12 個純離線原生模組（含工作區工坊）；遠端閘道維持關閉且零連接埠監聽（43 個模型工具）。',
     },
     full: {
-      label: '全功能套件 (全部 11 個)',
-      description: '啟用全部 11 個原生模組，包含按需手機 PWA 與 IM 遠端核准中樞（39 個模型工具）。',
+      label: '全功能套件 (全部 13 個)',
+      description: '啟用全部 13 個原生模組，包含按需手機 PWA 與 IM 遠端核准中樞（47 個模型工具）。',
     },
     minimal: {
       label: '極簡安全網',
@@ -106,9 +107,9 @@ export const ZH_TW_DICT: UiDictionary = {
     turbo: {
       name: '極速批處理與防洗版',
       shortLabel: '極速',
-      tagline: '多關鍵字批次搜尋、符號大綱切片與超長日誌壓縮索引',
+      tagline: '多關鍵字批次搜尋、符號大綱切片與 RTK 風格輸出壓縮',
       description:
-        '透過單次多模式工作區搜尋、符號大綱精準切片與超長建置/測試日誌摘要索引，大幅降低多餘回合與上下文膨脹。',
+        '透過單次多模式工作區搜尋、符號大綱精準切片與 RTK 風格智慧壓縮預設（test/build/git/auto），大幅降低多餘回合與長日誌上下文膨脹。',
     },
     radar: {
       name: '多對話雷達與提醒',
@@ -131,6 +132,20 @@ export const ZH_TW_DICT: UiDictionary = {
       description:
         '快速建立隔離 Git 工作樹並可選攜帶未提交異動，預覽分支差異摘要，警示 extensions.worktreeConfig 風險，並安全清除已合併或孤兒工作樹。',
     },
+    spec: {
+      name: '規格任務流與 DAG',
+      shortLabel: '規格',
+      tagline: '規格驅動開發、相依任務 DAG 與核准前寫入門禁',
+      description:
+        '維護結構化 Spec -> Plan -> Task DAG 工作流，內建環路偵測、SessionStart 下一任務自動喚回，以及在規格核准前維持程式碼唯讀的 PreToolUse 寫入門禁。',
+    },
+    studio: {
+      name: '工作區工坊',
+      shortLabel: '工坊',
+      tagline: '按需 SQLite/CSV/JSON 資料檢視、DOCX/XLSX/PDF 切片與本機迴環 HTTP 探測',
+      description:
+        '無須外部執行檔即可離線檢視本機 SQLite/CSV/JSON 資料、切片預覽 DOCX/XLSX/PDF/Markdown 文件，並探測 localhost/127.0.0.1 介面；關閉即享零工具預算負擔。',
+    },
     canvas: {
       name: '視覺批註畫布',
       shortLabel: '畫布',
@@ -146,11 +161,11 @@ export const ZH_TW_DICT: UiDictionary = {
         '將架構決策綁定至原始碼檔案的 SHA-256 雜湊值，於 SessionStart 自動喚回相關背景，並在程式碼變更時標記過期項目。',
     },
     ops: {
-      name: '提示詞庫與環境健檢',
+      name: '提示詞庫與預算健檢',
       shortLabel: '維運',
-      tagline: '參數化提示詞模板庫、工作區資產 Token 盤點與儲存檢視',
+      tagline: '參數化提示詞庫、24KB/20K 規則膨脹與 100 工具預算健檢',
       description:
-        '集中管理含 {{var}} 變數的常用提示詞模板，唯讀檢視工作區 Rules/Skills/MCP 的估算 Token 消耗與本機 agy-NOV 儲存空間。',
+        '集中管理含 {{var}} 變數的常用提示詞模板，檢查觸發誤報 429 的 24KB/20K 規則膨脹，追蹤 100 工具 MCP 預算，並稽核本機儲存空間健康度。',
     },
     remote: {
       name: '手機與 IM 遙控',
@@ -198,6 +213,8 @@ export const ZH_TW_DICT: UiDictionary = {
     savedTokens: '預估節省上下文：約 {tokens} Tokens（減少 {ratio}%）',
     safetyNote:
       '嚴格受 realpath 工作區邊界約束 · 自動略過 .env、SSH 金鑰、.git 與 node_modules。',
+    presetLabel: '壓縮預設',
+    compressionSaved: 'RTK 壓縮節省 {percent}%',
   },
   radar: {
     title: '多對話狀態雷達與完成提醒',
@@ -240,6 +257,9 @@ export const ZH_TW_DICT: UiDictionary = {
     auditEstTokens: '估算系統 Token',
     auditFindings: '健檢建議',
     auditCleanNote: '100% 唯讀工作區掃描 · 絕不讀取或顯示任何金鑰與環境變數值。',
+    ruleBloatTitle: '規則膨脹檢查（24KB / 20K Token 門檻）',
+    toolBudgetTitle: 'MCP 工具預算（100 工具上限）',
+    mcpHealthTitle: 'MCP 設定與服務健康度',
   },
   panels: {
     review: {
@@ -337,6 +357,57 @@ export const ZH_TW_DICT: UiDictionary = {
       emptyWorktrees: '目前工作區未偵測到任何 Git 工作樹。',
       diffTitle: '分支 Diff 摘要',
       aheadBehind: '領先 +{ahead} / 落後 -{behind}',
+    },
+    spec: {
+      title: '規格任務流與 DAG',
+      subtitle: '起草結構化規格、規劃相依任務 DAG，並在核准前維持工作區程式碼唯讀。',
+      tabBoard: '規格與任務 DAG',
+      tabCreate: '新建規格',
+      writeLockOn: '草稿寫入鎖定中',
+      writeLockOff: '寫入門禁已解鎖',
+      statusDraft: '草稿',
+      statusApproved: '已核准',
+      statusCompleted: '已完成',
+      statusArchived: '已封存',
+      approveBtn: '核准規格',
+      revertDraftBtn: '退回草稿',
+      enforceLockLabel: '啟用中規格為草稿狀態時攔截工作區寫入',
+      requireUiApprovalLabel: '解鎖寫入前必須經由介面明確核准',
+      tasksTitle: '相依任務 DAG',
+      readyBadge: '可開始',
+      waitingBadge: '等待前置',
+      doneBadge: '已完成',
+      inProgressBadge: '進行中',
+      blockedBadge: '已阻斷',
+      specTitlePlaceholder: '規格標題（例如 模組化驗證重構）',
+      specGoalPlaceholder: '描述實作目標、修改邊界與預期產出…',
+      addTaskPlaceholder: '任務標題（例如 定義權杖驗證結構）',
+      createSpecBtn: '建立規格',
+      emptySpecs: '目前尚無規格紀錄。建立規格即可規劃任務相依並守護程式碼寫入。',
+      acceptanceTitle: '驗收標準',
+    },
+    studio: {
+      title: '工作區工坊',
+      subtitle: '離線檢視本機 SQLite/CSV/JSON 資料、切片辦公與 PDF 文件，並探測本機迴環 HTTP 介面。',
+      tabData: '本機資料',
+      tabDocs: '文件切片',
+      tabHttp: '迴環 HTTP',
+      sourcesTitle: '工作區可除錯資產',
+      refreshSources: '重新整理資產',
+      filePathPlaceholder: '工作區相對路徑（例如 data/app.db 或 docs/spec.docx）',
+      sqlQueryPlaceholder: '選填唯讀 SQL（例如 SELECT * FROM items LIMIT 50）',
+      filterPlaceholder: '選填關鍵字篩選…',
+      inspectBtn: '立即檢視',
+      probeBtn: '送出探測',
+      urlPlaceholder: 'http://127.0.0.1:3000/health',
+      loopbackOnlyNote:
+        '僅限本機迴環：嚴格限定 127.0.0.1、localhost 與 [::1]，絕不發起任何外部網路連線。',
+      headersPlaceholder: '選填 JSON 請求標頭，例如 {"Accept": "application/json"}',
+      bodyPlaceholder: '選填請求內容（JSON 或純文字）…',
+      emptySources: '目前工作區尚未偵測到 SQLite、CSV、JSON、DOCX、XLSX、PDF 或 Markdown 資產。',
+      rowsCount: '列數',
+      statusCode: '狀態碼',
+      truncatedNotice: '結果已依安全預覽上限截斷。',
     },
     canvas: {
       title: '視覺批註畫布',

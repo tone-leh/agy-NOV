@@ -64,19 +64,19 @@ export const KO_DICT: UiDictionary = {
       description: 'Review + Guard + X-Ray — 100% 오프라인 핵심 3종 세트 (모델 도구 12개).',
     },
     power: {
-      label: '파워 개발 (오프라인 8)',
+      label: '파워 개발 (오프라인 9)',
       description:
-        '코어 + Turbo + Radar + Verify + Worktree + Ops — 강력한 검증 게이트를 갖춘 무네트워크 고속 개발 세트 (모델 도구 28개).',
+        '코어 + Turbo + Radar + Verify + Worktree + Spec + Ops — 명세 작성부터 검증까지 완결하는 무네트워크 개발 세트 (모델 도구 32개).',
     },
     'local-all': {
-      label: '로컬 전체 (오프라인 10)',
+      label: '로컬 전체 (오프라인 12)',
       description:
-        '로컬 전용 네이티브 모듈 10개 모두 활성화. Remote는 완전 비활성·포트 미개방 유지 (모델 도구 35개).',
+        'Workspace Studio 포함 로컬 전용 네이티브 모듈 12개 모두 활성화. Remote는 완전 비활성·포트 미개방 유지 (모델 도구 43개).',
     },
     full: {
-      label: '전체 스위트 (총 11개)',
+      label: '전체 스위트 (총 13개)',
       description:
-        '선택적 모바일 PWA 및 IM 원격 승인 허브를 포함한 11개 네이티브 모듈 전체 활성화 (모델 도구 39개).',
+        '선택적 모바일 PWA 및 IM 원격 승인 허브를 포함한 13개 네이티브 모듈 전체 활성화 (모델 도구 47개).',
     },
     minimal: {
       label: '최소 방패',
@@ -109,9 +109,9 @@ export const KO_DICT: UiDictionary = {
     turbo: {
       name: 'Turbo 및 출력 가드',
       shortLabel: 'Turbo',
-      tagline: '일괄 코드 검색, 심볼 개요 슬라이스 및 대용량 로그 압축',
+      tagline: '일괄 코드 검색, 심볼 개요 슬라이스 및 RTK 스타일 출력 압축',
       description:
-        '다중 패턴 일괄 검색, 심볼 개요 및 행 슬라이스 추출, 대용량 빌드·테스트 로그의 요약 인덱싱으로 불필요한 턴과 컨텍스트 팽창을 줄입니다.',
+        '다중 패턴 일괄 검색, 심볼 개요 슬라이스, 대용량 로그용 RTK 스타일 스마트 압축 프리셋(test/build/git/auto)으로 불필요한 턴과 컨텍스트 팽창을 줄입니다.',
     },
     radar: {
       name: '세션 레이더 및 알림음',
@@ -134,6 +134,20 @@ export const KO_DICT: UiDictionary = {
       description:
         '미커밋 변경 사항 이전을 포함한 격리 Git Worktree를 생성하고 브랜치 Diff 요약을 확인하며 extensions.worktreeConfig 경고를 감지하고 병합·고아 트리를 안전하게 정리합니다.',
     },
+    spec: {
+      name: 'Spec 플로우 및 작업 DAG',
+      shortLabel: 'Spec',
+      tagline: '명세 기반 개발, 의존성 작업 DAG 및 승인 전 쓰기 잠금',
+      description:
+        '순환 의존성 감지가 포함된 Spec -> Plan -> Task DAG 워크플로를 유지하고 SessionStart에서 다음 작업을 자동 회상하며, 명세 승인 전까지 PreToolUse 쓰기 게이트로 코드를 읽기 전용으로 보호합니다.',
+    },
+    studio: {
+      name: '워크스페이스 Studio',
+      shortLabel: 'Studio',
+      tagline: '온디맨드 SQLite/CSV/JSON 데이터 뷰어, DOCX/XLSX/PDF 슬라이서 및 루프백 HTTP 프로브',
+      description:
+        '외부 바이너리 없이 로컬 SQLite/CSV/JSON 데이터를 검사하고 DOCX/XLSX/PDF/Markdown 문서를 오프라인으로 슬라이싱하며 localhost/127.0.0.1 API를 점검합니다. 끄면 도구 예산 부담이 0입니다.',
+    },
     canvas: {
       name: '비주얼 캔버스',
       shortLabel: 'Canvas',
@@ -149,11 +163,11 @@ export const KO_DICT: UiDictionary = {
         '아키텍처 결정을 파일의 SHA-256 해시에 연결해 저장하고 SessionStart 시 관련 문맥을 자동 회상하며, 코드 변경으로 오래된 기억을 표시합니다.',
     },
     ops: {
-      name: '프롬프트 보관함 및 진단',
+      name: '프롬프트 보관함 및 예산 진단',
       shortLabel: 'Ops',
-      tagline: '매개변수 프롬프트 템플릿, 워크스페이스 자산 감사 및 저장소 점검',
+      tagline: '매개변수 프롬프트 보관함, 24KB/20K 규칙 비대화 및 100개 도구 예산 진단',
       description:
-        '재사용 가능한 {{var}} 프롬프트 템플릿을 관리하고, 워크스페이스 Rules/Skills/MCP의 추정 토큰 부담과 로컬 agy-NOV 저장소를 읽기 전용으로 점검합니다.',
+        '재사용 가능한 {{var}} 프롬프트 템플릿을 관리하고, 허위 429를 유발하는 24KB/20K 규칙 비대화 점검과 100개 MCP 도구 예산 추적, 로컬 저장소 상태를 감사합니다.',
     },
     remote: {
       name: '모바일 및 IM 원격',
@@ -201,6 +215,8 @@ export const KO_DICT: UiDictionary = {
     savedTokens: '예상 절감 토큰: 약 {tokens} ({ratio}% 감소)',
     safetyNote:
       'realpath 워크스페이스 경계로 엄격 제한 · .env, SSH 키, .git, node_modules 자동 제외.',
+    presetLabel: '압축 프리셋',
+    compressionSaved: 'RTK 압축으로 {percent}% 절감',
   },
   radar: {
     title: '세션 레이더 및 알림음',
@@ -245,6 +261,9 @@ export const KO_DICT: UiDictionary = {
     auditFindings: '진단 항목',
     auditCleanNote:
       '100% 읽기 전용 워크스페이스 스캔 · 어떤 시크릿이나 환경 변수 값도 읽거나 출력하지 않습니다.',
+    ruleBloatTitle: '규칙 비대화 점검 (24KB / 20K 토큰)',
+    toolBudgetTitle: 'MCP 도구 예산 (100개 한도)',
+    mcpHealthTitle: 'MCP 설정 및 서버 상태',
   },
   panels: {
     review: {
@@ -346,6 +365,59 @@ export const KO_DICT: UiDictionary = {
       emptyWorktrees: '이 워크스페이스에서 Git Worktree를 찾지 못했습니다.',
       diffTitle: '브랜치 Diff 요약',
       aheadBehind: '+{ahead} 앞섬 / -{behind} 뒤처짐',
+    },
+    spec: {
+      title: 'Spec 플로우 및 작업 DAG',
+      subtitle:
+        '구조화된 명세를 작성하고 의존성 작업 DAG를 구성하며 승인 전까지 코드 쓰기를 잠급니다.',
+      tabBoard: '명세 및 작업 DAG',
+      tabCreate: '새 Spec',
+      writeLockOn: '초안 쓰기 잠금 켜짐',
+      writeLockOff: '쓰기 잠금 해제됨',
+      statusDraft: '초안',
+      statusApproved: '승인됨',
+      statusCompleted: '완료됨',
+      statusArchived: '보관됨',
+      approveBtn: '명세 승인',
+      revertDraftBtn: '초안으로 되돌리기',
+      enforceLockLabel: '활성 명세가 초안 상태일 때 워크스페이스 쓰기 차단',
+      requireUiApprovalLabel: '쓰기 잠금 해제 전 UI에서 명시적 승인 요구',
+      tasksTitle: '의존성 작업 DAG',
+      readyBadge: '시작 가능',
+      waitingBadge: '의존 대기',
+      doneBadge: '완료',
+      inProgressBadge: '진행 중',
+      blockedBadge: '차단됨',
+      specTitlePlaceholder: '명세 제목 (예: 모듈형 인증 리팩터링)',
+      specGoalPlaceholder: '구현 목표, 변경 경계 및 기대 결과를 작성하세요…',
+      addTaskPlaceholder: '작업 제목 (예: 토큰 검증 스키마 정의)',
+      createSpecBtn: 'Spec 생성',
+      emptySpecs: '생성된 Spec이 아직 없습니다. 명세를 작성해 작업 의존성과 쓰기 잠금을 관리하세요.',
+      acceptanceTitle: '인수 기준',
+    },
+    studio: {
+      title: '워크스페이스 Studio',
+      subtitle:
+        '로컬 SQLite/CSV/JSON 데이터 검사, 오피스·PDF 문서 슬라이싱, 루프백 HTTP 프로브를 오프라인으로 수행합니다.',
+      tabData: '로컬 데이터',
+      tabDocs: '문서 슬라이서',
+      tabHttp: '루프백 HTTP',
+      sourcesTitle: '탐지된 워크스페이스 자산',
+      refreshSources: '자산 새로고침',
+      filePathPlaceholder: '워크스페이스 상대 경로 (예: data/app.db 또는 docs/spec.docx)',
+      sqlQueryPlaceholder: '선택적 읽기 전용 SQL (예: SELECT * FROM items LIMIT 50)',
+      filterPlaceholder: '선택적 키워드 필터…',
+      inspectBtn: '검사',
+      probeBtn: '프로브 전송',
+      urlPlaceholder: 'http://127.0.0.1:3000/health',
+      loopbackOnlyNote:
+        '루프백 전용: 127.0.0.1, localhost, [::1]로만 엄격히 제한되며 외부 네트워크 요청을 보내지 않습니다.',
+      headersPlaceholder: '선택적 JSON 헤더 (예: {"Accept": "application/json"})',
+      bodyPlaceholder: '선택적 요청 본문 (JSON 또는 일반 텍스트)…',
+      emptySources: '탐지된 SQLite, CSV, JSON, DOCX, XLSX, PDF 또는 Markdown 자산이 아직 없습니다.',
+      rowsCount: '행 수',
+      statusCode: '상태 코드',
+      truncatedNotice: '안전한 미리보기 한도에 맞춰 출력이 잘렸습니다.',
     },
     canvas: {
       title: '비주얼 캔버스',

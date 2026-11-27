@@ -101,7 +101,7 @@ export class NovBridge {
       return;
     }
 
-    const app = new McpApp({ name: 'agy-NOV', version: '0.2.0' }, {});
+    const app = new McpApp({ name: 'agy-NOV', version: '0.4.0' }, {});
     this.app = app;
 
     app.ontoolresult = (result) => {
