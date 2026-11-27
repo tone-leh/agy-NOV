@@ -1,6 +1,12 @@
 import type { ModuleId, NovConfig, NovLocale, PresetId } from './config.js';
 
-export type HookEventName = 'SessionStart' | 'PreToolUse' | 'PostToolUse' | 'Stop';
+export type HookEventName =
+  | 'SessionStart'
+  | 'PreToolUse'
+  | 'PostToolUse'
+  | 'PreInvocation'
+  | 'PostInvocation'
+  | 'Stop';
 
 /**
  * Normalized hook payload compatible with both Antigravity camelCase (`toolCall`, `workspacePaths`)

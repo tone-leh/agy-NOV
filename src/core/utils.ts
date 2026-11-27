@@ -40,6 +40,8 @@ export function normalizeHookEvent(rawEvent: unknown, fallback: HookEventName): 
     rawEvent === 'SessionStart' ||
     rawEvent === 'PreToolUse' ||
     rawEvent === 'PostToolUse' ||
+    rawEvent === 'PreInvocation' ||
+    rawEvent === 'PostInvocation' ||
     rawEvent === 'Stop'
   ) {
     return rawEvent;

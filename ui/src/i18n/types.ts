@@ -1,15 +1,19 @@
 import type {
   ModuleCategoryId,
+  ModuleDomainId,
   ModuleId,
   NovLocale,
+  NovStartupView,
   PresetId,
   ResolvedUiLocale,
 } from '../../../src/core/catalog.js';
 
 export type {
   ModuleCategoryId,
+  ModuleDomainId,
   ModuleId,
   NovLocale,
+  NovStartupView,
   PresetId,
   ResolvedUiLocale,
 };
@@ -287,6 +291,74 @@ export interface PanelsI18n {
   remote: RemotePanelI18n;
 }
 
+export interface DomainI18nEntry {
+  label: string;
+  description: string;
+  tierLabel: string;
+}
+
+export interface NavI18n {
+  hubLabel: string;
+  settingsLabel: string;
+  switchModulePlaceholder: string;
+  commandPaletteTitle: string;
+  commandPalettePlaceholder: string;
+  commandPaletteEmpty: string;
+  openSettingsTip: string;
+  toolBudgetLabel: string;
+  narrowSwitcherLabel: string;
+}
+
+export interface HubI18n {
+  title: string;
+  subtitle: string;
+  pipelineTitle: string;
+  alertsTitle: string;
+  noAlerts: string;
+  quickActionsTitle: string;
+  openModule: string;
+  enableToUse: string;
+  writeLockBadge: string;
+  staleMemBadge: string;
+  blockedBadge: string;
+  verifyPass: string;
+  verifyFail: string;
+  verifyIdle: string;
+  dualStarReady: string;
+}
+
+export interface SettingsHubI18n {
+  title: string;
+  subtitle: string;
+  searchPlaceholder: string;
+  searchClear: string;
+  searchNoHits: string;
+  startupViewLabel: string;
+  startupHub: string;
+  startupLast: string;
+  configureBtn: string;
+  collapseBtn: string;
+  strategyTitle: string;
+  openFullPanelBtn: string;
+  advancedTitle: string;
+  advancedSub: string;
+  teamPresetSection: string;
+  exportBtn: string;
+  importBtn: string;
+  importPlaceholder: string;
+  importApplyBtn: string;
+  resetBtn: string;
+  resetConfirmBtn: string;
+  resetCancelBtn: string;
+  dualStarSection: string;
+  feedReady: string;
+  feedMissing: string;
+  idleSlotHint: string;
+  safetyNotice: string;
+  importSuccess: string;
+  resetSuccess: string;
+}
+
 export interface UiDictionary {
   brandTitle: string;
   modulesBtn: string;
@@ -323,6 +395,10 @@ export interface UiDictionary {
   statusGatewayRunning: string;
   openModuleBtn: string;
   categories: Record<ModuleCategoryId, { label: string; description: string }>;
+  domains: Record<ModuleDomainId, DomainI18nEntry>;
+  nav: NavI18n;
+  hub: HubI18n;
+  settingsHub: SettingsHubI18n;
   presets: Record<PresetId, { label: string; description: string }>;
   modules: Record<ModuleId, ModuleI18nEntry>;
   common: {

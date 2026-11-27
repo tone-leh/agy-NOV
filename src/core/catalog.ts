@@ -24,6 +24,14 @@ export const MODULE_CATEGORY_IDS = [
 ] as const;
 export type ModuleCategoryId = (typeof MODULE_CATEGORY_IDS)[number];
 
+export const MODULE_DOMAIN_IDS = ['core', 'pipeline', 'toolbox', 'connectivity'] as const;
+export type ModuleDomainId = (typeof MODULE_DOMAIN_IDS)[number];
+
+export const STARTUP_VIEW_IDS = ['hub', 'last'] as const;
+export type NovStartupView = (typeof STARTUP_VIEW_IDS)[number];
+
+export const MAX_MCP_TOOL_BUDGET = 100;
+
 export const PRESET_IDS = ['core', 'power', 'local-all', 'full', 'minimal'] as const;
 export type PresetId = (typeof PRESET_IDS)[number];
 
@@ -49,6 +57,7 @@ export type IsolationTier = 'offline' | 'opt-in-network';
 export interface ModuleMetadata {
   id: ModuleId;
   category: ModuleCategoryId;
+  domain: ModuleDomainId;
   name: string;
   shortLabel: string;
   tagline: string;
@@ -58,9 +67,39 @@ export interface ModuleMetadata {
   uiMode: 'full-height' | 'scroll';
   hasUiTab: boolean;
   defaultEnabled: boolean;
-  hooks: Array<'SessionStart' | 'PreToolUse' | 'PostToolUse' | 'Stop'>;
+  hooks: Array<'SessionStart' | 'PreToolUse' | 'PostToolUse' | 'PreInvocation' | 'PostInvocation' | 'Stop'>;
   modelToolNames: string[];
 }
+
+export const MODULE_DOMAIN_META: Record<
+  ModuleDomainId,
+  { id: ModuleDomainId; label: string; description: string; tierLabel: string }
+> = {
+  core: {
+    id: 'core',
+    label: 'Core Essentials',
+    description: 'Daily high-frequency guardrails, PR diff review, and context/cost X-Ray.',
+    tierLabel: 'L1 · Default ON',
+  },
+  pipeline: {
+    id: 'pipeline',
+    label: 'Engineering Pipeline',
+    description: 'Spec-to-Verify closed loop: Spec Flow, Worktrees, Verify Gate, Turbo & Memory.',
+    tierLabel: 'L2 · Pipeline',
+  },
+  toolbox: {
+    id: 'toolbox',
+    label: 'On-Demand Toolbox',
+    description: 'Specialized offline utilities toggled on when needed with zero idle overhead.',
+    tierLabel: 'L3 · On-Demand',
+  },
+  connectivity: {
+    id: 'connectivity',
+    label: 'Opt-In Connectivity',
+    description: 'Strictly OFF by default: local mobile PWA and IM alerts/approvals.',
+    tierLabel: 'L4 · Opt-In Net',
+  },
+};
 
 export const MODULE_CATEGORY_META: Record<
   ModuleCategoryId,
@@ -97,6 +136,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
   review: {
     id: 'review',
     category: 'core-dev',
+    domain: 'core',
     name: 'Diff Review',
     shortLabel: 'Review',
     tagline: 'PR-grade inline diff review & line annotations',
@@ -113,6 +153,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
   guard: {
     id: 'guard',
     category: 'safety',
+    domain: 'core',
     name: 'Guard & Snapshots',
     shortLabel: 'Guard',
     tagline: 'Secret leak shield, command firewall & pre-edit snapshots',
@@ -123,7 +164,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
     uiMode: 'scroll',
     hasUiTab: true,
     defaultEnabled: true,
-    hooks: ['PreToolUse'],
+    hooks: ['PreToolUse', 'PreInvocation'],
     modelToolNames: [
       'guard_status',
       'guard_list_snapshots',
@@ -134,6 +175,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
   xray: {
     id: 'xray',
     category: 'observability',
+    domain: 'core',
     name: 'Context X-Ray',
     shortLabel: 'X-Ray',
     tagline: 'Token & cache breakdown, live file tree & cross-session search',
@@ -155,6 +197,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
   turbo: {
     id: 'turbo',
     category: 'core-dev',
+    domain: 'pipeline',
     name: 'Turbo & Output Guard',
     shortLabel: 'Turbo',
     tagline: 'Batch codebase search, outline slices & RTK-style output compression',
@@ -171,6 +214,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
   radar: {
     id: 'radar',
     category: 'observability',
+    domain: 'toolbox',
     name: 'Session Radar & Chime',
     shortLabel: 'Radar',
     tagline: 'Multi-session attention board, Swarm subagent monitor & completion alerts',
@@ -187,6 +231,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
   verify: {
     id: 'verify',
     category: 'safety',
+    domain: 'pipeline',
     name: 'Verify Gate',
     shortLabel: 'Verify',
     tagline: 'Stop-hook verification gate blocking unverified "done" claims',
@@ -208,6 +253,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
   worktree: {
     id: 'worktree',
     category: 'core-dev',
+    domain: 'pipeline',
     name: 'Worktree Orchestrator',
     shortLabel: 'Worktree',
     tagline: 'Safe parallel Git worktrees, branch diff previews & orphan cleanup',
@@ -229,17 +275,18 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
   spec: {
     id: 'spec',
     category: 'workspace',
+    domain: 'pipeline',
     name: 'Spec Flow & Task DAG',
     shortLabel: 'Spec',
-    tagline: 'Spec-driven development, dependency task DAG & pre-approval write lock',
+    tagline: 'Plan inline review, Brownfield Delta Spec, Task DAG & pre-approval write lock',
     description:
-      'Maintain structured Spec -> Plan -> Task DAG workflows with cycle detection, SessionStart next-task recall, and a PreToolUse write gate that keeps code read-only until the spec is approved.',
+      'Maintain structured Full or Delta Specs with Plannotator-style inline annotations, revision diffs, dependency Task DAGs, SessionStart recall, and PreToolUse/PreInvocation guardrails.',
     isolationTier: 'offline',
     networkAccess: 'offline',
     uiMode: 'scroll',
     hasUiTab: true,
     defaultEnabled: false,
-    hooks: ['SessionStart', 'PreToolUse'],
+    hooks: ['SessionStart', 'PreToolUse', 'PreInvocation'],
     modelToolNames: [
       'spec_get_state',
       'spec_create_or_update',
@@ -250,6 +297,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
   studio: {
     id: 'studio',
     category: 'workspace',
+    domain: 'toolbox',
     name: 'Workspace Studio',
     shortLabel: 'Studio',
     tagline: 'On-demand SQLite/CSV/JSON data viewer, DOCX/XLSX/PDF slicer & loopback HTTP probe',
@@ -271,6 +319,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
   canvas: {
     id: 'canvas',
     category: 'workspace',
+    domain: 'toolbox',
     name: 'Visual Canvas',
     shortLabel: 'Canvas',
     tagline: 'HTML/SVG/Slides/Markdown visual preview & pin annotations',
@@ -292,6 +341,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
   mem: {
     id: 'mem',
     category: 'workspace',
+    domain: 'pipeline',
     name: 'Memory Graph',
     shortLabel: 'Memory',
     tagline: 'Code-anchored long-term memory with drift detection',
@@ -302,12 +352,13 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
     uiMode: 'scroll',
     hasUiTab: true,
     defaultEnabled: false,
-    hooks: ['SessionStart', 'Stop'],
+    hooks: ['SessionStart', 'PreInvocation', 'Stop'],
     modelToolNames: ['mem_remember', 'mem_recall', 'mem_forget'],
   },
   ops: {
     id: 'ops',
     category: 'workspace',
+    domain: 'toolbox',
     name: 'Prompt Vault & Budget Doctor',
     shortLabel: 'Ops',
     tagline: 'Parameterized prompt vault, 24KB/20K rule bloat & 100-tool budget doctor',
@@ -324,6 +375,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
   remote: {
     id: 'remote',
     category: 'connectivity',
+    domain: 'connectivity',
     name: 'Mobile & IM Remote',
     shortLabel: 'Remote',
     tagline: 'Opt-in Mobile PWA & IM remote alerts / risky approvals',
@@ -458,12 +510,21 @@ export interface NovConfig {
   preset: PresetId | 'custom';
   modules: Record<ModuleId, boolean>;
   defaultTab: ModuleId;
+  startupView?: NovStartupView;
   locale: NovLocale;
   updatedAt: string;
 }
 
 export function isModuleId(value: unknown): value is ModuleId {
   return typeof value === 'string' && (MODULE_IDS as readonly string[]).includes(value);
+}
+
+export function isModuleDomainId(value: unknown): value is ModuleDomainId {
+  return typeof value === 'string' && (MODULE_DOMAIN_IDS as readonly string[]).includes(value);
+}
+
+export function isNovStartupView(value: unknown): value is NovStartupView {
+  return typeof value === 'string' && (STARTUP_VIEW_IDS as readonly string[]).includes(value);
 }
 
 export function isPresetId(value: unknown): value is PresetId {

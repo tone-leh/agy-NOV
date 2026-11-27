@@ -130,11 +130,25 @@ export function handleSpecSessionStartHook(
         ? 'UNLOCKED (spec approved)'
         : 'OFF';
 
+    const modeTag = spec.mode === 'delta' ? '[DELTA] ' : '';
     const lines: string[] = [
-      `[agy-NOV Spec Flow] Active Spec: "${spec.title}" (${spec.id})`,
+      `[agy-NOV Spec Flow] Active Spec: ${modeTag}"${spec.title}" (${spec.id}) [v${spec.revision}]`,
       `Status: ${spec.status.toUpperCase()} | Write Lock: ${writeLockLabel}${spec.requireUiApproval ? ' | UI Approval Required' : ''}`,
       `Progress: ${doneCount}/${spec.tasks.length} done, ${inProgressCount} in_progress, ${readyTasks.length} ready, ${waitingCount} waiting_deps, ${blockedCount} blocked`,
     ];
+
+    if (spec.mode === 'delta' && spec.deltaItems.length > 0) {
+      const added = spec.deltaItems.filter((d) => d.kind === 'added').length;
+      const modified = spec.deltaItems.filter((d) => d.kind === 'modified').length;
+      const removed = spec.deltaItems.filter((d) => d.kind === 'removed').length;
+      lines.push(`Delta Contract: +${added} added, ~${modified} modified, -${removed} removed`);
+    }
+
+    if (spec.unresolvedAnnotations > 0) {
+      lines.push(
+        `Plan Review Pending: ${spec.unresolvedAnnotations} unresolved inline annotation(s) on v${spec.revision}. Read and address the user's inline annotations via spec_get_state (and publish v${spec.revision + 1}) before requesting approval.`,
+      );
+    }
 
     const topReady = readyTasks.slice(0, 5);
     if (topReady.length > 0) {

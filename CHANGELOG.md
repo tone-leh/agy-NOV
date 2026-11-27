@@ -2,6 +2,42 @@
 
 All notable changes to **agy-NOV** will be documented in this file.
 
+## [0.7.0] - 2026-11-27
+
+### Added
+- **4+1 Functional Domain IA, Adaptive Wide/Narrow Navigation, Workflow Hub & `⌘K` Command Palette (`ui`, `core`):**
+  - Reorganized all 13 native modules into **4 clear functional domains** — Core Essentials (`core`: `review`, `guard`, `xray`), Engineering Pipeline (`pipeline`: `spec`, `worktree`, `verify`, `turbo`, `mem`), On-Demand Toolbox (`toolbox`: `radar`, `studio`, `canvas`, `ops`), and Opt-In Connectivity (`connectivity`: `remote`) — fronted by the **+1 Workflow Hub** (`HubPanel`).
+  - Built responsive wide/narrow navigation within the single UI bundle: `< 720px` narrow sidebars (`aux_pane`) switch to a clean 4-control top bar with a domain-grouped dropdown switcher; `>= 720px` full-width panes (`global`) switch to a `204px` domain-grouped left rail.
+  - Added the **L0 Workflow Hub** overview featuring a 6-node pipeline status strip, prioritized alert cards, and a `Cmd/Ctrl+K` (`⌘K`) command palette for instant jumps across views and modules, plus configurable `startupView` (`hub` | `last`).
+- **4-Tier Unified Settings Hub (`SettingsHub`, `server`):**
+  - **S1:** Global mode controls, instant search, 5 one-click presets, and a live 100-tool budget progress bar.
+  - **S2:** Single-source-of-truth domain-grouped master switches for all 13 modules.
+  - **S3:** On-demand policy drawers expanded exclusively for enabled modules (`guard`, `verify`, `spec`, `radar`, `remote`).
+  - **S4:** Collapsed-by-default advanced governance with redacted JSON config export, allowlist-validated config import (blocking prototype pollution and refusing silent `remote` enablement), inline double-confirmation reset to defaults, plus read-only `.agy-nov.json` team preset and dual-star feed status.
+  - Added 5 App-only control tools (`nov_app_get_hub_state`, `nov_app_set_startup_view`, `nov_app_export_config`, `nov_app_import_config`, `nov_app_reset_config`) marked `visibility: ['app']` so model-visible tools remain strictly unchanged at **47**.
+- **Spec 2.0 — Plannotator Inline Review Bench, Brownfield Delta Spec & Archive to `mem` (`spec`):**
+  - Added `full` and `delta` (`ADDED` / `MODIFIED` / `REMOVED`) specification modes tailored for both greenfield plans and brownfield repository changes.
+  - Added automatic revision numbering with a rolling history of the **latest 8 snapshots** and a zero-dependency pure-TypeScript line-level LCS diff engine (automatically falling back to linear diffing beyond **600 lines**).
+  - Added inline `Comment`, `Strike`, and `Replace` annotations with one-click structured bounce-back prompts to the agent, plus one-click archival into `mem` with automatic `<private>` tag stripping and secret redaction.
+- **Dual-Star Read-Only Feed Snapshot (`feed-snapshot.json`) & Official `PreInvocation` Zero-Token Visual Receipts (`core`, `hooks`, `docs`):**
+  - Added event-driven `<dataDir>/feed-snapshot.json` generation (`src/core/feed.ts`) with `0600` atomic writes, hard `< 64 KiB` size cap, linear O(n) full redaction, explicit declaration of all `modules/<id>/` paths, and strict zero-write / zero-mkdir guarantees when `dataDir` does not yet exist.
+  - Published canonical architecture & integration specs: [`docs/DUAL-STAR-CONTRACT.md`](./docs/DUAL-STAR-CONTRACT.md) and [`docs/PRODUCT-IA.md`](./docs/PRODUCT-IA.md).
+  - Extended `hooks.json` from 4 to **5 official Antigravity Lifecycle Hooks** by adding `PreInvocation` (5s timeout) emitting zero-model-token visual receipts (`systemMessage: ""` + `metadata.user_markdown`) for active `spec` draft write locks, `mem` stale-anchor warnings, and recent `guard` denies, with O(1) short-circuiting when all three modules are off.
+- **Expanded 8-Language Dictionary & Automated v0.7.0 Test Coverage:**
+  - Expanded the built-in 8-language UI dictionary to **491 keys × 8 locales** covering all **24 UI components** (including new `HubPanel` and `SettingsHub`).
+  - Added 3 dedicated v0.7.0 automated test suites (`test/v07-feed-preinvocation.test.ts`, `test/v07-spec-plannotator.test.ts`, `test/v07-settings-ia.test.ts`), raising total automated verification to **55 suites / 163 tests**.
+
+### Changed
+- **Preserved 13-Module Architecture, 5 Presets, 8 CLI Commands & 47 Model Tools Unchanged:** All 13 toggleable native modules (12 local offline + 1 opt-in `remote`), 5 presets (`minimal` 6 / `core` 12 / `power` 32 / `local-all` 43 / `full` 47), 8 CLI commands, and all 47 canonical model tool names (including `spec`'s 4 tools) remain 100% backward-compatible.
+- **Extended `nov_open` Targets:** `nov_open` now accepts `'hub'` and `'settings'` alongside all 13 module IDs and backward-compatible `'modules'`.
+- **Bundle, Docs & Metadata Alignment:** Updated `package.json`, `plugin.json`, `hooks.json`, `skills/agy-nov/SKILL.md`, `README.md`, all 7 localized `docs/i18n/README.*.md` files, `llms.txt`, and `docs/llms-install.md` to `v0.7.0` (`dist/ui/app.html` `~1.1 MB`, measured `1,112.7 KB`, far below the 10 MiB cap; 491 keys × 8 locales across 24 components).
+
+### Security
+- **Dual-Star Feed Snapshot Containment & Zero-Touch Guarantees (`core`):** Enforced symlink checks (`lstatSync`), `0600` atomic rename writes, `< 64 KiB` hard cap, linear O(n) redaction stripping tokens/keys/webhooks/`<private>` spans, and zero directory creation or disk writes when `dataDir` is absent.
+- **Zero-Token Non-Blocking `PreInvocation` Hook (`hooks`):** Strictly sets `systemMessage: ""` while placing sanitized Markdown inside `metadata.user_markdown`, never emits termination/block directives, performs zero writes, and short-circuits in O(1) when `spec`, `mem`, and `guard` are disabled.
+- **Settings Hub Governance Hardening (`server`, `ui`):** Config export outputs allowlisted fields only (zero secrets, zero host paths); config import enforces strict allowlist validation, blocks `__proto__` / `constructor` / `prototype` prototype pollution, and refuses silent `remote` enablement; reset to defaults requires explicit inline double confirmation (`confirm: true`).
+- **Spec 2.0 Diff & Archive Hardening (`spec`):** Pure-TypeScript LCS diff falls back linearly past 600 lines to prevent CPU spikes, and archiving specs to `mem` automatically strips `<private>` blocks and redacts credentials while maintaining 100% Zero ASAR / Zero CDP invariants.
+
 ## [0.6.0] - 2026-11-27
 
 ### Added

@@ -1,9 +1,17 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import {
+  getModuleDataDir,
   loadNovConfigReadOnly,
   resolveNovDataDir,
   sanitizeDataDirCandidate,
+  type NovConfig,
 } from '../core/config.js';
+import {
+  isMemoryRecordStale,
+  redactFeedText,
+  writeFeedSnapshotIfDataDirExists,
+} from '../core/feed.js';
 import type { HookEventName, NormalizedHookPayload } from '../core/types.js';
 import { normalizeHookEvent, normalizeHookPayload, parseCliFlag } from '../core/utils.js';
 import { handleGuardPreToolHook } from '../modules/guard/hook.js';
@@ -20,6 +28,147 @@ export interface UnifiedHookResult {
   decision?: 'allow' | 'ask' | 'deny';
   reason?: string;
   injectSteps?: unknown[];
+  terminationBehavior?: '' | 'terminate' | 'force_continue';
+}
+
+const PRE_INVOCATION_GUARD_WINDOW_MS = 5 * 60 * 1000;
+const MAX_PRE_INVOCATION_FILE_BYTES = 2 * 1024 * 1024;
+
+function readJsonStrictReadOnly(rootDataDir: string, moduleId: 'spec' | 'mem' | 'guard', fileName: string): unknown | null {
+  try {
+    const rootStat = fs.lstatSync(rootDataDir);
+    if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) return null;
+    const modulesRoot = path.join(rootDataDir, 'modules');
+    const modsStat = fs.lstatSync(modulesRoot);
+    if (modsStat.isSymbolicLink() || !modsStat.isDirectory()) return null;
+    const modDir = getModuleDataDir(rootDataDir, moduleId);
+    const modStat = fs.lstatSync(modDir);
+    if (modStat.isSymbolicLink() || !modStat.isDirectory()) return null;
+    const filePath = path.join(modDir, fileName);
+    const fileStat = fs.lstatSync(filePath);
+    if (fileStat.isSymbolicLink() || !fileStat.isFile() || fileStat.size > MAX_PRE_INVOCATION_FILE_BYTES) {
+      return null;
+    }
+    return JSON.parse(fs.readFileSync(filePath, 'utf8')) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function stripBidiAndZeroWidth(input: string): string {
+  return input.replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '');
+}
+
+function escapeMarkdownInline(input: string): string {
+  return stripBidiAndZeroWidth(input).replace(/([\\`*_~[\]()!<>|#])/g, '\\$1');
+}
+
+function sanitizeInlineCodeToken(input: string): string {
+  const cleaned = stripBidiAndZeroWidth(input)
+    .replace(/[`\r\n]/g, '')
+    .replace(/[^A-Za-z0-9._:/ -]/g, '_')
+    .trim();
+  return cleaned || 'tool';
+}
+
+function buildPreInvocationReceiptLines(rootDataDir: string, config: NovConfig): string[] {
+  const { modules } = config;
+  const lines: string[] = [];
+
+  // 1. Spec DRAFT write-lock receipt
+  if (modules.spec) {
+    const raw = readJsonStrictReadOnly(rootDataDir, 'spec', 'state.json');
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      const state = raw as Record<string, unknown>;
+      const activeId = typeof state.activeSpecId === 'string' ? state.activeSpecId : null;
+      let activeSpec: Record<string, unknown> | null = null;
+      if (activeId && Array.isArray(state.specs)) {
+        for (const item of state.specs) {
+          if (item && typeof item === 'object' && !Array.isArray(item) && (item as Record<string, unknown>).id === activeId) {
+            activeSpec = item as Record<string, unknown>;
+            break;
+          }
+        }
+      } else if (activeId && state.specs && typeof state.specs === 'object' && !Array.isArray(state.specs)) {
+        const candidate = (state.specs as Record<string, unknown>)[activeId];
+        if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+          activeSpec = candidate as Record<string, unknown>;
+        }
+      }
+      if (activeSpec && activeSpec.status === 'draft' && activeSpec.enforcePlanBeforeWrite === true) {
+        const rawTitle = typeof activeSpec.title === 'string' && activeSpec.title.trim() ? activeSpec.title : activeId ?? 'Active Spec';
+        const safeTitle = escapeMarkdownInline(redactFeedText(rawTitle, 80));
+        lines.push(`🔒 **Spec Write Lock**: "${safeTitle}" is in DRAFT — approve before editing files.`);
+      }
+    }
+  }
+
+  // 2. Memory stale/drifted anchor receipt
+  if (modules.mem) {
+    const raw = readJsonStrictReadOnly(rootDataDir, 'mem', 'memories.json');
+    const list = Array.isArray(raw)
+      ? raw
+      : raw && typeof raw === 'object' && Array.isArray((raw as Record<string, unknown>).memories)
+        ? ((raw as Record<string, unknown>).memories as unknown[])
+        : raw && typeof raw === 'object' && Array.isArray((raw as Record<string, unknown>).items)
+          ? ((raw as Record<string, unknown>).items as unknown[])
+          : [];
+    let staleCount = 0;
+    for (const item of list) {
+      if (item && typeof item === 'object' && !Array.isArray(item) && isMemoryRecordStale(item as Record<string, unknown>)) {
+        staleCount += 1;
+      }
+    }
+    if (staleCount > 0) {
+      lines.push(`🧠 **Memory Drift**: ${staleCount} anchored memory item(s) marked stale/drifted — review or re-verify anchors.`);
+    }
+  }
+
+  // 3. Guard recent deny receipt (within last 5 minutes)
+  if (modules.guard) {
+    const raw = readJsonStrictReadOnly(rootDataDir, 'guard', 'audit.json');
+    const events = Array.isArray(raw)
+      ? raw
+      : raw && typeof raw === 'object' && Array.isArray((raw as Record<string, unknown>).events)
+        ? ((raw as Record<string, unknown>).events as unknown[])
+        : [];
+    const nowMs = Date.now();
+    let newestTs = -Infinity;
+    let newestDeny: { toolName: string; reason: string } | null = null;
+    for (const item of events) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+      const rec = item as Record<string, unknown>;
+      const decision = String(rec.decision ?? '').trim().toLowerCase();
+      if (decision !== 'deny') continue;
+      const tsMs = typeof rec.timestamp === 'string' ? Date.parse(rec.timestamp) : Number.NaN;
+      if (!Number.isFinite(tsMs)) continue;
+      const ageMs = nowMs - tsMs;
+      if (ageMs > PRE_INVOCATION_GUARD_WINDOW_MS || ageMs < -60_000) continue;
+      if (tsMs > newestTs) {
+        newestTs = tsMs;
+        newestDeny = {
+          toolName: sanitizeInlineCodeToken(redactFeedText(String(rec.toolName ?? rec.tool_name ?? 'tool'), 48)),
+          reason: escapeMarkdownInline(
+            redactFeedText(String(rec.reason ?? rec.summary ?? 'blocked by Guard policy'), 120) ||
+              'blocked by Guard policy',
+          ),
+        };
+      }
+    }
+    if (newestDeny) {
+      lines.push(`🛡️ **Guard Blocked**: \`${newestDeny.toolName}\` was denied recently — ${newestDeny.reason}`);
+    }
+  }
+
+  return lines;
+}
+
+function refreshFeedSnapshotBestEffort(rootDataDir: string, config: NovConfig): void {
+  try {
+    writeFeedSnapshotIfDataDirExists(rootDataDir, config);
+  } catch {
+    // Best-effort only: never impact hook result or latency
+  }
 }
 
 export async function dispatchNovHook(
@@ -71,6 +220,33 @@ export async function dispatchNovHook(
     }
 
     return injectSteps.length > 0 ? { injectSteps } : {};
+  }
+
+  if (payload.event === 'PreInvocation') {
+    // O(1) short-circuit: zero disk reads and zero disk writes when all 3 receipt sources are off.
+    if (!modules.spec && !modules.mem && !modules.guard) {
+      return {};
+    }
+    try {
+      const lines = buildPreInvocationReceiptLines(rootDataDir, config);
+      if (lines.length === 0) {
+        return {};
+      }
+      return {
+        injectSteps: [
+          {
+            systemMessage: {
+              systemMessage: '',
+              metadata: {
+                user_markdown: lines.join('\n'),
+              },
+            },
+          },
+        ],
+      };
+    } catch {
+      return {};
+    }
   }
 
   if (payload.event === 'PreToolUse') {
@@ -174,6 +350,7 @@ export async function dispatchNovHook(
         // isolate module error
       }
     }
+    refreshFeedSnapshotBestEffort(rootDataDir, config);
     return {};
   }
 
@@ -196,6 +373,7 @@ export async function dispatchNovHook(
       try {
         const verifyRes = await handleVerifyStopHook(payload, rootDataDir);
         if (verifyRes.decision === 'deny') {
+          refreshFeedSnapshotBestEffort(rootDataDir, config);
           return {
             decision: 'deny',
             reason:
@@ -228,6 +406,7 @@ export async function dispatchNovHook(
         // isolate
       }
     }
+    refreshFeedSnapshotBestEffort(rootDataDir, config);
     return { decision: 'allow' };
   }
 

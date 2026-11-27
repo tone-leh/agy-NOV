@@ -1,11 +1,65 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { getModuleDataDir } from '../../core/config.js';
 import { atomicWriteJson } from '../../core/utils.js';
+import { MemoryStore, redactSecrets, stripPrivateTags } from '../mem/store.js';
+import type { MemoryItem } from '../mem/types.js';
 
 export type SpecStatus = 'draft' | 'approved' | 'completed' | 'archived';
 export type SpecTaskStatus = 'pending' | 'in_progress' | 'done' | 'blocked';
 export type SpecActor = 'user' | 'model';
+export type SpecMode = 'full' | 'delta';
+export type SpecDeltaKind = 'added' | 'modified' | 'removed';
+export type SpecAnnotationKind = 'comment' | 'strike' | 'replace';
+
+export interface SpecDeltaItem {
+  id: string;
+  kind: SpecDeltaKind;
+  area?: string;
+  text: string;
+}
+
+export interface SpecDeltaItemInput {
+  id?: string;
+  kind: SpecDeltaKind;
+  area?: string;
+  text: string;
+}
+
+export interface SpecRevisionEntry {
+  revision: number;
+  planMarkdown: string;
+  updatedAt: string;
+  summary?: string;
+}
+
+export interface SpecPlanAnnotation {
+  id: string;
+  revision: number;
+  lineStart: number;
+  lineEnd: number;
+  kind: SpecAnnotationKind;
+  note: string;
+  suggestedText?: string;
+  resolved: boolean;
+  createdAt: string;
+  resolvedAt?: string;
+}
+
+export interface SpecRevisionDiffHunk {
+  type: 'same' | 'add' | 'del';
+  oldLine?: number;
+  newLine?: number;
+  text: string;
+}
+
+export interface SpecRevisionDiffResult {
+  addedLines: number;
+  removedLines: number;
+  degraded: boolean;
+  hunks: SpecRevisionDiffHunk[];
+}
 
 export interface SpecTask {
   id: string;
@@ -27,6 +81,13 @@ export interface SpecDocument {
   id: string;
   title: string;
   goal: string;
+  mode: SpecMode;
+  deltaItems: SpecDeltaItem[];
+  planMarkdown: string;
+  revision: number;
+  revisions: SpecRevisionEntry[];
+  annotations: SpecPlanAnnotation[];
+  archivedMemoryId?: string;
   acceptanceCriteria: string[];
   planSteps: string[];
   status: SpecStatus;
@@ -40,11 +101,18 @@ export interface SpecDocument {
   updatedAt: string;
 }
 
-export type SpecDocumentView = Omit<SpecDocument, 'tasks'> & { tasks: SpecTaskView[] };
+export type SpecDocumentView = Omit<SpecDocument, 'tasks'> & {
+  tasks: SpecTaskView[];
+  unresolvedAnnotations: number;
+};
 
 export interface SpecSummaryItem {
   id: string;
   title: string;
+  mode: SpecMode;
+  revision: number;
+  unresolvedAnnotations: number;
+  archivedMemoryId?: string;
   status: SpecStatus;
   enforcePlanBeforeWrite: boolean;
   requireUiApproval: boolean;
@@ -82,6 +150,10 @@ export interface SaveSpecInput {
   id?: string;
   title: string;
   goal: string;
+  mode?: SpecMode;
+  deltaItems?: SpecDeltaItemInput[];
+  planMarkdown?: string;
+  revisionSummary?: string;
   acceptanceCriteria?: string[];
   planSteps?: string[];
   enforcePlanBeforeWrite?: boolean;
@@ -106,12 +178,59 @@ export interface UpdateSpecTaskInput {
   note?: string;
 }
 
+export interface AddSpecAnnotationInput {
+  specId?: string;
+  lineStart: number;
+  lineEnd: number;
+  kind: SpecAnnotationKind;
+  note?: string;
+  suggestedText?: string;
+  revision?: number;
+}
+
+export interface ResolveSpecAnnotationInput {
+  specId?: string;
+  annotationId: string;
+  resolved?: boolean;
+}
+
+export interface DeleteSpecAnnotationInput {
+  specId?: string;
+  annotationId: string;
+}
+
+export interface ArchiveSpecToMemoryOptions {
+  isDemo?: boolean;
+  demoState?: SpecStateFile | null;
+  workspacePath?: string;
+  pinned?: boolean;
+  note?: string;
+}
+
+export interface ArchiveSpecToMemoryResult {
+  ok: true;
+  memoryId: string;
+  memoryTitle: string;
+  tags: string[];
+  demoSimulated: boolean;
+  memory?: MemoryItem;
+  spec: SpecDocumentView;
+  state: SpecStateFile;
+}
+
 export const SPEC_ID_RE = /^[a-zA-Z0-9._-]{1,64}$/;
 export const SPEC_TASK_ID_RE = /^[a-zA-Z0-9._-]{1,48}$/;
+export const SPEC_DELTA_ID_RE = /^[a-zA-Z0-9._-]{1,48}$/;
+export const SPEC_ANNOTATION_ID_RE = /^[a-zA-Z0-9._-]{1,48}$/;
 export const MAX_SPECS = 50;
 export const MAX_TASKS_PER_SPEC = 100;
 export const MAX_CRITERIA_ITEMS = 50;
 export const MAX_PLAN_STEPS = 80;
+export const MAX_DELTA_ITEMS = 60;
+export const MAX_PLAN_MARKDOWN_CHARS = 24_000;
+export const MAX_REVISIONS_PER_SPEC = 8;
+export const MAX_ANNOTATIONS_PER_SPEC = 100;
+export const MAX_LCS_DIFF_LINES = 600;
 
 const VALID_SPEC_STATUSES: ReadonlySet<SpecStatus> = new Set([
   'draft',
@@ -125,6 +244,20 @@ const VALID_TASK_STATUSES: ReadonlySet<SpecTaskStatus> = new Set([
   'in_progress',
   'done',
   'blocked',
+]);
+
+const VALID_SPEC_MODES: ReadonlySet<SpecMode> = new Set(['full', 'delta']);
+
+const VALID_DELTA_KINDS: ReadonlySet<SpecDeltaKind> = new Set([
+  'added',
+  'modified',
+  'removed',
+]);
+
+const VALID_ANNOTATION_KINDS: ReadonlySet<SpecAnnotationKind> = new Set([
+  'comment',
+  'strike',
+  'replace',
 ]);
 
 function sanitizeSingleLine(input: string, maxLen: number): string {
@@ -160,6 +293,427 @@ function sanitizeStringList(raw: unknown, maxItems: number, maxLen: number): str
     }
   }
   return out;
+}
+
+export function sanitizePlanMarkdown(input: string): string {
+  return input
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
+    .trimEnd()
+    .slice(0, MAX_PLAN_MARKDOWN_CHARS);
+}
+
+export function splitPlanMarkdownLines(markdown: string): string[] {
+  if (!markdown) return [];
+  return markdown.replace(/\r\n?/g, '\n').split('\n');
+}
+
+function createDeltaItemId(index: number, existingIds: ReadonlySet<string>): string {
+  for (let i = 0; i < 16; i += 1) {
+    const candidate = `delta-${index + 1}-${crypto.randomBytes(2).toString('hex')}`;
+    if (!existingIds.has(candidate)) return candidate;
+  }
+  return `delta-${index + 1}-${Date.now().toString(36)}`;
+}
+
+export function sanitizeDeltaItems(raw: unknown): SpecDeltaItem[] {
+  if (!Array.isArray(raw)) return [];
+  const out: SpecDeltaItem[] = [];
+  const seenIds = new Set<string>();
+  for (let i = 0; i < raw.length && out.length < MAX_DELTA_ITEMS; i += 1) {
+    const entry = raw[i];
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+    const obj = entry as Record<string, unknown>;
+    const kind =
+      typeof obj.kind === 'string' && VALID_DELTA_KINDS.has(obj.kind as SpecDeltaKind)
+        ? (obj.kind as SpecDeltaKind)
+        : null;
+    if (!kind) continue;
+    const text = typeof obj.text === 'string' ? sanitizeSingleLine(obj.text, 500) : '';
+    if (!text) continue;
+    const area =
+      typeof obj.area === 'string' && sanitizeSingleLine(obj.area, 80)
+        ? sanitizeSingleLine(obj.area, 80)
+        : undefined;
+    const rawId = typeof obj.id === 'string' ? obj.id.trim() : '';
+    const id =
+      rawId && SPEC_DELTA_ID_RE.test(rawId) && !seenIds.has(rawId)
+        ? rawId
+        : createDeltaItemId(out.length, seenIds);
+    seenIds.add(id);
+    out.push({
+      id,
+      kind,
+      ...(area ? { area } : {}),
+      text,
+    });
+  }
+  return out;
+}
+
+export function synthesizePlanMarkdown(input: {
+  title: string;
+  mode: SpecMode;
+  goal: string;
+  deltaItems: ReadonlyArray<SpecDeltaItem>;
+  acceptanceCriteria: ReadonlyArray<string>;
+  planSteps: ReadonlyArray<string>;
+  tasks?: ReadonlyArray<{ id: string; title: string; dependsOn: ReadonlyArray<string> }>;
+}): string {
+  const lines: string[] = [];
+  lines.push(`# ${input.title}`);
+  lines.push(
+    input.mode === 'delta' ? '> Mode: BROWNFIELD DELTA SPEC' : '> Mode: FULL SPEC',
+  );
+  lines.push('');
+  lines.push('## Goal');
+  lines.push(input.goal);
+
+  if (input.deltaItems.length > 0) {
+    lines.push('');
+    lines.push('## Behavioral Delta');
+    for (const item of input.deltaItems) {
+      const areaPrefix = item.area ? `(${item.area}) ` : '';
+      lines.push(`- [${item.kind.toUpperCase()}] ${areaPrefix}${item.text}`);
+    }
+  }
+
+  if (input.planSteps.length > 0) {
+    lines.push('');
+    lines.push('## Implementation Plan');
+    input.planSteps.forEach((step, idx) => {
+      lines.push(`${idx + 1}. ${step}`);
+    });
+  }
+
+  if (input.acceptanceCriteria.length > 0) {
+    lines.push('');
+    lines.push('## Acceptance Criteria');
+    for (const criterion of input.acceptanceCriteria) {
+      lines.push(`- [ ] ${criterion}`);
+    }
+  }
+
+  if (input.tasks && input.tasks.length > 0) {
+    lines.push('');
+    lines.push('## Task DAG');
+    for (const task of input.tasks) {
+      const deps = task.dependsOn.length > 0 ? ` (depends on: ${task.dependsOn.join(', ')})` : '';
+      lines.push(`- \`${task.id}\`: ${task.title}${deps}`);
+    }
+  }
+
+  return sanitizePlanMarkdown(lines.join('\n'));
+}
+
+/**
+ * Pure TypeScript line-level diff engine with O(N*M) LCS guardrails.
+ * Uses exact DP LCS when line counts are within MAX_LCS_DIFF_LINES (600),
+ * and degrades cleanly to O(N+M) linear prefix/middle/suffix block diff beyond limits.
+ */
+export function computePlanRevisionDiff(
+  prevMarkdown: string,
+  nextMarkdown: string,
+): SpecRevisionDiffResult {
+  const prevLines = splitPlanMarkdownLines(prevMarkdown);
+  const nextLines = splitPlanMarkdownLines(nextMarkdown);
+
+  if (prevLines.length === 0 && nextLines.length === 0) {
+    return { addedLines: 0, removedLines: 0, degraded: false, hunks: [] };
+  }
+
+  let prefixLen = 0;
+  const minLen = Math.min(prevLines.length, nextLines.length);
+  while (prefixLen < minLen && prevLines[prefixLen] === nextLines[prefixLen]) {
+    prefixLen += 1;
+  }
+
+  let suffixLen = 0;
+  while (
+    suffixLen < minLen - prefixLen &&
+    prevLines[prevLines.length - 1 - suffixLen] === nextLines[nextLines.length - 1 - suffixLen]
+  ) {
+    suffixLen += 1;
+  }
+
+  const hunks: SpecRevisionDiffHunk[] = [];
+  for (let i = 0; i < prefixLen; i += 1) {
+    hunks.push({
+      type: 'same',
+      oldLine: i + 1,
+      newLine: i + 1,
+      text: prevLines[i],
+    });
+  }
+
+  const midPrevStart = prefixLen;
+  const midPrevEnd = prevLines.length - suffixLen;
+  const midNextStart = prefixLen;
+  const midNextEnd = nextLines.length - suffixLen;
+  const m = midPrevEnd - midPrevStart;
+  const n = midNextEnd - midNextStart;
+
+  let addedLines = 0;
+  let removedLines = 0;
+  let degraded = false;
+
+  if (m > 0 || n > 0) {
+    const canUseLcs =
+      prevLines.length <= MAX_LCS_DIFF_LINES &&
+      nextLines.length <= MAX_LCS_DIFF_LINES &&
+      m * n <= MAX_LCS_DIFF_LINES * MAX_LCS_DIFF_LINES;
+
+    if (canUseLcs && m > 0 && n > 0) {
+      const cols = n + 1;
+      const dp = new Int32Array((m + 1) * cols);
+
+      for (let i = m - 1; i >= 0; i -= 1) {
+        const aLine = prevLines[midPrevStart + i];
+        const rowOffset = i * cols;
+        const nextRowOffset = (i + 1) * cols;
+        for (let j = n - 1; j >= 0; j -= 1) {
+          if (aLine === nextLines[midNextStart + j]) {
+            dp[rowOffset + j] = dp[nextRowOffset + j + 1] + 1;
+          } else {
+            const down = dp[nextRowOffset + j];
+            const right = dp[rowOffset + j + 1];
+            dp[rowOffset + j] = down >= right ? down : right;
+          }
+        }
+      }
+
+      let i = 0;
+      let j = 0;
+      while (i < m && j < n) {
+        const aLine = prevLines[midPrevStart + i];
+        const bLine = nextLines[midNextStart + j];
+        if (aLine === bLine) {
+          hunks.push({
+            type: 'same',
+            oldLine: midPrevStart + i + 1,
+            newLine: midNextStart + j + 1,
+            text: aLine,
+          });
+          i += 1;
+          j += 1;
+        } else if (dp[(i + 1) * cols + j] >= dp[i * cols + j + 1]) {
+          hunks.push({
+            type: 'del',
+            oldLine: midPrevStart + i + 1,
+            text: aLine,
+          });
+          removedLines += 1;
+          i += 1;
+        } else {
+          hunks.push({
+            type: 'add',
+            newLine: midNextStart + j + 1,
+            text: bLine,
+          });
+          addedLines += 1;
+          j += 1;
+        }
+      }
+
+      while (i < m) {
+        hunks.push({
+          type: 'del',
+          oldLine: midPrevStart + i + 1,
+          text: prevLines[midPrevStart + i],
+        });
+        removedLines += 1;
+        i += 1;
+      }
+
+      while (j < n) {
+        hunks.push({
+          type: 'add',
+          newLine: midNextStart + j + 1,
+          text: nextLines[midNextStart + j],
+        });
+        addedLines += 1;
+        j += 1;
+      }
+    } else {
+      if (m > 0 && n > 0 && !canUseLcs) {
+        degraded = true;
+      }
+      for (let i = 0; i < m; i += 1) {
+        hunks.push({
+          type: 'del',
+          oldLine: midPrevStart + i + 1,
+          text: prevLines[midPrevStart + i],
+        });
+        removedLines += 1;
+      }
+      for (let j = 0; j < n; j += 1) {
+        hunks.push({
+          type: 'add',
+          newLine: midNextStart + j + 1,
+          text: nextLines[midNextStart + j],
+        });
+        addedLines += 1;
+      }
+    }
+  }
+
+  for (let s = 0; s < suffixLen; s += 1) {
+    const oldIdx = midPrevEnd + s;
+    const newIdx = midNextEnd + s;
+    hunks.push({
+      type: 'same',
+      oldLine: oldIdx + 1,
+      newLine: newIdx + 1,
+      text: prevLines[oldIdx],
+    });
+  }
+
+  return {
+    addedLines,
+    removedLines,
+    degraded,
+    hunks,
+  };
+}
+
+function resolveRevisionMarkdown(spec: SpecDocument, revision: number): string | null {
+  if (revision === spec.revision) {
+    return spec.planMarkdown;
+  }
+  const found = spec.revisions.find((r) => r.revision === revision);
+  return found ? found.planMarkdown : null;
+}
+
+export function diffSpecRevisions(
+  spec: SpecDocument,
+  fromRevision?: number,
+  toRevision?: number,
+):
+  | {
+      ok: true;
+      specId: string;
+      fromRevision: number;
+      toRevision: number;
+      availableRevisions: number[];
+      diff: SpecRevisionDiffResult;
+    }
+  | { ok: false; error: string } {
+  const revNumbers = Array.from(
+    new Set([...spec.revisions.map((r) => r.revision), spec.revision]),
+  ).sort((a, b) => a - b);
+
+  const resolvedTo =
+    typeof toRevision === 'number' && Number.isInteger(toRevision) ? toRevision : spec.revision;
+
+  let resolvedFrom: number;
+  if (typeof fromRevision === 'number' && Number.isInteger(fromRevision)) {
+    resolvedFrom = fromRevision;
+  } else {
+    const priorRevs = revNumbers.filter((r) => r < resolvedTo);
+    resolvedFrom = priorRevs.length > 0 ? priorRevs[priorRevs.length - 1] : resolvedTo;
+  }
+
+  const fromMd = resolveRevisionMarkdown(spec, resolvedFrom);
+  if (fromMd === null) {
+    return {
+      ok: false,
+      error: `Revision v${resolvedFrom} not found in spec "${spec.id}". Available: ${revNumbers.map((r) => `v${r}`).join(', ')}.`,
+    };
+  }
+  const toMd = resolveRevisionMarkdown(spec, resolvedTo);
+  if (toMd === null) {
+    return {
+      ok: false,
+      error: `Revision v${resolvedTo} not found in spec "${spec.id}". Available: ${revNumbers.map((r) => `v${r}`).join(', ')}.`,
+    };
+  }
+
+  return {
+    ok: true,
+    specId: spec.id,
+    fromRevision: resolvedFrom,
+    toRevision: resolvedTo,
+    availableRevisions: revNumbers,
+    diff: computePlanRevisionDiff(fromMd, toMd),
+  };
+}
+
+export function buildAnnotationFeedbackPrompt(spec: SpecDocument | SpecDocumentView): string {
+  const unresolved = spec.annotations
+    .filter((a) => !a.resolved)
+    .sort((a, b) => a.lineStart - b.lineStart || a.lineEnd - b.lineEnd || a.createdAt.localeCompare(b.createdAt));
+
+  const lines: string[] = [
+    `# Spec Plan Revision Request — "${spec.title}"`,
+    `- Spec ID: \`${spec.id}\``,
+    `- Mode: ${spec.mode === 'delta' ? 'Brownfield Delta Spec' : 'Full Spec'}`,
+    `- Current Revision: v${spec.revision} -> Target Revision: v${spec.revision + 1}`,
+    `- Unresolved Annotations: ${unresolved.length}`,
+  ];
+
+  if (unresolved.length === 0) {
+    lines.push('');
+    lines.push('There are currently no unresolved inline annotations on this plan.');
+    return lines.join('\n');
+  }
+
+  const mdLines = splitPlanMarkdownLines(spec.planMarkdown);
+  lines.push('');
+  lines.push('## Inline Review Feedback');
+
+  unresolved.forEach((ann, idx) => {
+    const lineRange = ann.lineStart === ann.lineEnd ? `L${ann.lineStart}` : `L${ann.lineStart}-L${ann.lineEnd}`;
+    const kindLabel =
+      ann.kind === 'strike'
+        ? 'STRIKE / CUT SCOPE'
+        : ann.kind === 'replace'
+          ? 'REPLACE SUGGESTION'
+          : 'COMMENT';
+
+    lines.push('');
+    lines.push(`### ${idx + 1}. [${kindLabel}] ${lineRange} (ann: \`${ann.id}\`, on v${ann.revision})`);
+
+    const startIdx = Math.max(0, ann.lineStart - 1);
+    const endIdx = Math.min(mdLines.length, ann.lineEnd);
+    if (startIdx < endIdx) {
+      lines.push('Original excerpt:');
+      lines.push('```markdown');
+      for (let i = startIdx; i < endIdx; i += 1) {
+        lines.push(`${i + 1} | ${mdLines[i]}`);
+      }
+      lines.push('```');
+    }
+
+    if (ann.note) {
+      lines.push(`Reviewer note: ${ann.note}`);
+    }
+    if (ann.kind === 'strike') {
+      lines.push('Action: Remove or cut the struck scope from the plan.');
+    }
+    if (ann.kind === 'replace' && ann.suggestedText) {
+      lines.push('Suggested replacement:');
+      lines.push('```markdown');
+      lines.push(ann.suggestedText);
+      lines.push('```');
+    }
+  });
+
+  if (spec.deltaItems.length > 0) {
+    lines.push('');
+    lines.push('## Current Behavioral Delta Contract');
+    for (const item of spec.deltaItems) {
+      const area = item.area ? ` (${item.area})` : '';
+      lines.push(`- [${item.kind.toUpperCase()}]${area} ${item.text}`);
+    }
+  }
+
+  lines.push('');
+  lines.push('## Required Next Step');
+  lines.push(
+    `Address all ${unresolved.length} inline annotation(s) above and publish revision v${spec.revision + 1} by calling \`spec_create_or_update\` with \`id: "${spec.id}"\`, updated \`planMarkdown\`, and a concise \`revisionSummary\`. Wait for user review before requesting approval.`,
+  );
+
+  return lines.join('\n');
 }
 
 export function getSpecStatePath(moduleDataDir: string): string {
@@ -399,10 +953,22 @@ export function computeSpecTaskViews(tasks: ReadonlyArray<SpecTask>): SpecTaskVi
 }
 
 export function buildSpecDocumentView(spec: SpecDocument): SpecDocumentView {
+  const unresolvedAnnotations = spec.annotations.reduce(
+    (acc, ann) => acc + (ann.resolved ? 0 : 1),
+    0,
+  );
   return {
     id: spec.id,
     title: spec.title,
     goal: spec.goal,
+    mode: spec.mode,
+    deltaItems: spec.deltaItems.map((d) => ({ ...d })),
+    planMarkdown: spec.planMarkdown,
+    revision: spec.revision,
+    revisions: spec.revisions.map((r) => ({ ...r })),
+    annotations: spec.annotations.map((a) => ({ ...a })),
+    unresolvedAnnotations,
+    ...(spec.archivedMemoryId !== undefined ? { archivedMemoryId: spec.archivedMemoryId } : {}),
     acceptanceCriteria: [...spec.acceptanceCriteria],
     planSteps: [...spec.planSteps],
     status: spec.status,
@@ -447,9 +1013,17 @@ export function buildSpecStateView(
       if (task.status === 'done') doneTasks += 1;
       if (task.computedState === 'ready') readyTasks += 1;
     }
+    const unresolvedAnnotations = spec.annotations.reduce(
+      (acc, ann) => acc + (ann.resolved ? 0 : 1),
+      0,
+    );
     return {
       id: spec.id,
       title: spec.title,
+      mode: spec.mode,
+      revision: spec.revision,
+      unresolvedAnnotations,
+      ...(spec.archivedMemoryId !== undefined ? { archivedMemoryId: spec.archivedMemoryId } : {}),
       status: spec.status,
       enforcePlanBeforeWrite: spec.enforcePlanBeforeWrite,
       requireUiApproval: spec.requireUiApproval,
@@ -510,6 +1084,108 @@ function normalizeTaskFromDisk(raw: unknown, fallbackIso: string): SpecTask | nu
   };
 }
 
+function normalizeRevisionsFromDisk(
+  raw: unknown,
+  currentRevision: number,
+  currentMarkdown: string,
+  fallbackIso: string,
+): SpecRevisionEntry[] {
+  const byRev = new Map<number, SpecRevisionEntry>();
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+      const obj = item as Record<string, unknown>;
+      const rev =
+        typeof obj.revision === 'number' && Number.isInteger(obj.revision) && obj.revision >= 1
+          ? obj.revision
+          : null;
+      if (rev === null) continue;
+      const planMarkdown =
+        typeof obj.planMarkdown === 'string' ? sanitizePlanMarkdown(obj.planMarkdown) : '';
+      const updatedAt = typeof obj.updatedAt === 'string' ? obj.updatedAt : fallbackIso;
+      const summary =
+        typeof obj.summary === 'string' && sanitizeSingleLine(obj.summary, 300)
+          ? sanitizeSingleLine(obj.summary, 300)
+          : undefined;
+      byRev.set(rev, {
+        revision: rev,
+        planMarkdown,
+        updatedAt,
+        ...(summary ? { summary } : {}),
+      });
+    }
+  }
+  if (!byRev.has(currentRevision)) {
+    byRev.set(currentRevision, {
+      revision: currentRevision,
+      planMarkdown: currentMarkdown,
+      updatedAt: fallbackIso,
+    });
+  }
+  return Array.from(byRev.values())
+    .sort((a, b) => a.revision - b.revision)
+    .slice(-MAX_REVISIONS_PER_SPEC);
+}
+
+function normalizeAnnotationsFromDisk(
+  raw: unknown,
+  defaultRevision: number,
+  fallbackIso: string,
+): SpecPlanAnnotation[] {
+  if (!Array.isArray(raw)) return [];
+  const out: SpecPlanAnnotation[] = [];
+  const seenIds = new Set<string>();
+  for (const item of raw) {
+    if (out.length >= MAX_ANNOTATIONS_PER_SPEC) break;
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+    const obj = item as Record<string, unknown>;
+    const rawId = typeof obj.id === 'string' ? obj.id.trim() : '';
+    const id =
+      rawId && SPEC_ANNOTATION_ID_RE.test(rawId) && !seenIds.has(rawId)
+        ? rawId
+        : `ann_${crypto.randomBytes(4).toString('hex')}`;
+    if (seenIds.has(id)) continue;
+    const kind =
+      typeof obj.kind === 'string' && VALID_ANNOTATION_KINDS.has(obj.kind as SpecAnnotationKind)
+        ? (obj.kind as SpecAnnotationKind)
+        : null;
+    if (!kind) continue;
+    const lineStart =
+      typeof obj.lineStart === 'number' && Number.isInteger(obj.lineStart) && obj.lineStart >= 1
+        ? obj.lineStart
+        : null;
+    const lineEnd =
+      typeof obj.lineEnd === 'number' && Number.isInteger(obj.lineEnd) && obj.lineEnd >= 1
+        ? obj.lineEnd
+        : null;
+    if (lineStart === null || lineEnd === null || lineEnd < lineStart) continue;
+    const revision =
+      typeof obj.revision === 'number' && Number.isInteger(obj.revision) && obj.revision >= 1
+        ? obj.revision
+        : defaultRevision;
+    const note = typeof obj.note === 'string' ? sanitizeMultiline(obj.note, 2000) : '';
+    const suggestedText = sanitizeOptionalMultiline(obj.suggestedText, 6000);
+    const resolved = Boolean(obj.resolved);
+    const createdAt = typeof obj.createdAt === 'string' ? obj.createdAt : fallbackIso;
+    const resolvedAt =
+      resolved && typeof obj.resolvedAt === 'string' ? obj.resolvedAt : undefined;
+    seenIds.add(id);
+    out.push({
+      id,
+      revision,
+      lineStart,
+      lineEnd,
+      kind,
+      note,
+      ...(suggestedText !== undefined ? { suggestedText } : {}),
+      resolved,
+      createdAt,
+      ...(resolvedAt !== undefined ? { resolvedAt } : {}),
+    });
+  }
+  return out;
+}
+
 function normalizeSpecFromDisk(raw: unknown): SpecDocument | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const obj = raw as Record<string, unknown>;
@@ -525,6 +1201,15 @@ function normalizeSpecFromDisk(raw: unknown): SpecDocument | null {
     typeof obj.status === 'string' && VALID_SPEC_STATUSES.has(obj.status as SpecStatus)
       ? (obj.status as SpecStatus)
       : 'draft';
+
+  const mode: SpecMode =
+    typeof obj.mode === 'string' && VALID_SPEC_MODES.has(obj.mode as SpecMode)
+      ? (obj.mode as SpecMode)
+      : 'full';
+
+  const deltaItems = sanitizeDeltaItems(obj.deltaItems);
+  const acceptanceCriteria = sanitizeStringList(obj.acceptanceCriteria, MAX_CRITERIA_ITEMS, 500);
+  const planSteps = sanitizeStringList(obj.planSteps, MAX_PLAN_STEPS, 500);
 
   const rawTasks: SpecTask[] = [];
   if (Array.isArray(obj.tasks)) {
@@ -543,6 +1228,32 @@ function normalizeSpecFromDisk(raw: unknown): SpecDocument | null {
     dependsOn: t.dependsOn.filter((dep) => knownTaskIds.has(dep)),
   }));
 
+  const rawPlanMarkdown =
+    typeof obj.planMarkdown === 'string' ? sanitizePlanMarkdown(obj.planMarkdown) : '';
+  const planMarkdown =
+    rawPlanMarkdown.length > 0
+      ? rawPlanMarkdown
+      : synthesizePlanMarkdown({
+          title,
+          mode,
+          goal,
+          deltaItems,
+          acceptanceCriteria,
+          planSteps,
+          tasks,
+        });
+
+  const revision =
+    typeof obj.revision === 'number' && Number.isInteger(obj.revision) && obj.revision >= 1
+      ? obj.revision
+      : 1;
+  const revisions = normalizeRevisionsFromDisk(obj.revisions, revision, planMarkdown, updatedAt);
+  const annotations = normalizeAnnotationsFromDisk(obj.annotations, revision, updatedAt);
+  const archivedMemoryId =
+    typeof obj.archivedMemoryId === 'string' && obj.archivedMemoryId.trim()
+      ? sanitizeSingleLine(obj.archivedMemoryId, 80)
+      : undefined;
+
   const approvedBy =
     obj.approvedBy === 'user' || obj.approvedBy === 'model' ? obj.approvedBy : undefined;
   const approvedAt = typeof obj.approvedAt === 'string' ? obj.approvedAt : undefined;
@@ -552,8 +1263,15 @@ function normalizeSpecFromDisk(raw: unknown): SpecDocument | null {
     id,
     title,
     goal,
-    acceptanceCriteria: sanitizeStringList(obj.acceptanceCriteria, MAX_CRITERIA_ITEMS, 500),
-    planSteps: sanitizeStringList(obj.planSteps, MAX_PLAN_STEPS, 500),
+    mode,
+    deltaItems,
+    planMarkdown,
+    revision,
+    revisions,
+    annotations,
+    ...(archivedMemoryId !== undefined ? { archivedMemoryId } : {}),
+    acceptanceCriteria,
+    planSteps,
     status,
     enforcePlanBeforeWrite:
       typeof obj.enforcePlanBeforeWrite === 'boolean' ? obj.enforcePlanBeforeWrite : true,
@@ -871,22 +1589,128 @@ export function applySaveSpecInMemory(
     }
   }
 
+  const nextMode: SpecMode =
+    input.mode !== undefined
+      ? VALID_SPEC_MODES.has(input.mode)
+        ? input.mode
+        : 'full'
+      : existing?.mode ?? 'full';
+  if (input.mode !== undefined && !VALID_SPEC_MODES.has(input.mode)) {
+    return { ok: false, error: `Invalid spec mode "${String(input.mode)}". Expected "full" or "delta".` };
+  }
+
+  const nextDeltaItems: SpecDeltaItem[] =
+    input.deltaItems !== undefined
+      ? sanitizeDeltaItems(input.deltaItems)
+      : existing
+        ? existing.deltaItems.map((d) => ({ ...d }))
+        : [];
+
+  const nextAcceptanceCriteria =
+    input.acceptanceCriteria !== undefined
+      ? sanitizeStringList(input.acceptanceCriteria, MAX_CRITERIA_ITEMS, 500)
+      : existing
+        ? [...existing.acceptanceCriteria]
+        : [];
+
+  const nextPlanSteps =
+    input.planSteps !== undefined
+      ? sanitizeStringList(input.planSteps, MAX_PLAN_STEPS, 500)
+      : existing
+        ? [...existing.planSteps]
+        : [];
+
+  const synthesizedForNext = synthesizePlanMarkdown({
+    title,
+    mode: nextMode,
+    goal,
+    deltaItems: nextDeltaItems,
+    acceptanceCriteria: nextAcceptanceCriteria,
+    planSteps: nextPlanSteps,
+    tasks: nextTasks,
+  });
+
+  let nextPlanMarkdown: string;
+  if (input.planMarkdown !== undefined) {
+    const cleanedMd = sanitizePlanMarkdown(input.planMarkdown);
+    nextPlanMarkdown = cleanedMd.length > 0 ? cleanedMd : synthesizedForNext;
+  } else if (!existing) {
+    nextPlanMarkdown = synthesizedForNext;
+  } else {
+    const existingWasSynthesized =
+      existing.planMarkdown ===
+      synthesizePlanMarkdown({
+        title: existing.title,
+        mode: existing.mode,
+        goal: existing.goal,
+        deltaItems: existing.deltaItems,
+        acceptanceCriteria: existing.acceptanceCriteria,
+        planSteps: existing.planSteps,
+        tasks: existing.tasks,
+      });
+    nextPlanMarkdown = existingWasSynthesized ? synthesizedForNext : existing.planMarkdown;
+  }
+
+  const revSummary =
+    typeof input.revisionSummary === 'string' && sanitizeSingleLine(input.revisionSummary, 300)
+      ? sanitizeSingleLine(input.revisionSummary, 300)
+      : undefined;
+
+  let nextRevision: number;
+  let nextRevisions: SpecRevisionEntry[];
+  if (!existing) {
+    nextRevision = 1;
+    nextRevisions = [
+      {
+        revision: 1,
+        planMarkdown: nextPlanMarkdown,
+        updatedAt: nowIso,
+        ...(revSummary ? { summary: revSummary } : {}),
+      },
+    ];
+  } else {
+    const baseRevisions = existing.revisions.map((r) => ({ ...r }));
+    if (!baseRevisions.some((r) => r.revision === existing.revision)) {
+      baseRevisions.push({
+        revision: existing.revision,
+        planMarkdown: existing.planMarkdown,
+        updatedAt: existing.updatedAt,
+      });
+    }
+    if (nextPlanMarkdown !== existing.planMarkdown) {
+      nextRevision = existing.revision + 1;
+      baseRevisions.push({
+        revision: nextRevision,
+        planMarkdown: nextPlanMarkdown,
+        updatedAt: nowIso,
+        ...(revSummary ? { summary: revSummary } : {}),
+      });
+      nextRevisions = baseRevisions
+        .sort((a, b) => a.revision - b.revision)
+        .slice(-MAX_REVISIONS_PER_SPEC);
+    } else {
+      nextRevision = existing.revision;
+      nextRevisions = baseRevisions
+        .sort((a, b) => a.revision - b.revision)
+        .slice(-MAX_REVISIONS_PER_SPEC);
+    }
+  }
+
   const nextSpec: SpecDocument = {
     id: specId,
     title,
     goal,
-    acceptanceCriteria:
-      input.acceptanceCriteria !== undefined
-        ? sanitizeStringList(input.acceptanceCriteria, MAX_CRITERIA_ITEMS, 500)
-        : existing
-          ? [...existing.acceptanceCriteria]
-          : [],
-    planSteps:
-      input.planSteps !== undefined
-        ? sanitizeStringList(input.planSteps, MAX_PLAN_STEPS, 500)
-        : existing
-          ? [...existing.planSteps]
-          : [],
+    mode: nextMode,
+    deltaItems: nextDeltaItems,
+    planMarkdown: nextPlanMarkdown,
+    revision: nextRevision,
+    revisions: nextRevisions,
+    annotations: existing ? existing.annotations.map((a) => ({ ...a })) : [],
+    ...(existing?.archivedMemoryId !== undefined
+      ? { archivedMemoryId: existing.archivedMemoryId }
+      : {}),
+    acceptanceCriteria: nextAcceptanceCriteria,
+    planSteps: nextPlanSteps,
     status: nextStatus,
     enforcePlanBeforeWrite,
     requireUiApproval,
@@ -1008,6 +1832,9 @@ export function applySetSpecStatusInMemory(
   const nowIso = new Date().toISOString();
   const nextSpec: SpecDocument = {
     ...existing,
+    deltaItems: existing.deltaItems.map((d) => ({ ...d })),
+    revisions: existing.revisions.map((r) => ({ ...r })),
+    annotations: existing.annotations.map((a) => ({ ...a })),
     acceptanceCriteria: [...existing.acceptanceCriteria],
     planSteps: [...existing.planSteps],
     tasks: existing.tasks.map((t) => ({ ...t, dependsOn: [...t.dependsOn] })),
@@ -1157,6 +1984,9 @@ export function applyUpdateSpecTaskInMemory(
   const nextTasks = spec.tasks.map((t, i) => (i === taskIdx ? updatedTask : t));
   const nextSpec: SpecDocument = {
     ...spec,
+    deltaItems: spec.deltaItems.map((d) => ({ ...d })),
+    revisions: spec.revisions.map((r) => ({ ...r })),
+    annotations: spec.annotations.map((a) => ({ ...a })),
     tasks: nextTasks,
     updatedAt: nowIso,
   };
@@ -1195,20 +2025,548 @@ export function updateSpecTask(
   };
 }
 
+export function applyAddSpecAnnotationInMemory(
+  state: SpecStateFile,
+  input: AddSpecAnnotationInput,
+):
+  | { ok: true; annotation: SpecPlanAnnotation; spec: SpecDocumentView; state: SpecStateFile }
+  | { ok: false; error: string } {
+  if (!VALID_ANNOTATION_KINDS.has(input.kind)) {
+    return {
+      ok: false,
+      error: `Invalid annotation kind "${String(input.kind)}". Expected "comment", "strike", or "replace".`,
+    };
+  }
+
+  const targetSpecId = input.specId?.trim() || state.activeSpecId || undefined;
+  if (!targetSpecId) {
+    return { ok: false, error: 'No specId specified and no active spec exists.' };
+  }
+
+  const specIdx = state.specs.findIndex((s) => s.id === targetSpecId);
+  if (specIdx < 0) {
+    return { ok: false, error: `Spec not found: "${targetSpecId}".` };
+  }
+
+  const spec = state.specs[specIdx];
+  if (spec.annotations.length >= MAX_ANNOTATIONS_PER_SPEC) {
+    return {
+      ok: false,
+      error: `Spec "${spec.id}" reached the maximum limit of ${MAX_ANNOTATIONS_PER_SPEC} annotations. Delete resolved annotations first.`,
+    };
+  }
+
+  const lines = splitPlanMarkdownLines(spec.planMarkdown);
+  const totalLines = lines.length;
+  if (totalLines === 0) {
+    return { ok: false, error: 'Cannot annotate an empty plan document.' };
+  }
+
+  if (
+    typeof input.lineStart !== 'number' ||
+    !Number.isInteger(input.lineStart) ||
+    typeof input.lineEnd !== 'number' ||
+    !Number.isInteger(input.lineEnd)
+  ) {
+    return { ok: false, error: 'lineStart and lineEnd must be positive integers.' };
+  }
+
+  if (input.lineStart < 1 || input.lineEnd < input.lineStart || input.lineEnd > totalLines) {
+    return {
+      ok: false,
+      error: `Invalid line range L${input.lineStart}-L${input.lineEnd}: must satisfy 1 <= lineStart <= lineEnd <= ${totalLines}.`,
+    };
+  }
+
+  const rawNote = typeof input.note === 'string' ? sanitizeMultiline(input.note, 2000) : '';
+  const suggestedText =
+    input.kind === 'replace' ? sanitizeOptionalMultiline(input.suggestedText, 6000) : undefined;
+
+  if (input.kind === 'comment' && !rawNote) {
+    return { ok: false, error: 'Comment annotation requires a non-empty note.' };
+  }
+  if (input.kind === 'replace' && !suggestedText) {
+    return { ok: false, error: 'Replace annotation requires non-empty suggestedText.' };
+  }
+
+  const note =
+    rawNote ||
+    (input.kind === 'strike'
+      ? 'Cut from scope.'
+      : input.kind === 'replace'
+        ? 'Replace with suggested revision.'
+        : '');
+
+  const existingAnnIds = new Set(spec.annotations.map((a) => a.id));
+  let annId = `ann_${crypto.randomBytes(4).toString('hex')}`;
+  for (let i = 0; i < 8 && existingAnnIds.has(annId); i += 1) {
+    annId = `ann_${crypto.randomBytes(4).toString('hex')}`;
+  }
+
+  const nowIso = new Date().toISOString();
+  const targetRevision =
+    typeof input.revision === 'number' && Number.isInteger(input.revision) && input.revision >= 1
+      ? input.revision
+      : spec.revision;
+
+  const annotation: SpecPlanAnnotation = {
+    id: annId,
+    revision: targetRevision,
+    lineStart: input.lineStart,
+    lineEnd: input.lineEnd,
+    kind: input.kind,
+    note,
+    ...(suggestedText !== undefined ? { suggestedText } : {}),
+    resolved: false,
+    createdAt: nowIso,
+  };
+
+  const nextSpec: SpecDocument = {
+    ...spec,
+    deltaItems: spec.deltaItems.map((d) => ({ ...d })),
+    revisions: spec.revisions.map((r) => ({ ...r })),
+    annotations: [...spec.annotations.map((a) => ({ ...a })), annotation],
+    tasks: spec.tasks.map((t) => ({ ...t, dependsOn: [...t.dependsOn] })),
+    updatedAt: nowIso,
+  };
+
+  state.specs[specIdx] = nextSpec;
+  state.updatedAt = nowIso;
+
+  return {
+    ok: true,
+    annotation,
+    spec: buildSpecDocumentView(nextSpec),
+    state,
+  };
+}
+
+export function addSpecAnnotation(
+  moduleDataDir: string,
+  input: AddSpecAnnotationInput,
+):
+  | { ok: true; annotation: SpecPlanAnnotation; spec: SpecDocumentView; state: SpecStateFile }
+  | { ok: false; error: string } {
+  const state = loadSpecStateReadOnly(moduleDataDir);
+  const res = applyAddSpecAnnotationInMemory(state, input);
+  if (!res.ok) return res;
+  const saved = saveSpecState(moduleDataDir, res.state);
+  const savedDoc = saved.specs.find((s) => s.id === res.spec.id);
+  return {
+    ok: true,
+    annotation: res.annotation,
+    spec: savedDoc ? buildSpecDocumentView(savedDoc) : res.spec,
+    state: saved,
+  };
+}
+
+export function applyResolveSpecAnnotationInMemory(
+  state: SpecStateFile,
+  input: ResolveSpecAnnotationInput,
+): { ok: true; annotation: SpecPlanAnnotation; spec: SpecDocumentView; state: SpecStateFile } | { ok: false; error: string } {
+  const targetSpecId = input.specId?.trim() || state.activeSpecId || undefined;
+  if (!targetSpecId) {
+    return { ok: false, error: 'No specId specified and no active spec exists.' };
+  }
+
+  const specIdx = state.specs.findIndex((s) => s.id === targetSpecId);
+  if (specIdx < 0) {
+    return { ok: false, error: `Spec not found: "${targetSpecId}".` };
+  }
+
+  const spec = state.specs[specIdx];
+  const annId = input.annotationId.trim();
+  const annIdx = spec.annotations.findIndex((a) => a.id === annId);
+  if (annIdx < 0) {
+    return { ok: false, error: `Annotation "${annId}" not found in spec "${spec.id}".` };
+  }
+
+  const nowIso = new Date().toISOString();
+  const nextResolved = input.resolved !== undefined ? Boolean(input.resolved) : true;
+  const targetAnn = spec.annotations[annIdx];
+  const updatedAnn: SpecPlanAnnotation = {
+    ...targetAnn,
+    resolved: nextResolved,
+  };
+  if (nextResolved) {
+    updatedAnn.resolvedAt = nowIso;
+  } else {
+    delete updatedAnn.resolvedAt;
+  }
+
+  const nextSpec: SpecDocument = {
+    ...spec,
+    deltaItems: spec.deltaItems.map((d) => ({ ...d })),
+    revisions: spec.revisions.map((r) => ({ ...r })),
+    annotations: spec.annotations.map((a, i) => (i === annIdx ? updatedAnn : { ...a })),
+    tasks: spec.tasks.map((t) => ({ ...t, dependsOn: [...t.dependsOn] })),
+    updatedAt: nowIso,
+  };
+
+  state.specs[specIdx] = nextSpec;
+  state.updatedAt = nowIso;
+
+  return {
+    ok: true,
+    annotation: updatedAnn,
+    spec: buildSpecDocumentView(nextSpec),
+    state,
+  };
+}
+
+export function resolveSpecAnnotation(
+  moduleDataDir: string,
+  input: ResolveSpecAnnotationInput,
+): { ok: true; annotation: SpecPlanAnnotation; spec: SpecDocumentView; state: SpecStateFile } | { ok: false; error: string } {
+  const state = loadSpecStateReadOnly(moduleDataDir);
+  const res = applyResolveSpecAnnotationInMemory(state, input);
+  if (!res.ok) return res;
+  const saved = saveSpecState(moduleDataDir, res.state);
+  const savedDoc = saved.specs.find((s) => s.id === res.spec.id);
+  return {
+    ok: true,
+    annotation: res.annotation,
+    spec: savedDoc ? buildSpecDocumentView(savedDoc) : res.spec,
+    state: saved,
+  };
+}
+
+export function applyDeleteSpecAnnotationInMemory(
+  state: SpecStateFile,
+  input: DeleteSpecAnnotationInput,
+): { ok: true; deletedId: string; spec: SpecDocumentView; state: SpecStateFile } | { ok: false; error: string } {
+  const targetSpecId = input.specId?.trim() || state.activeSpecId || undefined;
+  if (!targetSpecId) {
+    return { ok: false, error: 'No specId specified and no active spec exists.' };
+  }
+
+  const specIdx = state.specs.findIndex((s) => s.id === targetSpecId);
+  if (specIdx < 0) {
+    return { ok: false, error: `Spec not found: "${targetSpecId}".` };
+  }
+
+  const spec = state.specs[specIdx];
+  const annId = input.annotationId.trim();
+  const annIdx = spec.annotations.findIndex((a) => a.id === annId);
+  if (annIdx < 0) {
+    return { ok: false, error: `Annotation "${annId}" not found in spec "${spec.id}".` };
+  }
+
+  const nowIso = new Date().toISOString();
+  const nextSpec: SpecDocument = {
+    ...spec,
+    deltaItems: spec.deltaItems.map((d) => ({ ...d })),
+    revisions: spec.revisions.map((r) => ({ ...r })),
+    annotations: spec.annotations.filter((a) => a.id !== annId).map((a) => ({ ...a })),
+    tasks: spec.tasks.map((t) => ({ ...t, dependsOn: [...t.dependsOn] })),
+    updatedAt: nowIso,
+  };
+
+  state.specs[specIdx] = nextSpec;
+  state.updatedAt = nowIso;
+
+  return {
+    ok: true,
+    deletedId: annId,
+    spec: buildSpecDocumentView(nextSpec),
+    state,
+  };
+}
+
+export function deleteSpecAnnotation(
+  moduleDataDir: string,
+  input: DeleteSpecAnnotationInput,
+): { ok: true; deletedId: string; spec: SpecDocumentView; state: SpecStateFile } | { ok: false; error: string } {
+  const state = loadSpecStateReadOnly(moduleDataDir);
+  const res = applyDeleteSpecAnnotationInMemory(state, input);
+  if (!res.ok) return res;
+  const saved = saveSpecState(moduleDataDir, res.state);
+  const savedDoc = saved.specs.find((s) => s.id === res.spec.id);
+  return {
+    ok: true,
+    deletedId: res.deletedId,
+    spec: savedDoc ? buildSpecDocumentView(savedDoc) : res.spec,
+    state: saved,
+  };
+}
+
+function buildArchiveMemoryContent(spec: SpecDocument, extraNote?: string): string {
+  const lines: string[] = [
+    `Spec ID: ${spec.id}`,
+    `Mode: ${spec.mode === 'delta' ? 'Brownfield Delta Spec' : 'Full Spec'} | Status: ${spec.status} | Revision: v${spec.revision}`,
+    '',
+    '## Goal',
+    spec.goal,
+  ];
+
+  if (spec.deltaItems.length > 0) {
+    lines.push('');
+    lines.push('## Behavioral Delta Contract');
+    for (const item of spec.deltaItems) {
+      const area = item.area ? ` (${item.area})` : '';
+      lines.push(`- [${item.kind.toUpperCase()}]${area} ${item.text}`);
+    }
+  }
+
+  if (spec.acceptanceCriteria.length > 0) {
+    lines.push('');
+    lines.push('## Acceptance Criteria');
+    for (const criterion of spec.acceptanceCriteria) {
+      lines.push(`- ${criterion}`);
+    }
+  }
+
+  if (spec.tasks.length > 0) {
+    const completed = spec.tasks.filter((t) => t.status === 'done');
+    lines.push('');
+    lines.push(`## Tasks Summary (${completed.length}/${spec.tasks.length} done)`);
+    for (const task of spec.tasks) {
+      const note = task.note ? ` — ${task.note}` : '';
+      lines.push(`- [${task.status}] ${task.id}: ${task.title}${note}`);
+    }
+  }
+
+  if (spec.planMarkdown.trim()) {
+    lines.push('');
+    lines.push('## Plan Snapshot');
+    lines.push(spec.planMarkdown.slice(0, 4000));
+  }
+
+  const cleanExtra = sanitizeOptionalMultiline(extraNote, 1000);
+  if (cleanExtra) {
+    lines.push('');
+    lines.push('## Archive Note');
+    lines.push(cleanExtra);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Archive a Spec's decisions, behavioral delta contract, acceptance criteria, and task summary
+ * into the `mem` persistent knowledge store (with <private> tag stripping & secret redaction).
+ * Strictly zero disk writes in demo mode.
+ */
+export function archiveSpecToMemory(
+  specModuleDataDir: string,
+  rootDataDir: string,
+  specId?: string,
+  options?: ArchiveSpecToMemoryOptions,
+): ArchiveSpecToMemoryResult | { ok: false; error: string } {
+  const isDemo = options?.isDemo === true;
+  const state =
+    isDemo && options?.demoState ? options.demoState : loadSpecStateReadOnly(specModuleDataDir);
+
+  const targetSpecId = specId?.trim() || state.activeSpecId || undefined;
+  if (!targetSpecId) {
+    return { ok: false, error: 'No specId specified and no active spec exists.' };
+  }
+
+  const specIdx = state.specs.findIndex((s) => s.id === targetSpecId);
+  if (specIdx < 0) {
+    return { ok: false, error: `Spec not found: "${targetSpecId}".` };
+  }
+
+  const spec = state.specs[specIdx];
+  const tags = ['spec', spec.mode === 'delta' ? 'delta-spec' : 'full-spec'];
+  const rawTitle = `[Spec] ${spec.title} (v${spec.revision})`;
+  const rawContent = buildArchiveMemoryContent(spec, options?.note);
+
+  if (isDemo) {
+    const cleanTitle = redactSecrets(stripPrivateTags(rawTitle).cleaned.trim() || `[Spec] ${spec.id}`);
+    const memoryId =
+      spec.archivedMemoryId && spec.archivedMemoryId.startsWith('demo-mem-spec-')
+        ? spec.archivedMemoryId
+        : `demo-mem-spec-${spec.id.slice(0, 24)}-v${spec.revision}`;
+    const nowIso = new Date().toISOString();
+    const updatedSpec: SpecDocument = {
+      ...spec,
+      deltaItems: spec.deltaItems.map((d) => ({ ...d })),
+      revisions: spec.revisions.map((r) => ({ ...r })),
+      annotations: spec.annotations.map((a) => ({ ...a })),
+      tasks: spec.tasks.map((t) => ({ ...t, dependsOn: [...t.dependsOn] })),
+      archivedMemoryId: memoryId,
+      updatedAt: nowIso,
+    };
+    state.specs[specIdx] = updatedSpec;
+    state.updatedAt = nowIso;
+    return {
+      ok: true,
+      memoryId,
+      memoryTitle: cleanTitle,
+      tags,
+      demoSimulated: true,
+      spec: buildSpecDocumentView(updatedSpec),
+      state,
+    };
+  }
+
+  const memDataDir = getModuleDataDir(rootDataDir, 'mem');
+  const memStore = new MemoryStore(memDataDir, false, options?.workspacePath);
+  const existingMemId =
+    spec.archivedMemoryId && !spec.archivedMemoryId.startsWith('demo-mem-spec-')
+      ? spec.archivedMemoryId
+      : undefined;
+
+  const savedMem = memStore.remember({
+    id: existingMemId,
+    kind: 'decision',
+    title: rawTitle,
+    content: rawContent,
+    tags,
+    workspacePath: options?.workspacePath,
+    pinned: options?.pinned ?? false,
+  });
+
+  const nowIso = new Date().toISOString();
+  const updatedSpec: SpecDocument = {
+    ...spec,
+    deltaItems: spec.deltaItems.map((d) => ({ ...d })),
+    revisions: spec.revisions.map((r) => ({ ...r })),
+    annotations: spec.annotations.map((a) => ({ ...a })),
+    tasks: spec.tasks.map((t) => ({ ...t, dependsOn: [...t.dependsOn] })),
+    archivedMemoryId: savedMem.id,
+    updatedAt: nowIso,
+  };
+  state.specs[specIdx] = updatedSpec;
+  state.updatedAt = nowIso;
+
+  const savedState = saveSpecState(specModuleDataDir, state);
+  const savedDoc = savedState.specs.find((s) => s.id === updatedSpec.id) ?? updatedSpec;
+
+  return {
+    ok: true,
+    memoryId: savedMem.id,
+    memoryTitle: savedMem.title,
+    tags: [...savedMem.tags],
+    demoSimulated: false,
+    memory: savedMem,
+    spec: buildSpecDocumentView(savedDoc),
+    state: savedState,
+  };
+}
+
 /**
  * Pure in-memory demo dataset for demoMode (zero disk writes).
  * Contains 2 realistic specs:
- * 1) An approved spec with a 4-task dependency DAG (done -> in_progress & ready -> waiting_deps)
- * 2) A draft spec with pre-approval write lock & UI approval enabled
+ * 1) An approved Brownfield Delta Spec (v1 -> v2) with a 4-task dependency DAG, delta items, and plan annotations
+ * 2) A draft Full Spec (v1 -> v2) with pre-approval write lock, UI approval, and unresolved review annotations
  */
 export function createDemoSpecState(): SpecStateFile {
   const now = Date.now();
   const iso = (offsetMinutes: number) => new Date(now - offsetMinutes * 60_000).toISOString();
 
+  const oauthPlanV1 = [
+    '# OAuth2 Refresh Token Rotation & Replay Guard',
+    '> Mode: BROWNFIELD DELTA SPEC',
+    '',
+    '## Context & Behavioral Delta',
+    '- [ADDED] (auth/db) Add token_family_id and revoked_at columns to refresh_tokens.',
+    '- [MODIFIED] (auth/service) Mint single-use child refresh token on every /oauth/token refresh.',
+    '- [REMOVED] (auth/session) Remove legacy static 30-day multi-use refresh token path.',
+    '',
+    '## Implementation Plan',
+    '1. Create migration adding token_family_id and revoked_at indexes.',
+    '2. Update AuthTokenService.refresh() to rotate token inside a serializable transaction.',
+    '3. Sync rotated sessions to Redis pub/sub cluster for instant edge invalidation.',
+    '4. Log raw refresh token prefix and user email on replay anomaly for triage.',
+    '5. Run integration replay test suite and canary checklist.',
+    '',
+    '## Rollback Strategy',
+    '- Keep dual-read compatibility flag `OAUTH_ROTATION_V2` for 7 days.',
+  ].join('\n');
+
+  const oauthPlanV2 = [
+    '# OAuth2 Refresh Token Rotation & Replay Guard',
+    '> Mode: BROWNFIELD DELTA SPEC',
+    '',
+    '## Context & Behavioral Delta',
+    '- [ADDED] (auth/db) Add token_family_id and revoked_at columns to refresh_tokens.',
+    '- [ADDED] (auth/telemetry) Emit secret-redacted replay anomaly counter & family revocation audit log.',
+    '- [MODIFIED] (auth/service) Mint single-use child refresh token inside an atomic transaction on /oauth/token refresh.',
+    '- [REMOVED] (auth/session) Remove legacy static 30-day multi-use refresh token path.',
+    '',
+    '## Implementation Plan',
+    '1. Create non-blocking migration adding token_family_id and revoked_at indexes.',
+    '2. Update AuthTokenService.refresh() to rotate token atomically and revoke the family on reuse.',
+    '3. Emit structured, secret-redacted telemetry events (family_id hash only — zero raw tokens or emails).',
+    '4. Execute concurrent refresh race tests, rollback drill, and canary rollout checklist.',
+    '',
+    '## Rollback Strategy',
+    '- Keep dual-read compatibility flag `OAUTH_ROTATION_V2` for 7 days with instant fallback.',
+    '- Verify p99 token refresh latency stays under 35ms before removing legacy index.',
+  ].join('\n');
+
   const approvedSpec: SpecDocument = {
     id: 'spec-oauth-refresh-rotation',
     title: 'OAuth2 Refresh Token Rotation & Replay Guard',
     goal: 'Implement rolling refresh token families with automatic replay revocation and backward-compatible session cookie migration.',
+    mode: 'delta',
+    deltaItems: [
+      {
+        id: 'delta-oauth-1',
+        kind: 'added',
+        area: 'auth/db',
+        text: 'Add token_family_id index and nullable revoked_at column on refresh_tokens.',
+      },
+      {
+        id: 'delta-oauth-2',
+        kind: 'added',
+        area: 'auth/telemetry',
+        text: 'Emit secret-redacted replay anomaly audit events with hashed family_id.',
+      },
+      {
+        id: 'delta-oauth-3',
+        kind: 'modified',
+        area: 'auth/service',
+        text: 'Rotate refresh tokens atomically per request and revoke entire family on reuse.',
+      },
+      {
+        id: 'delta-oauth-4',
+        kind: 'removed',
+        area: 'auth/session',
+        text: 'Deprecate and remove legacy static multi-use 30-day refresh token path.',
+      },
+    ],
+    planMarkdown: oauthPlanV2,
+    revision: 2,
+    revisions: [
+      {
+        revision: 1,
+        planMarkdown: oauthPlanV1,
+        updatedAt: iso(55),
+        summary: 'Initial brownfield delta draft for refresh token rotation',
+      },
+      {
+        revision: 2,
+        planMarkdown: oauthPlanV2,
+        updatedAt: iso(44),
+        summary: 'Removed Redis pub/sub scope and enforced redacted telemetry',
+      },
+    ],
+    annotations: [
+      {
+        id: 'ann_demo_resolved_1',
+        revision: 1,
+        lineStart: 12,
+        lineEnd: 12,
+        kind: 'strike',
+        note: 'Cut Redis pub/sub cluster sync out of phase 1 — transactional DB revocation is sufficient.',
+        resolved: true,
+        createdAt: iso(50),
+        resolvedAt: iso(44),
+      },
+      {
+        id: 'ann_demo_open_1',
+        revision: 2,
+        lineStart: 17,
+        lineEnd: 18,
+        kind: 'comment',
+        note: 'Please add explicit canary abort threshold (e.g. >0.5% unexpected family revocations) before GA.',
+        resolved: false,
+        createdAt: iso(15),
+      },
+    ],
     acceptanceCriteria: [
       'Every refresh call mints a single-use child token and invalidates its immediate parent.',
       'Replaying a previously rotated token revokes the entire token family and logs a redacted audit event.',
@@ -1266,10 +2624,80 @@ export function createDemoSpecState(): SpecStateFile {
     updatedAt: iso(12),
   };
 
+  const webhookPlanV1 = [
+    '# Idempotent Billing Webhook Processor',
+    '> Mode: FULL SPEC',
+    '',
+    '## Goal',
+    'Guarantee exactly-once invoice state transitions with HMAC validation and dead-letter retries.',
+    '',
+    '## Implementation Plan',
+    '1. Verify webhook HMAC signature on parsed JSON body.',
+    '2. Store processed event_id in an in-memory LRU cache.',
+    '3. Build custom admin dashboard UI for manual DLQ replays.',
+    '4. Add duplicate & out-of-order webhook integration tests.',
+  ].join('\n');
+
+  const webhookPlanV2 = [
+    '# Idempotent Billing Webhook Processor',
+    '> Mode: FULL SPEC',
+    '',
+    '## Goal',
+    'Guarantee exactly-once invoice state transitions with HMAC signature validation and bounded dead-letter retries.',
+    '',
+    '## Implementation Plan',
+    '1. Add raw-body HMAC verification middleware with constant-time digest comparison and 5-minute timestamp window.',
+    '2. Introduce persistent idempotency ledger table keyed by (provider, event_id) with 30-day TTL cleanup.',
+    '3. Build custom admin dashboard UI for manual DLQ replays.',
+    '4. Add automated replay tests for duplicate and out-of-order invoice webhooks.',
+  ].join('\n');
+
   const draftSpec: SpecDocument = {
     id: 'spec-billing-webhook-idempotency',
     title: 'Idempotent Billing Webhook Processor',
     goal: 'Guarantee exactly-once invoice state transitions with HMAC signature validation and bounded dead-letter retries.',
+    mode: 'full',
+    deltaItems: [],
+    planMarkdown: webhookPlanV2,
+    revision: 2,
+    revisions: [
+      {
+        revision: 1,
+        planMarkdown: webhookPlanV1,
+        updatedAt: iso(25),
+        summary: 'Initial webhook processor draft',
+      },
+      {
+        revision: 2,
+        planMarkdown: webhookPlanV2,
+        updatedAt: iso(18),
+        summary: 'Switched to raw-body constant-time HMAC and persistent idempotency ledger',
+      },
+    ],
+    annotations: [
+      {
+        id: 'ann_demo_draft_strike',
+        revision: 2,
+        lineStart: 10,
+        lineEnd: 10,
+        kind: 'strike',
+        note: 'Cut the custom admin dashboard UI from this milestone — expose CLI replay command only.',
+        resolved: false,
+        createdAt: iso(16),
+      },
+      {
+        id: 'ann_demo_draft_replace',
+        revision: 2,
+        lineStart: 9,
+        lineEnd: 9,
+        kind: 'replace',
+        note: 'Use UNIQUE constraint instead of read-then-write check to avoid concurrent races.',
+        suggestedText:
+          '2. Introduce idempotency_ledger table with UNIQUE(provider, event_id) insert-on-conflict and 30-day TTL cleanup.',
+        resolved: false,
+        createdAt: iso(14),
+      },
+    ],
     acceptanceCriteria: [
       'Reject invalid or stale webhook signatures before touching application state.',
       'Deduplicate retried provider deliveries using composite (provider, event_id) keys.',

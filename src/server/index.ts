@@ -7,22 +7,36 @@ import {
   applyPresetConfig,
   countEnabledModelTools,
   createDefaultConfig,
+  exportSanitizedConfig,
   getConfigFileSignature,
   getConfigPath,
   LOCALE_IDS,
   loadOrInitNovConfig,
+  loadTeamPresetReadOnly,
+  MAX_CONFIG_IMPORT_BYTES,
   MODULE_CATALOG,
   MODULE_IDS,
   normalizeConfig,
+  parseAndValidateConfigImport,
   PRESET_IDS,
+  resetNovConfig,
   resolveNovDataDir,
+  saveNovConfig,
   setModuleEnabled,
   setNovLocale,
+  setNovStartupView,
+  STARTUP_VIEW_IDS,
   type ModuleId,
   type NovConfig,
   type NovLocale,
+  type NovStartupView,
   type PresetId,
 } from '../core/config.js';
+import {
+  buildDemoFeedSnapshot,
+  buildFeedSnapshot,
+  writeFeedSnapshotIfDataDirExists,
+} from '../core/feed.js';
 import type {
   ModuleRegistrationResult,
   ModuleRuntimeState,
@@ -45,7 +59,7 @@ import { registerWorktreeModule } from '../modules/worktree/register.js';
 import { registerXrayModule } from '../modules/xray/register.js';
 
 export const UI_RESOURCE_URI = 'ui://agy-nov/app.html';
-export const NOV_VERSION = '0.6.0';
+export const NOV_VERSION = '0.7.0';
 
 const UI_ENTRYPOINT_META = {
   ui: { resourceUri: UI_RESOURCE_URI },
@@ -61,7 +75,11 @@ const APP_ONLY_META = {
   ui: { visibility: ['app'] },
 };
 
-const OPEN_TAB_ENUM = [...MODULE_IDS, 'modules'] as [ModuleId | 'modules', ...(ModuleId | 'modules')[]];
+type OpenTabId = ModuleId | 'modules' | 'hub' | 'settings';
+const OPEN_TAB_ENUM = [...MODULE_IDS, 'modules', 'hub', 'settings'] as [
+  OpenTabId,
+  ...OpenTabId[],
+];
 
 function resolveUiHtmlPath(override?: string): string {
   const envOverride = process.env.AGY_NOV_APP_HTML;
@@ -89,13 +107,19 @@ export interface NovServerBundle {
   setModule: (moduleId: ModuleId, enabled: boolean) => Promise<NovConfig>;
   applyPreset: (preset: PresetId) => Promise<NovConfig>;
   setLocale: (locale: NovLocale) => Promise<NovConfig>;
+  setStartupView: (startupView: NovStartupView) => Promise<NovConfig>;
+  resetConfig: () => Promise<NovConfig>;
   subscribeSnapshot: (listener: (snapshot: NovConfigSnapshotPayload) => void) => () => void;
   syncConfigFromDisk: () => Promise<boolean>;
   dispose: () => Promise<void>;
 }
 
 function hasConfigChanged(prev: NovConfig, next: NovConfig): boolean {
-  if (prev.locale !== next.locale || prev.defaultTab !== next.defaultTab) {
+  if (
+    prev.locale !== next.locale ||
+    prev.defaultTab !== next.defaultTab ||
+    (prev.startupView ?? 'hub') !== (next.startupView ?? 'hub')
+  ) {
     return true;
   }
   return MODULE_IDS.some((id) => Boolean(prev.modules[id]) !== Boolean(next.modules[id]));
@@ -266,6 +290,15 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     }
   }
 
+  function refreshFeedSnapshotSafe(cfg: NovConfig): void {
+    try {
+      const remoteRunning = Boolean(registrations.get('remote')?.isRuntimeRunning?.());
+      writeFeedSnapshotIfDataDirExists(options.dataDir, cfg, { remoteRunning });
+    } catch {
+      // Best-effort only: never fail config mutations on feed snapshot I/O errors
+    }
+  }
+
   function syncConfigFromDiskIfChanged(): Promise<boolean> {
     if (disposed) return Promise.resolve(false);
     return enqueueMutation(async () => {
@@ -298,6 +331,7 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
       syncToolVisibility(next);
       await syncModuleRuntimes(prev, next);
       broadcastSnapshot();
+      refreshFeedSnapshotSafe(next);
       return true;
     });
   }
@@ -311,6 +345,7 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
       syncToolVisibility(next);
       await syncModuleRuntimes(prev, next);
       broadcastSnapshot();
+      refreshFeedSnapshotSafe(next);
       return next;
     });
 
@@ -323,6 +358,7 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
       syncToolVisibility(next);
       await syncModuleRuntimes(prev, next);
       broadcastSnapshot();
+      refreshFeedSnapshotSafe(next);
       return next;
     });
 
@@ -335,6 +371,46 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
       syncToolVisibility(next);
       await syncModuleRuntimes(prev, next);
       broadcastSnapshot();
+      refreshFeedSnapshotSafe(next);
+      return next;
+    });
+
+  const applyStartupViewMutation = (startupView: NovStartupView): Promise<NovConfig> =>
+    enqueueMutation(async () => {
+      const prev = currentConfig;
+      const next = setNovStartupView(options.dataDir, startupView);
+      lastConfigSignature = getConfigFileSignature(options.dataDir);
+      currentConfig = next;
+      syncToolVisibility(next);
+      await syncModuleRuntimes(prev, next);
+      broadcastSnapshot();
+      refreshFeedSnapshotSafe(next);
+      return next;
+    });
+
+  const applyImportConfigMutation = (importedConfig: NovConfig): Promise<NovConfig> =>
+    enqueueMutation(async () => {
+      const prev = currentConfig;
+      const next = saveNovConfig(options.dataDir, importedConfig);
+      lastConfigSignature = getConfigFileSignature(options.dataDir);
+      currentConfig = next;
+      syncToolVisibility(next);
+      await syncModuleRuntimes(prev, next);
+      broadcastSnapshot();
+      refreshFeedSnapshotSafe(next);
+      return next;
+    });
+
+  const applyResetConfigMutation = (): Promise<NovConfig> =>
+    enqueueMutation(async () => {
+      const prev = currentConfig;
+      const next = resetNovConfig(options.dataDir);
+      lastConfigSignature = getConfigFileSignature(options.dataDir);
+      currentConfig = next;
+      syncToolVisibility(next);
+      await syncModuleRuntimes(prev, next);
+      broadcastSnapshot();
+      refreshFeedSnapshotSafe(next);
       return next;
     });
 
@@ -455,7 +531,7 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
         structuredContent: {
           ...snapshot,
           toolName: 'nov_open',
-          novModule: targetModule ?? currentConfig.defaultTab,
+          novModule: targetModule ?? (currentConfig.startupView === 'last' ? currentConfig.defaultTab : 'hub'),
         },
       };
     },
@@ -569,6 +645,123 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     },
   );
 
+  server.registerTool(
+    'nov_app_get_hub_state',
+    {
+      title: 'Get agy-NOV Hub State',
+      description:
+        'App-only: sync disk config and return unified Hub snapshot, dual-star feed summary, and read-only team preset.',
+      inputSchema: {},
+      _meta: APP_ONLY_META,
+    },
+    async () => {
+      await syncConfigFromDiskIfChanged();
+      const snapshot = buildConfigSnapshot();
+      const feed = options.demoMode
+        ? buildDemoFeedSnapshot(currentConfig, { remoteRunning: snapshot.remoteRunning })
+        : buildFeedSnapshot(options.dataDir, currentConfig, { remoteRunning: snapshot.remoteRunning });
+      const teamPreset = loadTeamPresetReadOnly(options.workspaceRoot);
+      const payload = { snapshot, feed, teamPreset };
+      return {
+        content: [{ type: 'text', text: JSON.stringify(payload) }],
+        structuredContent: payload,
+      };
+    },
+  );
+
+  server.registerTool(
+    'nov_app_set_startup_view',
+    {
+      title: 'Set agy-NOV Startup View',
+      description: 'App-only: persist default startup view preference (hub or last).',
+      inputSchema: {
+        startupView: z.enum(STARTUP_VIEW_IDS),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ startupView }) => {
+      await applyStartupViewMutation(startupView);
+      const snapshot = buildConfigSnapshot();
+      return {
+        content: [{ type: 'text', text: JSON.stringify(snapshot) }],
+        structuredContent: { ...snapshot },
+      };
+    },
+  );
+
+  server.registerTool(
+    'nov_app_export_config',
+    {
+      title: 'Export Sanitized agy-NOV Config',
+      description:
+        'App-only: export strictly whitelisted agy-NOV configuration JSON with zero secrets or local paths.',
+      inputSchema: {},
+      _meta: APP_ONLY_META,
+    },
+    async () => {
+      await syncConfigFromDiskIfChanged();
+      const exported = exportSanitizedConfig(currentConfig);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(exported, null, 2) }],
+        structuredContent: { ...exported },
+      };
+    },
+  );
+
+  server.registerTool(
+    'nov_app_import_config',
+    {
+      title: 'Import agy-NOV Config',
+      description:
+        'App-only: validate and apply a sanitized agy-NOV configuration JSON payload with hot tool sync.',
+      inputSchema: {
+        json: z.string().max(MAX_CONFIG_IMPORT_BYTES),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ json }) => {
+      const parsed = parseAndValidateConfigImport(json);
+      if (!parsed.ok) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: parsed.error }],
+          structuredContent: { ok: false, error: parsed.error },
+        };
+      }
+      await applyImportConfigMutation(parsed.config);
+      const snapshot = buildConfigSnapshot();
+      const payload = {
+        ok: true,
+        warnings: parsed.warnings,
+        snapshot,
+      };
+      return {
+        content: [{ type: 'text', text: JSON.stringify(payload) }],
+        structuredContent: payload,
+      };
+    },
+  );
+
+  server.registerTool(
+    'nov_app_reset_config',
+    {
+      title: 'Reset agy-NOV Config',
+      description: 'App-only: reset agy-NOV configuration back to the default core preset.',
+      inputSchema: {
+        confirm: z.literal(true),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async () => {
+      await applyResetConfigMutation();
+      const snapshot = buildConfigSnapshot();
+      return {
+        content: [{ type: 'text', text: JSON.stringify(snapshot) }],
+        structuredContent: { ...snapshot },
+      };
+    },
+  );
+
   async function dispose(): Promise<void> {
     disposed = true;
     if (configPollTimer) {
@@ -597,6 +790,8 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     setModule: applySingleToggle,
     applyPreset: applyPresetMutation,
     setLocale: applyLocaleMutation,
+    setStartupView: applyStartupViewMutation,
+    resetConfig: applyResetConfigMutation,
     subscribeSnapshot,
     syncConfigFromDisk: syncConfigFromDiskIfChanged,
     dispose,

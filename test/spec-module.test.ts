@@ -785,10 +785,13 @@ describe('Spec Flow — McpServer 4+4 tool alignment & end-to-end tool calls', (
         reg.modelTools.map((t) => t.name),
         MODULE_CATALOG.spec.modelToolNames,
       );
-      assert.deepEqual(reg.exemptReadOnlyAppTools, ['app_spec_get_state']);
+      assert.deepEqual(reg.exemptReadOnlyAppTools, [
+        'app_spec_get_state',
+        'app_spec_diff_revisions',
+      ]);
 
       const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-      const client = new Client({ name: 'spec-mcp-client', version: '0.4.0' });
+      const client = new Client({ name: 'spec-mcp-client', version: '0.7.0' });
       await server.connect(serverTransport);
       await client.connect(clientTransport);
 
@@ -803,6 +806,10 @@ describe('Spec Flow — McpServer 4+4 tool alignment & end-to-end tool calls', (
           'app_spec_save',
           'app_spec_set_status',
           'app_spec_update_task',
+          'app_spec_annotate',
+          'app_spec_resolve_annotation',
+          'app_spec_diff_revisions',
+          'app_spec_archive_to_mem',
         ];
         assert.deepEqual(
           listed.tools.map((t) => t.name),

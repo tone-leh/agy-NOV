@@ -27,7 +27,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var cli_exports = {};
 module.exports = __toCommonJS(cli_exports);
 var import_node_fs3 = __toESM(require("node:fs"), 1);
-var import_node_path3 = __toESM(require("node:path"), 1);
+var import_node_path4 = __toESM(require("node:path"), 1);
 
 // src/core/config.ts
 var import_node_fs2 = __toESM(require("node:fs"), 1);
@@ -57,6 +57,7 @@ var MODULE_CATEGORY_IDS = [
   "workspace",
   "connectivity"
 ];
+var STARTUP_VIEW_IDS = ["hub", "last"];
 var PRESET_IDS = ["core", "power", "local-all", "full", "minimal"];
 var UI_LOCALE_IDS = ["en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de"];
 var LOCALE_IDS = ["auto", ...UI_LOCALE_IDS];
@@ -91,6 +92,7 @@ var MODULE_CATALOG = {
   review: {
     id: "review",
     category: "core-dev",
+    domain: "core",
     name: "Diff Review",
     shortLabel: "Review",
     tagline: "PR-grade inline diff review & line annotations",
@@ -106,6 +108,7 @@ var MODULE_CATALOG = {
   guard: {
     id: "guard",
     category: "safety",
+    domain: "core",
     name: "Guard & Snapshots",
     shortLabel: "Guard",
     tagline: "Secret leak shield, command firewall & pre-edit snapshots",
@@ -115,7 +118,7 @@ var MODULE_CATALOG = {
     uiMode: "scroll",
     hasUiTab: true,
     defaultEnabled: true,
-    hooks: ["PreToolUse"],
+    hooks: ["PreToolUse", "PreInvocation"],
     modelToolNames: [
       "guard_status",
       "guard_list_snapshots",
@@ -126,6 +129,7 @@ var MODULE_CATALOG = {
   xray: {
     id: "xray",
     category: "observability",
+    domain: "core",
     name: "Context X-Ray",
     shortLabel: "X-Ray",
     tagline: "Token & cache breakdown, live file tree & cross-session search",
@@ -146,6 +150,7 @@ var MODULE_CATALOG = {
   turbo: {
     id: "turbo",
     category: "core-dev",
+    domain: "pipeline",
     name: "Turbo & Output Guard",
     shortLabel: "Turbo",
     tagline: "Batch codebase search, outline slices & RTK-style output compression",
@@ -161,6 +166,7 @@ var MODULE_CATALOG = {
   radar: {
     id: "radar",
     category: "observability",
+    domain: "toolbox",
     name: "Session Radar & Chime",
     shortLabel: "Radar",
     tagline: "Multi-session attention board, Swarm subagent monitor & completion alerts",
@@ -176,6 +182,7 @@ var MODULE_CATALOG = {
   verify: {
     id: "verify",
     category: "safety",
+    domain: "pipeline",
     name: "Verify Gate",
     shortLabel: "Verify",
     tagline: 'Stop-hook verification gate blocking unverified "done" claims',
@@ -196,6 +203,7 @@ var MODULE_CATALOG = {
   worktree: {
     id: "worktree",
     category: "core-dev",
+    domain: "pipeline",
     name: "Worktree Orchestrator",
     shortLabel: "Worktree",
     tagline: "Safe parallel Git worktrees, branch diff previews & orphan cleanup",
@@ -216,16 +224,17 @@ var MODULE_CATALOG = {
   spec: {
     id: "spec",
     category: "workspace",
+    domain: "pipeline",
     name: "Spec Flow & Task DAG",
     shortLabel: "Spec",
-    tagline: "Spec-driven development, dependency task DAG & pre-approval write lock",
-    description: "Maintain structured Spec -> Plan -> Task DAG workflows with cycle detection, SessionStart next-task recall, and a PreToolUse write gate that keeps code read-only until the spec is approved.",
+    tagline: "Plan inline review, Brownfield Delta Spec, Task DAG & pre-approval write lock",
+    description: "Maintain structured Full or Delta Specs with Plannotator-style inline annotations, revision diffs, dependency Task DAGs, SessionStart recall, and PreToolUse/PreInvocation guardrails.",
     isolationTier: "offline",
     networkAccess: "offline",
     uiMode: "scroll",
     hasUiTab: true,
     defaultEnabled: false,
-    hooks: ["SessionStart", "PreToolUse"],
+    hooks: ["SessionStart", "PreToolUse", "PreInvocation"],
     modelToolNames: [
       "spec_get_state",
       "spec_create_or_update",
@@ -236,6 +245,7 @@ var MODULE_CATALOG = {
   studio: {
     id: "studio",
     category: "workspace",
+    domain: "toolbox",
     name: "Workspace Studio",
     shortLabel: "Studio",
     tagline: "On-demand SQLite/CSV/JSON data viewer, DOCX/XLSX/PDF slicer & loopback HTTP probe",
@@ -256,6 +266,7 @@ var MODULE_CATALOG = {
   canvas: {
     id: "canvas",
     category: "workspace",
+    domain: "toolbox",
     name: "Visual Canvas",
     shortLabel: "Canvas",
     tagline: "HTML/SVG/Slides/Markdown visual preview & pin annotations",
@@ -276,6 +287,7 @@ var MODULE_CATALOG = {
   mem: {
     id: "mem",
     category: "workspace",
+    domain: "pipeline",
     name: "Memory Graph",
     shortLabel: "Memory",
     tagline: "Code-anchored long-term memory with drift detection",
@@ -285,12 +297,13 @@ var MODULE_CATALOG = {
     uiMode: "scroll",
     hasUiTab: true,
     defaultEnabled: false,
-    hooks: ["SessionStart", "Stop"],
+    hooks: ["SessionStart", "PreInvocation", "Stop"],
     modelToolNames: ["mem_remember", "mem_recall", "mem_forget"]
   },
   ops: {
     id: "ops",
     category: "workspace",
+    domain: "toolbox",
     name: "Prompt Vault & Budget Doctor",
     shortLabel: "Ops",
     tagline: "Parameterized prompt vault, 24KB/20K rule bloat & 100-tool budget doctor",
@@ -306,6 +319,7 @@ var MODULE_CATALOG = {
   remote: {
     id: "remote",
     category: "connectivity",
+    domain: "connectivity",
     name: "Mobile & IM Remote",
     shortLabel: "Remote",
     tagline: "Opt-in Mobile PWA & IM remote alerts / risky approvals",
@@ -420,6 +434,9 @@ var PRESET_DEFINITIONS = {
 };
 function isModuleId(value) {
   return typeof value === "string" && MODULE_IDS.includes(value);
+}
+function isNovStartupView(value) {
+  return typeof value === "string" && STARTUP_VIEW_IDS.includes(value);
 }
 function isPresetId(value) {
   return typeof value === "string" && PRESET_IDS.includes(value);
@@ -1637,6 +1654,7 @@ function createDefaultConfig() {
     preset: "core",
     modules: { ...PRESET_DEFINITIONS.core.modules },
     defaultTab: "review",
+    startupView: "hub",
     locale: "auto",
     updatedAt: (/* @__PURE__ */ new Date()).toISOString()
   };
@@ -1652,23 +1670,25 @@ function detectPreset(modules) {
 }
 function normalizeConfig(raw) {
   const base = createDefaultConfig();
-  if (!raw || typeof raw !== "object") return base;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return base;
   const obj = raw;
-  const rawMods = obj.modules && typeof obj.modules === "object" ? obj.modules : {};
+  const rawMods = obj.modules && typeof obj.modules === "object" && !Array.isArray(obj.modules) ? obj.modules : {};
   const modules = { ...base.modules };
   for (const id of MODULE_IDS) {
-    if (typeof rawMods[id] === "boolean") {
+    if (Object.prototype.hasOwnProperty.call(rawMods, id) && typeof rawMods[id] === "boolean") {
       modules[id] = rawMods[id];
     }
   }
   const enabledTabList = MODULE_IDS.filter((id) => modules[id] && MODULE_CATALOG[id].hasUiTab);
   const defaultTab = isModuleId(obj.defaultTab) && modules[obj.defaultTab] && MODULE_CATALOG[obj.defaultTab].hasUiTab ? obj.defaultTab : enabledTabList[0] ?? "review";
+  const startupView = isNovStartupView(obj.startupView) ? obj.startupView : "hub";
   const locale = isNovLocale(obj.locale) ? obj.locale : "auto";
   return {
     schemaVersion: 1,
     preset: detectPreset(modules),
     modules,
     defaultTab,
+    startupView,
     locale,
     updatedAt: typeof obj.updatedAt === "string" ? obj.updatedAt : base.updatedAt
   };
@@ -1747,6 +1767,16 @@ function setNovLocale(rootDataDir, locale) {
     locale
   });
 }
+var MAX_CONFIG_IMPORT_BYTES = 32 * 1024;
+
+// src/core/feed.ts
+var import_node_path3 = __toESM(require("node:path"), 1);
+var FEED_SNAPSHOT_FILENAME = "feed-snapshot.json";
+var MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
+var MAX_SOURCE_FILE_BYTES = 2 * 1024 * 1024;
+function getFeedSnapshotPath(rootDataDir) {
+  return import_node_path3.default.join(rootDataDir, FEED_SNAPSHOT_FILENAME);
+}
 
 // src/core/utils.ts
 function parseCliFlag(argv, flag) {
@@ -1766,7 +1796,7 @@ function hasCliFlag(argv, flag) {
 }
 
 // src/server/cli.ts
-var CLI_VERSION = "0.6.0";
+var CLI_VERSION = "0.7.0";
 function printHelp() {
   console.log(`agy-NOV CLI (v${CLI_VERSION}) \u2014 The 100% Native Modular Super-Workbench for Antigravity 2.0
 
@@ -1797,7 +1827,7 @@ function buildStatusLine(dataDir, compact) {
   const network = cfg.modules.remote ? "opt-in-remote" : "offline";
   let verifySummary;
   if (cfg.modules.verify) {
-    const verifyState = readJsonSilent(import_node_path3.default.join(getModuleDataDir(dataDir, "verify"), "state.json"));
+    const verifyState = readJsonSilent(import_node_path4.default.join(getModuleDataDir(dataDir, "verify"), "state.json"));
     const rawEvidence = Array.isArray(verifyState?.evidence) ? verifyState.evidence : [];
     const validEvidence = rawEvidence.filter(
       (e) => Boolean(e) && typeof e === "object" && !Array.isArray(e)
@@ -1822,7 +1852,7 @@ function buildStatusLine(dataDir, compact) {
   }
   let specSummary;
   if (cfg.modules.spec) {
-    const specState = readJsonSilent(import_node_path3.default.join(getModuleDataDir(dataDir, "spec"), "state.json"));
+    const specState = readJsonSilent(import_node_path4.default.join(getModuleDataDir(dataDir, "spec"), "state.json"));
     const activeId = typeof specState?.activeSpecId === "string" ? specState.activeSpecId : void 0;
     let activeDoc;
     if (activeId && Array.isArray(specState?.specs)) {
@@ -1855,7 +1885,7 @@ function buildStatusLine(dataDir, compact) {
   let radarSummary;
   if (cfg.modules.radar) {
     const radarDir = getModuleDataDir(dataDir, "radar");
-    const capsule = readJsonSilent(import_node_path3.default.join(radarDir, "status-capsule.json"));
+    const capsule = readJsonSilent(import_node_path4.default.join(radarDir, "status-capsule.json"));
     const counts = capsule && capsule.counts && typeof capsule.counts === "object" ? capsule.counts : null;
     if (counts) {
       radarSummary = {
@@ -1868,7 +1898,7 @@ function buildStatusLine(dataDir, compact) {
         unread: Number(counts.unread ?? 0) || 0
       };
     } else {
-      const board = readJsonSilent(import_node_path3.default.join(radarDir, "board.json"));
+      const board = readJsonSilent(import_node_path4.default.join(radarDir, "board.json"));
       const sessionsRaw = board?.sessions;
       const list = sessionsRaw && typeof sessionsRaw === "object" && !Array.isArray(sessionsRaw) ? Object.values(sessionsRaw).filter(
         (s) => Boolean(s) && typeof s === "object" && !Array.isArray(s)
@@ -1886,7 +1916,7 @@ function buildStatusLine(dataDir, compact) {
   }
   let xraySummary;
   if (cfg.modules.xray) {
-    const live = readJsonSilent(import_node_path3.default.join(getModuleDataDir(dataDir, "xray"), "live-state.json"));
+    const live = readJsonSilent(import_node_path4.default.join(getModuleDataDir(dataDir, "xray"), "live-state.json"));
     xraySummary = {
       enabled: true,
       activeConversationId: typeof live?.activeConversationId === "string" ? live.activeConversationId : void 0,
@@ -1960,7 +1990,7 @@ function printStatus(dataDir) {
   }
 }
 function buildWorkspaceRecommendation(workspaceRoot) {
-  const resolvedRoot = import_node_path3.default.resolve(workspaceRoot);
+  const resolvedRoot = import_node_path4.default.resolve(workspaceRoot);
   let realRoot = resolvedRoot;
   try {
     realRoot = import_node_fs3.default.realpathSync(resolvedRoot);
@@ -1968,7 +1998,7 @@ function buildWorkspaceRecommendation(workspaceRoot) {
   }
   const exists = (rel) => {
     try {
-      return import_node_fs3.default.existsSync(import_node_path3.default.join(realRoot, rel));
+      return import_node_fs3.default.existsSync(import_node_path4.default.join(realRoot, rel));
     } catch {
       return false;
     }
@@ -1977,7 +2007,7 @@ function buildWorkspaceRecommendation(workspaceRoot) {
   let hasMultipleTestsOrScripts = false;
   if (exists("package.json")) {
     detectedStacks.push("Node.js / TypeScript");
-    const pkg = readJsonSilent(import_node_path3.default.join(realRoot, "package.json"));
+    const pkg = readJsonSilent(import_node_path4.default.join(realRoot, "package.json"));
     const scripts = pkg?.scripts && typeof pkg.scripts === "object" && !Array.isArray(pkg.scripts) ? Object.keys(pkg.scripts) : [];
     if (scripts.some((s) => /test|typecheck|lint|check|build/i.test(s))) {
       hasMultipleTestsOrScripts = true;
@@ -2105,8 +2135,22 @@ function buildWorkspaceRecommendation(workspaceRoot) {
     applyCommand
   };
 }
+function resolvePluginRootDir() {
+  const scriptDir = import_node_path4.default.dirname(process.argv[1] || process.cwd());
+  const candidates = [
+    import_node_path4.default.resolve(scriptDir, ".."),
+    import_node_path4.default.resolve(scriptDir, "../.."),
+    process.cwd()
+  ];
+  for (const dir of candidates) {
+    if (import_node_fs3.default.existsSync(import_node_path4.default.join(dir, "plugin.json"))) {
+      return dir;
+    }
+  }
+  return candidates[0];
+}
 function runDoctor(dataDir) {
-  const rootDir = import_node_path3.default.resolve(import_node_path3.default.dirname(process.argv[1] || process.cwd()), "..");
+  const rootDir = resolvePluginRootDir();
   const requiredFiles = [
     "plugin.json",
     "mcp_config.json",
@@ -2121,13 +2165,13 @@ function runDoctor(dataDir) {
   let ok = true;
   console.log(`agy-NOV Doctor (v${CLI_VERSION} \xB7 Zero ASAR / Zero CDP)`);
   for (const rel of requiredFiles) {
-    const abs = import_node_path3.default.join(rootDir, rel);
+    const abs = import_node_path4.default.join(rootDir, rel);
     const exists = import_node_fs3.default.existsSync(abs);
     if (!exists) ok = false;
     const size = exists ? `${(import_node_fs3.default.statSync(abs).size / 1024).toFixed(1)} KB` : "MISSING";
     console.log(`  ${exists ? "OK  " : "FAIL"} ${rel.padEnd(28)} ${size}`);
   }
-  const pluginPath = import_node_path3.default.join(rootDir, "plugin.json");
+  const pluginPath = import_node_path4.default.join(rootDir, "plugin.json");
   if (import_node_fs3.default.existsSync(pluginPath)) {
     const allowedKeys = /* @__PURE__ */ new Set([
       "name",
@@ -2150,7 +2194,7 @@ function runDoctor(dataDir) {
       console.log(`  OK   plugin.json schema clean (name=${String(manifest.name)}, version=${String(manifest.version)})`);
     }
   }
-  const uiPath = import_node_path3.default.join(rootDir, "dist/ui/app.html");
+  const uiPath = import_node_path4.default.join(rootDir, "dist/ui/app.html");
   if (import_node_fs3.default.existsSync(uiPath)) {
     const bytes = import_node_fs3.default.statSync(uiPath).size;
     if (bytes >= 10 * 1024 * 1024) {
@@ -2164,6 +2208,28 @@ function runDoctor(dataDir) {
   console.log(
     `  OK   config readable (preset=${cfg.preset}, locale=${cfg.locale}, remote=${cfg.modules.remote ? "ON" : "OFF"})`
   );
+  const feedPath = getFeedSnapshotPath(dataDir);
+  let feedStatusTag = "OK  ";
+  let feedNote = "not generated yet (lazy read-only until first write)";
+  try {
+    const feedStat = import_node_fs3.default.lstatSync(feedPath);
+    if (feedStat.isSymbolicLink() || !feedStat.isFile()) {
+      ok = false;
+      feedStatusTag = "FAIL";
+      feedNote = "unsafe symlink or non-regular file";
+    } else if (feedStat.size > MAX_FEED_SNAPSHOT_BYTES) {
+      ok = false;
+      feedStatusTag = "FAIL";
+      feedNote = `exceeds 64 KB cap (${feedStat.size} bytes)`;
+    } else {
+      feedNote = `ready (${(feedStat.size / 1024).toFixed(1)} KB)`;
+    }
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      feedNote = "unreadable";
+    }
+  }
+  console.log(`  ${feedStatusTag} Feed Snapshot: ${feedPath} (${feedNote})`);
   return ok ? 0 : 1;
 }
 function main() {

@@ -3259,8 +3259,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path35) {
-      let input2 = path35;
+    function removeDotSegments(path36) {
+      let input2 = path36;
       const output2 = [];
       let nextSlash = -1;
       let len = 0;
@@ -3334,11 +3334,11 @@ var require_utils = __commonJS({
       }
       return output2.join("");
     }
-    function removeDotSegmentsRelative(path35) {
-      if (path35 === "" || path35[0] === "/") {
-        return removeDotSegments(path35);
+    function removeDotSegmentsRelative(path36) {
+      if (path36 === "" || path36[0] === "/") {
+        return removeDotSegments(path36);
       }
-      const segments = path35.split("/");
+      const segments = path36.split("/");
       const last = segments.length - 1;
       const output2 = [];
       let trailingDirectory = false;
@@ -3701,8 +3701,8 @@ var require_schemes = __commonJS({
       }
       if (wsComponent.resourceName) {
         const queryIndex = wsComponent.resourceName.indexOf("?");
-        const path35 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
-        wsComponent.path = path35 && path35 !== "/" ? path35 : void 0;
+        const path36 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
+        wsComponent.path = path36 && path36 !== "/" ? path36 : void 0;
         wsComponent.query = queryIndex === -1 ? void 0 : wsComponent.resourceName.slice(queryIndex + 1);
         wsComponent.resourceName = void 0;
       }
@@ -7239,12 +7239,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs28, exportName) {
+    function addFormats(ajv, list, fs29, exportName) {
       var _a3;
       var _b;
       (_a3 = (_b = ajv.opts.code).formats) !== null && _a3 !== void 0 ? _a3 : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs28[f]);
+        ajv.addFormat(f, fs29[f]);
     }
     module2.exports = exports2 = formatsPlugin;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -7261,8 +7261,8 @@ __export(index_exports, {
   createNovServer: () => createNovServer
 });
 module.exports = __toCommonJS(index_exports);
-var import_node_fs27 = __toESM(require("node:fs"), 1);
-var import_node_path34 = __toESM(require("node:path"), 1);
+var import_node_fs28 = __toESM(require("node:fs"), 1);
+var import_node_path35 = __toESM(require("node:path"), 1);
 
 // node_modules/zod/v3/helpers/util.js
 var util;
@@ -7638,8 +7638,8 @@ function getErrorMap() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path35, errorMaps, issueData } = params;
-  const fullPath = [...path35, ...issueData.path || []];
+  const { data, path: path36, errorMaps, issueData } = params;
+  const fullPath = [...path36, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -7754,11 +7754,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path35, key) {
+  constructor(parent, value, path36, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path35;
+    this._path = path36;
     this._key = key;
   }
   get path() {
@@ -11714,10 +11714,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path35) {
-  if (!path35)
+function getElementAtPath(obj, path36) {
+  if (!path36)
     return obj;
-  return path35.reduce((acc, key) => acc?.[key], obj);
+  return path36.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -12057,11 +12057,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path35, issues) {
+function prefixIssues(path36, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path35);
+    iss.path.unshift(path36);
     return iss;
   });
 }
@@ -12523,16 +12523,16 @@ function flattenError(error62, mapper = (issue2) => issue2.message) {
 }
 function formatError(error62, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error63, path35 = []) => {
+  const processError = (error63, path36 = []) => {
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path35, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path36, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path35, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path36, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path35, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path36, ...issue2.path]);
       } else {
-        const fullpath = [...path35, ...issue2.path];
+        const fullpath = [...path36, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -12571,17 +12571,17 @@ function formatError(error62, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error62, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error63, path35 = []) => {
+  const processError = (error63, path36 = []) => {
     var _a3;
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path35, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path36, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path35, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path36, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path35, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path36, ...issue2.path]);
       } else {
-        const fullpath = [...path35, ...issue2.path];
+        const fullpath = [...path36, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -12620,8 +12620,8 @@ function treeifyError(error62, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path35 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path35) {
+  const path36 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path36) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -28172,11 +28172,11 @@ function normalizeObjectSchema(schema) {
   }
   return void 0;
 }
-function getDotPath(path35) {
-  if (path35.length === 0) {
+function getDotPath(path36) {
+  if (path36.length === 0) {
     return "object root";
   }
-  return path35.reduce((acc, seg, index) => {
+  return path36.reduce((acc, seg, index) => {
     if (index === 0) {
       return String(seg);
     }
@@ -30403,13 +30403,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path35 = ref.slice(1).split("/").filter(Boolean);
-  if (path35.length === 0) {
+  const path36 = ref.slice(1).split("/").filter(Boolean);
+  if (path36.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path35[0] === defsKey) {
-    const key = path35[1] === void 0 ? void 0 : decodeJSONPointerSegment(path35[1]);
+  if (path36[0] === defsKey) {
+    const key = path36[1] === void 0 ? void 0 : decodeJSONPointerSegment(path36[1]);
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -36685,6 +36685,8 @@ var MODULE_IDS = [
   "ops",
   "remote"
 ];
+var STARTUP_VIEW_IDS = ["hub", "last"];
+var MAX_MCP_TOOL_BUDGET = 100;
 var PRESET_IDS = ["core", "power", "local-all", "full", "minimal"];
 var UI_LOCALE_IDS = ["en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de"];
 var LOCALE_IDS = ["auto", ...UI_LOCALE_IDS];
@@ -36692,6 +36694,7 @@ var MODULE_CATALOG = {
   review: {
     id: "review",
     category: "core-dev",
+    domain: "core",
     name: "Diff Review",
     shortLabel: "Review",
     tagline: "PR-grade inline diff review & line annotations",
@@ -36707,6 +36710,7 @@ var MODULE_CATALOG = {
   guard: {
     id: "guard",
     category: "safety",
+    domain: "core",
     name: "Guard & Snapshots",
     shortLabel: "Guard",
     tagline: "Secret leak shield, command firewall & pre-edit snapshots",
@@ -36716,7 +36720,7 @@ var MODULE_CATALOG = {
     uiMode: "scroll",
     hasUiTab: true,
     defaultEnabled: true,
-    hooks: ["PreToolUse"],
+    hooks: ["PreToolUse", "PreInvocation"],
     modelToolNames: [
       "guard_status",
       "guard_list_snapshots",
@@ -36727,6 +36731,7 @@ var MODULE_CATALOG = {
   xray: {
     id: "xray",
     category: "observability",
+    domain: "core",
     name: "Context X-Ray",
     shortLabel: "X-Ray",
     tagline: "Token & cache breakdown, live file tree & cross-session search",
@@ -36747,6 +36752,7 @@ var MODULE_CATALOG = {
   turbo: {
     id: "turbo",
     category: "core-dev",
+    domain: "pipeline",
     name: "Turbo & Output Guard",
     shortLabel: "Turbo",
     tagline: "Batch codebase search, outline slices & RTK-style output compression",
@@ -36762,6 +36768,7 @@ var MODULE_CATALOG = {
   radar: {
     id: "radar",
     category: "observability",
+    domain: "toolbox",
     name: "Session Radar & Chime",
     shortLabel: "Radar",
     tagline: "Multi-session attention board, Swarm subagent monitor & completion alerts",
@@ -36777,6 +36784,7 @@ var MODULE_CATALOG = {
   verify: {
     id: "verify",
     category: "safety",
+    domain: "pipeline",
     name: "Verify Gate",
     shortLabel: "Verify",
     tagline: 'Stop-hook verification gate blocking unverified "done" claims',
@@ -36797,6 +36805,7 @@ var MODULE_CATALOG = {
   worktree: {
     id: "worktree",
     category: "core-dev",
+    domain: "pipeline",
     name: "Worktree Orchestrator",
     shortLabel: "Worktree",
     tagline: "Safe parallel Git worktrees, branch diff previews & orphan cleanup",
@@ -36817,16 +36826,17 @@ var MODULE_CATALOG = {
   spec: {
     id: "spec",
     category: "workspace",
+    domain: "pipeline",
     name: "Spec Flow & Task DAG",
     shortLabel: "Spec",
-    tagline: "Spec-driven development, dependency task DAG & pre-approval write lock",
-    description: "Maintain structured Spec -> Plan -> Task DAG workflows with cycle detection, SessionStart next-task recall, and a PreToolUse write gate that keeps code read-only until the spec is approved.",
+    tagline: "Plan inline review, Brownfield Delta Spec, Task DAG & pre-approval write lock",
+    description: "Maintain structured Full or Delta Specs with Plannotator-style inline annotations, revision diffs, dependency Task DAGs, SessionStart recall, and PreToolUse/PreInvocation guardrails.",
     isolationTier: "offline",
     networkAccess: "offline",
     uiMode: "scroll",
     hasUiTab: true,
     defaultEnabled: false,
-    hooks: ["SessionStart", "PreToolUse"],
+    hooks: ["SessionStart", "PreToolUse", "PreInvocation"],
     modelToolNames: [
       "spec_get_state",
       "spec_create_or_update",
@@ -36837,6 +36847,7 @@ var MODULE_CATALOG = {
   studio: {
     id: "studio",
     category: "workspace",
+    domain: "toolbox",
     name: "Workspace Studio",
     shortLabel: "Studio",
     tagline: "On-demand SQLite/CSV/JSON data viewer, DOCX/XLSX/PDF slicer & loopback HTTP probe",
@@ -36857,6 +36868,7 @@ var MODULE_CATALOG = {
   canvas: {
     id: "canvas",
     category: "workspace",
+    domain: "toolbox",
     name: "Visual Canvas",
     shortLabel: "Canvas",
     tagline: "HTML/SVG/Slides/Markdown visual preview & pin annotations",
@@ -36877,6 +36889,7 @@ var MODULE_CATALOG = {
   mem: {
     id: "mem",
     category: "workspace",
+    domain: "pipeline",
     name: "Memory Graph",
     shortLabel: "Memory",
     tagline: "Code-anchored long-term memory with drift detection",
@@ -36886,12 +36899,13 @@ var MODULE_CATALOG = {
     uiMode: "scroll",
     hasUiTab: true,
     defaultEnabled: false,
-    hooks: ["SessionStart", "Stop"],
+    hooks: ["SessionStart", "PreInvocation", "Stop"],
     modelToolNames: ["mem_remember", "mem_recall", "mem_forget"]
   },
   ops: {
     id: "ops",
     category: "workspace",
+    domain: "toolbox",
     name: "Prompt Vault & Budget Doctor",
     shortLabel: "Ops",
     tagline: "Parameterized prompt vault, 24KB/20K rule bloat & 100-tool budget doctor",
@@ -36907,6 +36921,7 @@ var MODULE_CATALOG = {
   remote: {
     id: "remote",
     category: "connectivity",
+    domain: "connectivity",
     name: "Mobile & IM Remote",
     shortLabel: "Remote",
     tagline: "Opt-in Mobile PWA & IM remote alerts / risky approvals",
@@ -37021,6 +37036,9 @@ var PRESET_DEFINITIONS = {
 };
 function isModuleId(value) {
   return typeof value === "string" && MODULE_IDS.includes(value);
+}
+function isNovStartupView(value) {
+  return typeof value === "string" && STARTUP_VIEW_IDS.includes(value);
 }
 function isPresetId(value) {
   return typeof value === "string" && PRESET_IDS.includes(value);
@@ -38247,6 +38265,7 @@ function createDefaultConfig() {
     preset: "core",
     modules: { ...PRESET_DEFINITIONS.core.modules },
     defaultTab: "review",
+    startupView: "hub",
     locale: "auto",
     updatedAt: (/* @__PURE__ */ new Date()).toISOString()
   };
@@ -38262,23 +38281,25 @@ function detectPreset(modules) {
 }
 function normalizeConfig(raw) {
   const base = createDefaultConfig();
-  if (!raw || typeof raw !== "object") return base;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return base;
   const obj = raw;
-  const rawMods = obj.modules && typeof obj.modules === "object" ? obj.modules : {};
+  const rawMods = obj.modules && typeof obj.modules === "object" && !Array.isArray(obj.modules) ? obj.modules : {};
   const modules = { ...base.modules };
   for (const id of MODULE_IDS) {
-    if (typeof rawMods[id] === "boolean") {
+    if (Object.prototype.hasOwnProperty.call(rawMods, id) && typeof rawMods[id] === "boolean") {
       modules[id] = rawMods[id];
     }
   }
   const enabledTabList = MODULE_IDS.filter((id) => modules[id] && MODULE_CATALOG[id].hasUiTab);
   const defaultTab = isModuleId(obj.defaultTab) && modules[obj.defaultTab] && MODULE_CATALOG[obj.defaultTab].hasUiTab ? obj.defaultTab : enabledTabList[0] ?? "review";
+  const startupView = isNovStartupView(obj.startupView) ? obj.startupView : "hub";
   const locale = isNovLocale(obj.locale) ? obj.locale : "auto";
   return {
     schemaVersion: 1,
     preset: detectPreset(modules),
     modules,
     defaultTab,
+    startupView,
     locale,
     updatedAt: typeof obj.updatedAt === "string" ? obj.updatedAt : base.updatedAt
   };
@@ -38357,10 +38378,995 @@ function setNovLocale(rootDataDir, locale) {
     locale
   });
 }
+function setNovStartupView(rootDataDir, startupView) {
+  const current = loadOrInitNovConfig(rootDataDir);
+  return saveNovConfig(rootDataDir, {
+    ...current,
+    startupView
+  });
+}
+function exportSanitizedConfig(config2) {
+  const normalized = normalizeConfig(config2);
+  return {
+    schemaVersion: 1,
+    exportedAt: (/* @__PURE__ */ new Date()).toISOString(),
+    sanitized: true,
+    config: {
+      preset: normalized.preset,
+      modules: { ...normalized.modules },
+      defaultTab: normalized.defaultTab,
+      startupView: normalized.startupView ?? "hub",
+      locale: normalized.locale
+    }
+  };
+}
+var FORBIDDEN_IMPORT_KEYS = /* @__PURE__ */ new Set(["__proto__", "constructor", "prototype"]);
+var MAX_CONFIG_IMPORT_BYTES = 32 * 1024;
+var MAX_CONFIG_IMPORT_DEPTH = 16;
+function hasForbiddenKeyDeep(node2, depth = 0) {
+  if (depth > MAX_CONFIG_IMPORT_DEPTH) return true;
+  if (!node2 || typeof node2 !== "object") return false;
+  if (Array.isArray(node2)) {
+    for (const item of node2) {
+      if (hasForbiddenKeyDeep(item, depth + 1)) return true;
+    }
+    return false;
+  }
+  const obj = node2;
+  for (const key of Object.keys(obj)) {
+    if (FORBIDDEN_IMPORT_KEYS.has(key)) return true;
+    if (hasForbiddenKeyDeep(obj[key], depth + 1)) return true;
+  }
+  return false;
+}
+function parseAndValidateConfigImport(rawJson) {
+  if (typeof rawJson !== "string" || !rawJson.trim()) {
+    return { ok: false, error: "Import payload must be a non-empty JSON string." };
+  }
+  if (Buffer.byteLength(rawJson, "utf8") > MAX_CONFIG_IMPORT_BYTES) {
+    return { ok: false, error: `Import payload exceeds ${MAX_CONFIG_IMPORT_BYTES} bytes limit.` };
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(rawJson);
+  } catch {
+    return { ok: false, error: "Invalid JSON syntax in configuration import." };
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { ok: false, error: "Configuration import must be a JSON object." };
+  }
+  if (hasForbiddenKeyDeep(parsed)) {
+    return { ok: false, error: "Rejected unsafe key or excessive nesting in configuration import." };
+  }
+  const obj = parsed;
+  const candidate = obj.config && typeof obj.config === "object" && !Array.isArray(obj.config) ? obj.config : obj;
+  const warnings = [];
+  if (candidate.modules !== void 0) {
+    if (!candidate.modules || typeof candidate.modules !== "object" || Array.isArray(candidate.modules)) {
+      return { ok: false, error: '"modules" must be a plain object mapping module IDs to booleans.' };
+    }
+    const rawMods = candidate.modules;
+    for (const key of Object.keys(rawMods)) {
+      if (!isModuleId(key)) {
+        warnings.push(`Ignored unknown module key "${key}".`);
+      } else if (typeof rawMods[key] !== "boolean") {
+        return { ok: false, error: `Module toggle "${key}" must be a boolean.` };
+      }
+    }
+  } else if (!isPresetId(candidate.preset)) {
+    return { ok: false, error: 'Import JSON must contain a valid "modules" object or "preset".' };
+  }
+  let normalized;
+  if (isPresetId(candidate.preset) && candidate.modules === void 0) {
+    normalized = normalizeConfig({
+      ...candidate,
+      modules: { ...PRESET_DEFINITIONS[candidate.preset].modules }
+    });
+  } else {
+    normalized = normalizeConfig(candidate);
+  }
+  if (normalized.modules.remote) {
+    normalized = normalizeConfig({
+      ...normalized,
+      modules: { ...normalized.modules, remote: false }
+    });
+    warnings.push(
+      'Opt-in "remote" module was kept OFF for safety on import; toggle it explicitly in Settings if needed.'
+    );
+  }
+  return { ok: true, config: normalized, warnings };
+}
+function resetNovConfig(rootDataDir) {
+  return saveNovConfig(rootDataDir, createDefaultConfig());
+}
 
-// src/core/utils.ts
+// src/core/feed.ts
+var import_node_crypto = __toESM(require("node:crypto"), 1);
 var import_node_fs3 = __toESM(require("node:fs"), 1);
 var import_node_path3 = __toESM(require("node:path"), 1);
+var FEED_SNAPSHOT_VERSION = "0.7.0";
+var FEED_SNAPSHOT_FILENAME = "feed-snapshot.json";
+var MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
+var MAX_FEED_ALERTS = 6;
+var MAX_SOURCE_FILE_BYTES = 2 * 1024 * 1024;
+var STANDARD_FEED_PATHS = {
+  configFile: "config.json",
+  feedFile: "feed-snapshot.json",
+  modulesRoot: "modules",
+  moduleFiles: {
+    opsPrompts: "modules/ops/prompts.json",
+    guardAudit: "modules/guard/audit.json",
+    radarCapsule: "modules/radar/status-capsule.json",
+    memStore: "modules/mem/memories.json",
+    specState: "modules/spec/state.json",
+    verifyState: "modules/verify/state.json",
+    xrayLive: "modules/xray/live-state.json"
+  }
+};
+function isAsciiSpace(code) {
+  return code === 32 || code === 9 || code === 13 || code === 10;
+}
+function asciiLower(code) {
+  return code >= 65 && code <= 90 ? code + 32 : code;
+}
+function startsWithAsciiCI(input2, idx, lowerPrefix) {
+  if (idx + lowerPrefix.length > input2.length) return false;
+  for (let i = 0; i < lowerPrefix.length; i += 1) {
+    if (asciiLower(input2.charCodeAt(idx + i)) !== lowerPrefix.charCodeAt(i)) {
+      return false;
+    }
+  }
+  return true;
+}
+function matchPrivateOpenEnd(input2, idx) {
+  if (!startsWithAsciiCI(input2, idx, "<private")) return -1;
+  let cur = idx + 8;
+  if (cur >= input2.length) return -1;
+  const ch = input2.charCodeAt(cur);
+  if (ch === 62) return cur;
+  if (!isAsciiSpace(ch)) return -1;
+  cur += 1;
+  while (cur < input2.length) {
+    const code = input2.charCodeAt(cur);
+    if (code === 62) return cur;
+    if (code === 60) return -1;
+    cur += 1;
+  }
+  return -1;
+}
+function matchPrivateCloseEnd(input2, idx) {
+  if (!startsWithAsciiCI(input2, idx, "</private")) return -1;
+  let cur = idx + 9;
+  while (cur < input2.length && isAsciiSpace(input2.charCodeAt(cur))) {
+    cur += 1;
+  }
+  return cur < input2.length && input2.charCodeAt(cur) === 62 ? cur : -1;
+}
+function stripPrivateBlocksLinear(input2) {
+  if (!input2.includes("<")) return input2;
+  const chunks = [];
+  let cur = 0;
+  while (cur < input2.length) {
+    const lt = input2.indexOf("<", cur);
+    if (lt === -1) {
+      chunks.push(input2.slice(cur));
+      break;
+    }
+    const openEnd = matchPrivateOpenEnd(input2, lt);
+    if (openEnd === -1) {
+      chunks.push(input2.slice(cur, lt + 1));
+      cur = lt + 1;
+      continue;
+    }
+    if (lt > cur) chunks.push(input2.slice(cur, lt));
+    let depth = 1;
+    let scan = openEnd + 1;
+    while (scan < input2.length && depth > 0) {
+      const nextLt = input2.indexOf("<", scan);
+      if (nextLt === -1) {
+        scan = input2.length;
+        break;
+      }
+      const nestedOpen = matchPrivateOpenEnd(input2, nextLt);
+      if (nestedOpen !== -1) {
+        depth += 1;
+        scan = nestedOpen + 1;
+        continue;
+      }
+      const closeEnd = matchPrivateCloseEnd(input2, nextLt);
+      if (closeEnd !== -1) {
+        depth -= 1;
+        scan = closeEnd + 1;
+        continue;
+      }
+      scan = nextLt + 1;
+    }
+    chunks.push("[REDACTED_PRIVATE]");
+    cur = depth > 0 ? input2.length : scan;
+  }
+  return chunks.join("");
+}
+function stripPemPrivateKeysLinear(input2) {
+  const beginMarker = "-----BEGIN ";
+  if (!input2.includes(beginMarker)) return input2;
+  const chunks = [];
+  let cur = 0;
+  while (cur < input2.length) {
+    const start = input2.indexOf(beginMarker, cur);
+    if (start === -1) {
+      chunks.push(input2.slice(cur));
+      break;
+    }
+    const headerEnd = input2.indexOf("-----", start + beginMarker.length);
+    if (headerEnd === -1) {
+      chunks.push(input2.slice(cur));
+      break;
+    }
+    const label = input2.slice(start + beginMarker.length, headerEnd);
+    if (!/^[A-Z0-9 _-]{0,48}PRIVATE KEY(?: BLOCK)?$/i.test(label)) {
+      chunks.push(input2.slice(cur, headerEnd + 5));
+      cur = headerEnd + 5;
+      continue;
+    }
+    if (start > cur) chunks.push(input2.slice(cur, start));
+    chunks.push("[REDACTED_PRIVATE_KEY]");
+    const endPrefix = "-----END ";
+    const searchFrom = headerEnd + 5;
+    let endIdx = input2.indexOf(endPrefix, searchFrom);
+    let closedAt = -1;
+    while (endIdx !== -1) {
+      const footerEnd = input2.indexOf("-----", endIdx + endPrefix.length);
+      if (footerEnd === -1) break;
+      const endLabel = input2.slice(endIdx + endPrefix.length, footerEnd);
+      if (/^[A-Z0-9 _-]{0,48}PRIVATE KEY(?: BLOCK)?$/i.test(endLabel)) {
+        closedAt = footerEnd + 5;
+        break;
+      }
+      endIdx = input2.indexOf(endPrefix, footerEnd + 5);
+    }
+    cur = closedAt === -1 ? input2.length : closedAt;
+  }
+  return chunks.join("");
+}
+var LINEAR_REDACT_PATTERNS = [
+  // IM webhook URLs
+  [/https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/_-]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/(?:discord\.com|discordapp\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9_-]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/open\.(?:feishu\.cn|larksuite\.com)\/open-apis\/bot\/v2\/hook\/[A-Za-z0-9_-]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/oapi\.dingtalk\.com\/robot\/send\?[^\s"'<>]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/qyapi\.weixin\.qq\.com\/cgi-bin\/webhook\/send\?[^\s"'<>]+/gi, "[REDACTED_WEBHOOK]"],
+  // URL embedded credentials and sensitive query params
+  [/(https?:\/\/[^:\s/@]+:)([^@\s/]+)(@)/gi, "$1[REDACTED]$3"],
+  [/([?&](?:token|access_token|api[_-]?key|key|secret|sign|sig|pin|code)=)([^&#\s"'<>]+)/gi, "$1[REDACTED]"],
+  // Authorization headers (including custom schemes like Token / ApiKey / Digest / HMAC) & JWTs
+  [
+    /\b(Authorization[ \t]*:[ \t]*(?:Bearer|Basic|Token|ApiKey|Digest|HMAC)[ \t]+)([^\s"',;}{]+)/gi,
+    "$1[REDACTED]"
+  ],
+  [/\bBearer[ \t]+[A-Za-z0-9\-._~+/]+=*/gi, "Bearer [REDACTED]"],
+  [/\bBasic[ \t]+[A-Za-z0-9+/]+=*/gi, "Basic [REDACTED]"],
+  [/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, "[REDACTED_JWT]"],
+  // Telegram bot tokens & cloud/provider API keys
+  [/\b\d{6,12}:[A-Za-z0-9_-]{20,}\b/g, "[REDACTED_BOT_TOKEN]"],
+  [
+    /\b(?:sk-proj-|sk-ant-|sk_(?:live|test)_|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[baprs]-|AKIA|ASIA|npm_|hf_|pypi-)[A-Za-z0-9_-]{10,}\b/g,
+    "[REDACTED_KEY]"
+  ],
+  // Uppercase environment variable secret assignments (e.g. OPENAI_API_KEY=..., MY_TOKEN=...)
+  [
+    /\b([A-Z][A-Z0-9_]{1,40}_(?:KEY|SECRET|TOKEN|PASSWORD|PASSWD|WEBHOOK|PIN|AUTH|CREDENTIAL|CREDENTIALS)[ \t]*=[ \t]*["']?)([^\s"',;}{]+)(["']?)/g,
+    "$1[REDACTED]$3"
+  ],
+  // Key-value secret/token/pairing-code assignments
+  [
+    /(["']?(?:api[_-]?key|apikey|access[_-]?token|auth[_-]?token|bot[_-]?token|pairing[_-]?token|pairing[_-]?pin|pairing[_ -]?code|pair[_-]?code|passcode|signing[_-]?secret|client[_-]?secret|private[_-]?key|csrf[_-]?token|webhook[_-]?url|webhook|secret|token|password|passwd|authorization|pin)["']?[ \t]*[:=][ \t]*["']?)([^\s"',;}{]{4,})(["']?)/gi,
+    "$1[REDACTED]$3"
+  ]
+];
+function redactGenericWebhookUrlsLinear(input2) {
+  return input2.replace(
+    /https?:\/\/[^\s"'<>]+/gi,
+    (match) => match.toLowerCase().includes("webhook") ? "[REDACTED_WEBHOOK]" : match
+  );
+}
+function truncateUtf16Safe(input2, maxLen) {
+  if (maxLen <= 0 || input2.length <= maxLen) return input2;
+  let end = Math.max(1, maxLen - 1);
+  if (end > 0) {
+    const code = input2.charCodeAt(end - 1);
+    if (code >= 55296 && code <= 56319) {
+      end = Math.max(0, end - 1);
+    }
+  }
+  return `${input2.slice(0, end).trimEnd()}\u2026`;
+}
+function redactFeedText(input2, maxLen = 180) {
+  if (typeof input2 !== "string" || !input2) return "";
+  let out = stripPrivateBlocksLinear(input2);
+  out = stripPemPrivateKeysLinear(out);
+  out = redactGenericWebhookUrlsLinear(out);
+  for (const [pattern, replacement] of LINEAR_REDACT_PATTERNS) {
+    out = out.replace(pattern, replacement);
+  }
+  out = out.replace(/[\x00-\x1f\x7f]+/g, " ").replace(/\s+/g, " ").trim();
+  return truncateUtf16Safe(out, maxLen);
+}
+function isPlatformSystemRootSymlink(segmentPath) {
+  return process.platform === "darwin" && /^\/(?:var|tmp|etc)$/.test(segmentPath);
+}
+function hasUnsafeSymlinkAncestor(targetPath) {
+  let cur = import_node_path3.default.resolve(targetPath);
+  const root = import_node_path3.default.parse(cur).root;
+  while (true) {
+    if (!isPlatformSystemRootSymlink(cur)) {
+      try {
+        const st = import_node_fs3.default.lstatSync(cur);
+        if (st.isSymbolicLink()) return true;
+      } catch (err) {
+        const code = err?.code;
+        if (code !== "ENOENT") return true;
+      }
+    }
+    if (cur === root) return false;
+    const parent = import_node_path3.default.dirname(cur);
+    if (parent === cur) return false;
+    cur = parent;
+  }
+}
+function isWithinRealBase(childReal, baseReal) {
+  if (childReal === baseReal) return true;
+  const prefix = baseReal.endsWith(import_node_path3.default.sep) ? baseReal : `${baseReal}${import_node_path3.default.sep}`;
+  return childReal.startsWith(prefix);
+}
+function resolveSafeRealDir(dirPath) {
+  if (hasUnsafeSymlinkAncestor(dirPath)) return null;
+  try {
+    const st = import_node_fs3.default.lstatSync(dirPath);
+    if (st.isSymbolicLink() || !st.isDirectory()) return null;
+    return import_node_fs3.default.realpathSync(dirPath);
+  } catch {
+    return null;
+  }
+}
+function readSafeModuleJson(rootDataDir, moduleId, fileName) {
+  const realRoot = resolveSafeRealDir(rootDataDir);
+  if (!realRoot) return null;
+  const modulesRoot = import_node_path3.default.join(realRoot, "modules");
+  const realModules = resolveSafeRealDir(modulesRoot);
+  if (!realModules || !isWithinRealBase(realModules, realRoot)) return null;
+  const modDir = import_node_path3.default.join(realModules, moduleId);
+  const realMod = resolveSafeRealDir(modDir);
+  if (!realMod || !isWithinRealBase(realMod, realModules)) return null;
+  const targetPath = import_node_path3.default.join(realMod, fileName);
+  try {
+    const st = import_node_fs3.default.lstatSync(targetPath);
+    if (st.isSymbolicLink() || !st.isFile()) return null;
+    if (st.size > MAX_SOURCE_FILE_BYTES) return null;
+    const realTarget = import_node_fs3.default.realpathSync(targetPath);
+    if (!isWithinRealBase(realTarget, realMod)) return null;
+    const raw = import_node_fs3.default.readFileSync(realTarget, "utf8");
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+function asRecord(value) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value;
+  }
+  return null;
+}
+function toNonNegInt(value) {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? Math.floor(num) : 0;
+}
+function toNonNegFloat(value) {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? Math.round(num * 1e4) / 1e4 : 0;
+}
+function extractGuardSummary(rootDataDir, enabled) {
+  if (!enabled) {
+    return { enabled: false, blockedCount: 0, askCount: 0 };
+  }
+  const raw = readSafeModuleJson(rootDataDir, "guard", "audit.json");
+  const rawObj = asRecord(raw);
+  const eventsRaw = Array.isArray(raw) ? raw : Array.isArray(rawObj?.events) ? rawObj.events : [];
+  let blockedCount = 0;
+  let askCount = 0;
+  let lastEvent;
+  let lastEventTs = -Infinity;
+  for (const item of eventsRaw) {
+    const rec = asRecord(item);
+    if (!rec) continue;
+    const rawDecision = String(rec.decision ?? rec.action ?? rec.outcome ?? "").trim().toLowerCase();
+    if (rawDecision === "deny" || rawDecision === "denied" || rawDecision === "block" || rawDecision === "blocked") {
+      blockedCount += 1;
+    } else if (rawDecision === "ask") {
+      askCount += 1;
+    }
+    const tsStr = typeof rec.timestamp === "string" ? rec.timestamp : "";
+    const parsedTs = tsStr ? Date.parse(tsStr) : Number.NaN;
+    const scoreTs = Number.isFinite(parsedTs) ? parsedTs : -Infinity;
+    const candidate = {
+      decision: redactFeedText(rawDecision || "unknown", 24),
+      toolName: redactFeedText(String(rec.toolName ?? rec.tool_name ?? "tool"), 64),
+      reason: redactFeedText(String(rec.reason ?? rec.summary ?? ""), 140),
+      timestamp: redactFeedText(tsStr, 40)
+    };
+    if (!lastEvent || scoreTs > lastEventTs) {
+      lastEvent = candidate;
+      lastEventTs = scoreTs;
+    }
+  }
+  return {
+    enabled: true,
+    blockedCount,
+    askCount,
+    ...lastEvent ? { lastEvent } : {}
+  };
+}
+function extractSpecSummary(rootDataDir, enabled) {
+  if (!enabled) {
+    return {
+      enabled: false,
+      activeSpecId: null,
+      title: null,
+      status: null,
+      writeLockActive: false,
+      doneTasks: 0,
+      totalTasks: 0,
+      readyTasks: 0
+    };
+  }
+  const state = asRecord(readSafeModuleJson(rootDataDir, "spec", "state.json"));
+  const activeId = typeof state?.activeSpecId === "string" && state.activeSpecId.trim() ? state.activeSpecId.trim() : null;
+  let activeDoc = null;
+  if (activeId && Array.isArray(state?.specs)) {
+    for (const item of state.specs) {
+      const rec = asRecord(item);
+      if (rec && rec.id === activeId) {
+        activeDoc = rec;
+        break;
+      }
+    }
+  } else if (activeId) {
+    const specsObj = asRecord(state?.specs);
+    if (specsObj) {
+      activeDoc = asRecord(specsObj[activeId]);
+    }
+  }
+  if (!activeDoc) {
+    return {
+      enabled: true,
+      activeSpecId: activeId ? redactFeedText(activeId, 64) : null,
+      title: null,
+      status: null,
+      writeLockActive: false,
+      doneTasks: 0,
+      totalTasks: 0,
+      readyTasks: 0
+    };
+  }
+  const rawTasks = Array.isArray(activeDoc.tasks) ? activeDoc.tasks : [];
+  const tasks = [];
+  const statusById = /* @__PURE__ */ new Map();
+  for (const rawTask of rawTasks) {
+    const rec = asRecord(rawTask);
+    if (!rec || typeof rec.id !== "string") continue;
+    const status2 = typeof rec.status === "string" ? rec.status : "pending";
+    const dependsOn = Array.isArray(rec.dependsOn) ? rec.dependsOn.filter((d) => typeof d === "string") : [];
+    const computedState = typeof rec.computedState === "string" ? rec.computedState : void 0;
+    tasks.push({ id: rec.id, status: status2, dependsOn, computedState });
+    statusById.set(rec.id, status2);
+  }
+  const doneTasks = tasks.filter((t) => t.status === "done").length;
+  const readyTasks = tasks.filter((t) => {
+    if (t.computedState === "ready") return true;
+    if (t.status !== "pending") return false;
+    return t.dependsOn.every((depId) => statusById.get(depId) === "done");
+  }).length;
+  const status = typeof activeDoc.status === "string" ? redactFeedText(activeDoc.status, 32) : null;
+  const writeLockActive = Boolean(status === "draft" && activeDoc.enforcePlanBeforeWrite === true);
+  const title = typeof activeDoc.title === "string" && activeDoc.title.trim() ? redactFeedText(activeDoc.title, 100) : null;
+  return {
+    enabled: true,
+    activeSpecId: redactFeedText(String(activeDoc.id ?? activeId ?? ""), 64) || null,
+    title,
+    status,
+    writeLockActive,
+    doneTasks,
+    totalTasks: tasks.length,
+    readyTasks
+  };
+}
+function extractVerifySummary(rootDataDir, enabled) {
+  if (!enabled) {
+    return {
+      enabled: false,
+      enforceOnStop: false,
+      lastStatus: "idle",
+      dirtyFilesCount: 0
+    };
+  }
+  const state = asRecord(readSafeModuleJson(rootDataDir, "verify", "state.json"));
+  const policy = asRecord(state?.policy);
+  const enforceOnStop = typeof policy?.enforceOnStop === "boolean" ? policy.enforceOnStop : false;
+  const evidenceRaw = Array.isArray(state?.evidence) ? state.evidence : [];
+  const latest = evidenceRaw.map((e) => asRecord(e)).find((e) => e !== null);
+  let lastStatus = "idle";
+  if (latest) {
+    const outcome = typeof latest.outcome === "string" ? latest.outcome : "";
+    if (outcome === "blocked" || latest.blocked === true) {
+      lastStatus = "blocked";
+    } else if (outcome === "pass" || outcome === "guardrail-allow" || latest.passed === true) {
+      lastStatus = "pass";
+    } else {
+      lastStatus = "fail";
+    }
+  }
+  const dirtySet = /* @__PURE__ */ new Set();
+  const sessionsRaw = state?.sessions;
+  const sessionList = Array.isArray(sessionsRaw) ? sessionsRaw : sessionsRaw && typeof sessionsRaw === "object" ? Object.values(sessionsRaw) : [];
+  for (const session of sessionList) {
+    const rec = asRecord(session);
+    if (!rec || !Array.isArray(rec.dirtyFiles)) continue;
+    for (const file2 of rec.dirtyFiles) {
+      if (typeof file2 === "string" && file2.trim()) {
+        dirtySet.add(file2.trim());
+      }
+    }
+  }
+  return {
+    enabled: true,
+    enforceOnStop,
+    lastStatus,
+    dirtyFilesCount: dirtySet.size
+  };
+}
+function isMemoryRecordStale(rec) {
+  if (rec.stale === true || rec.drifted === true) return true;
+  if (Array.isArray(rec.anchors)) {
+    for (const anchor2 of rec.anchors) {
+      const a = asRecord(anchor2);
+      if (a && (a.driftStatus === "drifted" || a.driftStatus === "missing")) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+function extractMemSummary(rootDataDir, enabled) {
+  if (!enabled) {
+    return { enabled: false, totalMemories: 0, staleCount: 0 };
+  }
+  const raw = readSafeModuleJson(rootDataDir, "mem", "memories.json");
+  const rawObj = asRecord(raw);
+  const list = Array.isArray(raw) ? raw : Array.isArray(rawObj?.memories) ? rawObj.memories : Array.isArray(rawObj?.items) ? rawObj.items : [];
+  let totalMemories = 0;
+  let staleCount = 0;
+  for (const item of list) {
+    const rec = asRecord(item);
+    if (!rec) continue;
+    totalMemories += 1;
+    if (isMemoryRecordStale(rec)) {
+      staleCount += 1;
+    }
+  }
+  return {
+    enabled: true,
+    totalMemories,
+    staleCount
+  };
+}
+function extractRadarSummary(rootDataDir, enabled) {
+  if (!enabled) {
+    return {
+      enabled: false,
+      runningCount: 0,
+      awaitingCount: 0,
+      stalledCount: 0,
+      unreadCount: 0
+    };
+  }
+  const capsule = asRecord(readSafeModuleJson(rootDataDir, "radar", "status-capsule.json"));
+  const counts = asRecord(capsule?.counts);
+  if (counts) {
+    return {
+      enabled: true,
+      runningCount: toNonNegInt(counts.running),
+      awaitingCount: toNonNegInt(counts.awaiting_approval ?? counts.awaiting),
+      stalledCount: toNonNegInt(counts.stalled),
+      unreadCount: toNonNegInt(counts.unread)
+    };
+  }
+  const board = asRecord(readSafeModuleJson(rootDataDir, "radar", "board.json"));
+  const sessionsObj = asRecord(board?.sessions);
+  const sessions = sessionsObj ? Object.values(sessionsObj).map(asRecord).filter((s) => s !== null) : [];
+  return {
+    enabled: true,
+    runningCount: sessions.filter((s) => s.status === "running").length,
+    awaitingCount: sessions.filter((s) => s.status === "awaiting_approval").length,
+    stalledCount: sessions.filter((s) => s.status === "stalled").length,
+    unreadCount: sessions.filter((s) => s.unread === true).length
+  };
+}
+function extractXraySummary(rootDataDir, enabled) {
+  if (!enabled) {
+    return {
+      enabled: false,
+      activeModel: null,
+      peakContextTokens: 0,
+      estimatedCostUsd: 0
+    };
+  }
+  const live = asRecord(readSafeModuleJson(rootDataDir, "xray", "live-state.json"));
+  const rawModel = typeof live?.activeModel === "string" && live.activeModel.trim() ? live.activeModel.trim() : typeof live?.model === "string" && live.model.trim() ? live.model.trim() : null;
+  return {
+    enabled: true,
+    activeModel: rawModel ? redactFeedText(rawModel, 80) : null,
+    peakContextTokens: toNonNegInt(live?.peakContextTokens),
+    estimatedCostUsd: toNonNegFloat(live?.estimatedCostUsd ?? live?.estimatedUsd)
+  };
+}
+function extractRemoteRunningReadOnly(rootDataDir, enabled, overrideRunning) {
+  if (!enabled) return false;
+  if (typeof overrideRunning === "boolean") return overrideRunning;
+  const runtime = asRecord(readSafeModuleJson(rootDataDir, "remote", "runtime.json"));
+  const port = Number(runtime?.port);
+  return Number.isInteger(port) && port >= 1 && port <= 65535;
+}
+var ALERT_PRIORITY = {
+  danger: 0,
+  warn: 1,
+  info: 2
+};
+function buildFeedAlerts(summary, exposedModelTools, estimatedTotalTools) {
+  const alerts = [];
+  if (summary.guard.enabled && summary.guard.blockedCount > 0) {
+    const lastReason = summary.guard.lastEvent?.reason ? `: ${summary.guard.lastEvent.reason}` : "";
+    alerts.push({
+      level: "danger",
+      moduleId: "guard",
+      code: "GUARD_BLOCKED",
+      message: redactFeedText(
+        `Guard blocked ${summary.guard.blockedCount} risky tool call(s)${lastReason}`,
+        160
+      )
+    });
+  }
+  if (summary.verify.enabled && summary.verify.lastStatus === "blocked") {
+    alerts.push({
+      level: "danger",
+      moduleId: "verify",
+      code: "VERIFY_STOP_BLOCKED",
+      message: redactFeedText(
+        `Verify Gate blocked the latest Stop attempt (${summary.verify.dirtyFilesCount} dirty file(s)).`,
+        160
+      )
+    });
+  } else if (summary.verify.enabled && summary.verify.lastStatus === "fail") {
+    alerts.push({
+      level: "warn",
+      moduleId: "verify",
+      code: "VERIFY_CHECK_FAILED",
+      message: redactFeedText(
+        `Latest Verify Gate run failed (${summary.verify.dirtyFilesCount} dirty file(s)).`,
+        160
+      )
+    });
+  }
+  if (summary.spec.enabled && summary.spec.writeLockActive) {
+    const specLabel = summary.spec.title ?? summary.spec.activeSpecId ?? "active spec";
+    alerts.push({
+      level: "warn",
+      moduleId: "spec",
+      code: "SPEC_WRITE_LOCK",
+      message: redactFeedText(
+        `Spec "${specLabel}" is in DRAFT with write lock active; approve before editing files.`,
+        160
+      )
+    });
+  }
+  if (summary.mem.enabled && summary.mem.staleCount > 0) {
+    alerts.push({
+      level: "warn",
+      moduleId: "mem",
+      code: "MEM_STALE_DRIFT",
+      message: redactFeedText(
+        `${summary.mem.staleCount} anchored memory item(s) drifted or stale out of ${summary.mem.totalMemories}.`,
+        160
+      )
+    });
+  }
+  const effectiveTools = Math.max(exposedModelTools, toNonNegInt(estimatedTotalTools));
+  if (effectiveTools >= 75) {
+    alerts.push({
+      level: effectiveTools >= 90 ? "danger" : "warn",
+      moduleId: "ops",
+      code: "TOOL_BUDGET_HIGH",
+      message: redactFeedText(
+        `Active MCP tool footprint (${effectiveTools}/${MAX_MCP_TOOL_BUDGET}) is approaching the 100-tool budget cap.`,
+        160
+      )
+    });
+  }
+  if (summary.radar.enabled && (summary.radar.awaitingCount > 0 || summary.radar.stalledCount > 0)) {
+    alerts.push({
+      level: "info",
+      moduleId: "radar",
+      code: "RADAR_ATTENTION",
+      message: redactFeedText(
+        `Radar attention: ${summary.radar.awaitingCount} awaiting approval, ${summary.radar.stalledCount} stalled.`,
+        160
+      )
+    });
+  }
+  return alerts.sort((a, b) => ALERT_PRIORITY[a.level] - ALERT_PRIORITY[b.level]).slice(0, MAX_FEED_ALERTS);
+}
+function cloneStandardPaths() {
+  return {
+    configFile: STANDARD_FEED_PATHS.configFile,
+    feedFile: STANDARD_FEED_PATHS.feedFile,
+    modulesRoot: STANDARD_FEED_PATHS.modulesRoot,
+    moduleFiles: { ...STANDARD_FEED_PATHS.moduleFiles }
+  };
+}
+function enforceFeedSizeCap(snapshot) {
+  const byteSize = (s) => Buffer.byteLength(JSON.stringify(s), "utf8");
+  if (byteSize(snapshot) <= MAX_FEED_SNAPSHOT_BYTES) {
+    return snapshot;
+  }
+  const trimmed = {
+    ...snapshot,
+    paths: cloneStandardPaths(),
+    modules: { ...snapshot.modules },
+    summary: {
+      ...snapshot.summary,
+      guard: {
+        ...snapshot.summary.guard,
+        ...snapshot.summary.guard.lastEvent ? {
+          lastEvent: {
+            ...snapshot.summary.guard.lastEvent,
+            toolName: redactFeedText(snapshot.summary.guard.lastEvent.toolName, 32),
+            reason: redactFeedText(snapshot.summary.guard.lastEvent.reason, 64)
+          }
+        } : {}
+      },
+      spec: {
+        ...snapshot.summary.spec,
+        title: snapshot.summary.spec.title ? redactFeedText(snapshot.summary.spec.title, 64) : null
+      },
+      xray: {
+        ...snapshot.summary.xray,
+        activeModel: snapshot.summary.xray.activeModel ? redactFeedText(snapshot.summary.xray.activeModel, 48) : null
+      }
+    },
+    alerts: snapshot.alerts.map((a) => ({
+      ...a,
+      message: redactFeedText(a.message, 80)
+    }))
+  };
+  while (trimmed.alerts.length > 0 && byteSize(trimmed) > MAX_FEED_SNAPSHOT_BYTES) {
+    trimmed.alerts.pop();
+  }
+  if (byteSize(trimmed) > MAX_FEED_SNAPSHOT_BYTES && trimmed.summary.guard.lastEvent) {
+    delete trimmed.summary.guard.lastEvent;
+  }
+  return trimmed;
+}
+function buildFeedSnapshot(rootDataDir, config2, options = {}) {
+  const normalized = normalizeConfig(config2);
+  const enabledCount = MODULE_IDS.filter((id) => normalized.modules[id]).length;
+  const exposedModelTools = countEnabledModelTools(normalized.modules);
+  const generatedAt = (options.now ?? /* @__PURE__ */ new Date()).toISOString();
+  const summary = {
+    guard: extractGuardSummary(rootDataDir, normalized.modules.guard),
+    spec: extractSpecSummary(rootDataDir, normalized.modules.spec),
+    verify: extractVerifySummary(rootDataDir, normalized.modules.verify),
+    mem: extractMemSummary(rootDataDir, normalized.modules.mem),
+    radar: extractRadarSummary(rootDataDir, normalized.modules.radar),
+    xray: extractXraySummary(rootDataDir, normalized.modules.xray),
+    turbo: { enabled: normalized.modules.turbo },
+    remote: {
+      enabled: normalized.modules.remote,
+      running: extractRemoteRunningReadOnly(
+        rootDataDir,
+        normalized.modules.remote,
+        options.remoteRunning
+      )
+    }
+  };
+  const alerts = buildFeedAlerts(summary, exposedModelTools, options.estimatedTotalTools);
+  const snapshot = {
+    schemaVersion: 1,
+    version: FEED_SNAPSHOT_VERSION,
+    generatedAt,
+    preset: normalized.preset,
+    locale: normalized.locale,
+    startupView: normalized.startupView ?? "hub",
+    enabledCount,
+    totalModules: 13,
+    exposedModelTools,
+    toolBudgetLimit: 100,
+    modules: { ...normalized.modules },
+    paths: cloneStandardPaths(),
+    summary,
+    alerts
+  };
+  return enforceFeedSizeCap(snapshot);
+}
+function buildDemoFeedSnapshot(config2, options = {}) {
+  const normalized = normalizeConfig(config2);
+  const enabledCount = MODULE_IDS.filter((id) => normalized.modules[id]).length;
+  const exposedModelTools = countEnabledModelTools(normalized.modules);
+  const generatedAt = (options.now ?? /* @__PURE__ */ new Date()).toISOString();
+  const summary = {
+    guard: normalized.modules.guard ? {
+      enabled: true,
+      blockedCount: 2,
+      askCount: 1,
+      lastEvent: {
+        decision: "deny",
+        toolName: "read_file",
+        reason: "Blocked secret access to .env (demo preview)",
+        timestamp: generatedAt
+      }
+    } : { enabled: false, blockedCount: 0, askCount: 0 },
+    spec: normalized.modules.spec ? {
+      enabled: true,
+      activeSpecId: "spec-demo-v07",
+      title: "Dual-Star Hub & PreInvocation Architecture",
+      status: "approved",
+      writeLockActive: false,
+      doneTasks: 3,
+      totalTasks: 5,
+      readyTasks: 1
+    } : {
+      enabled: false,
+      activeSpecId: null,
+      title: null,
+      status: null,
+      writeLockActive: false,
+      doneTasks: 0,
+      totalTasks: 0,
+      readyTasks: 0
+    },
+    verify: normalized.modules.verify ? {
+      enabled: true,
+      enforceOnStop: true,
+      lastStatus: "pass",
+      dirtyFilesCount: 2
+    } : {
+      enabled: false,
+      enforceOnStop: false,
+      lastStatus: "idle",
+      dirtyFilesCount: 0
+    },
+    mem: normalized.modules.mem ? {
+      enabled: true,
+      totalMemories: 6,
+      staleCount: 1
+    } : { enabled: false, totalMemories: 0, staleCount: 0 },
+    radar: normalized.modules.radar ? {
+      enabled: true,
+      runningCount: 1,
+      awaitingCount: 1,
+      stalledCount: 0,
+      unreadCount: 1
+    } : {
+      enabled: false,
+      runningCount: 0,
+      awaitingCount: 0,
+      stalledCount: 0,
+      unreadCount: 0
+    },
+    xray: normalized.modules.xray ? {
+      enabled: true,
+      activeModel: "gemini-2.5-pro",
+      peakContextTokens: 64200,
+      estimatedCostUsd: 0.42
+    } : {
+      enabled: false,
+      activeModel: null,
+      peakContextTokens: 0,
+      estimatedCostUsd: 0
+    },
+    turbo: { enabled: normalized.modules.turbo },
+    remote: {
+      enabled: normalized.modules.remote,
+      running: normalized.modules.remote ? Boolean(options.remoteRunning) : false
+    }
+  };
+  const alerts = buildFeedAlerts(summary, exposedModelTools, options.estimatedTotalTools);
+  return enforceFeedSizeCap({
+    schemaVersion: 1,
+    version: FEED_SNAPSHOT_VERSION,
+    generatedAt,
+    preset: normalized.preset,
+    locale: normalized.locale,
+    startupView: normalized.startupView ?? "hub",
+    enabledCount,
+    totalModules: 13,
+    exposedModelTools,
+    toolBudgetLimit: 100,
+    modules: { ...normalized.modules },
+    paths: cloneStandardPaths(),
+    summary,
+    alerts
+  });
+}
+function writeFeedSnapshotIfDataDirExists(rootDataDir, config2, options = {}) {
+  const realRoot = resolveSafeRealDir(rootDataDir);
+  if (!realRoot) {
+    return false;
+  }
+  const targetPath = import_node_path3.default.join(realRoot, FEED_SNAPSHOT_FILENAME);
+  if (import_node_path3.default.relative(realRoot, targetPath) !== FEED_SNAPSHOT_FILENAME) {
+    return false;
+  }
+  try {
+    const existing = import_node_fs3.default.lstatSync(targetPath);
+    if (existing.isSymbolicLink() || !existing.isFile()) {
+      return false;
+    }
+    const realTarget = import_node_fs3.default.realpathSync(targetPath);
+    if (!isWithinRealBase(realTarget, realRoot)) {
+      return false;
+    }
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      return false;
+    }
+  }
+  const snapshot = buildFeedSnapshot(realRoot, config2, options);
+  let serialized = `${JSON.stringify(snapshot, null, 2)}
+`;
+  if (Buffer.byteLength(serialized, "utf8") > MAX_FEED_SNAPSHOT_BYTES) {
+    serialized = `${JSON.stringify(snapshot)}
+`;
+  }
+  if (Buffer.byteLength(serialized, "utf8") > MAX_FEED_SNAPSHOT_BYTES) {
+    return false;
+  }
+  const tmpPath = import_node_path3.default.join(
+    realRoot,
+    `.${FEED_SNAPSHOT_FILENAME}.tmp.${process.pid}.${import_node_crypto.default.randomBytes(8).toString("hex")}`
+  );
+  try {
+    import_node_fs3.default.writeFileSync(tmpPath, serialized, { encoding: "utf8", mode: 384, flag: "wx" });
+    try {
+      import_node_fs3.default.chmodSync(tmpPath, 384);
+    } catch {
+    }
+    try {
+      const postCheck = import_node_fs3.default.lstatSync(targetPath);
+      if (postCheck.isSymbolicLink() || !postCheck.isFile()) {
+        import_node_fs3.default.unlinkSync(tmpPath);
+        return false;
+      }
+    } catch (err) {
+      if (err?.code !== "ENOENT") {
+        import_node_fs3.default.unlinkSync(tmpPath);
+        return false;
+      }
+    }
+    import_node_fs3.default.renameSync(tmpPath, targetPath);
+    return true;
+  } catch {
+    try {
+      const tmpStat = import_node_fs3.default.lstatSync(tmpPath);
+      if (!tmpStat.isSymbolicLink() && tmpStat.isFile()) {
+        import_node_fs3.default.unlinkSync(tmpPath);
+      }
+    } catch {
+    }
+    return false;
+  }
+}
+
+// src/core/utils.ts
+var import_node_fs4 = __toESM(require("node:fs"), 1);
+var import_node_path4 = __toESM(require("node:path"), 1);
 function parseCliFlag(argv, flag) {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -38377,27 +39383,27 @@ function hasCliFlag(argv, flag) {
   return argv.includes(flag);
 }
 function ensurePrivateDir(dirPath) {
-  import_node_fs3.default.mkdirSync(dirPath, { recursive: true, mode: 448 });
+  import_node_fs4.default.mkdirSync(dirPath, { recursive: true, mode: 448 });
   try {
-    import_node_fs3.default.chmodSync(dirPath, 448);
+    import_node_fs4.default.chmodSync(dirPath, 448);
   } catch {
   }
 }
 function atomicWriteJson(filePath, data) {
-  ensurePrivateDir(import_node_path3.default.dirname(filePath));
+  ensurePrivateDir(import_node_path4.default.dirname(filePath));
   const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}`;
-  import_node_fs3.default.writeFileSync(tmpPath, `${JSON.stringify(data, null, 2)}
+  import_node_fs4.default.writeFileSync(tmpPath, `${JSON.stringify(data, null, 2)}
 `, { mode: 384 });
-  import_node_fs3.default.renameSync(tmpPath, filePath);
+  import_node_fs4.default.renameSync(tmpPath, filePath);
 }
 
 // src/modules/canvas/register.ts
-var import_node_path5 = __toESM(require("node:path"), 1);
+var import_node_path6 = __toESM(require("node:path"), 1);
 
 // src/modules/canvas/store.ts
-var import_node_crypto = __toESM(require("node:crypto"), 1);
-var import_node_fs4 = __toESM(require("node:fs"), 1);
-var import_node_path4 = __toESM(require("node:path"), 1);
+var import_node_crypto2 = __toESM(require("node:crypto"), 1);
+var import_node_fs5 = __toESM(require("node:fs"), 1);
+var import_node_path5 = __toESM(require("node:path"), 1);
 var import_node_url = require("node:url");
 
 // src/modules/canvas/demo-boards.ts
@@ -38614,19 +39620,19 @@ var SENSITIVE_NAME_RE = /^(id_rsa|id_ed25519|id_ecdsa|id_dsa)(\..+)?$/i;
 function chmodSafe(targetPath, mode) {
   if (process.platform === "win32") return;
   try {
-    import_node_fs4.default.chmodSync(targetPath, mode);
+    import_node_fs5.default.chmodSync(targetPath, mode);
   } catch {
   }
 }
 function realpathNative(targetPath) {
-  return typeof import_node_fs4.default.realpathSync.native === "function" ? import_node_fs4.default.realpathSync.native(targetPath) : import_node_fs4.default.realpathSync(targetPath);
+  return typeof import_node_fs5.default.realpathSync.native === "function" ? import_node_fs5.default.realpathSync.native(targetPath) : import_node_fs5.default.realpathSync(targetPath);
 }
 function isPathInsideRoot(rootReal, targetReal) {
-  const rel = import_node_path4.default.relative(rootReal, targetReal);
-  return rel !== "" && rel !== ".." && !rel.startsWith(`..${import_node_path4.default.sep}`) && !import_node_path4.default.isAbsolute(rel);
+  const rel = import_node_path5.default.relative(rootReal, targetReal);
+  return rel !== "" && rel !== ".." && !rel.startsWith(`..${import_node_path5.default.sep}`) && !import_node_path5.default.isAbsolute(rel);
 }
 function assertSafeRelativeSegments(relPath) {
-  const segments = relPath.split(import_node_path4.default.sep).filter(Boolean);
+  const segments = relPath.split(import_node_path5.default.sep).filter(Boolean);
   for (const seg of segments) {
     if (seg.startsWith(".")) {
       throw new Error(`Access denied: hidden or sensitive path segment "${seg}" is blocked.`);
@@ -38641,7 +39647,7 @@ function readFileUpToLimit(fd, maxBytes) {
   let total = 0;
   const buf = Buffer.allocUnsafe(64 * 1024);
   while (true) {
-    const bytesRead = import_node_fs4.default.readSync(fd, buf, 0, buf.length, null);
+    const bytesRead = import_node_fs5.default.readSync(fd, buf, 0, buf.length, null);
     if (bytesRead === 0) break;
     total += bytesRead;
     if (total > maxBytes) {
@@ -38653,10 +39659,10 @@ function readFileUpToLimit(fd, maxBytes) {
 }
 function slugifyId(input2) {
   const clean = input2.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48);
-  return clean || `board-${import_node_crypto.default.randomBytes(4).toString("hex")}`;
+  return clean || `board-${import_node_crypto2.default.randomBytes(4).toString("hex")}`;
 }
 function inferKindFromPath(filePath) {
-  const ext = import_node_path4.default.extname(filePath).toLowerCase();
+  const ext = import_node_path5.default.extname(filePath).toLowerCase();
   return EXTENSION_KIND_MAP[ext] ?? null;
 }
 function loadLocalFileContent(filePath, workspaceRoot) {
@@ -38666,17 +39672,17 @@ function loadLocalFileContent(filePath, workspaceRoot) {
   if (!filePath || !filePath.trim()) {
     throw new Error("filePath is required.");
   }
-  const rootResolved = import_node_path4.default.resolve(workspaceRoot);
+  const rootResolved = import_node_path5.default.resolve(workspaceRoot);
   let rootReal;
   try {
     rootReal = realpathNative(rootResolved);
   } catch {
     throw new Error("Workspace root directory does not exist.");
   }
-  if (!import_node_fs4.default.statSync(rootReal).isDirectory()) {
+  if (!import_node_fs5.default.statSync(rootReal).isDirectory()) {
     throw new Error("Workspace root must be an existing directory.");
   }
-  const candidate = import_node_path4.default.isAbsolute(filePath) ? import_node_path4.default.resolve(filePath) : import_node_path4.default.resolve(rootReal, filePath);
+  const candidate = import_node_path5.default.isAbsolute(filePath) ? import_node_path5.default.resolve(filePath) : import_node_path5.default.resolve(rootReal, filePath);
   if (!isPathInsideRoot(rootReal, candidate) && !isPathInsideRoot(rootResolved, candidate)) {
     throw new Error("Access denied: target file resolves outside workspace root.");
   }
@@ -38689,25 +39695,25 @@ function loadLocalFileContent(filePath, workspaceRoot) {
   if (!isPathInsideRoot(rootReal, targetReal)) {
     throw new Error("Access denied: target file resolves outside workspace root.");
   }
-  assertSafeRelativeSegments(import_node_path4.default.relative(rootReal, targetReal));
+  assertSafeRelativeSegments(import_node_path5.default.relative(rootReal, targetReal));
   if (isPathInsideRoot(rootReal, candidate)) {
-    assertSafeRelativeSegments(import_node_path4.default.relative(rootReal, candidate));
+    assertSafeRelativeSegments(import_node_path5.default.relative(rootReal, candidate));
   } else if (isPathInsideRoot(rootResolved, candidate)) {
-    assertSafeRelativeSegments(import_node_path4.default.relative(rootResolved, candidate));
+    assertSafeRelativeSegments(import_node_path5.default.relative(rootResolved, candidate));
   }
   const candidateKind = inferKindFromPath(candidate);
   const kind = inferKindFromPath(targetReal);
   if (!candidateKind || !kind) {
-    const ext = import_node_path4.default.extname(targetReal).toLowerCase() || import_node_path4.default.extname(candidate).toLowerCase();
+    const ext = import_node_path5.default.extname(targetReal).toLowerCase() || import_node_path5.default.extname(candidate).toLowerCase();
     throw new Error(
       `Unsupported file extension "${ext || "(none)"}". Allowed extensions: ${ALLOWED_FILE_EXTENSIONS.join(", ")}.`
     );
   }
   const maxBytes = kind === "image" ? MAX_IMAGE_FILE_BYTES : MAX_TEXT_FILE_BYTES;
-  const fd = import_node_fs4.default.openSync(targetReal, import_node_fs4.default.constants.O_RDONLY);
+  const fd = import_node_fs5.default.openSync(targetReal, import_node_fs5.default.constants.O_RDONLY);
   let rawBuf;
   try {
-    const stat = import_node_fs4.default.fstatSync(fd);
+    const stat = import_node_fs5.default.fstatSync(fd);
     if (!stat.isFile()) {
       throw new Error("Access denied: target path must be a regular file.");
     }
@@ -38716,11 +39722,11 @@ function loadLocalFileContent(filePath, workspaceRoot) {
     }
     rawBuf = readFileUpToLimit(fd, maxBytes);
   } finally {
-    import_node_fs4.default.closeSync(fd);
+    import_node_fs5.default.closeSync(fd);
   }
   const uri = (0, import_node_url.pathToFileURL)(targetReal).href;
   if (kind === "image") {
-    const ext = import_node_path4.default.extname(targetReal).toLowerCase().slice(1);
+    const ext = import_node_path5.default.extname(targetReal).toLowerCase().slice(1);
     const mime = ext === "jpg" ? "image/jpeg" : `image/${ext}`;
     const dataUri = `data:${mime};base64,${rawBuf.toString("base64")}`;
     if (!isSafeImageDataUri(dataUri)) {
@@ -38758,7 +39764,7 @@ var CanvasStore = class {
   constructor(dataDir, demoMode = false) {
     this.dataDir = dataDir;
     this.demoMode = demoMode;
-    this.boardsDir = import_node_path4.default.join(dataDir, "boards");
+    this.boardsDir = import_node_path5.default.join(dataDir, "boards");
   }
   boardsDir;
   demoSeeded = false;
@@ -38772,31 +39778,31 @@ var CanvasStore = class {
     }
   }
   ensureStorageDirs() {
-    import_node_fs4.default.mkdirSync(this.dataDir, { recursive: true, mode: 448 });
-    import_node_fs4.default.mkdirSync(this.boardsDir, { recursive: true, mode: 448 });
+    import_node_fs5.default.mkdirSync(this.dataDir, { recursive: true, mode: 448 });
+    import_node_fs5.default.mkdirSync(this.boardsDir, { recursive: true, mode: 448 });
     chmodSafe(this.dataDir, 448);
     chmodSafe(this.boardsDir, 448);
   }
   listBoardFiles() {
     try {
-      return import_node_fs4.default.readdirSync(this.boardsDir).filter((f) => f.endsWith(".json")).map((f) => import_node_path4.default.join(this.boardsDir, f));
+      return import_node_fs5.default.readdirSync(this.boardsDir).filter((f) => f.endsWith(".json")).map((f) => import_node_path5.default.join(this.boardsDir, f));
     } catch {
       return [];
     }
   }
   boardPath(id) {
-    return import_node_path4.default.join(this.boardsDir, `${slugifyId(id)}.json`);
+    return import_node_path5.default.join(this.boardsDir, `${slugifyId(id)}.json`);
   }
   readBoardById(boardId) {
     if (typeof boardId !== "string" || !BOARD_ID_RE.test(boardId)) {
       return null;
     }
-    const p = import_node_path4.default.join(this.boardsDir, `${boardId.toLowerCase()}.json`);
-    if (import_node_path4.default.dirname(p) !== this.boardsDir || !import_node_fs4.default.existsSync(p)) {
+    const p = import_node_path5.default.join(this.boardsDir, `${boardId.toLowerCase()}.json`);
+    if (import_node_path5.default.dirname(p) !== this.boardsDir || !import_node_fs5.default.existsSync(p)) {
       return null;
     }
     try {
-      const parsed = JSON.parse(import_node_fs4.default.readFileSync(p, "utf8"));
+      const parsed = JSON.parse(import_node_fs5.default.readFileSync(p, "utf8"));
       if (!parsed || typeof parsed.id !== "string") return null;
       return parsed;
     } catch {
@@ -38806,10 +39812,10 @@ var CanvasStore = class {
   writeBoard(board) {
     this.ensureStorageDirs();
     const file2 = this.boardPath(board.id);
-    const tmp = `${file2}.${process.pid}.${import_node_crypto.default.randomBytes(4).toString("hex")}.tmp`;
-    import_node_fs4.default.writeFileSync(tmp, JSON.stringify(board, null, 2), { encoding: "utf8", mode: 384 });
+    const tmp = `${file2}.${process.pid}.${import_node_crypto2.default.randomBytes(4).toString("hex")}.tmp`;
+    import_node_fs5.default.writeFileSync(tmp, JSON.stringify(board, null, 2), { encoding: "utf8", mode: 384 });
     chmodSafe(tmp, 384);
-    import_node_fs4.default.renameSync(tmp, file2);
+    import_node_fs5.default.renameSync(tmp, file2);
     chmodSafe(file2, 384);
   }
   listBoards() {
@@ -38817,7 +39823,7 @@ var CanvasStore = class {
     const out = [];
     for (const file2 of this.listBoardFiles()) {
       try {
-        const b = JSON.parse(import_node_fs4.default.readFileSync(file2, "utf8"));
+        const b = JSON.parse(import_node_fs5.default.readFileSync(file2, "utf8"));
         out.push({
           id: b.id,
           title: b.title,
@@ -38846,7 +39852,7 @@ var CanvasStore = class {
     const id = input2.boardId ? slugifyId(input2.boardId) : slugifyId(input2.title);
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const existing = this.getBoard(id);
-    const sourceUri = input2.sourcePath ? (0, import_node_url.pathToFileURL)(import_node_path4.default.resolve(input2.sourcePath)).href : existing?.sourceUri;
+    const sourceUri = input2.sourcePath ? (0, import_node_url.pathToFileURL)(import_node_path5.default.resolve(input2.sourcePath)).href : existing?.sourceUri;
     if (existing) {
       const nextVer = existing.currentVersion + 1;
       existing.title = input2.title || existing.title;
@@ -38894,7 +39900,7 @@ var CanvasStore = class {
     if (!board) return null;
     const nextNum = board.annotations.reduce((m, a) => Math.max(m, a.number), 0) + 1;
     const pin = {
-      id: `pin_${import_node_crypto.default.randomBytes(4).toString("hex")}`,
+      id: `pin_${import_node_crypto2.default.randomBytes(4).toString("hex")}`,
       number: nextNum,
       revision: input2.revision ?? board.currentVersion,
       slideIndex: input2.slideIndex,
@@ -38975,7 +39981,7 @@ function toHandle(name, reg) {
 function registerCanvasModule(server, opts, uiResourceUri) {
   const rootDataDir = resolveNovDataDir(opts.dataDir);
   const dataDir = getModuleDataDir(rootDataDir, "canvas");
-  const workspaceRoot = import_node_path5.default.resolve(opts.workspaceRoot || process.cwd());
+  const workspaceRoot = import_node_path6.default.resolve(opts.workspaceRoot || process.cwd());
   const store = new CanvasStore(dataDir, Boolean(opts.demoMode));
   const UI_META = {
     ui: { resourceUri: uiResourceUri }
@@ -39058,17 +40064,17 @@ function registerCanvasModule(server, opts, uiResourceUri) {
       }
       const board = store.publishArtifact({
         boardId,
-        title: title || import_node_path5.default.basename(loaded.resolvedPath),
+        title: title || import_node_path6.default.basename(loaded.resolvedPath),
         kind: loaded.kind,
         content: loaded.content,
         sourcePath: loaded.resolvedPath,
-        summary: `Loaded from ${import_node_path5.default.basename(loaded.resolvedPath)}`
+        summary: `Loaded from ${import_node_path6.default.basename(loaded.resolvedPath)}`
       });
       return {
         content: [
           {
             type: "text",
-            text: `Loaded ${import_node_path5.default.basename(loaded.resolvedPath)} as "${board.title}" (${board.kind}, v${board.currentVersion}) on Visual Canvas.`
+            text: `Loaded ${import_node_path6.default.basename(loaded.resolvedPath)} as "${board.title}" (${board.kind}, v${board.currentVersion}) on Visual Canvas.`
           }
         ],
         structuredContent: {
@@ -39253,15 +40259,15 @@ function registerCanvasModule(server, opts, uiResourceUri) {
 }
 
 // src/modules/guard/register.ts
-var import_node_path10 = __toESM(require("node:path"), 1);
+var import_node_path11 = __toESM(require("node:path"), 1);
 
 // src/modules/guard/demo-data.ts
-var import_node_path8 = __toESM(require("node:path"), 1);
+var import_node_path9 = __toESM(require("node:path"), 1);
 
 // src/modules/guard/store.ts
-var import_node_crypto2 = __toESM(require("node:crypto"), 1);
-var import_node_fs5 = __toESM(require("node:fs"), 1);
-var import_node_path7 = __toESM(require("node:path"), 1);
+var import_node_crypto3 = __toESM(require("node:crypto"), 1);
+var import_node_fs6 = __toESM(require("node:fs"), 1);
+var import_node_path8 = __toESM(require("node:path"), 1);
 
 // src/modules/guard/diff.ts
 function computeLineDiff(beforeText, afterText) {
@@ -39358,7 +40364,7 @@ function computeFallbackDiff(a, b) {
 }
 
 // src/modules/guard/policy.ts
-var import_node_path6 = __toESM(require("node:path"), 1);
+var import_node_path7 = __toESM(require("node:path"), 1);
 var SECRET_PATTERNS = [
   {
     ruleId: "secret.private-key",
@@ -39592,7 +40598,7 @@ function isCatastrophicRmTarget(rawTarget) {
   const collapsed = trimmed.replace(/\/+/g, "/");
   const candidates = [collapsed];
   if (collapsed.startsWith("/")) {
-    const normalizedAbs = import_node_path6.default.posix.normalize(collapsed);
+    const normalizedAbs = import_node_path7.default.posix.normalize(collapsed);
     if (normalizedAbs !== collapsed) candidates.push(normalizedAbs);
   }
   for (const target of candidates) {
@@ -39608,7 +40614,7 @@ function isCatastrophicRmCommand(commandLine) {
   for (const { segment } of splitShellSegments(commandLine)) {
     const tokens = stripCommandWrappers(tokenizeSimpleShellSegment(segment));
     if (tokens.length < 2) continue;
-    const cmd = import_node_path6.default.posix.basename(tokens[0].replace(/\\/g, "/"));
+    const cmd = import_node_path7.default.posix.basename(tokens[0].replace(/\\/g, "/"));
     if (cmd !== "rm") continue;
     let hasRecursive = false;
     let endOfFlags = false;
@@ -39667,7 +40673,7 @@ function hasDangerousSqlCommand(commandLine) {
     if (!SQL_DESTRUCTIVE_REGEX.test(segment)) continue;
     const tokens = stripCommandWrappers(tokenizeSimpleShellSegment(segment));
     if (tokens.length === 0) return true;
-    const cmd = import_node_path6.default.posix.basename(tokens[0].replace(/\\/g, "/")).toLowerCase();
+    const cmd = import_node_path7.default.posix.basename(tokens[0].replace(/\\/g, "/")).toLowerCase();
     const sub = (tokens[1] ?? "").toLowerCase();
     const hasRedirection = hasUnquotedRedirection(segment);
     if (!pipedToNext && !hasRedirection) {
@@ -39693,7 +40699,7 @@ function detectCommandSensitiveAccess(commandLine, customProtectedPaths) {
   for (const rawTok of rawTokens) {
     const norm = rawTok.replace(/\\/g, "/").replace(/\/+$/, "");
     if (!norm || norm === "-" || norm === "--") continue;
-    const base = import_node_path6.default.posix.basename(norm);
+    const base = import_node_path7.default.posix.basename(norm);
     const lowerBase = base.toLowerCase();
     if (lowerBase === ".env" || lowerBase === ".envrc" || lowerBase.startsWith(".env.") || /^\.env[*?[]/.test(lowerBase)) {
       if (!isSafeEnvBasename(lowerBase)) {
@@ -39826,7 +40832,7 @@ function isSensitivePath(filePath, customPatterns = []) {
   if (!filePath) return { sensitive: false };
   const normalized = filePath.replace(/\\/g, "/").trim().replace(/\/+$/, "");
   if (!normalized) return { sensitive: false };
-  const base = import_node_path6.default.posix.basename(normalized);
+  const base = import_node_path7.default.posix.basename(normalized);
   const lowerBase = base.toLowerCase();
   for (const rule of SENSITIVE_PATH_REGEXES) {
     if (rule.regex.test(normalized)) {
@@ -39849,7 +40855,7 @@ function isSensitivePath(filePath, customPatterns = []) {
   if (SENSITIVE_BASENAMES.has(lowerBase)) {
     return { sensitive: true, ruleId: "path.sensitive-file", label: `Protected credential file (${base})` };
   }
-  const ext = import_node_path6.default.posix.extname(lowerBase);
+  const ext = import_node_path7.default.posix.extname(lowerBase);
   if (SENSITIVE_EXTENSIONS.has(ext)) {
     return { sensitive: true, ruleId: "path.private-key-ext", label: `Private key / certificate file (${base})` };
   }
@@ -39933,7 +40939,7 @@ function evaluateToolCall(toolName, args, policy, options) {
         decision: policy.protectEnvAndKeys,
         category: check2.ruleId?.startsWith("custom.") ? "custom" : "sensitive-file",
         ruleId: check2.ruleId,
-        reason: `Blocked ${toolName} on protected path: ${check2.label} (${import_node_path6.default.basename(targetPath)})`,
+        reason: `Blocked ${toolName} on protected path: ${check2.label} (${import_node_path7.default.basename(targetPath)})`,
         findings: []
       };
     }
@@ -39944,7 +40950,7 @@ function evaluateToolCall(toolName, args, policy, options) {
           decision: policy.protectEnvAndKeys,
           category: realCheck.ruleId?.startsWith("custom.") ? "custom" : "sensitive-file",
           ruleId: realCheck.ruleId,
-          reason: `Blocked ${toolName} via symlink resolving to protected path: ${realCheck.label} (${import_node_path6.default.basename(options.resolvedTargetPath)})`,
+          reason: `Blocked ${toolName} via symlink resolving to protected path: ${realCheck.label} (${import_node_path7.default.basename(options.resolvedTargetPath)})`,
           findings: []
         };
       }
@@ -40070,54 +41076,54 @@ var DEFAULT_POLICY = {
 var SHA256_HEX_RE = /^[a-f0-9]{64}$/;
 var MAX_SYMLINK_DEPTH = 20;
 function ensureDir(dir) {
-  import_node_fs5.default.mkdirSync(dir, { recursive: true, mode: 448 });
+  import_node_fs6.default.mkdirSync(dir, { recursive: true, mode: 448 });
   try {
-    import_node_fs5.default.chmodSync(dir, 448);
+    import_node_fs6.default.chmodSync(dir, 448);
   } catch {
   }
 }
 function writePrivateJson(filePath, data) {
-  ensureDir(import_node_path7.default.dirname(filePath));
-  const tmp = `${filePath}.${process.pid}.${import_node_crypto2.default.randomBytes(4).toString("hex")}.tmp`;
-  import_node_fs5.default.writeFileSync(tmp, `${JSON.stringify(data, null, 2)}
+  ensureDir(import_node_path8.default.dirname(filePath));
+  const tmp = `${filePath}.${process.pid}.${import_node_crypto3.default.randomBytes(4).toString("hex")}.tmp`;
+  import_node_fs6.default.writeFileSync(tmp, `${JSON.stringify(data, null, 2)}
 `, { encoding: "utf8", mode: 384 });
   try {
-    import_node_fs5.default.chmodSync(tmp, 384);
+    import_node_fs6.default.chmodSync(tmp, 384);
   } catch {
   }
-  import_node_fs5.default.renameSync(tmp, filePath);
+  import_node_fs6.default.renameSync(tmp, filePath);
 }
 function resolveRealPathWithMissingTail(inputPath, depth = 0) {
   if (depth > MAX_SYMLINK_DEPTH) {
     throw new Error(`Too many levels of symbolic links: ${inputPath}`);
   }
-  const resolved = import_node_path7.default.resolve(inputPath);
+  const resolved = import_node_path8.default.resolve(inputPath);
   const missingSegments = [];
   let current = resolved;
   while (true) {
     try {
-      const realBase = import_node_fs5.default.realpathSync(current);
-      return missingSegments.length > 0 ? import_node_path7.default.join(realBase, ...missingSegments.reverse()) : realBase;
+      const realBase = import_node_fs6.default.realpathSync(current);
+      return missingSegments.length > 0 ? import_node_path8.default.join(realBase, ...missingSegments.reverse()) : realBase;
     } catch (err) {
       const code = err?.code;
       if (code !== "ENOENT" && code !== "ENOTDIR") {
         throw err;
       }
       try {
-        const lstat = import_node_fs5.default.lstatSync(current);
+        const lstat = import_node_fs6.default.lstatSync(current);
         if (lstat.isSymbolicLink()) {
-          const linkTarget = import_node_fs5.default.readlinkSync(current);
-          const resolvedLink = import_node_path7.default.resolve(import_node_path7.default.dirname(current), linkTarget);
-          const nextTarget = missingSegments.length > 0 ? import_node_path7.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
+          const linkTarget = import_node_fs6.default.readlinkSync(current);
+          const resolvedLink = import_node_path8.default.resolve(import_node_path8.default.dirname(current), linkTarget);
+          const nextTarget = missingSegments.length > 0 ? import_node_path8.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
           return resolveRealPathWithMissingTail(nextTarget, depth + 1);
         }
       } catch {
       }
-      const parent = import_node_path7.default.dirname(current);
+      const parent = import_node_path8.default.dirname(current);
       if (parent === current) {
         return resolved;
       }
-      missingSegments.push(import_node_path7.default.basename(current));
+      missingSegments.push(import_node_path8.default.basename(current));
       current = parent;
     }
   }
@@ -40130,9 +41136,9 @@ function assertInsideWorkspace(workspaceRoot, targetPath) {
     throw new Error("Invalid target path");
   }
   const realRoot = resolveRealPathWithMissingTail(workspaceRoot);
-  const candidate = import_node_path7.default.isAbsolute(targetPath) ? targetPath : import_node_path7.default.resolve(workspaceRoot, targetPath);
+  const candidate = import_node_path8.default.isAbsolute(targetPath) ? targetPath : import_node_path8.default.resolve(workspaceRoot, targetPath);
   const realTarget = resolveRealPathWithMissingTail(candidate);
-  const rootPrefix = realRoot.endsWith(import_node_path7.default.sep) ? realRoot : `${realRoot}${import_node_path7.default.sep}`;
+  const rootPrefix = realRoot.endsWith(import_node_path8.default.sep) ? realRoot : `${realRoot}${import_node_path8.default.sep}`;
   if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
     throw new Error(`Path escapes workspace boundary: ${targetPath}`);
   }
@@ -40142,23 +41148,23 @@ function assertNotSensitive(rawPath, realPath, customProtectedPaths, action) {
   const rawCheck = isSensitivePath(rawPath, customProtectedPaths);
   const realCheck = isSensitivePath(realPath, customProtectedPaths);
   if (rawCheck.sensitive || realCheck.sensitive) {
-    const label = rawCheck.label ?? realCheck.label ?? import_node_path7.default.basename(realPath);
+    const label = rawCheck.label ?? realCheck.label ?? import_node_path8.default.basename(realPath);
     throw new Error(`Refused to ${action} sensitive path: ${label}`);
   }
 }
 function readJsonSafe(filePath, fallback) {
   try {
-    if (!import_node_fs5.default.existsSync(filePath)) return fallback;
-    return JSON.parse(import_node_fs5.default.readFileSync(filePath, "utf8"));
+    if (!import_node_fs6.default.existsSync(filePath)) return fallback;
+    return JSON.parse(import_node_fs6.default.readFileSync(filePath, "utf8"));
   } catch {
     return fallback;
   }
 }
 function sha256Buffer(buf) {
-  return import_node_crypto2.default.createHash("sha256").update(buf).digest("hex");
+  return import_node_crypto3.default.createHash("sha256").update(buf).digest("hex");
 }
 function loadPolicy(dataDir) {
-  const stored = readJsonSafe(import_node_path7.default.join(dataDir, "policy.json"), {});
+  const stored = readJsonSafe(import_node_path8.default.join(dataDir, "policy.json"), {});
   return { ...DEFAULT_POLICY, ...stored };
 }
 function savePolicy(dataDir, patch) {
@@ -40166,22 +41172,22 @@ function savePolicy(dataDir, patch) {
     ...loadPolicy(dataDir),
     ...patch
   };
-  writePrivateJson(import_node_path7.default.join(dataDir, "policy.json"), next);
+  writePrivateJson(import_node_path8.default.join(dataDir, "policy.json"), next);
   return next;
 }
 function loadSnapshots(dataDir) {
-  return readJsonSafe(import_node_path7.default.join(dataDir, "snapshots.json"), []);
+  return readJsonSafe(import_node_path8.default.join(dataDir, "snapshots.json"), []);
 }
 function saveSnapshots(dataDir, records) {
-  writePrivateJson(import_node_path7.default.join(dataDir, "snapshots.json"), records);
+  writePrivateJson(import_node_path8.default.join(dataDir, "snapshots.json"), records);
 }
 function loadAuditLog(dataDir) {
-  return readJsonSafe(import_node_path7.default.join(dataDir, "audit.json"), []);
+  return readJsonSafe(import_node_path8.default.join(dataDir, "audit.json"), []);
 }
 function appendAuditEvent(dataDir, event) {
   const existing = loadAuditLog(dataDir);
   const full = {
-    id: event.id ?? `evt_${import_node_crypto2.default.randomBytes(5).toString("hex")}`,
+    id: event.id ?? `evt_${import_node_crypto3.default.randomBytes(5).toString("hex")}`,
     timestamp: event.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
     event: event.event,
     toolName: event.toolName,
@@ -40194,14 +41200,14 @@ function appendAuditEvent(dataDir, event) {
     isDemo: event.isDemo
   };
   const next = [full, ...existing].slice(0, 200);
-  writePrivateJson(import_node_path7.default.join(dataDir, "audit.json"), next);
+  writePrivateJson(import_node_path8.default.join(dataDir, "audit.json"), next);
   return full;
 }
 function blobPath(dataDir, hash2) {
   if (!SHA256_HEX_RE.test(hash2)) {
     throw new Error("Invalid snapshot blob hash: expected 64 lowercase hexadecimal characters");
   }
-  return import_node_path7.default.join(dataDir, "blobs", `${hash2}.blob`);
+  return import_node_path8.default.join(dataDir, "blobs", `${hash2}.blob`);
 }
 function readSnapshotContent(dataDir, record2) {
   if (!record2.existed) return "";
@@ -40209,35 +41215,35 @@ function readSnapshotContent(dataDir, record2) {
     return record2.demoContent;
   }
   const p = blobPath(dataDir, record2.sha256);
-  if (!import_node_fs5.default.existsSync(p)) return null;
-  return import_node_fs5.default.readFileSync(p, "utf8");
+  if (!import_node_fs6.default.existsSync(p)) return null;
+  return import_node_fs6.default.readFileSync(p, "utf8");
 }
 function capturePreEditSnapshot(params) {
   const { dataDir, toolName, reason, policy, workspaceRoot, restoredFromId } = params;
   const realRoot = assertInsideWorkspace(workspaceRoot, workspaceRoot);
   const safePath = assertInsideWorkspace(workspaceRoot, params.filePath);
   assertNotSensitive(params.filePath, safePath, policy.customProtectedPaths, "snapshot");
-  const relPath = import_node_path7.default.relative(realRoot, safePath) || import_node_path7.default.basename(safePath);
-  const existed = import_node_fs5.default.existsSync(safePath);
+  const relPath = import_node_path8.default.relative(realRoot, safePath) || import_node_path8.default.basename(safePath);
+  const existed = import_node_fs6.default.existsSync(safePath);
   let sha256 = "EMPTY_FILE";
   let sizeBytes = 0;
   let lineCount = 0;
   if (existed) {
-    const stat = import_node_fs5.default.statSync(safePath);
+    const stat = import_node_fs6.default.statSync(safePath);
     if (!stat.isFile() || stat.size > policy.maxSnapshotFileBytes) {
       return null;
     }
-    const raw = import_node_fs5.default.readFileSync(safePath);
+    const raw = import_node_fs6.default.readFileSync(safePath);
     if (raw.includes(0)) return null;
     sha256 = sha256Buffer(raw);
     sizeBytes = raw.byteLength;
     lineCount = raw.toString("utf8").split(/\r?\n/).length;
     const targetBlob = blobPath(dataDir, sha256);
-    if (!import_node_fs5.default.existsSync(targetBlob)) {
-      ensureDir(import_node_path7.default.dirname(targetBlob));
-      import_node_fs5.default.writeFileSync(targetBlob, raw, { mode: 384 });
+    if (!import_node_fs6.default.existsSync(targetBlob)) {
+      ensureDir(import_node_path8.default.dirname(targetBlob));
+      import_node_fs6.default.writeFileSync(targetBlob, raw, { mode: 384 });
       try {
-        import_node_fs5.default.chmodSync(targetBlob, 384);
+        import_node_fs6.default.chmodSync(targetBlob, 384);
       } catch {
       }
     }
@@ -40249,7 +41255,7 @@ function capturePreEditSnapshot(params) {
     return latestForFile;
   }
   const record2 = {
-    id: `snap_${Date.now().toString(36)}_${import_node_crypto2.default.randomBytes(3).toString("hex")}`,
+    id: `snap_${Date.now().toString(36)}_${import_node_crypto3.default.randomBytes(3).toString("hex")}`,
     filePath: safePath,
     relPath,
     toolName,
@@ -40296,9 +41302,9 @@ function diffSnapshot(dataDir, snapshotId, workspaceRoot) {
     const safePath = assertInsideWorkspace(workspaceRoot, record2.filePath);
     assertNotSensitive(record2.filePath, safePath, policy.customProtectedPaths, "diff");
     snapshotText = readSnapshotContent(dataDir, record2) ?? "";
-    if (import_node_fs5.default.existsSync(safePath)) {
+    if (import_node_fs6.default.existsSync(safePath)) {
       currentExists = true;
-      currentText = import_node_fs5.default.readFileSync(safePath, "utf8");
+      currentText = import_node_fs6.default.readFileSync(safePath, "utf8");
       currentSha256 = sha256Buffer(currentText);
     }
   }
@@ -40370,8 +41376,8 @@ function restoreSnapshot(params) {
     restoredFromId: record2.id
   });
   if (!record2.existed) {
-    if (import_node_fs5.default.existsSync(safePath)) {
-      import_node_fs5.default.unlinkSync(safePath);
+    if (import_node_fs6.default.existsSync(safePath)) {
+      import_node_fs6.default.unlinkSync(safePath);
     }
     appendAuditEvent(dataDir, {
       event: "Restore",
@@ -40389,8 +41395,8 @@ function restoreSnapshot(params) {
       message: `Reverted newly created file ${record2.relPath}. Safety backup saved as ${safetyBackup?.id ?? "none"}.`
     };
   }
-  import_node_fs5.default.mkdirSync(import_node_path7.default.dirname(safePath), { recursive: true });
-  import_node_fs5.default.writeFileSync(safePath, contentToRestore, "utf8");
+  import_node_fs6.default.mkdirSync(import_node_path8.default.dirname(safePath), { recursive: true });
+  import_node_fs6.default.writeFileSync(safePath, contentToRestore, "utf8");
   appendAuditEvent(dataDir, {
     event: "Restore",
     toolName: "app_guard_restore_snapshot",
@@ -40483,7 +41489,7 @@ export async function authenticate(req: Request) {
   const demoSnapshots = [
     {
       id: "snap_demo_auth_01",
-      filePath: import_node_path8.default.join(workspaceRoot, "src/auth/middleware.ts"),
+      filePath: import_node_path9.default.join(workspaceRoot, "src/auth/middleware.ts"),
       relPath: "src/auth/middleware.ts",
       toolName: "edit_file",
       reason: "Pre-edit snapshot before agent modified auth fallback",
@@ -40498,7 +41504,7 @@ export async function authenticate(req: Request) {
     },
     {
       id: "snap_demo_billing_02",
-      filePath: import_node_path8.default.join(workspaceRoot, "src/billing/quota.ts"),
+      filePath: import_node_path9.default.join(workspaceRoot, "src/billing/quota.ts"),
       relPath: "src/billing/quota.ts",
       toolName: "replace_file_content",
       reason: "Pre-edit snapshot before updating monthly tier limits",
@@ -40571,8 +41577,8 @@ export async function authenticate(req: Request) {
 }
 
 // src/modules/guard/scanner.ts
-var import_node_fs6 = __toESM(require("node:fs"), 1);
-var import_node_path9 = __toESM(require("node:path"), 1);
+var import_node_fs7 = __toESM(require("node:fs"), 1);
+var import_node_path10 = __toESM(require("node:path"), 1);
 var SKIP_DIRS = /* @__PURE__ */ new Set([
   ".git",
   "node_modules",
@@ -40624,13 +41630,13 @@ function scanWorkspaceForSecrets(workspaceRoot, maxFiles = 250, customProtectedP
     if (depth > 6 || scannedFiles >= maxFiles) return;
     let entries;
     try {
-      entries = import_node_fs6.default.readdirSync(dir, { withFileTypes: true });
+      entries = import_node_fs7.default.readdirSync(dir, { withFileTypes: true });
     } catch {
       return;
     }
     for (const entry of entries) {
       if (scannedFiles >= maxFiles) break;
-      const fullPath = import_node_path9.default.join(dir, entry.name);
+      const fullPath = import_node_path10.default.join(dir, entry.name);
       if (entry.isSymbolicLink()) {
         skippedFiles++;
         continue;
@@ -40646,18 +41652,18 @@ function scanWorkspaceForSecrets(workspaceRoot, maxFiles = 250, customProtectedP
           skippedFiles++;
           continue;
         }
-        const ext = import_node_path9.default.extname(entry.name).toLowerCase();
+        const ext = import_node_path10.default.extname(entry.name).toLowerCase();
         if (!TEXT_EXTENSIONS.has(ext)) {
           skippedFiles++;
           continue;
         }
         try {
-          const stat = import_node_fs6.default.statSync(fullPath);
+          const stat = import_node_fs7.default.statSync(fullPath);
           if (stat.size > 512e3) {
             skippedFiles++;
             continue;
           }
-          const raw = import_node_fs6.default.readFileSync(fullPath);
+          const raw = import_node_fs7.default.readFileSync(fullPath);
           if (raw.includes(0)) {
             skippedFiles++;
             continue;
@@ -40665,7 +41671,7 @@ function scanWorkspaceForSecrets(workspaceRoot, maxFiles = 250, customProtectedP
           scannedFiles++;
           const text = raw.toString("utf8");
           const matches = scanTextForSecrets(text);
-          const relPath = import_node_path9.default.relative(workspaceRoot, fullPath) || entry.name;
+          const relPath = import_node_path10.default.relative(workspaceRoot, fullPath) || entry.name;
           for (const finding of matches) {
             findings.push({ filePath: fullPath, relPath, finding });
             if (findings.length >= 60) return;
@@ -40676,7 +41682,7 @@ function scanWorkspaceForSecrets(workspaceRoot, maxFiles = 250, customProtectedP
       }
     }
   }
-  if (import_node_fs6.default.existsSync(workspaceRoot)) {
+  if (import_node_fs7.default.existsSync(workspaceRoot)) {
     walk(workspaceRoot, 0);
   }
   return {
@@ -40779,7 +41785,7 @@ function registerGuardModule(server, opts, _uiResourceUri) {
           const rawCheck = isSensitivePath(f, policy.customProtectedPaths);
           const realCheck = isSensitivePath(safePath, policy.customProtectedPaths);
           if (rawCheck.sensitive || realCheck.sensitive) {
-            const label = rawCheck.label ?? realCheck.label ?? import_node_path10.default.basename(safePath);
+            const label = rawCheck.label ?? realCheck.label ?? import_node_path11.default.basename(safePath);
             throw new Error(`Refused to snapshot sensitive path: ${label}`);
           }
           validatedPaths.push(safePath);
@@ -40821,13 +41827,13 @@ function registerGuardModule(server, opts, _uiResourceUri) {
       try {
         const policy = loadPolicy(moduleDataDir);
         const realRoot = assertInsideWorkspace(workspaceRoot, workspaceRoot);
-        const rawTarget = directory ? import_node_path10.default.resolve(workspaceRoot, directory) : workspaceRoot;
+        const rawTarget = directory ? import_node_path11.default.resolve(workspaceRoot, directory) : workspaceRoot;
         const safeTargetDir = assertInsideWorkspace(workspaceRoot, rawTarget);
         if (directory) {
           const rawCheck = isSensitivePath(directory, policy.customProtectedPaths);
           const realCheck = isSensitivePath(safeTargetDir, policy.customProtectedPaths);
           if (rawCheck.sensitive || realCheck.sensitive) {
-            const label = rawCheck.label ?? realCheck.label ?? import_node_path10.default.basename(safeTargetDir);
+            const label = rawCheck.label ?? realCheck.label ?? import_node_path11.default.basename(safeTargetDir);
             throw new Error(`Refused to scan sensitive path: ${label}`);
           }
         }
@@ -40838,7 +41844,7 @@ function registerGuardModule(server, opts, _uiResourceUri) {
           toolName: "guard_scan_secrets",
           decision: report.findings.length > 0 ? "ask" : "allow",
           category: "secret-scan",
-          target: import_node_path10.default.relative(realRoot, safeTargetDir) || ".",
+          target: import_node_path11.default.relative(realRoot, safeTargetDir) || ".",
           summary: `Scanned ${report.scannedFiles} files \u2014 ${report.findings.length} masked finding(s)`
         });
         return {
@@ -40989,7 +41995,7 @@ function registerGuardModule(server, opts, _uiResourceUri) {
           toolName: "app_guard_scan_workspace",
           decision: report.findings.length > 0 ? "ask" : "allow",
           category: "secret-scan",
-          target: import_node_path10.default.basename(workspaceRoot),
+          target: import_node_path11.default.basename(workspaceRoot),
           summary: `Scanned ${report.scannedFiles} source files \u2014 ${report.findings.length} masked finding(s)`
         });
         const state = buildDashboardState({
@@ -41165,9 +42171,9 @@ function buildMemoryGraph(memories) {
 }
 
 // src/modules/mem/store.ts
-var import_node_crypto3 = __toESM(require("node:crypto"), 1);
-var import_node_fs7 = __toESM(require("node:fs"), 1);
-var import_node_path11 = __toESM(require("node:path"), 1);
+var import_node_crypto4 = __toESM(require("node:crypto"), 1);
+var import_node_fs8 = __toESM(require("node:fs"), 1);
+var import_node_path12 = __toESM(require("node:path"), 1);
 var import_node_url2 = require("node:url");
 
 // src/modules/mem/demo-memories.ts
@@ -41465,18 +42471,18 @@ function isSensitiveFilePath(filePath) {
   return false;
 }
 function isRelativeInside(rootDir, targetPath) {
-  const rel = import_node_path11.default.relative(rootDir, targetPath);
-  return rel !== "" && !rel.startsWith("..") && !import_node_path11.default.isAbsolute(rel);
+  const rel = import_node_path12.default.relative(rootDir, targetPath);
+  return rel !== "" && !rel.startsWith("..") && !import_node_path12.default.isAbsolute(rel);
 }
 function resolveExistingAncestorRealpath(absTarget) {
-  let cursor = import_node_path11.default.dirname(absTarget);
+  let cursor = import_node_path12.default.dirname(absTarget);
   while (true) {
     try {
-      const realAncestor = import_node_fs7.default.realpathSync(cursor);
-      const tail = import_node_path11.default.relative(cursor, absTarget);
-      return import_node_path11.default.join(realAncestor, tail);
+      const realAncestor = import_node_fs8.default.realpathSync(cursor);
+      const tail = import_node_path12.default.relative(cursor, absTarget);
+      return import_node_path12.default.join(realAncestor, tail);
     } catch {
-      const parent = import_node_path11.default.dirname(cursor);
+      const parent = import_node_path12.default.dirname(cursor);
       if (parent === cursor) return void 0;
       cursor = parent;
     }
@@ -41486,20 +42492,20 @@ function inspectAnchorFile(filePath, workspacePath, maxBytes = MAX_ANCHOR_FILE_B
   if (!filePath || !filePath.trim()) {
     return { status: "skipped", reason: "unreadable" };
   }
-  const absFile = import_node_path11.default.resolve(filePath);
+  const absFile = import_node_path12.default.resolve(filePath);
   if (isSensitiveFilePath(filePath) || isSensitiveFilePath(absFile)) {
     return { status: "skipped", reason: "sensitive" };
   }
   const effectiveWorkspace = workspacePath && workspacePath.trim() ? workspacePath.trim() : process.cwd();
   let realWorkspace;
   try {
-    realWorkspace = import_node_fs7.default.realpathSync(import_node_path11.default.resolve(effectiveWorkspace));
+    realWorkspace = import_node_fs8.default.realpathSync(import_node_path12.default.resolve(effectiveWorkspace));
   } catch {
     return { status: "skipped", reason: "outside-workspace" };
   }
   let realFile;
   try {
-    realFile = import_node_fs7.default.realpathSync(absFile);
+    realFile = import_node_fs8.default.realpathSync(absFile);
   } catch (err) {
     const code = err?.code;
     if (code === "ENOENT" || code === "ENOTDIR") {
@@ -41519,19 +42525,19 @@ function inspectAnchorFile(filePath, workspacePath, maxBytes = MAX_ANCHOR_FILE_B
   }
   let fd;
   try {
-    const stat = import_node_fs7.default.statSync(realFile);
+    const stat = import_node_fs8.default.statSync(realFile);
     if (!stat.isFile()) return { status: "skipped", reason: "non-file" };
     if (stat.size > maxBytes) return { status: "skipped", reason: "oversized" };
-    fd = import_node_fs7.default.openSync(realFile, "r");
-    const fdStat = import_node_fs7.default.fstatSync(fd);
+    fd = import_node_fs8.default.openSync(realFile, "r");
+    const fdStat = import_node_fs8.default.fstatSync(fd);
     if (!fdStat.isFile()) return { status: "skipped", reason: "non-file" };
     if (fdStat.size > maxBytes) return { status: "skipped", reason: "oversized" };
-    const hash2 = import_node_crypto3.default.createHash("sha256");
+    const hash2 = import_node_crypto4.default.createHash("sha256");
     const chunkSize = Math.min(64 * 1024, Math.max(1, maxBytes));
     const chunk = Buffer.alloc(chunkSize);
     let totalRead = 0;
     while (true) {
-      const n = import_node_fs7.default.readSync(fd, chunk, 0, chunk.length, null);
+      const n = import_node_fs8.default.readSync(fd, chunk, 0, chunk.length, null);
       if (n <= 0) break;
       totalRead += n;
       if (totalRead > maxBytes) {
@@ -41545,7 +42551,7 @@ function inspectAnchorFile(filePath, workspacePath, maxBytes = MAX_ANCHOR_FILE_B
   } finally {
     if (fd !== void 0) {
       try {
-        import_node_fs7.default.closeSync(fd);
+        import_node_fs8.default.closeSync(fd);
       } catch {
       }
     }
@@ -41553,7 +42559,7 @@ function inspectAnchorFile(filePath, workspacePath, maxBytes = MAX_ANCHOR_FILE_B
 }
 function safePathToFileUri(filePath) {
   try {
-    return (0, import_node_url2.pathToFileURL)(import_node_path11.default.resolve(filePath)).href;
+    return (0, import_node_url2.pathToFileURL)(import_node_path12.default.resolve(filePath)).href;
   } catch {
     return "";
   }
@@ -41563,7 +42569,7 @@ function normalizeAnchor(raw) {
   const r = raw;
   if (typeof r.filePath !== "string" || !r.filePath.trim()) return null;
   const filePath = r.filePath.trim();
-  const basename = typeof r.basename === "string" && r.basename.trim() ? r.basename.trim() : import_node_path11.default.basename(filePath);
+  const basename = typeof r.basename === "string" && r.basename.trim() ? r.basename.trim() : import_node_path12.default.basename(filePath);
   const uri = typeof r.uri === "string" && r.uri.trim() ? r.uri.trim() : safePathToFileUri(filePath);
   const symbol2 = typeof r.symbol === "string" && r.symbol.trim() ? r.symbol.trim() : void 0;
   const sha256 = typeof r.sha256 === "string" && r.sha256.trim() ? r.sha256.trim() : void 0;
@@ -41581,7 +42587,7 @@ function normalizeMemoryItem(raw, index) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const r = raw;
   const fallbackSeed = `${index}:${String(r.title ?? "")}:${String(r.content ?? "")}`;
-  const fallbackId = `mem_rec_${import_node_crypto3.default.createHash("sha256").update(fallbackSeed).digest("hex").slice(0, 10)}`;
+  const fallbackId = `mem_rec_${import_node_crypto4.default.createHash("sha256").update(fallbackSeed).digest("hex").slice(0, 10)}`;
   const id = typeof r.id === "string" && r.id.trim() ? r.id.trim() : fallbackId;
   const kind = typeof r.kind === "string" && VALID_MEMORY_KINDS.has(r.kind) ? r.kind : "decision";
   const title = typeof r.title === "string" && r.title.trim() ? r.title.trim() : "(Untitled memory)";
@@ -41616,9 +42622,9 @@ function normalizeMemoryItem(raw, index) {
   };
 }
 function ensurePrivateDir2(dirPath) {
-  import_node_fs7.default.mkdirSync(dirPath, { recursive: true, mode: 448 });
+  import_node_fs8.default.mkdirSync(dirPath, { recursive: true, mode: 448 });
   try {
-    import_node_fs7.default.chmodSync(dirPath, 448);
+    import_node_fs8.default.chmodSync(dirPath, 448);
   } catch {
   }
 }
@@ -41638,7 +42644,7 @@ var MemoryStore = class {
     this.dataDir = dataDir;
     this.demoMode = demoMode;
     this.defaultWorkspaceRoot = defaultWorkspaceRoot;
-    this.filePath = import_node_path11.default.join(dataDir, "memories.json");
+    this.filePath = import_node_path12.default.join(dataDir, "memories.json");
   }
   filePath;
   demoItems = null;
@@ -41651,11 +42657,11 @@ var MemoryStore = class {
   }
   backupCorruptFile(reason) {
     const base = `${this.filePath}.corrupt.${Date.now()}`;
-    const backupPath = import_node_fs7.default.existsSync(base) ? `${base}.${import_node_crypto3.default.randomBytes(2).toString("hex")}` : base;
+    const backupPath = import_node_fs8.default.existsSync(base) ? `${base}.${import_node_crypto4.default.randomBytes(2).toString("hex")}` : base;
     try {
-      import_node_fs7.default.renameSync(this.filePath, backupPath);
+      import_node_fs8.default.renameSync(this.filePath, backupPath);
       try {
-        import_node_fs7.default.chmodSync(backupPath, 384);
+        import_node_fs8.default.chmodSync(backupPath, 384);
       } catch {
       }
       console.error(`[agy-nov:mem] Corrupt memories store backed up to ${backupPath}: ${reason}`);
@@ -41671,10 +42677,10 @@ var MemoryStore = class {
       }
       return this.cloneItems(this.demoItems);
     }
-    if (!import_node_fs7.default.existsSync(this.filePath)) return [];
+    if (!import_node_fs8.default.existsSync(this.filePath)) return [];
     let rawText;
     try {
-      rawText = import_node_fs7.default.readFileSync(this.filePath, "utf8");
+      rawText = import_node_fs8.default.readFileSync(this.filePath, "utf8");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[agy-nov:mem] Failed to read ${this.filePath}: ${msg}`);
@@ -41700,17 +42706,17 @@ var MemoryStore = class {
       return;
     }
     ensurePrivateDir2(this.dataDir);
-    const tmp = `${this.filePath}.${process.pid}.${import_node_crypto3.default.randomBytes(4).toString("hex")}.tmp`;
+    const tmp = `${this.filePath}.${process.pid}.${import_node_crypto4.default.randomBytes(4).toString("hex")}.tmp`;
     try {
-      import_node_fs7.default.writeFileSync(tmp, JSON.stringify(items, null, 2), { encoding: "utf8", mode: 384 });
+      import_node_fs8.default.writeFileSync(tmp, JSON.stringify(items, null, 2), { encoding: "utf8", mode: 384 });
       try {
-        import_node_fs7.default.chmodSync(tmp, 384);
+        import_node_fs8.default.chmodSync(tmp, 384);
       } catch {
       }
-      import_node_fs7.default.renameSync(tmp, this.filePath);
+      import_node_fs8.default.renameSync(tmp, this.filePath);
     } catch (err) {
       try {
-        if (import_node_fs7.default.existsSync(tmp)) import_node_fs7.default.unlinkSync(tmp);
+        if (import_node_fs8.default.existsSync(tmp)) import_node_fs8.default.unlinkSync(tmp);
       } catch {
       }
       throw err;
@@ -41744,8 +42750,8 @@ var MemoryStore = class {
   list(opts = {}) {
     let items = this.readRaw().map((m) => this.evaluateDrift(m));
     if (opts.workspacePath) {
-      const target = import_node_path11.default.resolve(opts.workspacePath);
-      items = items.filter((m) => !m.workspacePath || import_node_path11.default.resolve(m.workspacePath) === target);
+      const target = import_node_path12.default.resolve(opts.workspacePath);
+      items = items.filter((m) => !m.workspacePath || import_node_path12.default.resolve(m.workspacePath) === target);
     }
     if (opts.kind) items = items.filter((m) => m.kind === opts.kind);
     if (opts.pinnedOnly) items = items.filter((m) => m.pinned);
@@ -41756,21 +42762,21 @@ var MemoryStore = class {
   remember(input2) {
     const items = this.readRaw();
     const now = (/* @__PURE__ */ new Date()).toISOString();
-    const requestedWorkspace = input2.workspacePath ? import_node_path11.default.resolve(input2.workspacePath) : void 0;
-    let inspectWorkspace = this.defaultWorkspaceRoot ? import_node_path11.default.resolve(this.defaultWorkspaceRoot) : requestedWorkspace;
+    const requestedWorkspace = input2.workspacePath ? import_node_path12.default.resolve(input2.workspacePath) : void 0;
+    let inspectWorkspace = this.defaultWorkspaceRoot ? import_node_path12.default.resolve(this.defaultWorkspaceRoot) : requestedWorkspace;
     let resolvedWorkspace = inspectWorkspace;
     if (requestedWorkspace && this.defaultWorkspaceRoot) {
-      const trustedRoot = import_node_path11.default.resolve(this.defaultWorkspaceRoot);
+      const trustedRoot = import_node_path12.default.resolve(this.defaultWorkspaceRoot);
       const realTrusted = (() => {
         try {
-          return import_node_fs7.default.realpathSync(trustedRoot);
+          return import_node_fs8.default.realpathSync(trustedRoot);
         } catch {
           return trustedRoot;
         }
       })();
       let realReq;
       try {
-        realReq = import_node_fs7.default.realpathSync(requestedWorkspace);
+        realReq = import_node_fs8.default.realpathSync(requestedWorkspace);
       } catch {
         realReq = resolveExistingAncestorRealpath(requestedWorkspace) ?? requestedWorkspace;
       }
@@ -41781,14 +42787,14 @@ var MemoryStore = class {
     }
     const anchors = (input2.anchors ?? []).filter((a) => a && typeof a.filePath === "string" && a.filePath.trim().length > 0).map((a) => {
       const rawPath = a.filePath.trim();
-      const abs = import_node_path11.default.isAbsolute(rawPath) ? import_node_path11.default.resolve(rawPath) : import_node_path11.default.resolve(inspectWorkspace ?? process.cwd(), rawPath);
+      const abs = import_node_path12.default.isAbsolute(rawPath) ? import_node_path12.default.resolve(rawPath) : import_node_path12.default.resolve(inspectWorkspace ?? process.cwd(), rawPath);
       const strippedSymbol = a.symbol ? stripPrivateTags(a.symbol).cleaned.trim() : "";
       const cleanSymbol = strippedSymbol ? redactSecrets(strippedSymbol) : void 0;
       const inspected = inspectAnchorFile(abs, inspectWorkspace);
       const driftStatus = inspected.status === "ok" ? "fresh" : inspected.status === "skipped" ? "skipped" : "untracked";
       return {
         filePath: abs,
-        basename: import_node_path11.default.basename(abs),
+        basename: import_node_path12.default.basename(abs),
         uri: safePathToFileUri(abs),
         ...cleanSymbol ? { symbol: cleanSymbol } : {},
         ...inspected.sha256 ? { sha256: inspected.sha256 } : {},
@@ -41823,7 +42829,7 @@ var MemoryStore = class {
       return this.evaluateDrift(updated);
     }
     const created = {
-      id: input2.id || `mem_${import_node_crypto3.default.randomBytes(5).toString("hex")}`,
+      id: input2.id || `mem_${import_node_crypto4.default.randomBytes(5).toString("hex")}`,
       kind: input2.kind,
       title: cleanTitle,
       content: cleanContent,
@@ -42501,9 +43507,9 @@ function registerMemModule(server, opts, uiResourceUri) {
 }
 
 // src/modules/ops/core.ts
-var import_node_crypto4 = __toESM(require("node:crypto"), 1);
-var import_node_fs8 = __toESM(require("node:fs"), 1);
-var import_node_path12 = __toESM(require("node:path"), 1);
+var import_node_crypto5 = __toESM(require("node:crypto"), 1);
+var import_node_fs9 = __toESM(require("node:fs"), 1);
+var import_node_path13 = __toESM(require("node:path"), 1);
 var RULE_SINGLE_FILE_LIMIT_BYTES = 24 * 1024;
 var RULE_AGGREGATE_TOKEN_LIMIT = 2e4;
 var TOOL_BUDGET_HARD_LIMIT = 100;
@@ -42669,7 +43675,7 @@ var BUILTIN_PROMPTS = [
   }
 ];
 function getPromptsFilePath(moduleDataDir) {
-  return import_node_path12.default.join(moduleDataDir, "prompts.json");
+  return import_node_path13.default.join(moduleDataDir, "prompts.json");
 }
 function extractTemplateVariables(body) {
   const found = [];
@@ -42744,11 +43750,11 @@ function normalizePromptRecord(raw) {
 }
 function loadCustomPromptsReadOnly(moduleDataDir) {
   const filePath = getPromptsFilePath(moduleDataDir);
-  if (!import_node_fs8.default.existsSync(filePath)) {
+  if (!import_node_fs9.default.existsSync(filePath)) {
     return [];
   }
   try {
-    const parsed = JSON.parse(import_node_fs8.default.readFileSync(filePath, "utf8"));
+    const parsed = JSON.parse(import_node_fs9.default.readFileSync(filePath, "utf8"));
     const list = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.prompts) ? parsed.prompts : [];
     const out = [];
     for (const item of list) {
@@ -42802,7 +43808,7 @@ function buildPromptRecordFromInput(input2) {
     throw new Error("Prompt body must be at least 4 characters");
   }
   const rawId = input2.id?.trim();
-  const safeId = rawId && /^[A-Za-z0-9_.-]{2,64}$/.test(rawId) ? rawId : `usr_${Date.now().toString(36)}_${import_node_crypto4.default.randomBytes(3).toString("hex")}`;
+  const safeId = rawId && /^[A-Za-z0-9_.-]{2,64}$/.test(rawId) ? rawId : `usr_${Date.now().toString(36)}_${import_node_crypto5.default.randomBytes(3).toString("hex")}`;
   const category = input2.category && VALID_CATEGORIES.has(input2.category) ? input2.category : "custom";
   const tags = Array.from(
     new Set(
@@ -42902,13 +43908,13 @@ function isSensitiveOpsPath(inputPath) {
       return true;
     }
   }
-  const base = import_node_path12.default.posix.basename(normalized);
+  const base = import_node_path13.default.posix.basename(normalized);
   const lower = base.toLowerCase();
   if (SENSITIVE_BASENAMES2.has(lower)) return true;
   if (lower.startsWith("id_rsa.") || lower.startsWith("id_ed25519.") || lower.startsWith("id_dsa.") || lower.startsWith("id_ecdsa.")) {
     return true;
   }
-  if (SENSITIVE_EXTENSIONS2.has(import_node_path12.default.posix.extname(lower))) return true;
+  if (SENSITIVE_EXTENSIONS2.has(import_node_path13.default.posix.extname(lower))) return true;
   return false;
 }
 var PURE_ENV_REF_RE = /^\$\{?[A-Za-z_][A-Za-z0-9_]*\}?$/;
@@ -43086,7 +44092,7 @@ function sanitizeCrossClientFinding(finding) {
 }
 function isSensitiveCrossClientFile(relPath) {
   if (isSensitiveOpsPath(relPath)) return true;
-  const base = import_node_path12.default.posix.basename(relPath.replace(/\\/g, "/")).toLowerCase();
+  const base = import_node_path13.default.posix.basename(relPath.replace(/\\/g, "/")).toLowerCase();
   return base === "auth.json" || base === "oauth.json" || base === "token.json" || base === "tokens.json" || base === "history.jsonl";
 }
 function inspectMcpConfigSafe(rawText, relPath, realFilePath, realRoot, rootPrefix, seenServerFiles) {
@@ -43175,15 +44181,15 @@ function inspectMcpConfigSafe(rawText, relPath, realFilePath, realRoot, rootPref
   }
   const allKeys = Object.keys(serversObj);
   const serverNames = allKeys.slice(0, 30).map(sanitizeMcpIdentifier);
-  const configDir = import_node_path12.default.dirname(realFilePath);
+  const configDir = import_node_path13.default.dirname(realFilePath);
   const isInsideWorkspace = (p) => p === realRoot || p.startsWith(rootPrefix);
   const checkLocalRelativeScript = (serverName, candidate, sourceLabel) => {
     const trimmed = candidate.trim();
     if (!trimmed || trimmed.startsWith("-") || trimmed.includes("://") || trimmed.includes("=")) return false;
     if (UNRESOLVED_PLACEHOLDER_RE.test(trimmed) || ENV_VAR_EMBED_RE.test(trimmed)) return false;
-    if (import_node_path12.default.isAbsolute(trimmed)) return false;
-    const fromConfigDir = import_node_path12.default.resolve(configDir, trimmed);
-    const fromWorkspaceRoot = import_node_path12.default.resolve(realRoot, trimmed);
+    if (import_node_path13.default.isAbsolute(trimmed)) return false;
+    const fromConfigDir = import_node_path13.default.resolve(configDir, trimmed);
+    const fromWorkspaceRoot = import_node_path13.default.resolve(realRoot, trimmed);
     const configInside = isInsideWorkspace(fromConfigDir);
     const rootInside = isInsideWorkspace(fromWorkspaceRoot);
     if (!configInside && !rootInside) {
@@ -43198,8 +44204,8 @@ function inspectMcpConfigSafe(rawText, relPath, realFilePath, realRoot, rootPref
     const existsSafe = (absPath) => {
       if (!isInsideWorkspace(absPath)) return false;
       try {
-        if (!import_node_fs8.default.existsSync(absPath)) return false;
-        const real = import_node_fs8.default.realpathSync(absPath);
+        if (!import_node_fs9.default.existsSync(absPath)) return false;
+        const real = import_node_fs9.default.realpathSync(absPath);
         return isInsideWorkspace(real);
       } catch {
         return false;
@@ -43295,7 +44301,7 @@ function inspectMcpConfigSafe(rawText, relPath, realFilePath, realRoot, rootPref
           file: relPath,
           message: `Server "${safeServerName}" contains an unresolved placeholder in "command" (value redacted).`
         });
-      } else if (command.startsWith("./") || command.startsWith("../") || !import_node_path12.default.isAbsolute(command) && !command.startsWith("@") && (command.includes("/") || SCRIPT_EXT_RE.test(command))) {
+      } else if (command.startsWith("./") || command.startsWith("../") || !import_node_path13.default.isAbsolute(command) && !command.startsWith("@") && (command.includes("/") || SCRIPT_EXT_RE.test(command))) {
         const reported = checkLocalRelativeScript(safeServerName, command, "command");
         if (!reported && containsSecretPattern(command)) {
           pushFinding({
@@ -43332,7 +44338,7 @@ function inspectMcpConfigSafe(rawText, relPath, realFilePath, realRoot, rootPref
         });
       }
     }
-    const cmdBase = import_node_path12.default.basename(command).toLowerCase();
+    const cmdBase = import_node_path13.default.basename(command).toLowerCase();
     const isLocalRuntime = LOCAL_RUNTIME_COMMANDS.has(cmdBase);
     if (Array.isArray(def.args)) {
       let warnedArgPlaceholder = false;
@@ -43355,7 +44361,7 @@ function inspectMcpConfigSafe(rawText, relPath, realFilePath, realRoot, rootPref
           continue;
         }
         const explicitRelative = arg.startsWith("./") || arg.startsWith("../");
-        const runtimeScriptCandidate = isLocalRuntime && !arg.startsWith("-") && !arg.startsWith("@") && !arg.includes("://") && !arg.includes("=") && !import_node_path12.default.isAbsolute(arg) && (arg.includes("/") || SCRIPT_EXT_RE.test(arg));
+        const runtimeScriptCandidate = isLocalRuntime && !arg.startsWith("-") && !arg.startsWith("@") && !arg.includes("://") && !arg.includes("=") && !import_node_path13.default.isAbsolute(arg) && (arg.includes("/") || SCRIPT_EXT_RE.test(arg));
         if (explicitRelative || runtimeScriptCandidate) {
           const reported = checkLocalRelativeScript(safeServerName, arg, "args");
           if (!reported && containsSecretPattern(arg)) {
@@ -43461,7 +44467,7 @@ function inspectMcpConfigSafe(rawText, relPath, realFilePath, realRoot, rootPref
   };
 }
 function measureDirReadOnly(targetDir, allowedRootReal, maxDepth = 5) {
-  const rootPrefix = allowedRootReal.endsWith(import_node_path12.default.sep) ? allowedRootReal : `${allowedRootReal}${import_node_path12.default.sep}`;
+  const rootPrefix = allowedRootReal.endsWith(import_node_path13.default.sep) ? allowedRootReal : `${allowedRootReal}${import_node_path13.default.sep}`;
   let bytes = 0;
   let files = 0;
   const visited = /* @__PURE__ */ new Set();
@@ -43469,7 +44475,7 @@ function measureDirReadOnly(targetDir, allowedRootReal, maxDepth = 5) {
     if (depth > maxDepth) return;
     let realDir;
     try {
-      realDir = import_node_fs8.default.realpathSync(dir);
+      realDir = import_node_fs9.default.realpathSync(dir);
     } catch {
       return;
     }
@@ -43478,14 +44484,14 @@ function measureDirReadOnly(targetDir, allowedRootReal, maxDepth = 5) {
     visited.add(realDir);
     let entries;
     try {
-      entries = import_node_fs8.default.readdirSync(realDir, { withFileTypes: true });
+      entries = import_node_fs9.default.readdirSync(realDir, { withFileTypes: true });
     } catch {
       return;
     }
     for (const entry of entries) {
-      const full = import_node_path12.default.join(realDir, entry.name);
+      const full = import_node_path13.default.join(realDir, entry.name);
       try {
-        const lstat = import_node_fs8.default.lstatSync(full);
+        const lstat = import_node_fs9.default.lstatSync(full);
         if (lstat.isSymbolicLink()) {
           continue;
         }
@@ -43503,7 +44509,7 @@ function measureDirReadOnly(targetDir, allowedRootReal, maxDepth = 5) {
   return { bytes, files };
 }
 function auditStorageReadOnly(rootDataDir) {
-  if (!rootDataDir || !import_node_fs8.default.existsSync(rootDataDir)) {
+  if (!rootDataDir || !import_node_fs9.default.existsSync(rootDataDir)) {
     return {
       rootDataDirExists: false,
       totalBytes: 0,
@@ -43513,7 +44519,7 @@ function auditStorageReadOnly(rootDataDir) {
   }
   let realDataRoot;
   try {
-    realDataRoot = import_node_fs8.default.realpathSync(import_node_path12.default.resolve(rootDataDir));
+    realDataRoot = import_node_fs9.default.realpathSync(import_node_path13.default.resolve(rootDataDir));
   } catch {
     return {
       rootDataDirExists: false,
@@ -43522,16 +44528,16 @@ function auditStorageReadOnly(rootDataDir) {
       modules: []
     };
   }
-  const modulesDir = import_node_path12.default.join(realDataRoot, "modules");
+  const modulesDir = import_node_path13.default.join(realDataRoot, "modules");
   const modules = [];
   const seenModuleDirs = /* @__PURE__ */ new Set();
-  if (import_node_fs8.default.existsSync(modulesDir)) {
+  if (import_node_fs9.default.existsSync(modulesDir)) {
     try {
-      const entries = import_node_fs8.default.readdirSync(modulesDir, { withFileTypes: true });
+      const entries = import_node_fs9.default.readdirSync(modulesDir, { withFileTypes: true });
       for (const entry of entries) {
         if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
         seenModuleDirs.add(entry.name);
-        const stat = measureDirReadOnly(import_node_path12.default.join(modulesDir, entry.name), realDataRoot, 5);
+        const stat = measureDirReadOnly(import_node_path13.default.join(modulesDir, entry.name), realDataRoot, 5);
         modules.push({
           moduleId: entry.name,
           bytes: stat.bytes,
@@ -43578,9 +44584,9 @@ function resolveEnabledNovTools(rootDataDir, optsOrCount) {
   return countEnabledModelTools(createDefaultConfig().modules);
 }
 function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools) {
-  const realRoot = import_node_fs8.default.realpathSync(import_node_path12.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path12.default.sep) ? realRoot : `${realRoot}${import_node_path12.default.sep}`;
-  const workspaceName = import_node_path12.default.basename(realRoot) || "workspace";
+  const realRoot = import_node_fs9.default.realpathSync(import_node_path13.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path13.default.sep) ? realRoot : `${realRoot}${import_node_path13.default.sep}`;
+  const workspaceName = import_node_path13.default.basename(realRoot) || "workspace";
   const assets = [];
   const seenRealPaths = /* @__PURE__ */ new Set();
   const seenMcpServerFiles = /* @__PURE__ */ new Map();
@@ -43597,21 +44603,21 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools)
   let estimatedExternalTools = 0;
   const isInsideWorkspace = (realCandidate) => realCandidate === realRoot || realCandidate.startsWith(rootPrefix);
   const inspectFile = (candidatePath, kind) => {
-    const rawRel = import_node_path12.default.relative(realRoot, candidatePath).replace(/\\/g, "/");
+    const rawRel = import_node_path13.default.relative(realRoot, candidatePath).replace(/\\/g, "/");
     if (isSensitiveOpsPath(rawRel)) {
       skippedSensitive += 1;
       return;
     }
     let lstat;
     try {
-      lstat = import_node_fs8.default.lstatSync(candidatePath);
+      lstat = import_node_fs9.default.lstatSync(candidatePath);
     } catch {
       return;
     }
     let realPath = candidatePath;
     if (lstat.isSymbolicLink()) {
       try {
-        realPath = import_node_fs8.default.realpathSync(candidatePath);
+        realPath = import_node_fs9.default.realpathSync(candidatePath);
       } catch {
         skippedSymlinks += 1;
         return;
@@ -43622,7 +44628,7 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools)
       }
     } else {
       try {
-        realPath = import_node_fs8.default.realpathSync(candidatePath);
+        realPath = import_node_fs9.default.realpathSync(candidatePath);
       } catch {
         return;
       }
@@ -43631,7 +44637,7 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools)
         return;
       }
     }
-    const realRel = import_node_path12.default.relative(realRoot, realPath).replace(/\\/g, "/");
+    const realRel = import_node_path13.default.relative(realRoot, realPath).replace(/\\/g, "/");
     if (isSensitiveOpsPath(realRel)) {
       skippedSensitive += 1;
       return;
@@ -43639,14 +44645,14 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools)
     if (seenRealPaths.has(realPath)) return;
     let stat;
     try {
-      stat = import_node_fs8.default.statSync(realPath);
+      stat = import_node_fs9.default.statSync(realPath);
     } catch {
       return;
     }
     if (!stat.isFile() || stat.size > MAX_AUDIT_FILE_BYTES) return;
     let text;
     try {
-      const buf = import_node_fs8.default.readFileSync(realPath);
+      const buf = import_node_fs9.default.readFileSync(realPath);
       const inspectLen = Math.min(buf.length, 4096);
       for (let i = 0; i < inspectLen; i += 1) {
         if (buf[i] === 0) return;
@@ -43738,14 +44744,14 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools)
     { rel: "hooks/hooks.json", kind: "hooks" }
   ];
   for (const item of fixedCandidates) {
-    inspectFile(import_node_path12.default.join(realRoot, item.rel), item.kind);
+    inspectFile(import_node_path13.default.join(realRoot, item.rel), item.kind);
   }
   const walkBounded = (relBaseDir, maxDepth, onFile) => {
-    const startDir = import_node_path12.default.join(realRoot, relBaseDir);
-    if (!import_node_fs8.default.existsSync(startDir)) return;
+    const startDir = import_node_path13.default.join(realRoot, relBaseDir);
+    if (!import_node_fs9.default.existsSync(startDir)) return;
     let realStart;
     try {
-      realStart = import_node_fs8.default.realpathSync(startDir);
+      realStart = import_node_fs9.default.realpathSync(startDir);
     } catch {
       skippedSymlinks += 1;
       return;
@@ -43761,15 +44767,15 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools)
       visitedDirs.add(dir);
       let entries;
       try {
-        entries = import_node_fs8.default.readdirSync(dir, { withFileTypes: true });
+        entries = import_node_fs9.default.readdirSync(dir, { withFileTypes: true });
       } catch {
         return;
       }
       entries.sort((a, b) => a.name.localeCompare(b.name));
       for (const entry of entries) {
         if (entry.name === ".git" || entry.name === "node_modules") continue;
-        const full = import_node_path12.default.join(dir, entry.name);
-        const rel = import_node_path12.default.relative(realRoot, full).replace(/\\/g, "/");
+        const full = import_node_path13.default.join(dir, entry.name);
+        const rel = import_node_path13.default.relative(realRoot, full).replace(/\\/g, "/");
         if (isSensitiveOpsPath(rel)) {
           skippedSensitive += 1;
           continue;
@@ -43777,7 +44783,7 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools)
         if (entry.isSymbolicLink()) {
           let realSub;
           try {
-            realSub = import_node_fs8.default.realpathSync(full);
+            realSub = import_node_fs9.default.realpathSync(full);
           } catch {
             skippedSymlinks += 1;
             continue;
@@ -43786,13 +44792,13 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools)
             skippedSymlinks += 1;
             continue;
           }
-          const realSubRel = import_node_path12.default.relative(realRoot, realSub).replace(/\\/g, "/");
+          const realSubRel = import_node_path13.default.relative(realRoot, realSub).replace(/\\/g, "/");
           if (isSensitiveOpsPath(realSubRel)) {
             skippedSensitive += 1;
             continue;
           }
           try {
-            const st = import_node_fs8.default.statSync(realSub);
+            const st = import_node_fs9.default.statSync(realSub);
             if (st.isDirectory()) {
               recurse(realSub, depth + 1);
             } else if (st.isFile()) {
@@ -43823,13 +44829,13 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools)
       inspectFile(fullPath, "mcp");
       return;
     }
-    const ext = import_node_path12.default.extname(lowerName);
+    const ext = import_node_path13.default.extname(lowerName);
     if (ALLOWED_AGENT_CONFIG_EXTS.has(ext)) {
       inspectFile(fullPath, "agent-config");
     }
   });
   walkBounded(".gemini", 4, (fullPath, entryName) => {
-    const ext = import_node_path12.default.extname(entryName).toLowerCase();
+    const ext = import_node_path13.default.extname(entryName).toLowerCase();
     if (ext === ".md" || ext === ".mdx" || ext === ".txt") {
       inspectFile(fullPath, "rules");
     }
@@ -43840,14 +44846,14 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools)
   const cursorRules = [];
   const codexFiles = [];
   const verifySafeCrossClientEntry = (fullPath) => {
-    const rel = import_node_path12.default.relative(realRoot, fullPath).replace(/\\/g, "/");
+    const rel = import_node_path13.default.relative(realRoot, fullPath).replace(/\\/g, "/");
     if (isSensitiveCrossClientFile(rel)) {
       skippedSensitive += 1;
       return null;
     }
     let realTarget;
     try {
-      realTarget = import_node_fs8.default.realpathSync(fullPath);
+      realTarget = import_node_fs9.default.realpathSync(fullPath);
     } catch {
       skippedSymlinks += 1;
       return null;
@@ -43856,13 +44862,13 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools)
       skippedSymlinks += 1;
       return null;
     }
-    const realRel = import_node_path12.default.relative(realRoot, realTarget).replace(/\\/g, "/");
+    const realRel = import_node_path13.default.relative(realRoot, realTarget).replace(/\\/g, "/");
     if (isSensitiveCrossClientFile(realRel)) {
       skippedSensitive += 1;
       return null;
     }
     try {
-      const st = import_node_fs8.default.statSync(realTarget);
+      const st = import_node_fs9.default.statSync(realTarget);
       if (!st.isFile()) return null;
     } catch {
       return null;
@@ -44186,7 +45192,7 @@ function auditWorkspaceAssets(workspaceRoot, rootDataDir, optsOrEnabledNovTools)
 }
 var auditWorkspaceReadOnly = auditWorkspaceAssets;
 function createDemoOpsAuditReport(workspaceRoot, enabledNovTools) {
-  const workspaceName = import_node_path12.default.basename(import_node_path12.default.resolve(workspaceRoot)) || "agy-NOV";
+  const workspaceName = import_node_path13.default.basename(import_node_path13.default.resolve(workspaceRoot)) || "agy-NOV";
   const novTools = typeof enabledNovTools === "number" && Number.isFinite(enabledNovTools) && enabledNovTools >= 0 ? Math.floor(enabledNovTools) : countEnabledModelTools(createDefaultConfig().modules);
   const externalServersCount = 3;
   const estimatedExternalTools = 28;
@@ -44683,8 +45689,8 @@ function registerOpsModule(server, options, uiResourceUri) {
 }
 
 // src/modules/radar/core.ts
-var import_node_fs9 = __toESM(require("node:fs"), 1);
-var import_node_path13 = __toESM(require("node:path"), 1);
+var import_node_fs10 = __toESM(require("node:fs"), 1);
+var import_node_path14 = __toESM(require("node:path"), 1);
 var DEFAULT_RADAR_PREFS = {
   desktopNotify: false,
   soundChime: false,
@@ -44699,10 +45705,10 @@ var STATUS_PRIORITY = {
   running: 4
 };
 function getRadarBoardPath(moduleDataDir) {
-  return import_node_path13.default.join(moduleDataDir, "board.json");
+  return import_node_path14.default.join(moduleDataDir, "board.json");
 }
 function getRadarStatusCapsulePath(moduleDataDir) {
-  return import_node_path13.default.join(moduleDataDir, "status-capsule.json");
+  return import_node_path14.default.join(moduleDataDir, "status-capsule.json");
 }
 function buildRadarStatusCapsule(view) {
   const attention = view.sessions.find((s) => s.status === "awaiting_approval") ?? view.sessions.find((s) => s.status === "error") ?? view.sessions.find((s) => s.isOrphanSubagent) ?? view.sessions.find((s) => s.status === "stalled") ?? view.sessions.find((s) => s.unread);
@@ -44776,11 +45782,11 @@ function normalizeSessionRecord(id, raw) {
 }
 function loadRadarBoardReadOnly(moduleDataDir) {
   const boardPath = getRadarBoardPath(moduleDataDir);
-  if (!import_node_fs9.default.existsSync(boardPath)) {
+  if (!import_node_fs10.default.existsSync(boardPath)) {
     return createEmptyBoard();
   }
   try {
-    const raw = JSON.parse(import_node_fs9.default.readFileSync(boardPath, "utf8"));
+    const raw = JSON.parse(import_node_fs10.default.readFileSync(boardPath, "utf8"));
     const prefs = normalizeRadarPrefs(raw.prefs);
     const sessions = {};
     if (raw.sessions && typeof raw.sessions === "object") {
@@ -45197,15 +46203,15 @@ function registerRadarModule(server, options, uiResourceUri) {
 }
 
 // src/modules/remote/channels.ts
-var import_node_crypto6 = __toESM(require("node:crypto"), 1);
+var import_node_crypto7 = __toESM(require("node:crypto"), 1);
 var import_promises = __toESM(require("node:dns/promises"), 1);
 var import_node_net = __toESM(require("node:net"), 1);
 
 // src/modules/remote/config.ts
-var import_node_crypto5 = __toESM(require("node:crypto"), 1);
-var import_node_fs10 = __toESM(require("node:fs"), 1);
+var import_node_crypto6 = __toESM(require("node:crypto"), 1);
+var import_node_fs11 = __toESM(require("node:fs"), 1);
 var import_node_os2 = __toESM(require("node:os"), 1);
-var import_node_path14 = __toESM(require("node:path"), 1);
+var import_node_path15 = __toESM(require("node:path"), 1);
 var DEFAULT_PIN_TTL_MS = 5 * 60 * 1e3;
 var DEFAULT_RISK_PATTERNS = [
   "\\brm\\s+(-[a-zA-Z]*(?:r[a-zA-Z]*f|f[a-zA-Z]*r)|-[a-zA-Z]*r\\b[^;&|]*-[a-zA-Z]*f\\b)",
@@ -45252,10 +46258,10 @@ function redactText(text) {
   return out;
 }
 function generatePairingToken() {
-  return import_node_crypto5.default.randomBytes(24).toString("base64url");
+  return import_node_crypto6.default.randomBytes(24).toString("base64url");
 }
 function generatePairingPin() {
-  return String(import_node_crypto5.default.randomInt(1e5, 1e6));
+  return String(import_node_crypto6.default.randomInt(1e5, 1e6));
 }
 function defaultRemoteConfig(now = Date.now()) {
   return {
@@ -45280,25 +46286,25 @@ function defaultRemoteConfig(now = Date.now()) {
   };
 }
 function getRemoteConfigPath(dataDir) {
-  return import_node_path14.default.join(dataDir, "config.json");
+  return import_node_path15.default.join(dataDir, "config.json");
 }
 function hasSavedConfig(dataDir) {
-  return import_node_fs10.default.existsSync(getRemoteConfigPath(dataDir));
+  return import_node_fs11.default.existsSync(getRemoteConfigPath(dataDir));
 }
 function ensureSecureDataDir(dataDir) {
-  import_node_fs10.default.mkdirSync(dataDir, { recursive: true, mode: 448 });
+  import_node_fs11.default.mkdirSync(dataDir, { recursive: true, mode: 448 });
   try {
-    import_node_fs10.default.chmodSync(dataDir, 448);
+    import_node_fs11.default.chmodSync(dataDir, 448);
   } catch {
   }
 }
 function writeSecureAtomicJson(filePath, dataDir, value) {
   ensureSecureDataDir(dataDir);
-  const tmpPath = `${filePath}.${process.pid}.${import_node_crypto5.default.randomBytes(4).toString("hex")}.tmp`;
-  import_node_fs10.default.writeFileSync(tmpPath, JSON.stringify(value, null, 2), { encoding: "utf8", mode: 384 });
-  import_node_fs10.default.renameSync(tmpPath, filePath);
+  const tmpPath = `${filePath}.${process.pid}.${import_node_crypto6.default.randomBytes(4).toString("hex")}.tmp`;
+  import_node_fs11.default.writeFileSync(tmpPath, JSON.stringify(value, null, 2), { encoding: "utf8", mode: 384 });
+  import_node_fs11.default.renameSync(tmpPath, filePath);
   try {
-    import_node_fs10.default.chmodSync(filePath, 384);
+    import_node_fs11.default.chmodSync(filePath, 384);
   } catch {
   }
 }
@@ -45319,11 +46325,11 @@ function normalizeRemoteConfig(raw) {
 }
 function loadConfigReadOnly(dataDir) {
   const cfgPath = getRemoteConfigPath(dataDir);
-  if (!import_node_fs10.default.existsSync(cfgPath)) {
+  if (!import_node_fs11.default.existsSync(cfgPath)) {
     return { config: defaultRemoteConfig(), persisted: false };
   }
   try {
-    const parsed = JSON.parse(import_node_fs10.default.readFileSync(cfgPath, "utf8"));
+    const parsed = JSON.parse(import_node_fs11.default.readFileSync(cfgPath, "utf8"));
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       return { config: defaultRemoteConfig(), persisted: false };
     }
@@ -45340,14 +46346,14 @@ function saveConfig(dataDir, config2) {
   writeSecureAtomicJson(cfgPath, dataDir, config2);
 }
 function writeRuntimeInfo(dataDir, info) {
-  const runtimePath = import_node_path14.default.join(dataDir, "runtime.json");
+  const runtimePath = import_node_path15.default.join(dataDir, "runtime.json");
   writeSecureAtomicJson(runtimePath, dataDir, info);
 }
 function readRuntimeInfo(dataDir) {
-  const runtimePath = import_node_path14.default.join(dataDir, "runtime.json");
-  if (!import_node_fs10.default.existsSync(runtimePath)) return null;
+  const runtimePath = import_node_path15.default.join(dataDir, "runtime.json");
+  if (!import_node_fs11.default.existsSync(runtimePath)) return null;
   try {
-    const parsed = JSON.parse(import_node_fs10.default.readFileSync(runtimePath, "utf8"));
+    const parsed = JSON.parse(import_node_fs11.default.readFileSync(runtimePath, "utf8"));
     const port = Number(parsed.port);
     if (!Number.isInteger(port) || port < 1 || port > 65535) return null;
     const pid = Number(parsed.pid ?? 0);
@@ -45363,14 +46369,14 @@ function readRuntimeInfo(dataDir) {
   }
 }
 function removeRuntimeInfo(dataDir, expectedPid) {
-  const runtimePath = import_node_path14.default.join(dataDir, "runtime.json");
-  if (!import_node_fs10.default.existsSync(runtimePath)) return;
+  const runtimePath = import_node_path15.default.join(dataDir, "runtime.json");
+  if (!import_node_fs11.default.existsSync(runtimePath)) return;
   try {
     if (expectedPid !== void 0) {
       const current = readRuntimeInfo(dataDir);
       if (current && current.pid && current.pid !== expectedPid) return;
     }
-    import_node_fs10.default.unlinkSync(runtimePath);
+    import_node_fs11.default.unlinkSync(runtimePath);
   } catch {
   }
 }
@@ -45581,12 +46587,12 @@ function sanitizeActionUrl(rawUrl) {
 function signFeishu(timestampSec, secret) {
   const stringToSign = `${timestampSec}
 ${secret}`;
-  return import_node_crypto6.default.createHmac("sha256", stringToSign).update("").digest("base64");
+  return import_node_crypto7.default.createHmac("sha256", stringToSign).update("").digest("base64");
 }
 function signDingTalk(timestampMs, secret) {
   const stringToSign = `${timestampMs}
 ${secret}`;
-  const hmac = import_node_crypto6.default.createHmac("sha256", secret).update(stringToSign).digest("base64");
+  const hmac = import_node_crypto7.default.createHmac("sha256", secret).update(stringToSign).digest("base64");
   return encodeURIComponent(hmac);
 }
 async function postJson(url2, body, opts = {}) {
@@ -45864,14 +46870,14 @@ var ConversationClient = class {
 };
 
 // src/modules/remote/gateway.ts
-var import_node_crypto7 = __toESM(require("node:crypto"), 1);
+var import_node_crypto8 = __toESM(require("node:crypto"), 1);
 var import_node_http = __toESM(require("node:http"), 1);
 
 // src/modules/remote/live-stream.ts
 var import_node_child_process = require("node:child_process");
-var import_node_fs11 = __toESM(require("node:fs"), 1);
+var import_node_fs12 = __toESM(require("node:fs"), 1);
 var import_node_os3 = __toESM(require("node:os"), 1);
-var import_node_path15 = __toESM(require("node:path"), 1);
+var import_node_path16 = __toESM(require("node:path"), 1);
 var MAX_LIVE_STREAM_TAIL_BYTES = 256 * 1024;
 var MAX_LIVE_STREAM_SUMMARY_CHARS = 320;
 var MAX_LIVE_STREAM_TIMESTAMP_CHARS = 40;
@@ -45974,36 +46980,36 @@ function finalizeSummary(raw) {
 function getDefaultBrainDirs() {
   const home = import_node_os3.default.homedir();
   return [
-    import_node_path15.default.join(home, ".gemini", "antigravity", "brain"),
-    import_node_path15.default.join(home, ".gemini", "brain")
+    import_node_path16.default.join(home, ".gemini", "antigravity", "brain"),
+    import_node_path16.default.join(home, ".gemini", "brain")
   ];
 }
 function isPathStrictlyInside(targetRealPath, rootRealDir) {
-  const rel = import_node_path15.default.relative(rootRealDir, targetRealPath);
-  return rel !== "" && !rel.startsWith("..") && !import_node_path15.default.isAbsolute(rel);
+  const rel = import_node_path16.default.relative(rootRealDir, targetRealPath);
+  return rel !== "" && !rel.startsWith("..") && !import_node_path16.default.isAbsolute(rel);
 }
 function resolveSafeTranscriptPath(conversationId, brainDirs) {
   for (const rawRoot of brainDirs) {
     if (!rawRoot || typeof rawRoot !== "string") continue;
     let realRoot;
     try {
-      realRoot = import_node_fs11.default.realpathSync(rawRoot);
-      if (!import_node_fs11.default.statSync(realRoot).isDirectory()) continue;
+      realRoot = import_node_fs12.default.realpathSync(rawRoot);
+      if (!import_node_fs12.default.statSync(realRoot).isDirectory()) continue;
     } catch {
       continue;
     }
-    const convDir = import_node_path15.default.join(realRoot, conversationId);
-    const candidatePath = import_node_path15.default.join(convDir, ".system_generated", "logs", "transcript.jsonl");
+    const convDir = import_node_path16.default.join(realRoot, conversationId);
+    const candidatePath = import_node_path16.default.join(convDir, ".system_generated", "logs", "transcript.jsonl");
     let realConvDir;
     let realTarget;
     try {
-      realConvDir = import_node_fs11.default.realpathSync(convDir);
+      realConvDir = import_node_fs12.default.realpathSync(convDir);
       if (!isPathStrictlyInside(realConvDir, realRoot)) continue;
-      if (!import_node_fs11.default.statSync(realConvDir).isDirectory()) continue;
-      realTarget = import_node_fs11.default.realpathSync(candidatePath);
+      if (!import_node_fs12.default.statSync(realConvDir).isDirectory()) continue;
+      realTarget = import_node_fs12.default.realpathSync(candidatePath);
       if (!isPathStrictlyInside(realTarget, realRoot)) continue;
       if (!isPathStrictlyInside(realTarget, realConvDir)) continue;
-      if (!import_node_fs11.default.statSync(realTarget).isFile()) continue;
+      if (!import_node_fs12.default.statSync(realTarget).isFile()) continue;
     } catch {
       continue;
     }
@@ -46014,8 +47020,8 @@ function resolveSafeTranscriptPath(conversationId, brainDirs) {
 function readTailUtf8(filePath, maxTailBytes = MAX_LIVE_STREAM_TAIL_BYTES) {
   let fd;
   try {
-    fd = import_node_fs11.default.openSync(filePath, "r");
-    const stat = import_node_fs11.default.fstatSync(fd);
+    fd = import_node_fs12.default.openSync(filePath, "r");
+    const stat = import_node_fs12.default.fstatSync(fd);
     if (!stat.isFile()) return null;
     if (stat.size === 0) return "";
     const bytesToRead = Math.min(stat.size, maxTailBytes);
@@ -46023,7 +47029,7 @@ function readTailUtf8(filePath, maxTailBytes = MAX_LIVE_STREAM_TAIL_BYTES) {
     const buf = Buffer.alloc(bytesToRead);
     let totalRead = 0;
     while (totalRead < bytesToRead) {
-      const n = import_node_fs11.default.readSync(fd, buf, totalRead, bytesToRead - totalRead, startOffset + totalRead);
+      const n = import_node_fs12.default.readSync(fd, buf, totalRead, bytesToRead - totalRead, startOffset + totalRead);
       if (n <= 0) break;
       totalRead += n;
     }
@@ -46038,7 +47044,7 @@ function readTailUtf8(filePath, maxTailBytes = MAX_LIVE_STREAM_TAIL_BYTES) {
   } finally {
     if (fd !== void 0) {
       try {
-        import_node_fs11.default.closeSync(fd);
+        import_node_fs12.default.closeSync(fd);
       } catch {
       }
     }
@@ -46067,7 +47073,7 @@ function extractSafeBasenamesFromArgs(args) {
     const cleaned = rawVal.replace(/^["']|["']$/g, "").replace(/^file:\/\//i, "").trim();
     if (!cleaned) continue;
     const normalized = cleaned.replace(/\\/g, "/");
-    const base = import_node_path15.default.posix.basename(normalized);
+    const base = import_node_path16.default.posix.basename(normalized);
     if (!isSensitiveBasenameOrPath(cleaned, base)) {
       basenames.add(base);
     }
@@ -46925,10 +47931,10 @@ function constantTimeEqual(a, b) {
   const bufB = Buffer.from(b, "utf8");
   if (bufA.length !== bufB.length) {
     const dummy = Buffer.alloc(32);
-    import_node_crypto7.default.timingSafeEqual(dummy, dummy);
+    import_node_crypto8.default.timingSafeEqual(dummy, dummy);
     return false;
   }
-  return import_node_crypto7.default.timingSafeEqual(bufA, bufB);
+  return import_node_crypto8.default.timingSafeEqual(bufA, bufB);
 }
 function isLoopbackBindHost(host) {
   const h = host.trim().toLowerCase();
@@ -47078,7 +48084,7 @@ var RemoteGateway = class {
   }
   pushAudit(entry) {
     const full = {
-      id: import_node_crypto7.default.randomBytes(6).toString("hex"),
+      id: import_node_crypto8.default.randomBytes(6).toString("hex"),
       timestamp: new Date(this.nowFn()).toISOString(),
       ...entry,
       title: redactText(entry.title),
@@ -47151,7 +48157,7 @@ var RemoteGateway = class {
     const timeoutMs = Math.max(100, (input2.timeoutSec ?? this.config.approvalTimeoutSec) * 1e3);
     const now = this.nowFn();
     const req = {
-      id: `apr_${import_node_crypto7.default.randomBytes(6).toString("hex")}`,
+      id: `apr_${import_node_crypto8.default.randomBytes(6).toString("hex")}`,
       conversationId: input2.conversationId,
       toolName: input2.toolName,
       summary: redactText(input2.summary).slice(0, 400),
@@ -48338,14 +49344,14 @@ function registerRemoteModule(server, opts, uiResourceUri, initialEnabled) {
 }
 
 // src/modules/review/register.ts
-var import_node_fs15 = __toESM(require("node:fs"), 1);
-var import_node_path20 = __toESM(require("node:path"), 1);
+var import_node_fs16 = __toESM(require("node:fs"), 1);
+var import_node_path21 = __toESM(require("node:path"), 1);
 
 // src/modules/review/annotations.ts
-var import_node_crypto8 = __toESM(require("node:crypto"), 1);
-var import_node_fs12 = __toESM(require("node:fs"), 1);
+var import_node_crypto9 = __toESM(require("node:crypto"), 1);
+var import_node_fs13 = __toESM(require("node:fs"), 1);
 var import_node_os4 = __toESM(require("node:os"), 1);
-var import_node_path16 = __toESM(require("node:path"), 1);
+var import_node_path17 = __toESM(require("node:path"), 1);
 var SAFE_REPO_KEY_RE = /^[a-zA-Z0-9_-]{4,64}$/;
 var MAX_FILE_PATH_LENGTH = 1024;
 var MAX_COMMENT_LENGTH = 16e3;
@@ -48393,14 +49399,14 @@ function sanitizeRepoKey(repoKey) {
 var AnnotationStore = class {
   sessionsDir;
   constructor(dataDir) {
-    const baseDir = dataDir && dataDir.trim() ? import_node_path16.default.resolve(dataDir.trim()) : import_node_path16.default.join(import_node_os4.default.tmpdir(), "agy-nov-review-data");
-    this.sessionsDir = import_node_path16.default.join(baseDir, "sessions");
+    const baseDir = dataDir && dataDir.trim() ? import_node_path17.default.resolve(dataDir.trim()) : import_node_path17.default.join(import_node_os4.default.tmpdir(), "agy-nov-review-data");
+    this.sessionsDir = import_node_path17.default.join(baseDir, "sessions");
   }
   resolveStorePath(repoKey) {
     const safeKey = sanitizeRepoKey(repoKey);
-    const target = import_node_path16.default.resolve(this.sessionsDir, `${safeKey}.json`);
-    const rel = import_node_path16.default.relative(this.sessionsDir, target);
-    if (rel.startsWith("..") || import_node_path16.default.isAbsolute(rel)) {
+    const target = import_node_path17.default.resolve(this.sessionsDir, `${safeKey}.json`);
+    const rel = import_node_path17.default.relative(this.sessionsDir, target);
+    if (rel.startsWith("..") || import_node_path17.default.isAbsolute(rel)) {
       throw new Error("Blocked path traversal attempt in AnnotationStore.");
     }
     return target;
@@ -48414,11 +49420,11 @@ var AnnotationStore = class {
       updatedAt: (/* @__PURE__ */ new Date()).toISOString(),
       scopes: {}
     };
-    if (!import_node_fs12.default.existsSync(filePath)) {
+    if (!import_node_fs13.default.existsSync(filePath)) {
       return empty;
     }
     try {
-      const raw = import_node_fs12.default.readFileSync(filePath, "utf8");
+      const raw = import_node_fs13.default.readFileSync(filePath, "utf8");
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== "object" || !parsed.scopes || typeof parsed.scopes !== "object") {
         return empty;
@@ -48446,9 +49452,9 @@ var AnnotationStore = class {
     const filePath = this.resolveStorePath(data.repoKey);
     ensurePrivateDir(this.sessionsDir);
     data.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
-    const tmpPath = `${filePath}.${process.pid}.${import_node_crypto8.default.randomBytes(4).toString("hex")}.tmp`;
-    import_node_fs12.default.writeFileSync(tmpPath, JSON.stringify(data, null, 2), { encoding: "utf8", mode: 384 });
-    import_node_fs12.default.renameSync(tmpPath, filePath);
+    const tmpPath = `${filePath}.${process.pid}.${import_node_crypto9.default.randomBytes(4).toString("hex")}.tmp`;
+    import_node_fs13.default.writeFileSync(tmpPath, JSON.stringify(data, null, 2), { encoding: "utf8", mode: 384 });
+    import_node_fs13.default.renameSync(tmpPath, filePath);
   }
   ensureScope(data, scope) {
     if (!data.scopes[scope]) {
@@ -48488,7 +49494,7 @@ var AnnotationStore = class {
     }
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const record2 = {
-      id: `ann_${import_node_crypto8.default.randomBytes(6).toString("hex")}`,
+      id: `ann_${import_node_crypto9.default.randomBytes(6).toString("hex")}`,
       repoKey: safeKey,
       scope: input2.scope,
       filePath,
@@ -48628,8 +49634,8 @@ function evaluateAnnotationStaleness(annotations, files) {
 }
 
 // src/modules/review/diff-parser.ts
-var import_node_crypto9 = __toESM(require("node:crypto"), 1);
-var import_node_path17 = __toESM(require("node:path"), 1);
+var import_node_crypto10 = __toESM(require("node:crypto"), 1);
+var import_node_path18 = __toESM(require("node:path"), 1);
 
 // src/modules/review/diff-helpers.ts
 function extractCodeSnippet(file2, startLine, endLine, side = "new", maxSnippetLines = 8) {
@@ -48901,7 +49907,7 @@ function classifyRiskTags(filePath, additions, deletions, isTruncated = false) {
   return tags;
 }
 function computeFileFingerprint(filePath, status, hunks) {
-  const hash2 = import_node_crypto9.default.createHash("sha256");
+  const hash2 = import_node_crypto10.default.createHash("sha256");
   hash2.update(`${filePath}\0${status}\0`);
   for (const h of hunks) {
     hash2.update(`${h.header}
@@ -48928,7 +49934,7 @@ function parseUnifiedDiff(rawDiff, options = {}) {
   const finalizeCurrent = () => {
     if (!current) return;
     const effectivePath = current.status === "deleted" ? current.oldPath || current.newPath : current.newPath || current.oldPath;
-    const absolutePath = options.repoPath && effectivePath && effectivePath !== "/dev/null" ? import_node_path17.default.resolve(options.repoPath, effectivePath) : void 0;
+    const absolutePath = options.repoPath && effectivePath && effectivePath !== "/dev/null" ? import_node_path18.default.resolve(options.repoPath, effectivePath) : void 0;
     const riskTags = classifyRiskTags(
       effectivePath,
       current.additions,
@@ -49288,10 +50294,10 @@ function createDemoSession(scope = "working") {
 }
 
 // src/modules/review/git-diff.ts
-var import_node_crypto10 = __toESM(require("node:crypto"), 1);
+var import_node_crypto11 = __toESM(require("node:crypto"), 1);
 var import_node_child_process2 = require("node:child_process");
-var import_node_fs13 = __toESM(require("node:fs"), 1);
-var import_node_path18 = __toESM(require("node:path"), 1);
+var import_node_fs14 = __toESM(require("node:fs"), 1);
+var import_node_path19 = __toESM(require("node:path"), 1);
 var MAX_GIT_BUFFER = 20 * 1024 * 1024;
 var DEFAULT_MAX_LINES_PER_FILE2 = 600;
 var DEFAULT_MAX_TOTAL_LINES2 = 3500;
@@ -49325,8 +50331,8 @@ function validateCommitRange(range) {
   return trimmed;
 }
 function computeRepoKey(repoPath) {
-  const resolved = import_node_path18.default.resolve(repoPath);
-  return import_node_crypto10.default.createHash("sha256").update(resolved).digest("hex").slice(0, 16);
+  const resolved = import_node_path19.default.resolve(repoPath);
+  return import_node_crypto11.default.createHash("sha256").update(resolved).digest("hex").slice(0, 16);
 }
 function runGit(cwd, args, maxBuffer = MAX_GIT_BUFFER) {
   try {
@@ -49374,9 +50380,9 @@ function isBinaryBuffer(buf) {
 }
 function buildUntrackedDiffFile(repoRoot, relPath, maxLinesPerFile, remainingGlobalLines, maxUntrackedBytes) {
   const normalizedRel = relPath.replace(/\\/g, "/");
-  const absPath = import_node_path18.default.resolve(repoRoot, normalizedRel);
-  const relativeCheck = import_node_path18.default.relative(repoRoot, absPath);
-  if (relativeCheck.startsWith("..") || import_node_path18.default.isAbsolute(relativeCheck)) {
+  const absPath = import_node_path19.default.resolve(repoRoot, normalizedRel);
+  const relativeCheck = import_node_path19.default.relative(repoRoot, absPath);
+  if (relativeCheck.startsWith("..") || import_node_path19.default.isAbsolute(relativeCheck)) {
     const file3 = {
       path: normalizedRel,
       status: "untracked",
@@ -49393,7 +50399,7 @@ function buildUntrackedDiffFile(repoRoot, relPath, maxLinesPerFile, remainingGlo
   }
   let stat;
   try {
-    stat = import_node_fs13.default.lstatSync(absPath);
+    stat = import_node_fs14.default.lstatSync(absPath);
   } catch {
     const file3 = {
       path: normalizedRel,
@@ -49428,13 +50434,13 @@ function buildUntrackedDiffFile(repoRoot, relPath, maxLinesPerFile, remainingGlo
   const readBytes = Math.min(stat.size, maxUntrackedBytes);
   const buf = Buffer.alloc(readBytes);
   try {
-    const fd = import_node_fs13.default.openSync(absPath, "r");
+    const fd = import_node_fs14.default.openSync(absPath, "r");
     try {
       if (readBytes > 0) {
-        import_node_fs13.default.readSync(fd, buf, 0, readBytes, 0);
+        import_node_fs14.default.readSync(fd, buf, 0, readBytes, 0);
       }
     } finally {
-      import_node_fs13.default.closeSync(fd);
+      import_node_fs14.default.closeSync(fd);
     }
   } catch {
     const file3 = {
@@ -49516,7 +50522,7 @@ function listUntrackedFiles(repoRoot) {
   return res.stdout.split("\0").filter((p) => p.length > 0);
 }
 function scanGitDiff(options) {
-  const requestedPath = import_node_path18.default.resolve(options.repoPath || process.cwd());
+  const requestedPath = import_node_path19.default.resolve(options.repoPath || process.cwd());
   const scope = options.scope ?? "working";
   const ignoreWhitespace = Boolean(options.ignoreWhitespace);
   const wsArgs = ignoreWhitespace ? ["-w"] : [];
@@ -49524,10 +50530,10 @@ function scanGitDiff(options) {
   const maxTotalLines = options.maxTotalLines ?? DEFAULT_MAX_TOTAL_LINES2;
   const maxUntrackedBytes = options.maxUntrackedBytes ?? DEFAULT_MAX_UNTRACKED_BYTES;
   const maxGitBuffer = options.maxGitBuffer ?? MAX_GIT_BUFFER;
-  if (!import_node_fs13.default.existsSync(requestedPath)) {
+  if (!import_node_fs14.default.existsSync(requestedPath)) {
     return {
       repoPath: requestedPath,
-      repoName: import_node_path18.default.basename(requestedPath) || "workspace",
+      repoName: import_node_path19.default.basename(requestedPath) || "workspace",
       repoKey: computeRepoKey(requestedPath),
       branch: "none",
       scope,
@@ -49545,7 +50551,7 @@ function scanGitDiff(options) {
   if (!topLevelRes.ok || !topLevelRes.stdout.trim()) {
     return {
       repoPath: requestedPath,
-      repoName: import_node_path18.default.basename(requestedPath) || "workspace",
+      repoName: import_node_path19.default.basename(requestedPath) || "workspace",
       repoKey: computeRepoKey(requestedPath),
       branch: "no-git",
       scope,
@@ -49559,8 +50565,8 @@ function scanGitDiff(options) {
       files: []
     };
   }
-  const repoRoot = import_node_path18.default.resolve(topLevelRes.stdout.trim());
-  const repoName = import_node_path18.default.basename(repoRoot);
+  const repoRoot = import_node_path19.default.resolve(topLevelRes.stdout.trim());
+  const repoName = import_node_path19.default.basename(repoRoot);
   const repoKey = computeRepoKey(repoRoot);
   const branchRes = runGit(repoRoot, ["symbolic-ref", "--short", "HEAD"]);
   let branch = branchRes.ok ? branchRes.stdout.trim() : "";
@@ -49711,14 +50717,14 @@ function scanGitDiff(options) {
 }
 
 // src/modules/review/hook.ts
-var import_node_fs14 = __toESM(require("node:fs"), 1);
-var import_node_path19 = __toESM(require("node:path"), 1);
+var import_node_fs15 = __toESM(require("node:fs"), 1);
+var import_node_path20 = __toESM(require("node:path"), 1);
 function readReviewSignal(moduleDataDir) {
   if (!moduleDataDir) return null;
-  const signalPath = import_node_path19.default.join(moduleDataDir, "review-signal.json");
-  if (!import_node_fs14.default.existsSync(signalPath)) return null;
+  const signalPath = import_node_path20.default.join(moduleDataDir, "review-signal.json");
+  if (!import_node_fs15.default.existsSync(signalPath)) return null;
   try {
-    const parsed = JSON.parse(import_node_fs14.default.readFileSync(signalPath, "utf8"));
+    const parsed = JSON.parse(import_node_fs15.default.readFileSync(signalPath, "utf8"));
     return {
       lastEvent: parsed.lastEvent,
       lastToolName: parsed.lastToolName,
@@ -49858,14 +50864,14 @@ function wrapModelTool2(name, tool) {
 }
 function resolveEffectiveRepoPath(requestedRepoPath, workspaceRoot, moduleDataDir) {
   if (requestedRepoPath && requestedRepoPath.trim()) {
-    return import_node_path20.default.resolve(requestedRepoPath.trim());
+    return import_node_path21.default.resolve(requestedRepoPath.trim());
   }
   if (workspaceRoot && workspaceRoot.trim()) {
-    return import_node_path20.default.resolve(workspaceRoot.trim());
+    return import_node_path21.default.resolve(workspaceRoot.trim());
   }
   const signal = readReviewSignal(moduleDataDir);
-  if (signal?.workspacePaths && signal.workspacePaths.length > 0 && import_node_fs15.default.existsSync(signal.workspacePaths[0])) {
-    return import_node_path20.default.resolve(signal.workspacePaths[0]);
+  if (signal?.workspacePaths && signal.workspacePaths.length > 0 && import_node_fs16.default.existsSync(signal.workspacePaths[0])) {
+    return import_node_path21.default.resolve(signal.workspacePaths[0]);
   }
   return process.cwd();
 }
@@ -50419,15 +51425,22 @@ function registerReviewModule(server, opts, uiResourceUri) {
 }
 
 // src/modules/spec/core.ts
-var import_node_crypto11 = __toESM(require("node:crypto"), 1);
-var import_node_fs16 = __toESM(require("node:fs"), 1);
-var import_node_path21 = __toESM(require("node:path"), 1);
+var import_node_crypto12 = __toESM(require("node:crypto"), 1);
+var import_node_fs17 = __toESM(require("node:fs"), 1);
+var import_node_path22 = __toESM(require("node:path"), 1);
 var SPEC_ID_RE = /^[a-zA-Z0-9._-]{1,64}$/;
 var SPEC_TASK_ID_RE = /^[a-zA-Z0-9._-]{1,48}$/;
+var SPEC_DELTA_ID_RE = /^[a-zA-Z0-9._-]{1,48}$/;
+var SPEC_ANNOTATION_ID_RE = /^[a-zA-Z0-9._-]{1,48}$/;
 var MAX_SPECS = 50;
 var MAX_TASKS_PER_SPEC = 100;
 var MAX_CRITERIA_ITEMS = 50;
 var MAX_PLAN_STEPS = 80;
+var MAX_DELTA_ITEMS = 60;
+var MAX_PLAN_MARKDOWN_CHARS = 24e3;
+var MAX_REVISIONS_PER_SPEC = 8;
+var MAX_ANNOTATIONS_PER_SPEC = 100;
+var MAX_LCS_DIFF_LINES = 600;
 var VALID_SPEC_STATUSES = /* @__PURE__ */ new Set([
   "draft",
   "approved",
@@ -50439,6 +51452,17 @@ var VALID_TASK_STATUSES = /* @__PURE__ */ new Set([
   "in_progress",
   "done",
   "blocked"
+]);
+var VALID_SPEC_MODES = /* @__PURE__ */ new Set(["full", "delta"]);
+var VALID_DELTA_KINDS = /* @__PURE__ */ new Set([
+  "added",
+  "modified",
+  "removed"
+]);
+var VALID_ANNOTATION_KINDS = /* @__PURE__ */ new Set([
+  "comment",
+  "strike",
+  "replace"
 ]);
 function sanitizeSingleLine(input2, maxLen) {
   return input2.replace(/[\x00-\x1f\x7f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLen);
@@ -50464,8 +51488,331 @@ function sanitizeStringList(raw, maxItems, maxLen) {
   }
   return out;
 }
+function sanitizePlanMarkdown(input2) {
+  return input2.replace(/\r\n?/g, "\n").replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "").trimEnd().slice(0, MAX_PLAN_MARKDOWN_CHARS);
+}
+function splitPlanMarkdownLines(markdown) {
+  if (!markdown) return [];
+  return markdown.replace(/\r\n?/g, "\n").split("\n");
+}
+function createDeltaItemId(index, existingIds) {
+  for (let i = 0; i < 16; i += 1) {
+    const candidate = `delta-${index + 1}-${import_node_crypto12.default.randomBytes(2).toString("hex")}`;
+    if (!existingIds.has(candidate)) return candidate;
+  }
+  return `delta-${index + 1}-${Date.now().toString(36)}`;
+}
+function sanitizeDeltaItems(raw) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  const seenIds = /* @__PURE__ */ new Set();
+  for (let i = 0; i < raw.length && out.length < MAX_DELTA_ITEMS; i += 1) {
+    const entry = raw[i];
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const obj = entry;
+    const kind = typeof obj.kind === "string" && VALID_DELTA_KINDS.has(obj.kind) ? obj.kind : null;
+    if (!kind) continue;
+    const text = typeof obj.text === "string" ? sanitizeSingleLine(obj.text, 500) : "";
+    if (!text) continue;
+    const area = typeof obj.area === "string" && sanitizeSingleLine(obj.area, 80) ? sanitizeSingleLine(obj.area, 80) : void 0;
+    const rawId = typeof obj.id === "string" ? obj.id.trim() : "";
+    const id = rawId && SPEC_DELTA_ID_RE.test(rawId) && !seenIds.has(rawId) ? rawId : createDeltaItemId(out.length, seenIds);
+    seenIds.add(id);
+    out.push({
+      id,
+      kind,
+      ...area ? { area } : {},
+      text
+    });
+  }
+  return out;
+}
+function synthesizePlanMarkdown(input2) {
+  const lines = [];
+  lines.push(`# ${input2.title}`);
+  lines.push(
+    input2.mode === "delta" ? "> Mode: BROWNFIELD DELTA SPEC" : "> Mode: FULL SPEC"
+  );
+  lines.push("");
+  lines.push("## Goal");
+  lines.push(input2.goal);
+  if (input2.deltaItems.length > 0) {
+    lines.push("");
+    lines.push("## Behavioral Delta");
+    for (const item of input2.deltaItems) {
+      const areaPrefix = item.area ? `(${item.area}) ` : "";
+      lines.push(`- [${item.kind.toUpperCase()}] ${areaPrefix}${item.text}`);
+    }
+  }
+  if (input2.planSteps.length > 0) {
+    lines.push("");
+    lines.push("## Implementation Plan");
+    input2.planSteps.forEach((step, idx) => {
+      lines.push(`${idx + 1}. ${step}`);
+    });
+  }
+  if (input2.acceptanceCriteria.length > 0) {
+    lines.push("");
+    lines.push("## Acceptance Criteria");
+    for (const criterion of input2.acceptanceCriteria) {
+      lines.push(`- [ ] ${criterion}`);
+    }
+  }
+  if (input2.tasks && input2.tasks.length > 0) {
+    lines.push("");
+    lines.push("## Task DAG");
+    for (const task of input2.tasks) {
+      const deps = task.dependsOn.length > 0 ? ` (depends on: ${task.dependsOn.join(", ")})` : "";
+      lines.push(`- \`${task.id}\`: ${task.title}${deps}`);
+    }
+  }
+  return sanitizePlanMarkdown(lines.join("\n"));
+}
+function computePlanRevisionDiff(prevMarkdown, nextMarkdown) {
+  const prevLines = splitPlanMarkdownLines(prevMarkdown);
+  const nextLines = splitPlanMarkdownLines(nextMarkdown);
+  if (prevLines.length === 0 && nextLines.length === 0) {
+    return { addedLines: 0, removedLines: 0, degraded: false, hunks: [] };
+  }
+  let prefixLen = 0;
+  const minLen = Math.min(prevLines.length, nextLines.length);
+  while (prefixLen < minLen && prevLines[prefixLen] === nextLines[prefixLen]) {
+    prefixLen += 1;
+  }
+  let suffixLen = 0;
+  while (suffixLen < minLen - prefixLen && prevLines[prevLines.length - 1 - suffixLen] === nextLines[nextLines.length - 1 - suffixLen]) {
+    suffixLen += 1;
+  }
+  const hunks = [];
+  for (let i = 0; i < prefixLen; i += 1) {
+    hunks.push({
+      type: "same",
+      oldLine: i + 1,
+      newLine: i + 1,
+      text: prevLines[i]
+    });
+  }
+  const midPrevStart = prefixLen;
+  const midPrevEnd = prevLines.length - suffixLen;
+  const midNextStart = prefixLen;
+  const midNextEnd = nextLines.length - suffixLen;
+  const m = midPrevEnd - midPrevStart;
+  const n = midNextEnd - midNextStart;
+  let addedLines = 0;
+  let removedLines = 0;
+  let degraded = false;
+  if (m > 0 || n > 0) {
+    const canUseLcs = prevLines.length <= MAX_LCS_DIFF_LINES && nextLines.length <= MAX_LCS_DIFF_LINES && m * n <= MAX_LCS_DIFF_LINES * MAX_LCS_DIFF_LINES;
+    if (canUseLcs && m > 0 && n > 0) {
+      const cols = n + 1;
+      const dp = new Int32Array((m + 1) * cols);
+      for (let i2 = m - 1; i2 >= 0; i2 -= 1) {
+        const aLine = prevLines[midPrevStart + i2];
+        const rowOffset = i2 * cols;
+        const nextRowOffset = (i2 + 1) * cols;
+        for (let j2 = n - 1; j2 >= 0; j2 -= 1) {
+          if (aLine === nextLines[midNextStart + j2]) {
+            dp[rowOffset + j2] = dp[nextRowOffset + j2 + 1] + 1;
+          } else {
+            const down = dp[nextRowOffset + j2];
+            const right = dp[rowOffset + j2 + 1];
+            dp[rowOffset + j2] = down >= right ? down : right;
+          }
+        }
+      }
+      let i = 0;
+      let j = 0;
+      while (i < m && j < n) {
+        const aLine = prevLines[midPrevStart + i];
+        const bLine = nextLines[midNextStart + j];
+        if (aLine === bLine) {
+          hunks.push({
+            type: "same",
+            oldLine: midPrevStart + i + 1,
+            newLine: midNextStart + j + 1,
+            text: aLine
+          });
+          i += 1;
+          j += 1;
+        } else if (dp[(i + 1) * cols + j] >= dp[i * cols + j + 1]) {
+          hunks.push({
+            type: "del",
+            oldLine: midPrevStart + i + 1,
+            text: aLine
+          });
+          removedLines += 1;
+          i += 1;
+        } else {
+          hunks.push({
+            type: "add",
+            newLine: midNextStart + j + 1,
+            text: bLine
+          });
+          addedLines += 1;
+          j += 1;
+        }
+      }
+      while (i < m) {
+        hunks.push({
+          type: "del",
+          oldLine: midPrevStart + i + 1,
+          text: prevLines[midPrevStart + i]
+        });
+        removedLines += 1;
+        i += 1;
+      }
+      while (j < n) {
+        hunks.push({
+          type: "add",
+          newLine: midNextStart + j + 1,
+          text: nextLines[midNextStart + j]
+        });
+        addedLines += 1;
+        j += 1;
+      }
+    } else {
+      if (m > 0 && n > 0 && !canUseLcs) {
+        degraded = true;
+      }
+      for (let i = 0; i < m; i += 1) {
+        hunks.push({
+          type: "del",
+          oldLine: midPrevStart + i + 1,
+          text: prevLines[midPrevStart + i]
+        });
+        removedLines += 1;
+      }
+      for (let j = 0; j < n; j += 1) {
+        hunks.push({
+          type: "add",
+          newLine: midNextStart + j + 1,
+          text: nextLines[midNextStart + j]
+        });
+        addedLines += 1;
+      }
+    }
+  }
+  for (let s = 0; s < suffixLen; s += 1) {
+    const oldIdx = midPrevEnd + s;
+    const newIdx = midNextEnd + s;
+    hunks.push({
+      type: "same",
+      oldLine: oldIdx + 1,
+      newLine: newIdx + 1,
+      text: prevLines[oldIdx]
+    });
+  }
+  return {
+    addedLines,
+    removedLines,
+    degraded,
+    hunks
+  };
+}
+function resolveRevisionMarkdown(spec, revision) {
+  if (revision === spec.revision) {
+    return spec.planMarkdown;
+  }
+  const found = spec.revisions.find((r) => r.revision === revision);
+  return found ? found.planMarkdown : null;
+}
+function diffSpecRevisions(spec, fromRevision, toRevision) {
+  const revNumbers = Array.from(
+    /* @__PURE__ */ new Set([...spec.revisions.map((r) => r.revision), spec.revision])
+  ).sort((a, b) => a - b);
+  const resolvedTo = typeof toRevision === "number" && Number.isInteger(toRevision) ? toRevision : spec.revision;
+  let resolvedFrom;
+  if (typeof fromRevision === "number" && Number.isInteger(fromRevision)) {
+    resolvedFrom = fromRevision;
+  } else {
+    const priorRevs = revNumbers.filter((r) => r < resolvedTo);
+    resolvedFrom = priorRevs.length > 0 ? priorRevs[priorRevs.length - 1] : resolvedTo;
+  }
+  const fromMd = resolveRevisionMarkdown(spec, resolvedFrom);
+  if (fromMd === null) {
+    return {
+      ok: false,
+      error: `Revision v${resolvedFrom} not found in spec "${spec.id}". Available: ${revNumbers.map((r) => `v${r}`).join(", ")}.`
+    };
+  }
+  const toMd = resolveRevisionMarkdown(spec, resolvedTo);
+  if (toMd === null) {
+    return {
+      ok: false,
+      error: `Revision v${resolvedTo} not found in spec "${spec.id}". Available: ${revNumbers.map((r) => `v${r}`).join(", ")}.`
+    };
+  }
+  return {
+    ok: true,
+    specId: spec.id,
+    fromRevision: resolvedFrom,
+    toRevision: resolvedTo,
+    availableRevisions: revNumbers,
+    diff: computePlanRevisionDiff(fromMd, toMd)
+  };
+}
+function buildAnnotationFeedbackPrompt(spec) {
+  const unresolved = spec.annotations.filter((a) => !a.resolved).sort((a, b) => a.lineStart - b.lineStart || a.lineEnd - b.lineEnd || a.createdAt.localeCompare(b.createdAt));
+  const lines = [
+    `# Spec Plan Revision Request \u2014 "${spec.title}"`,
+    `- Spec ID: \`${spec.id}\``,
+    `- Mode: ${spec.mode === "delta" ? "Brownfield Delta Spec" : "Full Spec"}`,
+    `- Current Revision: v${spec.revision} -> Target Revision: v${spec.revision + 1}`,
+    `- Unresolved Annotations: ${unresolved.length}`
+  ];
+  if (unresolved.length === 0) {
+    lines.push("");
+    lines.push("There are currently no unresolved inline annotations on this plan.");
+    return lines.join("\n");
+  }
+  const mdLines = splitPlanMarkdownLines(spec.planMarkdown);
+  lines.push("");
+  lines.push("## Inline Review Feedback");
+  unresolved.forEach((ann, idx) => {
+    const lineRange = ann.lineStart === ann.lineEnd ? `L${ann.lineStart}` : `L${ann.lineStart}-L${ann.lineEnd}`;
+    const kindLabel = ann.kind === "strike" ? "STRIKE / CUT SCOPE" : ann.kind === "replace" ? "REPLACE SUGGESTION" : "COMMENT";
+    lines.push("");
+    lines.push(`### ${idx + 1}. [${kindLabel}] ${lineRange} (ann: \`${ann.id}\`, on v${ann.revision})`);
+    const startIdx = Math.max(0, ann.lineStart - 1);
+    const endIdx = Math.min(mdLines.length, ann.lineEnd);
+    if (startIdx < endIdx) {
+      lines.push("Original excerpt:");
+      lines.push("```markdown");
+      for (let i = startIdx; i < endIdx; i += 1) {
+        lines.push(`${i + 1} | ${mdLines[i]}`);
+      }
+      lines.push("```");
+    }
+    if (ann.note) {
+      lines.push(`Reviewer note: ${ann.note}`);
+    }
+    if (ann.kind === "strike") {
+      lines.push("Action: Remove or cut the struck scope from the plan.");
+    }
+    if (ann.kind === "replace" && ann.suggestedText) {
+      lines.push("Suggested replacement:");
+      lines.push("```markdown");
+      lines.push(ann.suggestedText);
+      lines.push("```");
+    }
+  });
+  if (spec.deltaItems.length > 0) {
+    lines.push("");
+    lines.push("## Current Behavioral Delta Contract");
+    for (const item of spec.deltaItems) {
+      const area = item.area ? ` (${item.area})` : "";
+      lines.push(`- [${item.kind.toUpperCase()}]${area} ${item.text}`);
+    }
+  }
+  lines.push("");
+  lines.push("## Required Next Step");
+  lines.push(
+    `Address all ${unresolved.length} inline annotation(s) above and publish revision v${spec.revision + 1} by calling \`spec_create_or_update\` with \`id: "${spec.id}"\`, updated \`planMarkdown\`, and a concise \`revisionSummary\`. Wait for user review before requesting approval.`
+  );
+  return lines.join("\n");
+}
 function getSpecStatePath(moduleDataDir) {
-  return import_node_path21.default.join(moduleDataDir, "state.json");
+  return import_node_path22.default.join(moduleDataDir, "state.json");
 }
 function createEmptySpecState() {
   return {
@@ -50479,13 +51826,13 @@ function createSpecId(title, existingIds) {
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 28);
   const base = slug ? `spec-${slug}` : "spec";
   for (let i = 0; i < 16; i += 1) {
-    const suffix = import_node_crypto11.default.randomBytes(3).toString("hex");
+    const suffix = import_node_crypto12.default.randomBytes(3).toString("hex");
     const candidate = `${base}-${suffix}`.slice(0, 64);
     if (SPEC_ID_RE.test(candidate) && !existingIds.has(candidate)) {
       return candidate;
     }
   }
-  return `spec-${Date.now().toString(36)}-${import_node_crypto11.default.randomBytes(2).toString("hex")}`;
+  return `spec-${Date.now().toString(36)}-${import_node_crypto12.default.randomBytes(2).toString("hex")}`;
 }
 function findCyclePath(cycleNodeIds, dependsOnMap) {
   const state = /* @__PURE__ */ new Map();
@@ -50654,10 +52001,22 @@ function computeSpecTaskViews(tasks) {
   });
 }
 function buildSpecDocumentView(spec) {
+  const unresolvedAnnotations = spec.annotations.reduce(
+    (acc, ann) => acc + (ann.resolved ? 0 : 1),
+    0
+  );
   return {
     id: spec.id,
     title: spec.title,
     goal: spec.goal,
+    mode: spec.mode,
+    deltaItems: spec.deltaItems.map((d) => ({ ...d })),
+    planMarkdown: spec.planMarkdown,
+    revision: spec.revision,
+    revisions: spec.revisions.map((r) => ({ ...r })),
+    annotations: spec.annotations.map((a) => ({ ...a })),
+    unresolvedAnnotations,
+    ...spec.archivedMemoryId !== void 0 ? { archivedMemoryId: spec.archivedMemoryId } : {},
     acceptanceCriteria: [...spec.acceptanceCriteria],
     planSteps: [...spec.planSteps],
     status: spec.status,
@@ -50689,9 +52048,17 @@ function buildSpecStateView(state, mode = "live", requestedSpecId) {
       if (task.status === "done") doneTasks += 1;
       if (task.computedState === "ready") readyTasks += 1;
     }
+    const unresolvedAnnotations = spec.annotations.reduce(
+      (acc, ann) => acc + (ann.resolved ? 0 : 1),
+      0
+    );
     return {
       id: spec.id,
       title: spec.title,
+      mode: spec.mode,
+      revision: spec.revision,
+      unresolvedAnnotations,
+      ...spec.archivedMemoryId !== void 0 ? { archivedMemoryId: spec.archivedMemoryId } : {},
       status: spec.status,
       enforcePlanBeforeWrite: spec.enforcePlanBeforeWrite,
       requireUiApproval: spec.requireUiApproval,
@@ -50742,6 +52109,72 @@ function normalizeTaskFromDisk(raw, fallbackIso) {
     updatedAt: typeof obj.updatedAt === "string" ? obj.updatedAt : fallbackIso
   };
 }
+function normalizeRevisionsFromDisk(raw, currentRevision, currentMarkdown, fallbackIso) {
+  const byRev = /* @__PURE__ */ new Map();
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+      const obj = item;
+      const rev = typeof obj.revision === "number" && Number.isInteger(obj.revision) && obj.revision >= 1 ? obj.revision : null;
+      if (rev === null) continue;
+      const planMarkdown = typeof obj.planMarkdown === "string" ? sanitizePlanMarkdown(obj.planMarkdown) : "";
+      const updatedAt = typeof obj.updatedAt === "string" ? obj.updatedAt : fallbackIso;
+      const summary = typeof obj.summary === "string" && sanitizeSingleLine(obj.summary, 300) ? sanitizeSingleLine(obj.summary, 300) : void 0;
+      byRev.set(rev, {
+        revision: rev,
+        planMarkdown,
+        updatedAt,
+        ...summary ? { summary } : {}
+      });
+    }
+  }
+  if (!byRev.has(currentRevision)) {
+    byRev.set(currentRevision, {
+      revision: currentRevision,
+      planMarkdown: currentMarkdown,
+      updatedAt: fallbackIso
+    });
+  }
+  return Array.from(byRev.values()).sort((a, b) => a.revision - b.revision).slice(-MAX_REVISIONS_PER_SPEC);
+}
+function normalizeAnnotationsFromDisk(raw, defaultRevision, fallbackIso) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  const seenIds = /* @__PURE__ */ new Set();
+  for (const item of raw) {
+    if (out.length >= MAX_ANNOTATIONS_PER_SPEC) break;
+    if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+    const obj = item;
+    const rawId = typeof obj.id === "string" ? obj.id.trim() : "";
+    const id = rawId && SPEC_ANNOTATION_ID_RE.test(rawId) && !seenIds.has(rawId) ? rawId : `ann_${import_node_crypto12.default.randomBytes(4).toString("hex")}`;
+    if (seenIds.has(id)) continue;
+    const kind = typeof obj.kind === "string" && VALID_ANNOTATION_KINDS.has(obj.kind) ? obj.kind : null;
+    if (!kind) continue;
+    const lineStart = typeof obj.lineStart === "number" && Number.isInteger(obj.lineStart) && obj.lineStart >= 1 ? obj.lineStart : null;
+    const lineEnd = typeof obj.lineEnd === "number" && Number.isInteger(obj.lineEnd) && obj.lineEnd >= 1 ? obj.lineEnd : null;
+    if (lineStart === null || lineEnd === null || lineEnd < lineStart) continue;
+    const revision = typeof obj.revision === "number" && Number.isInteger(obj.revision) && obj.revision >= 1 ? obj.revision : defaultRevision;
+    const note = typeof obj.note === "string" ? sanitizeMultiline(obj.note, 2e3) : "";
+    const suggestedText = sanitizeOptionalMultiline(obj.suggestedText, 6e3);
+    const resolved = Boolean(obj.resolved);
+    const createdAt = typeof obj.createdAt === "string" ? obj.createdAt : fallbackIso;
+    const resolvedAt = resolved && typeof obj.resolvedAt === "string" ? obj.resolvedAt : void 0;
+    seenIds.add(id);
+    out.push({
+      id,
+      revision,
+      lineStart,
+      lineEnd,
+      kind,
+      note,
+      ...suggestedText !== void 0 ? { suggestedText } : {},
+      resolved,
+      createdAt,
+      ...resolvedAt !== void 0 ? { resolvedAt } : {}
+    });
+  }
+  return out;
+}
 function normalizeSpecFromDisk(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const obj = raw;
@@ -50753,6 +52186,10 @@ function normalizeSpecFromDisk(raw) {
   const createdAt = typeof obj.createdAt === "string" ? obj.createdAt : (/* @__PURE__ */ new Date()).toISOString();
   const updatedAt = typeof obj.updatedAt === "string" ? obj.updatedAt : createdAt;
   const status = typeof obj.status === "string" && VALID_SPEC_STATUSES.has(obj.status) ? obj.status : "draft";
+  const mode = typeof obj.mode === "string" && VALID_SPEC_MODES.has(obj.mode) ? obj.mode : "full";
+  const deltaItems = sanitizeDeltaItems(obj.deltaItems);
+  const acceptanceCriteria = sanitizeStringList(obj.acceptanceCriteria, MAX_CRITERIA_ITEMS, 500);
+  const planSteps = sanitizeStringList(obj.planSteps, MAX_PLAN_STEPS, 500);
   const rawTasks = [];
   if (Array.isArray(obj.tasks)) {
     const seenTaskIds = /* @__PURE__ */ new Set();
@@ -50769,6 +52206,20 @@ function normalizeSpecFromDisk(raw) {
     ...t,
     dependsOn: t.dependsOn.filter((dep) => knownTaskIds.has(dep))
   }));
+  const rawPlanMarkdown = typeof obj.planMarkdown === "string" ? sanitizePlanMarkdown(obj.planMarkdown) : "";
+  const planMarkdown = rawPlanMarkdown.length > 0 ? rawPlanMarkdown : synthesizePlanMarkdown({
+    title,
+    mode,
+    goal,
+    deltaItems,
+    acceptanceCriteria,
+    planSteps,
+    tasks
+  });
+  const revision = typeof obj.revision === "number" && Number.isInteger(obj.revision) && obj.revision >= 1 ? obj.revision : 1;
+  const revisions = normalizeRevisionsFromDisk(obj.revisions, revision, planMarkdown, updatedAt);
+  const annotations = normalizeAnnotationsFromDisk(obj.annotations, revision, updatedAt);
+  const archivedMemoryId = typeof obj.archivedMemoryId === "string" && obj.archivedMemoryId.trim() ? sanitizeSingleLine(obj.archivedMemoryId, 80) : void 0;
   const approvedBy = obj.approvedBy === "user" || obj.approvedBy === "model" ? obj.approvedBy : void 0;
   const approvedAt = typeof obj.approvedAt === "string" ? obj.approvedAt : void 0;
   const approvalNote = sanitizeOptionalMultiline(obj.approvalNote, 1e3);
@@ -50776,8 +52227,15 @@ function normalizeSpecFromDisk(raw) {
     id,
     title,
     goal,
-    acceptanceCriteria: sanitizeStringList(obj.acceptanceCriteria, MAX_CRITERIA_ITEMS, 500),
-    planSteps: sanitizeStringList(obj.planSteps, MAX_PLAN_STEPS, 500),
+    mode,
+    deltaItems,
+    planMarkdown,
+    revision,
+    revisions,
+    annotations,
+    ...archivedMemoryId !== void 0 ? { archivedMemoryId } : {},
+    acceptanceCriteria,
+    planSteps,
     status,
     enforcePlanBeforeWrite: typeof obj.enforcePlanBeforeWrite === "boolean" ? obj.enforcePlanBeforeWrite : true,
     requireUiApproval: typeof obj.requireUiApproval === "boolean" ? obj.requireUiApproval : false,
@@ -50791,11 +52249,11 @@ function normalizeSpecFromDisk(raw) {
 }
 function loadSpecStateReadOnly(moduleDataDir) {
   const statePath = getSpecStatePath(moduleDataDir);
-  if (!import_node_fs16.default.existsSync(statePath)) {
+  if (!import_node_fs17.default.existsSync(statePath)) {
     return createEmptySpecState();
   }
   try {
-    const raw = JSON.parse(import_node_fs16.default.readFileSync(statePath, "utf8"));
+    const raw = JSON.parse(import_node_fs17.default.readFileSync(statePath, "utf8"));
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
       return createEmptySpecState();
     }
@@ -51014,12 +52472,89 @@ function applySaveSpecInMemory(state, input2, actor) {
       nextActiveSpecId = null;
     }
   }
+  const nextMode = input2.mode !== void 0 ? VALID_SPEC_MODES.has(input2.mode) ? input2.mode : "full" : existing?.mode ?? "full";
+  if (input2.mode !== void 0 && !VALID_SPEC_MODES.has(input2.mode)) {
+    return { ok: false, error: `Invalid spec mode "${String(input2.mode)}". Expected "full" or "delta".` };
+  }
+  const nextDeltaItems = input2.deltaItems !== void 0 ? sanitizeDeltaItems(input2.deltaItems) : existing ? existing.deltaItems.map((d) => ({ ...d })) : [];
+  const nextAcceptanceCriteria = input2.acceptanceCriteria !== void 0 ? sanitizeStringList(input2.acceptanceCriteria, MAX_CRITERIA_ITEMS, 500) : existing ? [...existing.acceptanceCriteria] : [];
+  const nextPlanSteps = input2.planSteps !== void 0 ? sanitizeStringList(input2.planSteps, MAX_PLAN_STEPS, 500) : existing ? [...existing.planSteps] : [];
+  const synthesizedForNext = synthesizePlanMarkdown({
+    title,
+    mode: nextMode,
+    goal,
+    deltaItems: nextDeltaItems,
+    acceptanceCriteria: nextAcceptanceCriteria,
+    planSteps: nextPlanSteps,
+    tasks: nextTasks
+  });
+  let nextPlanMarkdown;
+  if (input2.planMarkdown !== void 0) {
+    const cleanedMd = sanitizePlanMarkdown(input2.planMarkdown);
+    nextPlanMarkdown = cleanedMd.length > 0 ? cleanedMd : synthesizedForNext;
+  } else if (!existing) {
+    nextPlanMarkdown = synthesizedForNext;
+  } else {
+    const existingWasSynthesized = existing.planMarkdown === synthesizePlanMarkdown({
+      title: existing.title,
+      mode: existing.mode,
+      goal: existing.goal,
+      deltaItems: existing.deltaItems,
+      acceptanceCriteria: existing.acceptanceCriteria,
+      planSteps: existing.planSteps,
+      tasks: existing.tasks
+    });
+    nextPlanMarkdown = existingWasSynthesized ? synthesizedForNext : existing.planMarkdown;
+  }
+  const revSummary = typeof input2.revisionSummary === "string" && sanitizeSingleLine(input2.revisionSummary, 300) ? sanitizeSingleLine(input2.revisionSummary, 300) : void 0;
+  let nextRevision;
+  let nextRevisions;
+  if (!existing) {
+    nextRevision = 1;
+    nextRevisions = [
+      {
+        revision: 1,
+        planMarkdown: nextPlanMarkdown,
+        updatedAt: nowIso,
+        ...revSummary ? { summary: revSummary } : {}
+      }
+    ];
+  } else {
+    const baseRevisions = existing.revisions.map((r) => ({ ...r }));
+    if (!baseRevisions.some((r) => r.revision === existing.revision)) {
+      baseRevisions.push({
+        revision: existing.revision,
+        planMarkdown: existing.planMarkdown,
+        updatedAt: existing.updatedAt
+      });
+    }
+    if (nextPlanMarkdown !== existing.planMarkdown) {
+      nextRevision = existing.revision + 1;
+      baseRevisions.push({
+        revision: nextRevision,
+        planMarkdown: nextPlanMarkdown,
+        updatedAt: nowIso,
+        ...revSummary ? { summary: revSummary } : {}
+      });
+      nextRevisions = baseRevisions.sort((a, b) => a.revision - b.revision).slice(-MAX_REVISIONS_PER_SPEC);
+    } else {
+      nextRevision = existing.revision;
+      nextRevisions = baseRevisions.sort((a, b) => a.revision - b.revision).slice(-MAX_REVISIONS_PER_SPEC);
+    }
+  }
   const nextSpec = {
     id: specId,
     title,
     goal,
-    acceptanceCriteria: input2.acceptanceCriteria !== void 0 ? sanitizeStringList(input2.acceptanceCriteria, MAX_CRITERIA_ITEMS, 500) : existing ? [...existing.acceptanceCriteria] : [],
-    planSteps: input2.planSteps !== void 0 ? sanitizeStringList(input2.planSteps, MAX_PLAN_STEPS, 500) : existing ? [...existing.planSteps] : [],
+    mode: nextMode,
+    deltaItems: nextDeltaItems,
+    planMarkdown: nextPlanMarkdown,
+    revision: nextRevision,
+    revisions: nextRevisions,
+    annotations: existing ? existing.annotations.map((a) => ({ ...a })) : [],
+    ...existing?.archivedMemoryId !== void 0 ? { archivedMemoryId: existing.archivedMemoryId } : {},
+    acceptanceCriteria: nextAcceptanceCriteria,
+    planSteps: nextPlanSteps,
     status: nextStatus,
     enforcePlanBeforeWrite,
     requireUiApproval,
@@ -51115,6 +52650,9 @@ function applySetSpecStatusInMemory(state, input2, actor) {
   const nowIso = (/* @__PURE__ */ new Date()).toISOString();
   const nextSpec = {
     ...existing,
+    deltaItems: existing.deltaItems.map((d) => ({ ...d })),
+    revisions: existing.revisions.map((r) => ({ ...r })),
+    annotations: existing.annotations.map((a) => ({ ...a })),
     acceptanceCriteria: [...existing.acceptanceCriteria],
     planSteps: [...existing.planSteps],
     tasks: existing.tasks.map((t) => ({ ...t, dependsOn: [...t.dependsOn] })),
@@ -51224,6 +52762,9 @@ function applyUpdateSpecTaskInMemory(state, input2, actor) {
   const nextTasks = spec.tasks.map((t, i) => i === taskIdx ? updatedTask : t);
   const nextSpec = {
     ...spec,
+    deltaItems: spec.deltaItems.map((d) => ({ ...d })),
+    revisions: spec.revisions.map((r) => ({ ...r })),
+    annotations: spec.annotations.map((a) => ({ ...a })),
     tasks: nextTasks,
     updatedAt: nowIso
   };
@@ -51253,13 +52794,436 @@ function updateSpecTask(moduleDataDir, input2, actor) {
     state: saved
   };
 }
+function applyAddSpecAnnotationInMemory(state, input2) {
+  if (!VALID_ANNOTATION_KINDS.has(input2.kind)) {
+    return {
+      ok: false,
+      error: `Invalid annotation kind "${String(input2.kind)}". Expected "comment", "strike", or "replace".`
+    };
+  }
+  const targetSpecId = input2.specId?.trim() || state.activeSpecId || void 0;
+  if (!targetSpecId) {
+    return { ok: false, error: "No specId specified and no active spec exists." };
+  }
+  const specIdx = state.specs.findIndex((s) => s.id === targetSpecId);
+  if (specIdx < 0) {
+    return { ok: false, error: `Spec not found: "${targetSpecId}".` };
+  }
+  const spec = state.specs[specIdx];
+  if (spec.annotations.length >= MAX_ANNOTATIONS_PER_SPEC) {
+    return {
+      ok: false,
+      error: `Spec "${spec.id}" reached the maximum limit of ${MAX_ANNOTATIONS_PER_SPEC} annotations. Delete resolved annotations first.`
+    };
+  }
+  const lines = splitPlanMarkdownLines(spec.planMarkdown);
+  const totalLines = lines.length;
+  if (totalLines === 0) {
+    return { ok: false, error: "Cannot annotate an empty plan document." };
+  }
+  if (typeof input2.lineStart !== "number" || !Number.isInteger(input2.lineStart) || typeof input2.lineEnd !== "number" || !Number.isInteger(input2.lineEnd)) {
+    return { ok: false, error: "lineStart and lineEnd must be positive integers." };
+  }
+  if (input2.lineStart < 1 || input2.lineEnd < input2.lineStart || input2.lineEnd > totalLines) {
+    return {
+      ok: false,
+      error: `Invalid line range L${input2.lineStart}-L${input2.lineEnd}: must satisfy 1 <= lineStart <= lineEnd <= ${totalLines}.`
+    };
+  }
+  const rawNote = typeof input2.note === "string" ? sanitizeMultiline(input2.note, 2e3) : "";
+  const suggestedText = input2.kind === "replace" ? sanitizeOptionalMultiline(input2.suggestedText, 6e3) : void 0;
+  if (input2.kind === "comment" && !rawNote) {
+    return { ok: false, error: "Comment annotation requires a non-empty note." };
+  }
+  if (input2.kind === "replace" && !suggestedText) {
+    return { ok: false, error: "Replace annotation requires non-empty suggestedText." };
+  }
+  const note = rawNote || (input2.kind === "strike" ? "Cut from scope." : input2.kind === "replace" ? "Replace with suggested revision." : "");
+  const existingAnnIds = new Set(spec.annotations.map((a) => a.id));
+  let annId = `ann_${import_node_crypto12.default.randomBytes(4).toString("hex")}`;
+  for (let i = 0; i < 8 && existingAnnIds.has(annId); i += 1) {
+    annId = `ann_${import_node_crypto12.default.randomBytes(4).toString("hex")}`;
+  }
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const targetRevision = typeof input2.revision === "number" && Number.isInteger(input2.revision) && input2.revision >= 1 ? input2.revision : spec.revision;
+  const annotation = {
+    id: annId,
+    revision: targetRevision,
+    lineStart: input2.lineStart,
+    lineEnd: input2.lineEnd,
+    kind: input2.kind,
+    note,
+    ...suggestedText !== void 0 ? { suggestedText } : {},
+    resolved: false,
+    createdAt: nowIso
+  };
+  const nextSpec = {
+    ...spec,
+    deltaItems: spec.deltaItems.map((d) => ({ ...d })),
+    revisions: spec.revisions.map((r) => ({ ...r })),
+    annotations: [...spec.annotations.map((a) => ({ ...a })), annotation],
+    tasks: spec.tasks.map((t) => ({ ...t, dependsOn: [...t.dependsOn] })),
+    updatedAt: nowIso
+  };
+  state.specs[specIdx] = nextSpec;
+  state.updatedAt = nowIso;
+  return {
+    ok: true,
+    annotation,
+    spec: buildSpecDocumentView(nextSpec),
+    state
+  };
+}
+function addSpecAnnotation(moduleDataDir, input2) {
+  const state = loadSpecStateReadOnly(moduleDataDir);
+  const res = applyAddSpecAnnotationInMemory(state, input2);
+  if (!res.ok) return res;
+  const saved = saveSpecState(moduleDataDir, res.state);
+  const savedDoc = saved.specs.find((s) => s.id === res.spec.id);
+  return {
+    ok: true,
+    annotation: res.annotation,
+    spec: savedDoc ? buildSpecDocumentView(savedDoc) : res.spec,
+    state: saved
+  };
+}
+function applyResolveSpecAnnotationInMemory(state, input2) {
+  const targetSpecId = input2.specId?.trim() || state.activeSpecId || void 0;
+  if (!targetSpecId) {
+    return { ok: false, error: "No specId specified and no active spec exists." };
+  }
+  const specIdx = state.specs.findIndex((s) => s.id === targetSpecId);
+  if (specIdx < 0) {
+    return { ok: false, error: `Spec not found: "${targetSpecId}".` };
+  }
+  const spec = state.specs[specIdx];
+  const annId = input2.annotationId.trim();
+  const annIdx = spec.annotations.findIndex((a) => a.id === annId);
+  if (annIdx < 0) {
+    return { ok: false, error: `Annotation "${annId}" not found in spec "${spec.id}".` };
+  }
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const nextResolved = input2.resolved !== void 0 ? Boolean(input2.resolved) : true;
+  const targetAnn = spec.annotations[annIdx];
+  const updatedAnn = {
+    ...targetAnn,
+    resolved: nextResolved
+  };
+  if (nextResolved) {
+    updatedAnn.resolvedAt = nowIso;
+  } else {
+    delete updatedAnn.resolvedAt;
+  }
+  const nextSpec = {
+    ...spec,
+    deltaItems: spec.deltaItems.map((d) => ({ ...d })),
+    revisions: spec.revisions.map((r) => ({ ...r })),
+    annotations: spec.annotations.map((a, i) => i === annIdx ? updatedAnn : { ...a }),
+    tasks: spec.tasks.map((t) => ({ ...t, dependsOn: [...t.dependsOn] })),
+    updatedAt: nowIso
+  };
+  state.specs[specIdx] = nextSpec;
+  state.updatedAt = nowIso;
+  return {
+    ok: true,
+    annotation: updatedAnn,
+    spec: buildSpecDocumentView(nextSpec),
+    state
+  };
+}
+function resolveSpecAnnotation(moduleDataDir, input2) {
+  const state = loadSpecStateReadOnly(moduleDataDir);
+  const res = applyResolveSpecAnnotationInMemory(state, input2);
+  if (!res.ok) return res;
+  const saved = saveSpecState(moduleDataDir, res.state);
+  const savedDoc = saved.specs.find((s) => s.id === res.spec.id);
+  return {
+    ok: true,
+    annotation: res.annotation,
+    spec: savedDoc ? buildSpecDocumentView(savedDoc) : res.spec,
+    state: saved
+  };
+}
+function applyDeleteSpecAnnotationInMemory(state, input2) {
+  const targetSpecId = input2.specId?.trim() || state.activeSpecId || void 0;
+  if (!targetSpecId) {
+    return { ok: false, error: "No specId specified and no active spec exists." };
+  }
+  const specIdx = state.specs.findIndex((s) => s.id === targetSpecId);
+  if (specIdx < 0) {
+    return { ok: false, error: `Spec not found: "${targetSpecId}".` };
+  }
+  const spec = state.specs[specIdx];
+  const annId = input2.annotationId.trim();
+  const annIdx = spec.annotations.findIndex((a) => a.id === annId);
+  if (annIdx < 0) {
+    return { ok: false, error: `Annotation "${annId}" not found in spec "${spec.id}".` };
+  }
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const nextSpec = {
+    ...spec,
+    deltaItems: spec.deltaItems.map((d) => ({ ...d })),
+    revisions: spec.revisions.map((r) => ({ ...r })),
+    annotations: spec.annotations.filter((a) => a.id !== annId).map((a) => ({ ...a })),
+    tasks: spec.tasks.map((t) => ({ ...t, dependsOn: [...t.dependsOn] })),
+    updatedAt: nowIso
+  };
+  state.specs[specIdx] = nextSpec;
+  state.updatedAt = nowIso;
+  return {
+    ok: true,
+    deletedId: annId,
+    spec: buildSpecDocumentView(nextSpec),
+    state
+  };
+}
+function deleteSpecAnnotation(moduleDataDir, input2) {
+  const state = loadSpecStateReadOnly(moduleDataDir);
+  const res = applyDeleteSpecAnnotationInMemory(state, input2);
+  if (!res.ok) return res;
+  const saved = saveSpecState(moduleDataDir, res.state);
+  const savedDoc = saved.specs.find((s) => s.id === res.spec.id);
+  return {
+    ok: true,
+    deletedId: res.deletedId,
+    spec: savedDoc ? buildSpecDocumentView(savedDoc) : res.spec,
+    state: saved
+  };
+}
+function buildArchiveMemoryContent(spec, extraNote) {
+  const lines = [
+    `Spec ID: ${spec.id}`,
+    `Mode: ${spec.mode === "delta" ? "Brownfield Delta Spec" : "Full Spec"} | Status: ${spec.status} | Revision: v${spec.revision}`,
+    "",
+    "## Goal",
+    spec.goal
+  ];
+  if (spec.deltaItems.length > 0) {
+    lines.push("");
+    lines.push("## Behavioral Delta Contract");
+    for (const item of spec.deltaItems) {
+      const area = item.area ? ` (${item.area})` : "";
+      lines.push(`- [${item.kind.toUpperCase()}]${area} ${item.text}`);
+    }
+  }
+  if (spec.acceptanceCriteria.length > 0) {
+    lines.push("");
+    lines.push("## Acceptance Criteria");
+    for (const criterion of spec.acceptanceCriteria) {
+      lines.push(`- ${criterion}`);
+    }
+  }
+  if (spec.tasks.length > 0) {
+    const completed = spec.tasks.filter((t) => t.status === "done");
+    lines.push("");
+    lines.push(`## Tasks Summary (${completed.length}/${spec.tasks.length} done)`);
+    for (const task of spec.tasks) {
+      const note = task.note ? ` \u2014 ${task.note}` : "";
+      lines.push(`- [${task.status}] ${task.id}: ${task.title}${note}`);
+    }
+  }
+  if (spec.planMarkdown.trim()) {
+    lines.push("");
+    lines.push("## Plan Snapshot");
+    lines.push(spec.planMarkdown.slice(0, 4e3));
+  }
+  const cleanExtra = sanitizeOptionalMultiline(extraNote, 1e3);
+  if (cleanExtra) {
+    lines.push("");
+    lines.push("## Archive Note");
+    lines.push(cleanExtra);
+  }
+  return lines.join("\n");
+}
+function archiveSpecToMemory(specModuleDataDir, rootDataDir, specId, options) {
+  const isDemo = options?.isDemo === true;
+  const state = isDemo && options?.demoState ? options.demoState : loadSpecStateReadOnly(specModuleDataDir);
+  const targetSpecId = specId?.trim() || state.activeSpecId || void 0;
+  if (!targetSpecId) {
+    return { ok: false, error: "No specId specified and no active spec exists." };
+  }
+  const specIdx = state.specs.findIndex((s) => s.id === targetSpecId);
+  if (specIdx < 0) {
+    return { ok: false, error: `Spec not found: "${targetSpecId}".` };
+  }
+  const spec = state.specs[specIdx];
+  const tags = ["spec", spec.mode === "delta" ? "delta-spec" : "full-spec"];
+  const rawTitle = `[Spec] ${spec.title} (v${spec.revision})`;
+  const rawContent = buildArchiveMemoryContent(spec, options?.note);
+  if (isDemo) {
+    const cleanTitle = redactSecrets(stripPrivateTags(rawTitle).cleaned.trim() || `[Spec] ${spec.id}`);
+    const memoryId = spec.archivedMemoryId && spec.archivedMemoryId.startsWith("demo-mem-spec-") ? spec.archivedMemoryId : `demo-mem-spec-${spec.id.slice(0, 24)}-v${spec.revision}`;
+    const nowIso2 = (/* @__PURE__ */ new Date()).toISOString();
+    const updatedSpec2 = {
+      ...spec,
+      deltaItems: spec.deltaItems.map((d) => ({ ...d })),
+      revisions: spec.revisions.map((r) => ({ ...r })),
+      annotations: spec.annotations.map((a) => ({ ...a })),
+      tasks: spec.tasks.map((t) => ({ ...t, dependsOn: [...t.dependsOn] })),
+      archivedMemoryId: memoryId,
+      updatedAt: nowIso2
+    };
+    state.specs[specIdx] = updatedSpec2;
+    state.updatedAt = nowIso2;
+    return {
+      ok: true,
+      memoryId,
+      memoryTitle: cleanTitle,
+      tags,
+      demoSimulated: true,
+      spec: buildSpecDocumentView(updatedSpec2),
+      state
+    };
+  }
+  const memDataDir = getModuleDataDir(rootDataDir, "mem");
+  const memStore = new MemoryStore(memDataDir, false, options?.workspacePath);
+  const existingMemId = spec.archivedMemoryId && !spec.archivedMemoryId.startsWith("demo-mem-spec-") ? spec.archivedMemoryId : void 0;
+  const savedMem = memStore.remember({
+    id: existingMemId,
+    kind: "decision",
+    title: rawTitle,
+    content: rawContent,
+    tags,
+    workspacePath: options?.workspacePath,
+    pinned: options?.pinned ?? false
+  });
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const updatedSpec = {
+    ...spec,
+    deltaItems: spec.deltaItems.map((d) => ({ ...d })),
+    revisions: spec.revisions.map((r) => ({ ...r })),
+    annotations: spec.annotations.map((a) => ({ ...a })),
+    tasks: spec.tasks.map((t) => ({ ...t, dependsOn: [...t.dependsOn] })),
+    archivedMemoryId: savedMem.id,
+    updatedAt: nowIso
+  };
+  state.specs[specIdx] = updatedSpec;
+  state.updatedAt = nowIso;
+  const savedState = saveSpecState(specModuleDataDir, state);
+  const savedDoc = savedState.specs.find((s) => s.id === updatedSpec.id) ?? updatedSpec;
+  return {
+    ok: true,
+    memoryId: savedMem.id,
+    memoryTitle: savedMem.title,
+    tags: [...savedMem.tags],
+    demoSimulated: false,
+    memory: savedMem,
+    spec: buildSpecDocumentView(savedDoc),
+    state: savedState
+  };
+}
 function createDemoSpecState() {
   const now = Date.now();
   const iso = (offsetMinutes) => new Date(now - offsetMinutes * 6e4).toISOString();
+  const oauthPlanV1 = [
+    "# OAuth2 Refresh Token Rotation & Replay Guard",
+    "> Mode: BROWNFIELD DELTA SPEC",
+    "",
+    "## Context & Behavioral Delta",
+    "- [ADDED] (auth/db) Add token_family_id and revoked_at columns to refresh_tokens.",
+    "- [MODIFIED] (auth/service) Mint single-use child refresh token on every /oauth/token refresh.",
+    "- [REMOVED] (auth/session) Remove legacy static 30-day multi-use refresh token path.",
+    "",
+    "## Implementation Plan",
+    "1. Create migration adding token_family_id and revoked_at indexes.",
+    "2. Update AuthTokenService.refresh() to rotate token inside a serializable transaction.",
+    "3. Sync rotated sessions to Redis pub/sub cluster for instant edge invalidation.",
+    "4. Log raw refresh token prefix and user email on replay anomaly for triage.",
+    "5. Run integration replay test suite and canary checklist.",
+    "",
+    "## Rollback Strategy",
+    "- Keep dual-read compatibility flag `OAUTH_ROTATION_V2` for 7 days."
+  ].join("\n");
+  const oauthPlanV2 = [
+    "# OAuth2 Refresh Token Rotation & Replay Guard",
+    "> Mode: BROWNFIELD DELTA SPEC",
+    "",
+    "## Context & Behavioral Delta",
+    "- [ADDED] (auth/db) Add token_family_id and revoked_at columns to refresh_tokens.",
+    "- [ADDED] (auth/telemetry) Emit secret-redacted replay anomaly counter & family revocation audit log.",
+    "- [MODIFIED] (auth/service) Mint single-use child refresh token inside an atomic transaction on /oauth/token refresh.",
+    "- [REMOVED] (auth/session) Remove legacy static 30-day multi-use refresh token path.",
+    "",
+    "## Implementation Plan",
+    "1. Create non-blocking migration adding token_family_id and revoked_at indexes.",
+    "2. Update AuthTokenService.refresh() to rotate token atomically and revoke the family on reuse.",
+    "3. Emit structured, secret-redacted telemetry events (family_id hash only \u2014 zero raw tokens or emails).",
+    "4. Execute concurrent refresh race tests, rollback drill, and canary rollout checklist.",
+    "",
+    "## Rollback Strategy",
+    "- Keep dual-read compatibility flag `OAUTH_ROTATION_V2` for 7 days with instant fallback.",
+    "- Verify p99 token refresh latency stays under 35ms before removing legacy index."
+  ].join("\n");
   const approvedSpec = {
     id: "spec-oauth-refresh-rotation",
     title: "OAuth2 Refresh Token Rotation & Replay Guard",
     goal: "Implement rolling refresh token families with automatic replay revocation and backward-compatible session cookie migration.",
+    mode: "delta",
+    deltaItems: [
+      {
+        id: "delta-oauth-1",
+        kind: "added",
+        area: "auth/db",
+        text: "Add token_family_id index and nullable revoked_at column on refresh_tokens."
+      },
+      {
+        id: "delta-oauth-2",
+        kind: "added",
+        area: "auth/telemetry",
+        text: "Emit secret-redacted replay anomaly audit events with hashed family_id."
+      },
+      {
+        id: "delta-oauth-3",
+        kind: "modified",
+        area: "auth/service",
+        text: "Rotate refresh tokens atomically per request and revoke entire family on reuse."
+      },
+      {
+        id: "delta-oauth-4",
+        kind: "removed",
+        area: "auth/session",
+        text: "Deprecate and remove legacy static multi-use 30-day refresh token path."
+      }
+    ],
+    planMarkdown: oauthPlanV2,
+    revision: 2,
+    revisions: [
+      {
+        revision: 1,
+        planMarkdown: oauthPlanV1,
+        updatedAt: iso(55),
+        summary: "Initial brownfield delta draft for refresh token rotation"
+      },
+      {
+        revision: 2,
+        planMarkdown: oauthPlanV2,
+        updatedAt: iso(44),
+        summary: "Removed Redis pub/sub scope and enforced redacted telemetry"
+      }
+    ],
+    annotations: [
+      {
+        id: "ann_demo_resolved_1",
+        revision: 1,
+        lineStart: 12,
+        lineEnd: 12,
+        kind: "strike",
+        note: "Cut Redis pub/sub cluster sync out of phase 1 \u2014 transactional DB revocation is sufficient.",
+        resolved: true,
+        createdAt: iso(50),
+        resolvedAt: iso(44)
+      },
+      {
+        id: "ann_demo_open_1",
+        revision: 2,
+        lineStart: 17,
+        lineEnd: 18,
+        kind: "comment",
+        note: "Please add explicit canary abort threshold (e.g. >0.5% unexpected family revocations) before GA.",
+        resolved: false,
+        createdAt: iso(15)
+      }
+    ],
     acceptanceCriteria: [
       "Every refresh call mints a single-use child token and invalidates its immediate parent.",
       "Replaying a previously rotated token revokes the entire token family and logs a redacted audit event.",
@@ -51316,10 +53280,77 @@ function createDemoSpecState() {
     createdAt: iso(55),
     updatedAt: iso(12)
   };
+  const webhookPlanV1 = [
+    "# Idempotent Billing Webhook Processor",
+    "> Mode: FULL SPEC",
+    "",
+    "## Goal",
+    "Guarantee exactly-once invoice state transitions with HMAC validation and dead-letter retries.",
+    "",
+    "## Implementation Plan",
+    "1. Verify webhook HMAC signature on parsed JSON body.",
+    "2. Store processed event_id in an in-memory LRU cache.",
+    "3. Build custom admin dashboard UI for manual DLQ replays.",
+    "4. Add duplicate & out-of-order webhook integration tests."
+  ].join("\n");
+  const webhookPlanV2 = [
+    "# Idempotent Billing Webhook Processor",
+    "> Mode: FULL SPEC",
+    "",
+    "## Goal",
+    "Guarantee exactly-once invoice state transitions with HMAC signature validation and bounded dead-letter retries.",
+    "",
+    "## Implementation Plan",
+    "1. Add raw-body HMAC verification middleware with constant-time digest comparison and 5-minute timestamp window.",
+    "2. Introduce persistent idempotency ledger table keyed by (provider, event_id) with 30-day TTL cleanup.",
+    "3. Build custom admin dashboard UI for manual DLQ replays.",
+    "4. Add automated replay tests for duplicate and out-of-order invoice webhooks."
+  ].join("\n");
   const draftSpec = {
     id: "spec-billing-webhook-idempotency",
     title: "Idempotent Billing Webhook Processor",
     goal: "Guarantee exactly-once invoice state transitions with HMAC signature validation and bounded dead-letter retries.",
+    mode: "full",
+    deltaItems: [],
+    planMarkdown: webhookPlanV2,
+    revision: 2,
+    revisions: [
+      {
+        revision: 1,
+        planMarkdown: webhookPlanV1,
+        updatedAt: iso(25),
+        summary: "Initial webhook processor draft"
+      },
+      {
+        revision: 2,
+        planMarkdown: webhookPlanV2,
+        updatedAt: iso(18),
+        summary: "Switched to raw-body constant-time HMAC and persistent idempotency ledger"
+      }
+    ],
+    annotations: [
+      {
+        id: "ann_demo_draft_strike",
+        revision: 2,
+        lineStart: 10,
+        lineEnd: 10,
+        kind: "strike",
+        note: "Cut the custom admin dashboard UI from this milestone \u2014 expose CLI replay command only.",
+        resolved: false,
+        createdAt: iso(16)
+      },
+      {
+        id: "ann_demo_draft_replace",
+        revision: 2,
+        lineStart: 9,
+        lineEnd: 9,
+        kind: "replace",
+        note: "Use UNIQUE constraint instead of read-then-write check to avoid concurrent races.",
+        suggestedText: "2. Introduce idempotency_ledger table with UNIQUE(provider, event_id) insert-on-conflict and 30-day TTL cleanup.",
+        resolved: false,
+        createdAt: iso(14)
+      }
+    ],
     acceptanceCriteria: [
       "Reject invalid or stale webhook signatures before touching application state.",
       "Deduplicate retried provider deliveries using composite (provider, event_id) keys.",
@@ -51377,6 +53408,15 @@ function toHandle6(name, tool) {
 }
 var SPEC_STATUS_ENUM = external_exports.enum(["draft", "approved", "completed", "archived"]);
 var SPEC_TASK_STATUS_ENUM = external_exports.enum(["pending", "in_progress", "done", "blocked"]);
+var SPEC_MODE_ENUM = external_exports.enum(["full", "delta"]);
+var SPEC_DELTA_KIND_ENUM = external_exports.enum(["added", "modified", "removed"]);
+var SPEC_ANNOTATION_KIND_ENUM = external_exports.enum(["comment", "strike", "replace"]);
+var SPEC_DELTA_ITEM_INPUT_SCHEMA = external_exports.object({
+  id: external_exports.string().max(48).optional().describe("Optional stable delta item ID"),
+  kind: SPEC_DELTA_KIND_ENUM.describe("Behavioral change kind: added, modified, or removed"),
+  area: external_exports.string().max(80).optional().describe("Optional module or subsystem area label"),
+  text: external_exports.string().max(500).describe("Concise behavioral contract change description")
+});
 var SPEC_TASK_INPUT_SCHEMA = external_exports.object({
   id: external_exports.string().describe("Unique task ID matching /^[a-zA-Z0-9._-]{1,48}$/"),
   title: external_exports.string().describe("Short task title"),
@@ -51389,6 +53429,14 @@ var SAVE_SPEC_INPUT_SCHEMA = {
   id: external_exports.string().max(64).optional().describe("Optional spec ID (auto-generated when omitted; updates existing spec if matched)"),
   title: external_exports.string().max(200).describe("Spec title"),
   goal: external_exports.string().max(4e3).describe("High-level engineering goal and scope"),
+  mode: SPEC_MODE_ENUM.optional().describe(
+    'Spec mode: "full" (greenfield spec, default) or "delta" (brownfield behavioral delta spec)'
+  ),
+  planMarkdown: external_exports.string().max(MAX_PLAN_MARKDOWN_CHARS).optional().describe(
+    "Optional Markdown implementation plan for line-by-line review and revision diffing (auto-synthesized when omitted)"
+  ),
+  deltaItems: external_exports.array(SPEC_DELTA_ITEM_INPUT_SCHEMA).max(MAX_DELTA_ITEMS).optional().describe("Optional brownfield behavioral delta contract items (added / modified / removed)"),
+  revisionSummary: external_exports.string().max(300).optional().describe("Optional short summary describing what changed in this plan revision"),
   acceptanceCriteria: external_exports.array(external_exports.string().max(500)).max(50).optional().describe("Acceptance criteria list"),
   planSteps: external_exports.array(external_exports.string().max(500)).max(80).optional().describe("Ordered implementation plan steps"),
   enforcePlanBeforeWrite: external_exports.boolean().optional().describe("Block workspace write tools while spec is in draft status (default true)"),
@@ -51402,7 +53450,9 @@ function serializeStateView(view) {
     activeSpecId: view.activeSpecId,
     activeSpec: view.activeSpec,
     specs: view.specs,
-    writeLockActive: view.writeLockActive
+    writeLockActive: view.writeLockActive,
+    revision: view.activeSpec?.revision ?? null,
+    unresolvedAnnotations: view.activeSpec?.unresolvedAnnotations ?? 0
   };
 }
 function formatSpecSummaryText(view) {
@@ -51416,9 +53466,21 @@ function formatSpecSummaryText(view) {
   }
   const doneCount = spec.tasks.filter((t) => t.status === "done").length;
   const readyTasks = spec.tasks.filter((t) => t.computedState === "ready");
+  const modeTag = spec.mode === "delta" ? "[DELTA] " : "";
   lines.push(
-    `Spec "${spec.title}" [${spec.id}] \u2014 status=${spec.status}, enforcePlanBeforeWrite=${spec.enforcePlanBeforeWrite}, requireUiApproval=${spec.requireUiApproval}`
+    `Spec ${modeTag}"${spec.title}" [${spec.id}] (v${spec.revision}) \u2014 status=${spec.status}, enforcePlanBeforeWrite=${spec.enforcePlanBeforeWrite}, requireUiApproval=${spec.requireUiApproval}, unresolvedAnnotations=${spec.unresolvedAnnotations}`
   );
+  if (spec.deltaItems.length > 0) {
+    const added = spec.deltaItems.filter((d) => d.kind === "added").length;
+    const modified = spec.deltaItems.filter((d) => d.kind === "modified").length;
+    const removed = spec.deltaItems.filter((d) => d.kind === "removed").length;
+    lines.push(`Delta contract: +${added} added, ~${modified} modified, -${removed} removed`);
+  }
+  if (spec.unresolvedAnnotations > 0) {
+    lines.push(
+      `\u26A0 Plan Review Notice: ${spec.unresolvedAnnotations} unresolved inline annotation(s) on v${spec.revision}. Address reviewer feedback and publish v${spec.revision + 1} before requesting approval.`
+    );
+  }
   lines.push(
     `Tasks: ${doneCount}/${spec.tasks.length} done, ${readyTasks.length} ready`
   );
@@ -51511,12 +53573,84 @@ function registerSpecModule(server, options, uiResourceUri) {
       state: buildSpecStateView(res.state, "live")
     };
   };
+  const runAddAnnotation = (input2) => {
+    if (isDemo && demoState) {
+      const res2 = applyAddSpecAnnotationInMemory(demoState, input2);
+      if (!res2.ok) return res2;
+      return {
+        ok: true,
+        annotation: res2.annotation,
+        spec: res2.spec,
+        state: buildSpecStateView(demoState, "demo", res2.spec.id)
+      };
+    }
+    const res = addSpecAnnotation(moduleDataDir, input2);
+    if (!res.ok) return res;
+    return {
+      ok: true,
+      annotation: res.annotation,
+      spec: res.spec,
+      state: buildSpecStateView(res.state, "live", res.spec.id)
+    };
+  };
+  const runResolveOrDeleteAnnotation = (input2) => {
+    const isDelete = input2.action === "delete";
+    const nextResolved = input2.action === "reopen" ? false : input2.action === "resolve" ? true : input2.resolved !== void 0 ? input2.resolved : true;
+    if (isDemo && demoState) {
+      if (isDelete) {
+        const res3 = applyDeleteSpecAnnotationInMemory(demoState, {
+          specId: input2.specId,
+          annotationId: input2.annotationId
+        });
+        if (!res3.ok) return res3;
+        return {
+          ok: true,
+          spec: res3.spec,
+          state: buildSpecStateView(demoState, "demo", res3.spec.id)
+        };
+      }
+      const res2 = applyResolveSpecAnnotationInMemory(demoState, {
+        specId: input2.specId,
+        annotationId: input2.annotationId,
+        resolved: nextResolved
+      });
+      if (!res2.ok) return res2;
+      return {
+        ok: true,
+        spec: res2.spec,
+        state: buildSpecStateView(demoState, "demo", res2.spec.id)
+      };
+    }
+    if (isDelete) {
+      const res2 = deleteSpecAnnotation(moduleDataDir, {
+        specId: input2.specId,
+        annotationId: input2.annotationId
+      });
+      if (!res2.ok) return res2;
+      return {
+        ok: true,
+        spec: res2.spec,
+        state: buildSpecStateView(res2.state, "live", res2.spec.id)
+      };
+    }
+    const res = resolveSpecAnnotation(moduleDataDir, {
+      specId: input2.specId,
+      annotationId: input2.annotationId,
+      resolved: nextResolved
+    });
+    if (!res.ok) return res;
+    return {
+      ok: true,
+      spec: res.spec,
+      state: buildSpecStateView(res.state, "live", res.spec.id)
+    };
+  };
   const modelTools = [];
   const getStateTool = server.registerTool(
     "spec_get_state",
     {
       title: "Get Spec Flow & Task DAG State",
-      description: "Read the active (or specified) Spec document, computed Task DAG states/depths, write-lock status, and all tracked specs without modifying disk.",
+      description: "Read the active (or specified) Spec document (including revision, delta items, and unresolved plan annotations), computed Task DAG states/depths, write-lock status, and all tracked specs without modifying disk.",
       inputSchema: {
         specId: external_exports.string().max(64).optional().describe("Optional spec ID to inspect; defaults to the active spec")
       }
@@ -51540,7 +53674,7 @@ function registerSpecModule(server, options, uiResourceUri) {
     "spec_create_or_update",
     {
       title: "Create or Update Spec & Task DAG",
-      description: "Create a new draft Spec or update an existing Spec and its Task DAG. Validates task ID format/uniqueness, dependency references, and rejects cycles via Kahn topological sort.",
+      description: "Create a new draft Spec (full or brownfield delta) or publish a new plan revision with Task DAG validation. Automatically increments revision and snapshots history whenever planMarkdown changes.",
       inputSchema: SAVE_SPEC_INPUT_SCHEMA
     },
     async (input2) => {
@@ -51555,7 +53689,7 @@ function registerSpecModule(server, options, uiResourceUri) {
         content: [
           {
             type: "text",
-            text: `Saved spec "${res.spec.title}" (${res.spec.id}) [${res.spec.status}] with ${res.spec.tasks.length} task(s). writeLockActive=${res.state.writeLockActive}.`
+            text: `Saved spec "${res.spec.title}" (${res.spec.id}) [${res.spec.status}, mode=${res.spec.mode}, v${res.spec.revision}] with ${res.spec.tasks.length} task(s). writeLockActive=${res.state.writeLockActive}.`
           }
         ],
         structuredContent: {
@@ -51653,7 +53787,7 @@ function registerSpecModule(server, options, uiResourceUri) {
     "app_spec_get_state",
     {
       title: "Get Spec Flow State (App Only)",
-      description: "Read Spec Flow state, active Spec DAG view, and write-lock status for the UI.",
+      description: "Read Spec Flow state, active Spec DAG view, plan annotations, and write-lock status for the UI.",
       inputSchema: {
         specId: external_exports.string().max(64).optional()
       },
@@ -51677,7 +53811,7 @@ function registerSpecModule(server, options, uiResourceUri) {
     "app_spec_save",
     {
       title: "Save Spec & Task DAG (App Only)",
-      description: "Create or update a Spec document and Task DAG from the Spec Flow UI.",
+      description: "Create or update a Spec document (full or delta), planMarkdown, and Task DAG from the Spec Flow UI.",
       inputSchema: SAVE_SPEC_INPUT_SCHEMA,
       _meta: APP_ONLY_META2
     },
@@ -51785,25 +53919,198 @@ function registerSpecModule(server, options, uiResourceUri) {
       };
     }
   );
+  server.registerTool(
+    "app_spec_annotate",
+    {
+      title: "Add Inline Plan Annotation (App Only)",
+      description: "Add an inline review annotation (comment, strike, or replace) on a line range of planMarkdown from the Spec Flow UI.",
+      inputSchema: {
+        specId: external_exports.string().max(64).optional(),
+        lineStart: external_exports.number().int().min(1),
+        lineEnd: external_exports.number().int().min(1),
+        kind: SPEC_ANNOTATION_KIND_ENUM,
+        note: external_exports.string().max(2e3).optional(),
+        suggestedText: external_exports.string().max(6e3).optional(),
+        revision: external_exports.number().int().min(1).optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ specId, lineStart, lineEnd, kind, note, suggestedText, revision }) => {
+      const res = runAddAnnotation({
+        specId,
+        lineStart,
+        lineEnd,
+        kind,
+        note,
+        suggestedText,
+        revision
+      });
+      if (!res.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      return {
+        content: [{ type: "text", text: res.annotation.id }],
+        structuredContent: {
+          annotation: res.annotation,
+          spec: res.spec,
+          state: res.state,
+          feedbackPrompt: buildAnnotationFeedbackPrompt(res.spec)
+        }
+      };
+    }
+  );
+  server.registerTool(
+    "app_spec_resolve_annotation",
+    {
+      title: "Resolve, Reopen, or Delete Plan Annotation (App Only)",
+      description: "Mark an inline plan annotation as resolved/reopened, or delete it from the Spec Flow UI.",
+      inputSchema: {
+        specId: external_exports.string().max(64).optional(),
+        annotationId: external_exports.string().min(1).max(48),
+        action: external_exports.enum(["resolve", "reopen", "delete"]).optional(),
+        resolved: external_exports.boolean().optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ specId, annotationId, action, resolved }) => {
+      const res = runResolveOrDeleteAnnotation({
+        specId,
+        annotationId,
+        action,
+        resolved
+      });
+      if (!res.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      return {
+        content: [{ type: "text", text: action ?? (resolved === false ? "reopened" : "resolved") }],
+        structuredContent: {
+          spec: res.spec,
+          state: res.state,
+          feedbackPrompt: buildAnnotationFeedbackPrompt(res.spec)
+        }
+      };
+    }
+  );
+  server.registerTool(
+    "app_spec_diff_revisions",
+    {
+      title: "Diff Plan Revisions (App Only, Read-Only)",
+      description: "Compute a read-only line-level diff between any two stored plan revisions (defaults to v(n-1) vs v(n)) without modifying disk.",
+      inputSchema: {
+        specId: external_exports.string().max(64).optional(),
+        fromRevision: external_exports.number().int().min(1).optional(),
+        toRevision: external_exports.number().int().min(1).optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ specId, fromRevision, toRevision }) => {
+      const current = getCurrentStateFile();
+      const targetId = specId?.trim() || current.activeSpecId || void 0;
+      if (!targetId) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: "No specId specified and no active spec exists." }]
+        };
+      }
+      const spec = current.specs.find((s) => s.id === targetId);
+      if (!spec) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: `Spec not found: "${targetId}".` }]
+        };
+      }
+      const res = diffSpecRevisions(spec, fromRevision, toRevision);
+      if (!res.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Diff v${res.fromRevision} -> v${res.toRevision}: +${res.diff.addedLines} / -${res.diff.removedLines}`
+          }
+        ],
+        structuredContent: {
+          specId: res.specId,
+          fromRevision: res.fromRevision,
+          toRevision: res.toRevision,
+          availableRevisions: res.availableRevisions,
+          addedLines: res.diff.addedLines,
+          removedLines: res.diff.removedLines,
+          degraded: res.diff.degraded,
+          hunks: res.diff.hunks
+        }
+      };
+    }
+  );
+  server.registerTool(
+    "app_spec_archive_to_mem",
+    {
+      title: "Archive Spec Decisions to Memory Graph (App Only)",
+      description: "Persist the target Spec decisions, behavioral delta contract, acceptance criteria, and task summary into the mem store (strictly zero disk writes in demo mode).",
+      inputSchema: {
+        specId: external_exports.string().max(64).optional(),
+        pinned: external_exports.boolean().optional(),
+        note: external_exports.string().max(1e3).optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ specId, pinned, note }) => {
+      const res = archiveSpecToMemory(moduleDataDir, rootDataDir, specId, {
+        isDemo,
+        demoState,
+        workspacePath: options.workspaceRoot,
+        pinned,
+        note
+      });
+      if (!res.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      return {
+        content: [{ type: "text", text: res.memoryId }],
+        structuredContent: {
+          memoryId: res.memoryId,
+          memoryTitle: res.memoryTitle,
+          tags: res.tags,
+          demoSimulated: res.demoSimulated,
+          spec: res.spec,
+          state: buildSpecStateView(res.state, isDemo ? "demo" : "live", res.spec.id)
+        }
+      };
+    }
+  );
   return {
     moduleId: "spec",
     modelTools,
-    exemptReadOnlyAppTools: ["app_spec_get_state"]
+    exemptReadOnlyAppTools: ["app_spec_get_state", "app_spec_diff_revisions"]
   };
 }
 
 // src/modules/studio/register.ts
-var import_node_path24 = __toESM(require("node:path"), 1);
+var import_node_path25 = __toESM(require("node:path"), 1);
 
 // src/modules/studio/core.ts
 var import_node_child_process3 = require("node:child_process");
-var import_node_fs18 = __toESM(require("node:fs"), 1);
-var import_node_path23 = __toESM(require("node:path"), 1);
+var import_node_fs19 = __toESM(require("node:fs"), 1);
+var import_node_path24 = __toESM(require("node:path"), 1);
 var import_node_zlib = __toESM(require("node:zlib"), 1);
 
 // src/modules/studio/openapi.ts
-var import_node_fs17 = __toESM(require("node:fs"), 1);
-var import_node_path22 = __toESM(require("node:path"), 1);
+var import_node_fs18 = __toESM(require("node:fs"), 1);
+var import_node_path23 = __toESM(require("node:path"), 1);
 var OPENAPI_MAX_FILE_BYTES = 2 * 1024 * 1024;
 var OPENAPI_MAX_YAML_LINES = 2e4;
 var OPENAPI_MAX_DEPTH = 24;
@@ -52982,7 +55289,7 @@ function isLikelyOpenApiDocument(filePath, rawText, format) {
   } else if (/^(?:openapi|swagger)\s*:\s*['"]?[23]\./m.test(head)) {
     return true;
   }
-  const baseLower = import_node_path22.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
+  const baseLower = import_node_path23.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
   if (/(?:^|[-_.])(?:openapi|swagger)(?:[-_.]|$)/i.test(baseLower)) {
     if (format === "json") {
       return /"(?:openapi|swagger)"\s*:/i.test(head);
@@ -53131,7 +55438,7 @@ function parseOpenApiSpecFromContent(filePath, rawContent, ext) {
 }
 function parseStudioOpenApiFile(workspaceRoot, filePath) {
   const resolved = resolveStudioWorkspaceFile(workspaceRoot, filePath);
-  const ext = import_node_path22.default.extname(resolved.relPath).toLowerCase();
+  const ext = import_node_path23.default.extname(resolved.relPath).toLowerCase();
   if (ext !== ".json" && ext !== ".yaml" && ext !== ".yml") {
     throw new Error(
       `Unsupported OpenAPI file extension "${ext || "(none)"}" (supported: .json, .yaml, .yml): ${resolved.relPath}`
@@ -53142,7 +55449,7 @@ function parseStudioOpenApiFile(workspaceRoot, filePath) {
       `OpenAPI file exceeds 2 MiB size limit (${resolved.stat.size} bytes > ${OPENAPI_MAX_FILE_BYTES} bytes): ${resolved.relPath}`
     );
   }
-  const rawText = import_node_fs17.default.readFileSync(resolved.realTarget, "utf8");
+  const rawText = import_node_fs18.default.readFileSync(resolved.realTarget, "utf8");
   return parseOpenApiSpecFromContent(resolved.relPath, rawText, ext);
 }
 function createDemoOpenApiSpec(filePath = "api/openapi.yaml") {
@@ -53438,14 +55745,14 @@ function isSensitiveStudioPath(relPathInput) {
     if (lower.startsWith("credentials")) return true;
     if (lower.includes("secret")) return true;
   }
-  const base = import_node_path23.default.posix.basename(normalized);
+  const base = import_node_path24.default.posix.basename(normalized);
   const lowerBase = base.toLowerCase();
   if (SENSITIVE_EXACT_BASENAMES.has(lowerBase)) return true;
   if (lowerBase.startsWith("id_rsa.") || lowerBase.startsWith("id_ed25519.") || lowerBase.startsWith("id_dsa.") || lowerBase.startsWith("id_ecdsa.")) {
     return true;
   }
   if (/service[-_]?account.*\.json$/i.test(lowerBase)) return true;
-  const ext = import_node_path23.default.posix.extname(lowerBase);
+  const ext = import_node_path24.default.posix.extname(lowerBase);
   if (SENSITIVE_EXTENSIONS3.has(ext)) return true;
   return false;
 }
@@ -53456,31 +55763,31 @@ function resolveStudioWorkspaceFile(workspaceRoot, targetPath) {
   if (!targetPath || !targetPath.trim() || targetPath.includes("\0")) {
     throw new Error("Invalid file path");
   }
-  const realRoot = import_node_fs18.default.realpathSync(import_node_path23.default.resolve(workspaceRoot));
+  const realRoot = import_node_fs19.default.realpathSync(import_node_path24.default.resolve(workspaceRoot));
   const cleanedTarget = targetPath.trim();
-  const candidate = import_node_path23.default.isAbsolute(cleanedTarget) ? import_node_path23.default.resolve(cleanedTarget) : import_node_path23.default.resolve(realRoot, cleanedTarget);
-  if (!import_node_path23.default.isAbsolute(cleanedTarget) && isSensitiveStudioPath(cleanedTarget)) {
+  const candidate = import_node_path24.default.isAbsolute(cleanedTarget) ? import_node_path24.default.resolve(cleanedTarget) : import_node_path24.default.resolve(realRoot, cleanedTarget);
+  if (!import_node_path24.default.isAbsolute(cleanedTarget) && isSensitiveStudioPath(cleanedTarget)) {
     throw new Error(`Refused to access sensitive or restricted path: ${cleanedTarget}`);
   }
-  const logicalRel = import_node_path23.default.relative(realRoot, candidate).replace(/\\/g, "/");
+  const logicalRel = import_node_path24.default.relative(realRoot, candidate).replace(/\\/g, "/");
   if (logicalRel && !logicalRel.startsWith("..") && isSensitiveStudioPath(logicalRel)) {
     throw new Error(`Refused to access sensitive or restricted path: ${logicalRel}`);
   }
   let realTarget;
   try {
-    realTarget = import_node_fs18.default.realpathSync(candidate);
+    realTarget = import_node_fs19.default.realpathSync(candidate);
   } catch {
     throw new Error(`File does not exist or cannot be resolved: ${cleanedTarget}`);
   }
-  const prefix = realRoot.endsWith(import_node_path23.default.sep) ? realRoot : `${realRoot}${import_node_path23.default.sep}`;
+  const prefix = realRoot.endsWith(import_node_path24.default.sep) ? realRoot : `${realRoot}${import_node_path24.default.sep}`;
   if (realTarget === realRoot || !realTarget.startsWith(prefix)) {
     throw new Error(`Path escapes workspace boundary: ${cleanedTarget}`);
   }
-  const relPath = import_node_path23.default.relative(realRoot, realTarget).replace(/\\/g, "/");
+  const relPath = import_node_path24.default.relative(realRoot, realTarget).replace(/\\/g, "/");
   if (isSensitiveStudioPath(relPath)) {
     throw new Error(`Refused to access sensitive or restricted path: ${relPath}`);
   }
-  const stat = import_node_fs18.default.statSync(realTarget);
+  const stat = import_node_fs19.default.statSync(realTarget);
   if (!stat.isFile()) {
     throw new Error(`Target is not a regular file: ${relPath}`);
   }
@@ -53499,9 +55806,9 @@ function looksLikeOpenApiFile(realFilePath, baseLower, ext, bytes) {
   if (bytes === 0 || bytes > 256 * 1024) return false;
   let fd = null;
   try {
-    fd = import_node_fs18.default.openSync(realFilePath, "r");
+    fd = import_node_fs19.default.openSync(realFilePath, "r");
     const probe = Buffer.alloc(Math.min(bytes, 2048));
-    const n = import_node_fs18.default.readSync(fd, probe, 0, probe.length, 0);
+    const n = import_node_fs19.default.readSync(fd, probe, 0, probe.length, 0);
     const head = probe.subarray(0, n).toString("utf8");
     if (ext === ".json") {
       return /"(?:openapi|swagger)"\s*:\s*"[23]\./i.test(head);
@@ -53512,7 +55819,7 @@ function looksLikeOpenApiFile(realFilePath, baseLower, ext, bytes) {
   } finally {
     if (fd !== null) {
       try {
-        import_node_fs18.default.closeSync(fd);
+        import_node_fs19.default.closeSync(fd);
       } catch {
       }
     }
@@ -53520,7 +55827,7 @@ function looksLikeOpenApiFile(realFilePath, baseLower, ext, bytes) {
 }
 function classifyStudioSource(realFilePath, baseName, bytes) {
   const lower = baseName.toLowerCase();
-  const ext = import_node_path23.default.extname(lower);
+  const ext = import_node_path24.default.extname(lower);
   if (!ext) return null;
   if (ext === ".json" && SKIP_JSON_LOCK_BASENAMES.has(lower)) {
     return null;
@@ -53569,8 +55876,8 @@ function classifyStudioSource(realFilePath, baseName, bytes) {
 }
 function listStudioSources(workspaceRoot, opts = {}) {
   const category = opts.category ?? "all";
-  const realRoot = import_node_fs18.default.realpathSync(import_node_path23.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path23.default.sep) ? realRoot : `${realRoot}${import_node_path23.default.sep}`;
+  const realRoot = import_node_fs19.default.realpathSync(import_node_path24.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path24.default.sep) ? realRoot : `${realRoot}${import_node_path24.default.sep}`;
   const isInsideRoot = (realCandidate) => realCandidate === realRoot || realCandidate.startsWith(rootPrefix);
   const allSources = [];
   const visitedDirs = /* @__PURE__ */ new Set();
@@ -53585,7 +55892,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
     }
     let realDir;
     try {
-      realDir = import_node_fs18.default.realpathSync(dir);
+      realDir = import_node_fs19.default.realpathSync(dir);
     } catch {
       skippedSymlinks += 1;
       return;
@@ -53598,7 +55905,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
     visitedDirs.add(realDir);
     let entries;
     try {
-      entries = import_node_fs18.default.readdirSync(dir, { withFileTypes: true });
+      entries = import_node_fs19.default.readdirSync(dir, { withFileTypes: true });
     } catch {
       return;
     }
@@ -53608,8 +55915,8 @@ function listStudioSources(workspaceRoot, opts = {}) {
         truncated = true;
         break;
       }
-      const fullPath = import_node_path23.default.join(dir, entry.name);
-      const rawRel = import_node_path23.default.relative(realRoot, fullPath).replace(/\\/g, "/");
+      const fullPath = import_node_path24.default.join(dir, entry.name);
+      const rawRel = import_node_path24.default.relative(realRoot, fullPath).replace(/\\/g, "/");
       if (entry.isDirectory()) {
         if (STUDIO_SKIP_DIRS.has(entry.name) || isSensitiveStudioPath(rawRel)) {
           if (isSensitiveStudioPath(rawRel)) skippedSensitive += 1;
@@ -53622,15 +55929,15 @@ function listStudioSources(workspaceRoot, opts = {}) {
       let isFile = entry.isFile();
       if (entry.isSymbolicLink()) {
         try {
-          realFilePath = import_node_fs18.default.realpathSync(fullPath);
+          realFilePath = import_node_fs19.default.realpathSync(fullPath);
           if (!isInsideRoot(realFilePath)) {
             skippedSymlinks += 1;
             continue;
           }
-          const st = import_node_fs18.default.statSync(realFilePath);
+          const st = import_node_fs19.default.statSync(realFilePath);
           if (st.isDirectory()) {
-            const realRelDir = import_node_path23.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
-            if (STUDIO_SKIP_DIRS.has(import_node_path23.default.basename(realFilePath)) || isSensitiveStudioPath(rawRel) || isSensitiveStudioPath(realRelDir)) {
+            const realRelDir = import_node_path24.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+            if (STUDIO_SKIP_DIRS.has(import_node_path24.default.basename(realFilePath)) || isSensitiveStudioPath(rawRel) || isSensitiveStudioPath(realRelDir)) {
               skippedSensitive += 1;
               continue;
             }
@@ -53645,7 +55952,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
       }
       if (!isFile) continue;
       try {
-        realFilePath = import_node_fs18.default.realpathSync(realFilePath);
+        realFilePath = import_node_fs19.default.realpathSync(realFilePath);
       } catch {
         skippedSymlinks += 1;
         continue;
@@ -53654,7 +55961,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
         skippedSymlinks += 1;
         continue;
       }
-      const realRel = import_node_path23.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+      const realRel = import_node_path24.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
       if (isSensitiveStudioPath(rawRel) || isSensitiveStudioPath(realRel)) {
         skippedSensitive += 1;
         continue;
@@ -53662,7 +55969,7 @@ function listStudioSources(workspaceRoot, opts = {}) {
       if (seenRealFiles.has(realFilePath)) continue;
       let stat;
       try {
-        stat = import_node_fs18.default.statSync(realFilePath);
+        stat = import_node_fs19.default.statSync(realFilePath);
       } catch {
         continue;
       }
@@ -54170,9 +56477,9 @@ function inspectJsonOrNdjson(relPath, format, buf, bytes, filter, limit) {
 function readSqliteHeaderMetadata(realFilePath) {
   let fd = null;
   try {
-    fd = import_node_fs18.default.openSync(realFilePath, "r");
+    fd = import_node_fs19.default.openSync(realFilePath, "r");
     const header = Buffer.alloc(100);
-    const bytesRead = import_node_fs18.default.readSync(fd, header, 0, 100, 0);
+    const bytesRead = import_node_fs19.default.readSync(fd, header, 0, 100, 0);
     if (bytesRead < 16) {
       return { validHeader: false, headerFormat: "unknown" };
     }
@@ -54186,7 +56493,7 @@ function readSqliteHeaderMetadata(realFilePath) {
   } finally {
     if (fd !== null) {
       try {
-        import_node_fs18.default.closeSync(fd);
+        import_node_fs19.default.closeSync(fd);
       } catch {
       }
     }
@@ -54194,12 +56501,12 @@ function readSqliteHeaderMetadata(realFilePath) {
 }
 var SQLITE_COMPANION_SUFFIXES = ["-wal", "-shm", "-journal"];
 function assertSafeSqliteCompanionFiles(realRoot, realDbPath) {
-  const rootPrefix = realRoot.endsWith(import_node_path23.default.sep) ? realRoot : `${realRoot}${import_node_path23.default.sep}`;
+  const rootPrefix = realRoot.endsWith(import_node_path24.default.sep) ? realRoot : `${realRoot}${import_node_path24.default.sep}`;
   for (const suffix of SQLITE_COMPANION_SUFFIXES) {
     const companionPath = `${realDbPath}${suffix}`;
     let lstat;
     try {
-      lstat = import_node_fs18.default.lstatSync(companionPath);
+      lstat = import_node_fs19.default.lstatSync(companionPath);
     } catch (err) {
       const code = err.code;
       if (code === "ENOENT") continue;
@@ -54209,28 +56516,28 @@ function assertSafeSqliteCompanionFiles(realRoot, realDbPath) {
     }
     if (lstat.isSymbolicLink()) {
       throw new Error(
-        `Refused to open SQLite database: companion file "${import_node_path23.default.basename(companionPath)}" is a symbolic link`
+        `Refused to open SQLite database: companion file "${import_node_path24.default.basename(companionPath)}" is a symbolic link`
       );
     }
     if (!lstat.isFile()) {
       throw new Error(
-        `Refused to open SQLite database: companion file "${import_node_path23.default.basename(companionPath)}" is not a regular file`
+        `Refused to open SQLite database: companion file "${import_node_path24.default.basename(companionPath)}" is not a regular file`
       );
     }
     let realCompanion;
     try {
-      realCompanion = import_node_fs18.default.realpathSync(companionPath);
+      realCompanion = import_node_fs19.default.realpathSync(companionPath);
     } catch (err) {
       throw new Error(
-        `Refused to open SQLite database: companion file "${import_node_path23.default.basename(companionPath)}" could not be resolved: ${err instanceof Error ? err.message : String(err)}`
+        `Refused to open SQLite database: companion file "${import_node_path24.default.basename(companionPath)}" could not be resolved: ${err instanceof Error ? err.message : String(err)}`
       );
     }
     if (realCompanion === realRoot || !realCompanion.startsWith(rootPrefix)) {
       throw new Error(
-        `Refused to open SQLite database: companion file "${import_node_path23.default.basename(companionPath)}" escapes workspace boundary`
+        `Refused to open SQLite database: companion file "${import_node_path24.default.basename(companionPath)}" escapes workspace boundary`
       );
     }
-    const companionRel = import_node_path23.default.relative(realRoot, realCompanion).replace(/\\/g, "/");
+    const companionRel = import_node_path24.default.relative(realRoot, realCompanion).replace(/\\/g, "/");
     if (isSensitiveStudioPath(companionRel)) {
       throw new Error(
         `Refused to open SQLite database: companion file "${companionRel}" points to a sensitive path`
@@ -54427,7 +56734,7 @@ async function inspectSqliteDatabase(realRoot, realPath, relPath, bytes, query, 
 }
 async function inspectStudioData(workspaceRoot, opts) {
   const resolved = resolveStudioWorkspaceFile(workspaceRoot, opts.filePath);
-  const ext = import_node_path23.default.extname(resolved.relPath).toLowerCase();
+  const ext = import_node_path24.default.extname(resolved.relPath).toLowerCase();
   const limit = clampDataLimit(opts.limit);
   if (ext === ".sqlite" || ext === ".sqlite3" || ext === ".db") {
     return inspectSqliteDatabase(
@@ -54442,7 +56749,7 @@ async function inspectStudioData(workspaceRoot, opts) {
     );
   }
   if (ext === ".csv" || ext === ".tsv") {
-    const buf = import_node_fs18.default.readFileSync(resolved.realTarget);
+    const buf = import_node_fs19.default.readFileSync(resolved.realTarget);
     return inspectCsvOrTsv(
       resolved.relPath,
       ext === ".tsv" ? "tsv" : "csv",
@@ -54453,7 +56760,7 @@ async function inspectStudioData(workspaceRoot, opts) {
     );
   }
   if (ext === ".json" || ext === ".ndjson" || ext === ".jsonl") {
-    const buf = import_node_fs18.default.readFileSync(resolved.realTarget);
+    const buf = import_node_fs19.default.readFileSync(resolved.realTarget);
     return inspectJsonOrNdjson(
       resolved.relPath,
       ext === ".json" ? "json" : "ndjson",
@@ -55326,8 +57633,8 @@ function parsePdfDocument(relPath, buf, bytes, startLine, maxLines) {
 }
 function inspectStudioDocument(workspaceRoot, opts) {
   const resolved = resolveStudioWorkspaceFile(workspaceRoot, opts.filePath);
-  const ext = import_node_path23.default.extname(resolved.relPath).toLowerCase();
-  const buf = import_node_fs18.default.readFileSync(resolved.realTarget);
+  const ext = import_node_path24.default.extname(resolved.relPath).toLowerCase();
+  const buf = import_node_fs19.default.readFileSync(resolved.realTarget);
   if (ext === ".docx") {
     return parseDocxDocument(resolved.relPath, buf, resolved.stat.size, opts.startLine, opts.maxLines);
   }
@@ -55709,7 +58016,7 @@ function createDemoStudioService(workspaceRoot) {
     }
     const limit = clampDataLimit(opts.limit);
     const needle = opts.filter?.trim().toLowerCase() || "";
-    const base = import_node_path23.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
+    const base = import_node_path24.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
     if (base === "analytics.sqlite" || base.endsWith(".sqlite") || base.endsWith(".db")) {
       const safeSql = opts.query && opts.query.trim() ? validateReadOnlySqliteQuery(opts.query) : void 0;
       if (!safeSql) {
@@ -55794,7 +58101,7 @@ function createDemoStudioService(workspaceRoot) {
     if (!filePath || isSensitiveStudioPath(filePath)) {
       throw new Error(`Refused to access sensitive or invalid path: ${filePath}`);
     }
-    const base = import_node_path23.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
+    const base = import_node_path24.default.posix.basename(filePath.replace(/\\/g, "/")).toLowerCase();
     if (base === "architecture.docx" || base.endsWith(".docx")) {
       const allLines = [
         "agy-NOV v0.4.0 Workspace Studio Architecture",
@@ -55989,7 +58296,7 @@ function createDemoStudioService(workspaceRoot) {
       throw new Error(`Refused to access sensitive or invalid path: ${filePath}`);
     }
     const normalized = filePath.replace(/\\/g, "/").replace(/^\.\//, "");
-    const base = import_node_path23.default.posix.basename(normalized).toLowerCase();
+    const base = import_node_path24.default.posix.basename(normalized).toLowerCase();
     if (normalized === "api/openapi.yaml" || base === "openapi.yaml" || base === "openapi.yml" || base === "openapi.json") {
       return createDemoOpenApiSpec("api/openapi.yaml");
     }
@@ -56086,7 +58393,7 @@ ${preview}`);
   return lines.join("\n");
 }
 function registerStudioModule(server, options, uiResourceUri) {
-  const workspaceRoot = import_node_path24.default.resolve(options.workspaceRoot);
+  const workspaceRoot = import_node_path25.default.resolve(options.workspaceRoot);
   const isDemo = options.demoMode === true;
   const demoService = isDemo ? createDemoStudioService(workspaceRoot) : null;
   const APP_ONLY_META2 = {
@@ -56354,9 +58661,9 @@ function registerStudioModule(server, options, uiResourceUri) {
 }
 
 // src/modules/turbo/core.ts
-var import_node_crypto12 = __toESM(require("node:crypto"), 1);
-var import_node_fs19 = __toESM(require("node:fs"), 1);
-var import_node_path25 = __toESM(require("node:path"), 1);
+var import_node_crypto13 = __toESM(require("node:crypto"), 1);
+var import_node_fs20 = __toESM(require("node:fs"), 1);
+var import_node_path26 = __toESM(require("node:path"), 1);
 var TURBO_MAX_QUERIES = 8;
 var TURBO_MAX_QUERY_LENGTH = 128;
 var TURBO_MAX_FILE_BYTES = 512 * 1024;
@@ -56605,13 +58912,13 @@ function isSensitiveTurboPath(inputPath) {
       return true;
     }
   }
-  const base = import_node_path25.default.posix.basename(normalized);
+  const base = import_node_path26.default.posix.basename(normalized);
   const lowerBase = base.toLowerCase();
   if (SENSITIVE_EXACT_BASENAMES2.has(lowerBase)) return true;
   if (lowerBase.startsWith("id_rsa.") || lowerBase.startsWith("id_ed25519.") || lowerBase.startsWith("id_dsa.") || lowerBase.startsWith("id_ecdsa.")) {
     return true;
   }
-  const ext = import_node_path25.default.posix.extname(lowerBase);
+  const ext = import_node_path26.default.posix.extname(lowerBase);
   if (SENSITIVE_EXTENSIONS4.has(ext)) return true;
   return false;
 }
@@ -56622,23 +58929,23 @@ function resolveInsideWorkspaceReal(workspaceRoot, targetPath) {
   if (!targetPath || targetPath.includes("\0")) {
     throw new Error("Invalid target path");
   }
-  const realRoot = import_node_fs19.default.realpathSync(import_node_path25.default.resolve(workspaceRoot));
-  const candidate = import_node_path25.default.isAbsolute(targetPath) ? import_node_path25.default.resolve(targetPath) : import_node_path25.default.resolve(realRoot, targetPath);
+  const realRoot = import_node_fs20.default.realpathSync(import_node_path26.default.resolve(workspaceRoot));
+  const candidate = import_node_path26.default.isAbsolute(targetPath) ? import_node_path26.default.resolve(targetPath) : import_node_path26.default.resolve(realRoot, targetPath);
   let realTarget;
   try {
-    realTarget = import_node_fs19.default.realpathSync(candidate);
+    realTarget = import_node_fs20.default.realpathSync(candidate);
   } catch {
     throw new Error(`Target path does not exist or cannot be resolved: ${targetPath}`);
   }
-  const prefix = realRoot.endsWith(import_node_path25.default.sep) ? realRoot : `${realRoot}${import_node_path25.default.sep}`;
+  const prefix = realRoot.endsWith(import_node_path26.default.sep) ? realRoot : `${realRoot}${import_node_path26.default.sep}`;
   if (realTarget !== realRoot && !realTarget.startsWith(prefix)) {
     throw new Error(`Path escapes workspace boundary: ${targetPath}`);
   }
-  const relPath = realTarget === realRoot ? "." : import_node_path25.default.relative(realRoot, realTarget).replace(/\\/g, "/");
+  const relPath = realTarget === realRoot ? "." : import_node_path26.default.relative(realRoot, realTarget).replace(/\\/g, "/");
   return { realRoot, realTarget, relPath };
 }
 function isBinaryFilename(filePath) {
-  const ext = import_node_path25.default.extname(filePath).toLowerCase();
+  const ext = import_node_path26.default.extname(filePath).toLowerCase();
   return BINARY_EXTENSIONS.has(ext);
 }
 function isBufferBinary(buf) {
@@ -56721,13 +59028,13 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
   if (cleanedQueries.length === 0) {
     throw new Error("At least one non-empty query is required");
   }
-  const realRoot = import_node_fs19.default.realpathSync(import_node_path25.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path25.default.sep) ? realRoot : `${realRoot}${import_node_path25.default.sep}`;
+  const realRoot = import_node_fs20.default.realpathSync(import_node_path26.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path26.default.sep) ? realRoot : `${realRoot}${import_node_path26.default.sep}`;
   let searchRoot = realRoot;
   let scope = ".";
   if (opts.directory && opts.directory.trim()) {
     const resolved = resolveInsideWorkspaceReal(realRoot, opts.directory.trim());
-    if (!import_node_path25.default.isAbsolute(opts.directory.trim()) && isSensitiveTurboPath(opts.directory) || isSensitiveTurboPath(resolved.relPath)) {
+    if (!import_node_path26.default.isAbsolute(opts.directory.trim()) && isSensitiveTurboPath(opts.directory) || isSensitiveTurboPath(resolved.relPath)) {
       throw new Error(`Refused to search sensitive directory: ${opts.directory}`);
     }
     searchRoot = resolved.realTarget;
@@ -56765,7 +59072,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
     visitedDirs.add(currentDir);
     let entries;
     try {
-      entries = import_node_fs19.default.readdirSync(currentDir, { withFileTypes: true });
+      entries = import_node_fs20.default.readdirSync(currentDir, { withFileTypes: true });
     } catch {
       continue;
     }
@@ -56775,20 +59082,20 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
         truncated = true;
         break;
       }
-      const fullPath = import_node_path25.default.join(currentDir, entry.name);
-      const rawRel = import_node_path25.default.relative(realRoot, fullPath).replace(/\\/g, "/");
+      const fullPath = import_node_path26.default.join(currentDir, entry.name);
+      const rawRel = import_node_path26.default.relative(realRoot, fullPath).replace(/\\/g, "/");
       if (entry.isDirectory()) {
         if (SKIP_DIRS2.has(entry.name) || isSensitiveTurboPath(rawRel)) {
           if (isSensitiveTurboPath(rawRel)) skippedSensitive += 1;
           continue;
         }
         try {
-          const realSub = import_node_fs19.default.realpathSync(fullPath);
+          const realSub = import_node_fs20.default.realpathSync(fullPath);
           if (!isInsideRealRoot(realSub)) {
             skippedSymlinks += 1;
             continue;
           }
-          const realSubRel = import_node_path25.default.relative(realRoot, realSub).replace(/\\/g, "/");
+          const realSubRel = import_node_path26.default.relative(realRoot, realSub).replace(/\\/g, "/");
           if (isSensitiveTurboPath(realSubRel)) {
             skippedSensitive += 1;
             continue;
@@ -56803,15 +59110,15 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       let isFile = entry.isFile();
       if (entry.isSymbolicLink()) {
         try {
-          realFilePath = import_node_fs19.default.realpathSync(fullPath);
+          realFilePath = import_node_fs20.default.realpathSync(fullPath);
           if (!isInsideRealRoot(realFilePath)) {
             skippedSymlinks += 1;
             continue;
           }
-          const st = import_node_fs19.default.statSync(realFilePath);
+          const st = import_node_fs20.default.statSync(realFilePath);
           if (st.isDirectory()) {
-            const realRelDir = import_node_path25.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
-            if (SKIP_DIRS2.has(import_node_path25.default.basename(realFilePath)) || isSensitiveTurboPath(realRelDir)) {
+            const realRelDir = import_node_path26.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+            if (SKIP_DIRS2.has(import_node_path26.default.basename(realFilePath)) || isSensitiveTurboPath(realRelDir)) {
               skippedSensitive += 1;
               continue;
             }
@@ -56826,7 +59133,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       }
       if (!isFile) continue;
       try {
-        realFilePath = import_node_fs19.default.realpathSync(realFilePath);
+        realFilePath = import_node_fs20.default.realpathSync(realFilePath);
       } catch {
         skippedSymlinks += 1;
         continue;
@@ -56835,7 +59142,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
         skippedSymlinks += 1;
         continue;
       }
-      const realRel = import_node_path25.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
+      const realRel = import_node_path26.default.relative(realRoot, realFilePath).replace(/\\/g, "/");
       if (isSensitiveTurboPath(rawRel) || isSensitiveTurboPath(realRel)) {
         skippedSensitive += 1;
         continue;
@@ -56846,7 +59153,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       }
       let stat;
       try {
-        stat = import_node_fs19.default.statSync(realFilePath);
+        stat = import_node_fs20.default.statSync(realFilePath);
       } catch {
         skippedFiles += 1;
         continue;
@@ -56857,7 +59164,7 @@ function batchSearchWorkspace(workspaceRoot, queries, opts = {}) {
       }
       let buf;
       try {
-        buf = import_node_fs19.default.readFileSync(realFilePath);
+        buf = import_node_fs20.default.readFileSync(realFilePath);
       } catch {
         skippedFiles += 1;
         continue;
@@ -57097,7 +59404,7 @@ var TurboGainTracker = class {
   }
 };
 function detectLanguage(filePath) {
-  const ext = import_node_path25.default.extname(filePath).toLowerCase();
+  const ext = import_node_path26.default.extname(filePath).toLowerCase();
   if (ext === ".ts" || ext === ".tsx" || ext === ".mts" || ext === ".cts") return "typescript";
   if (ext === ".js" || ext === ".jsx" || ext === ".mjs" || ext === ".cjs") return "javascript";
   if (ext === ".py" || ext === ".pyi") return "python";
@@ -57960,20 +60267,20 @@ function extractOutlineSymbols(content, language, maxItems = 120) {
 }
 function readFileOutlineAndSlice(workspaceRoot, filePath, opts = {}) {
   const { realTarget, relPath } = resolveInsideWorkspaceReal(workspaceRoot, filePath);
-  if (!import_node_path25.default.isAbsolute(filePath) && isSensitiveTurboPath(filePath) || isSensitiveTurboPath(relPath)) {
-    throw new Error(`Refused to read sensitive file: ${import_node_path25.default.basename(filePath)}`);
+  if (!import_node_path26.default.isAbsolute(filePath) && isSensitiveTurboPath(filePath) || isSensitiveTurboPath(relPath)) {
+    throw new Error(`Refused to read sensitive file: ${import_node_path26.default.basename(filePath)}`);
   }
   if (isBinaryFilename(realTarget)) {
     throw new Error(`Refused to read binary file: ${relPath}`);
   }
-  const stat = import_node_fs19.default.statSync(realTarget);
+  const stat = import_node_fs20.default.statSync(realTarget);
   if (!stat.isFile()) {
     throw new Error(`Target is not a regular file: ${relPath}`);
   }
   if (stat.size > TURBO_MAX_OUTLINE_FILE_BYTES) {
     throw new Error(`File exceeds ${TURBO_MAX_OUTLINE_FILE_BYTES} byte limit: ${relPath}`);
   }
-  const buf = import_node_fs19.default.readFileSync(realTarget);
+  const buf = import_node_fs20.default.readFileSync(realTarget);
   if (isBufferBinary(buf)) {
     throw new Error(`Detected binary content in file: ${relPath}`);
   }
@@ -58560,7 +60867,7 @@ var CompactedChunkStore = class {
     const estimatedSummaryTokens = Math.ceil(summaryText.length / 4);
     const estimatedSavedTokens = Math.max(0, estimatedRawTokens - estimatedSummaryTokens);
     const chunkCount = Math.max(1, Math.ceil(totalLines / chunkLines));
-    const chunkId = `chk_${Date.now().toString(36)}_${import_node_crypto12.default.randomBytes(3).toString("hex")}`;
+    const chunkId = `chk_${Date.now().toString(36)}_${import_node_crypto13.default.randomBytes(3).toString("hex")}`;
     const createdAt = (/* @__PURE__ */ new Date()).toISOString();
     const meta3 = {
       chunkId,
@@ -58589,7 +60896,7 @@ var CompactedChunkStore = class {
     this.totalRawBytes += rawBytes;
     if (opts.persistStats && dataDir) {
       try {
-        atomicWriteJson(import_node_path25.default.join(dataDir, "stats.json"), {
+        atomicWriteJson(import_node_path26.default.join(dataDir, "stats.json"), {
           schemaVersion: 1,
           totalCompactions: this.totalCompactions,
           totalSavedTokens: this.totalSavedTokens,
@@ -58677,18 +60984,18 @@ var defaultCompactedChunkStore = new CompactedChunkStore(TURBO_MAX_COMPACTED_CHU
 var SNAPSHOT_EXPAND_DIRS = /* @__PURE__ */ new Set(["src", "app", "apps", "packages", "lib", "ui", "test", "tests", "scripts", "cmd", "pkg", "internal"]);
 function buildWorkspaceSnapshot(workspaceRoot) {
   const startedAt = Date.now();
-  const realRoot = import_node_fs19.default.realpathSync(import_node_path25.default.resolve(workspaceRoot));
-  const rootPrefix = realRoot.endsWith(import_node_path25.default.sep) ? realRoot : `${realRoot}${import_node_path25.default.sep}`;
-  const workspaceName = import_node_path25.default.basename(realRoot) || "workspace";
+  const realRoot = import_node_fs20.default.realpathSync(import_node_path26.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path26.default.sep) ? realRoot : `${realRoot}${import_node_path26.default.sep}`;
+  const workspaceName = import_node_path26.default.basename(realRoot) || "workspace";
   const techStack = [];
   const scripts = [];
   let packageName;
   let packageVersion;
   const hasFile = (name) => {
     try {
-      const candidate = import_node_path25.default.join(realRoot, name);
-      const real = import_node_fs19.default.realpathSync(candidate);
-      return real.startsWith(rootPrefix) && import_node_fs19.default.statSync(real).isFile();
+      const candidate = import_node_path26.default.join(realRoot, name);
+      const real = import_node_fs20.default.realpathSync(candidate);
+      return real.startsWith(rootPrefix) && import_node_fs20.default.statSync(real).isFile();
     } catch {
       return false;
     }
@@ -58696,7 +61003,7 @@ function buildWorkspaceSnapshot(workspaceRoot) {
   if (hasFile("package.json")) {
     techStack.push("Node.js");
     try {
-      const pkg = JSON.parse(import_node_fs19.default.readFileSync(import_node_path25.default.join(realRoot, "package.json"), "utf8"));
+      const pkg = JSON.parse(import_node_fs20.default.readFileSync(import_node_path26.default.join(realRoot, "package.json"), "utf8"));
       if (typeof pkg.name === "string") packageName = pkg.name.slice(0, 64);
       if (typeof pkg.version === "string") packageVersion = pkg.version.slice(0, 32);
       if (pkg.scripts && typeof pkg.scripts === "object") {
@@ -58724,7 +61031,7 @@ function buildWorkspaceSnapshot(workspaceRoot) {
   const maxTreeLines = 28;
   let extraEntries = 0;
   try {
-    const entries = import_node_fs19.default.readdirSync(realRoot, { withFileTypes: true }).sort((a, b) => {
+    const entries = import_node_fs20.default.readdirSync(realRoot, { withFileTypes: true }).sort((a, b) => {
       if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
       return a.name.localeCompare(b.name);
     });
@@ -58732,8 +61039,8 @@ function buildWorkspaceSnapshot(workspaceRoot) {
       if (SKIP_DIRS2.has(entry.name) || isSensitiveTurboPath(entry.name)) continue;
       if (entry.isSymbolicLink()) {
         try {
-          const realEntry = import_node_fs19.default.realpathSync(import_node_path25.default.join(realRoot, entry.name));
-          const realEntryRel = import_node_path25.default.relative(realRoot, realEntry).replace(/\\/g, "/");
+          const realEntry = import_node_fs20.default.realpathSync(import_node_path26.default.join(realRoot, entry.name));
+          const realEntryRel = import_node_path26.default.relative(realRoot, realEntry).replace(/\\/g, "/");
           if (!realEntry.startsWith(rootPrefix) || isSensitiveTurboPath(realEntryRel)) continue;
         } catch {
           continue;
@@ -58747,14 +61054,14 @@ function buildWorkspaceSnapshot(workspaceRoot) {
         treeLines.push(`- ${entry.name}/`);
         if (SNAPSHOT_EXPAND_DIRS.has(entry.name) && treeLines.length < maxTreeLines) {
           try {
-            const subEntries = import_node_fs19.default.readdirSync(import_node_path25.default.join(realRoot, entry.name), { withFileTypes: true }).filter((sub) => {
+            const subEntries = import_node_fs20.default.readdirSync(import_node_path26.default.join(realRoot, entry.name), { withFileTypes: true }).filter((sub) => {
               if (SKIP_DIRS2.has(sub.name) || isSensitiveTurboPath(`${entry.name}/${sub.name}`)) {
                 return false;
               }
               if (sub.isSymbolicLink()) {
                 try {
-                  const realSub = import_node_fs19.default.realpathSync(import_node_path25.default.join(realRoot, entry.name, sub.name));
-                  const realSubRel = import_node_path25.default.relative(realRoot, realSub).replace(/\\/g, "/");
+                  const realSub = import_node_fs20.default.realpathSync(import_node_path26.default.join(realRoot, entry.name, sub.name));
+                  const realSubRel = import_node_path26.default.relative(realRoot, realSub).replace(/\\/g, "/");
                   return realSub.startsWith(rootPrefix) && !isSensitiveTurboPath(realSubRel);
                 } catch {
                   return false;
@@ -59444,9 +61751,9 @@ ${result.summaryText}`;
 
 // src/modules/verify/core.ts
 var import_node_child_process4 = require("node:child_process");
-var import_node_crypto13 = __toESM(require("node:crypto"), 1);
-var import_node_fs20 = __toESM(require("node:fs"), 1);
-var import_node_path26 = __toESM(require("node:path"), 1);
+var import_node_crypto14 = __toESM(require("node:crypto"), 1);
+var import_node_fs21 = __toESM(require("node:fs"), 1);
+var import_node_path27 = __toESM(require("node:path"), 1);
 var ALLOWED_VERIFY_EXECUTABLES = /* @__PURE__ */ new Set([
   "npm",
   "pnpm",
@@ -59658,7 +61965,7 @@ function redactVerifyOutput(input2) {
   return out;
 }
 function getVerifyStatePath(moduleDataDir) {
-  return import_node_path26.default.join(moduleDataDir, "state.json");
+  return import_node_path27.default.join(moduleDataDir, "state.json");
 }
 function clampCommandTimeout(raw) {
   if (typeof raw !== "number" || !Number.isFinite(raw)) {
@@ -60198,11 +62505,11 @@ function normalizeEvidenceFromDisk(raw) {
 }
 function loadVerifyStateReadOnly(moduleDataDir) {
   const statePath = getVerifyStatePath(moduleDataDir);
-  if (!import_node_fs20.default.existsSync(statePath)) {
+  if (!import_node_fs21.default.existsSync(statePath)) {
     return createDefaultVerifyState();
   }
   try {
-    const raw = JSON.parse(import_node_fs20.default.readFileSync(statePath, "utf8"));
+    const raw = JSON.parse(import_node_fs21.default.readFileSync(statePath, "utf8"));
     const policy = normalizePolicyFromDisk(raw.policy);
     const sessions = {};
     if (raw.sessions && typeof raw.sessions === "object" && !Array.isArray(raw.sessions)) {
@@ -60291,33 +62598,33 @@ function resolveRealPathWithMissingTail2(inputPath, depth = 0) {
   if (depth > MAX_SYMLINK_DEPTH2) {
     throw new Error(`Too many levels of symbolic links: ${inputPath}`);
   }
-  const resolved = import_node_path26.default.resolve(inputPath);
+  const resolved = import_node_path27.default.resolve(inputPath);
   const missingSegments = [];
   let current = resolved;
   while (true) {
     try {
-      const realBase = import_node_fs20.default.realpathSync(current);
-      return missingSegments.length > 0 ? import_node_path26.default.join(realBase, ...missingSegments.reverse()) : realBase;
+      const realBase = import_node_fs21.default.realpathSync(current);
+      return missingSegments.length > 0 ? import_node_path27.default.join(realBase, ...missingSegments.reverse()) : realBase;
     } catch (err) {
       const code = err?.code;
       if (code !== "ENOENT" && code !== "ENOTDIR") {
         throw err;
       }
       try {
-        const lstat = import_node_fs20.default.lstatSync(current);
+        const lstat = import_node_fs21.default.lstatSync(current);
         if (lstat.isSymbolicLink()) {
-          const linkTarget = import_node_fs20.default.readlinkSync(current);
-          const resolvedLink = import_node_path26.default.resolve(import_node_path26.default.dirname(current), linkTarget);
-          const nextTarget = missingSegments.length > 0 ? import_node_path26.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
+          const linkTarget = import_node_fs21.default.readlinkSync(current);
+          const resolvedLink = import_node_path27.default.resolve(import_node_path27.default.dirname(current), linkTarget);
+          const nextTarget = missingSegments.length > 0 ? import_node_path27.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
           return resolveRealPathWithMissingTail2(nextTarget, depth + 1);
         }
       } catch {
       }
-      const parent = import_node_path26.default.dirname(current);
+      const parent = import_node_path27.default.dirname(current);
       if (parent === current) {
         return resolved;
       }
-      missingSegments.push(import_node_path26.default.basename(current));
+      missingSegments.push(import_node_path27.default.basename(current));
       current = parent;
     }
   }
@@ -60328,16 +62635,16 @@ function inspectWorkspaceFile(workspaceRoot, targetPath) {
   }
   try {
     const realRoot = resolveRealPathWithMissingTail2(workspaceRoot);
-    const candidate = import_node_path26.default.isAbsolute(targetPath) ? targetPath : import_node_path26.default.resolve(workspaceRoot, targetPath);
+    const candidate = import_node_path27.default.isAbsolute(targetPath) ? targetPath : import_node_path27.default.resolve(workspaceRoot, targetPath);
     const realTarget = resolveRealPathWithMissingTail2(candidate);
-    const rootPrefix = realRoot.endsWith(import_node_path26.default.sep) ? realRoot : `${realRoot}${import_node_path26.default.sep}`;
+    const rootPrefix = realRoot.endsWith(import_node_path27.default.sep) ? realRoot : `${realRoot}${import_node_path27.default.sep}`;
     if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
       return { inside: false };
     }
     if (realTarget === realRoot) {
       return { inside: false };
     }
-    const relPath = import_node_path26.default.relative(realRoot, realTarget).split(import_node_path26.default.sep).join("/");
+    const relPath = import_node_path27.default.relative(realRoot, realTarget).split(import_node_path27.default.sep).join("/");
     if (!relPath || relPath === "." || relPath.startsWith("../")) {
       return { inside: false };
     }
@@ -60345,7 +62652,7 @@ function inspectWorkspaceFile(workspaceRoot, targetPath) {
     let isFile = false;
     let isEmpty = false;
     try {
-      const stat = import_node_fs20.default.statSync(realTarget);
+      const stat = import_node_fs21.default.statSync(realTarget);
       exists = true;
       isFile = stat.isFile();
       isEmpty = isFile && stat.size === 0;
@@ -60427,8 +62734,8 @@ function executeVerifyCommand(command, workspaceRoot, options = {}) {
   );
   let resolvedCwd;
   try {
-    resolvedCwd = import_node_fs20.default.realpathSync(import_node_path26.default.resolve(workspaceRoot));
-    if (!import_node_fs20.default.statSync(resolvedCwd).isDirectory()) {
+    resolvedCwd = import_node_fs21.default.realpathSync(import_node_path27.default.resolve(workspaceRoot));
+    if (!import_node_fs21.default.statSync(resolvedCwd).isDirectory()) {
       throw new Error("Workspace root is not a directory.");
     }
   } catch (err) {
@@ -60672,7 +62979,7 @@ async function runVerifyCommands(commands, workspaceRoot, options = {}) {
   };
 }
 function createEvidenceId(prefix = "ver") {
-  return `${prefix}-${Date.now().toString(36)}-${import_node_crypto13.default.randomBytes(3).toString("hex")}`;
+  return `${prefix}-${Date.now().toString(36)}-${import_node_crypto14.default.randomBytes(3).toString("hex")}`;
 }
 function appendEvidenceToState(state, record2) {
   state.evidence.unshift(record2);
@@ -60703,7 +63010,7 @@ function clearVerifyHistory(moduleDataDir) {
   const statePath = getVerifyStatePath(moduleDataDir);
   const state = loadVerifyStateReadOnly(moduleDataDir);
   const cleared = clearVerifyHistoryInState(state);
-  if (cleared === 0 && !import_node_fs20.default.existsSync(statePath)) {
+  if (cleared === 0 && !import_node_fs21.default.existsSync(statePath)) {
     return { cleared: 0, state };
   }
   const saved = saveVerifyState(moduleDataDir, state);
@@ -60954,14 +63261,14 @@ function resolveTopLevelWorkspaceFile(realRoot, rootPrefix, fileName) {
   if (!fileName || fileName.includes("/") || fileName.includes("\\") || fileName.includes("..") || fileName.includes("\0")) {
     return null;
   }
-  const candidate = import_node_path26.default.join(realRoot, fileName);
+  const candidate = import_node_path27.default.join(realRoot, fileName);
   try {
-    import_node_fs20.default.lstatSync(candidate);
-    const realTarget = import_node_fs20.default.realpathSync(candidate);
+    import_node_fs21.default.lstatSync(candidate);
+    const realTarget = import_node_fs21.default.realpathSync(candidate);
     if (!realTarget.startsWith(rootPrefix)) {
       return null;
     }
-    const stat = import_node_fs20.default.statSync(realTarget);
+    const stat = import_node_fs21.default.statSync(realTarget);
     if (!stat.isFile()) {
       return null;
     }
@@ -60976,13 +63283,13 @@ function readTopLevelWorkspaceFile(realRoot, rootPrefix, fileName, maxBytes = MA
   const readLen = Math.min(resolved.size, maxBytes);
   const buf = Buffer.alloc(readLen);
   try {
-    const fd = import_node_fs20.default.openSync(resolved.realTarget, "r");
+    const fd = import_node_fs21.default.openSync(resolved.realTarget, "r");
     try {
       if (readLen > 0) {
-        import_node_fs20.default.readSync(fd, buf, 0, readLen, 0);
+        import_node_fs21.default.readSync(fd, buf, 0, readLen, 0);
       }
     } finally {
-      import_node_fs20.default.closeSync(fd);
+      import_node_fs21.default.closeSync(fd);
     }
     return buf.toString("utf8");
   } catch {
@@ -60995,14 +63302,14 @@ function detectWorkspaceVerifyCommands(workspaceRoot) {
   }
   let realRoot;
   try {
-    realRoot = import_node_fs20.default.realpathSync(import_node_path26.default.resolve(workspaceRoot));
-    if (!import_node_fs20.default.statSync(realRoot).isDirectory()) {
+    realRoot = import_node_fs21.default.realpathSync(import_node_path27.default.resolve(workspaceRoot));
+    if (!import_node_fs21.default.statSync(realRoot).isDirectory()) {
       return { detectedStacks: [], recommendations: [] };
     }
   } catch {
     return { detectedStacks: [], recommendations: [] };
   }
-  const rootPrefix = realRoot.endsWith(import_node_path26.default.sep) ? realRoot : `${realRoot}${import_node_path26.default.sep}`;
+  const rootPrefix = realRoot.endsWith(import_node_path27.default.sep) ? realRoot : `${realRoot}${import_node_path27.default.sep}`;
   const stacks = [];
   const stackSet = /* @__PURE__ */ new Set();
   const recommendations = [];
@@ -61563,12 +63870,12 @@ function registerVerifyModule(server, options, uiResourceUri) {
 }
 
 // src/modules/worktree/register.ts
-var import_node_path28 = __toESM(require("node:path"), 1);
+var import_node_path29 = __toESM(require("node:path"), 1);
 
 // src/modules/worktree/core.ts
 var import_node_child_process5 = require("node:child_process");
-var import_node_fs21 = __toESM(require("node:fs"), 1);
-var import_node_path27 = __toESM(require("node:path"), 1);
+var import_node_fs22 = __toESM(require("node:fs"), 1);
+var import_node_path28 = __toESM(require("node:path"), 1);
 var WORKTREE_MANAGED_DIR = ".agy-worktrees";
 var GIT_TIMEOUT_MS = 1e4;
 var GIT_MAX_BUFFER_BYTES = 2 * 1024 * 1024;
@@ -61641,29 +63948,29 @@ function deriveSafeWorktreeSlug(branch) {
   return validateWorktreeDirName(slug);
 }
 function isPathInside(parentReal, childReal) {
-  const rel = import_node_path27.default.relative(parentReal, childReal);
-  return rel !== "" && !rel.startsWith("..") && !import_node_path27.default.isAbsolute(rel);
+  const rel = import_node_path28.default.relative(parentReal, childReal);
+  return rel !== "" && !rel.startsWith("..") && !import_node_path28.default.isAbsolute(rel);
 }
 function canonicalizePath(inputPath) {
   if (typeof inputPath !== "string" || inputPath.length === 0 || inputPath.includes("\0")) {
     throw new Error("Invalid path: must be a non-empty string without NUL bytes.");
   }
-  const resolved = import_node_path27.default.resolve(inputPath);
+  const resolved = import_node_path28.default.resolve(inputPath);
   try {
-    return import_node_fs21.default.realpathSync(resolved);
+    return import_node_fs22.default.realpathSync(resolved);
   } catch {
     const missingSegments = [];
     let cursor = resolved;
     while (true) {
-      const parent = import_node_path27.default.dirname(cursor);
+      const parent = import_node_path28.default.dirname(cursor);
       if (parent === cursor) {
         return resolved;
       }
-      missingSegments.unshift(import_node_path27.default.basename(cursor));
+      missingSegments.unshift(import_node_path28.default.basename(cursor));
       cursor = parent;
       try {
-        const realAncestor = import_node_fs21.default.realpathSync(cursor);
-        return import_node_path27.default.join(realAncestor, ...missingSegments);
+        const realAncestor = import_node_fs22.default.realpathSync(cursor);
+        return import_node_path28.default.join(realAncestor, ...missingSegments);
       } catch {
       }
     }
@@ -61835,7 +64142,7 @@ function computeCounts(worktrees) {
   };
 }
 async function resolveGitContext(workspaceRoot) {
-  if (!workspaceRoot || !import_node_fs21.default.existsSync(workspaceRoot)) {
+  if (!workspaceRoot || !import_node_fs22.default.existsSync(workspaceRoot)) {
     return {
       isGitRepo: false,
       toplevelReal: workspaceRoot,
@@ -61845,7 +64152,7 @@ async function resolveGitContext(workspaceRoot) {
   }
   let stat;
   try {
-    stat = import_node_fs21.default.statSync(workspaceRoot);
+    stat = import_node_fs22.default.statSync(workspaceRoot);
   } catch {
     return {
       isGitRepo: false,
@@ -61918,38 +64225,38 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot) {
     const commonRes = await runGit2(repoRoot, ["rev-parse", "--git-common-dir"]);
     if (!commonRes.ok || !commonRes.stdout.trim()) return;
     const rawCommonDir = commonRes.stdout.trim();
-    const commonDir = import_node_path27.default.isAbsolute(rawCommonDir) ? rawCommonDir : import_node_path27.default.resolve(repoRoot, rawCommonDir);
-    const commonStat = import_node_fs21.default.lstatSync(commonDir);
+    const commonDir = import_node_path28.default.isAbsolute(rawCommonDir) ? rawCommonDir : import_node_path28.default.resolve(repoRoot, rawCommonDir);
+    const commonStat = import_node_fs22.default.lstatSync(commonDir);
     if (commonStat.isSymbolicLink() || !commonStat.isDirectory()) return;
-    const realCommonDir = import_node_fs21.default.realpathSync(commonDir);
-    if (!import_node_fs21.default.statSync(realCommonDir).isDirectory()) return;
-    const infoDir = import_node_path27.default.join(realCommonDir, "info");
+    const realCommonDir = import_node_fs22.default.realpathSync(commonDir);
+    if (!import_node_fs22.default.statSync(realCommonDir).isDirectory()) return;
+    const infoDir = import_node_path28.default.join(realCommonDir, "info");
     if (!isPathInside(realCommonDir, infoDir)) return;
     let infoExists = false;
     try {
-      const infoStat = import_node_fs21.default.lstatSync(infoDir);
+      const infoStat = import_node_fs22.default.lstatSync(infoDir);
       if (infoStat.isSymbolicLink() || !infoStat.isDirectory()) return;
       infoExists = true;
     } catch (err) {
       if (err?.code !== "ENOENT") return;
     }
     if (!infoExists) {
-      import_node_fs21.default.mkdirSync(infoDir);
-      const createdInfoStat = import_node_fs21.default.lstatSync(infoDir);
+      import_node_fs22.default.mkdirSync(infoDir);
+      const createdInfoStat = import_node_fs22.default.lstatSync(infoDir);
       if (createdInfoStat.isSymbolicLink() || !createdInfoStat.isDirectory()) return;
     }
-    const realInfoDir = import_node_fs21.default.realpathSync(infoDir);
+    const realInfoDir = import_node_fs22.default.realpathSync(infoDir);
     if (!isPathInside(realCommonDir, realInfoDir)) return;
-    const excludeFile = import_node_path27.default.join(realInfoDir, "exclude");
+    const excludeFile = import_node_path28.default.join(realInfoDir, "exclude");
     if (!isPathInside(realCommonDir, excludeFile) || !isPathInside(realInfoDir, excludeFile)) {
       return;
     }
     let excludeExists = false;
     let realExcludeFile = excludeFile;
     try {
-      const excludeStat = import_node_fs21.default.lstatSync(excludeFile);
+      const excludeStat = import_node_fs22.default.lstatSync(excludeFile);
       if (excludeStat.isSymbolicLink() || !excludeStat.isFile()) return;
-      realExcludeFile = import_node_fs21.default.realpathSync(excludeFile);
+      realExcludeFile = import_node_fs22.default.realpathSync(excludeFile);
       if (!isPathInside(realCommonDir, realExcludeFile) || !isPathInside(realInfoDir, realExcludeFile)) {
         return;
       }
@@ -61959,7 +64266,7 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot) {
     }
     let existing = "";
     if (excludeExists) {
-      existing = import_node_fs21.default.readFileSync(realExcludeFile, "utf8");
+      existing = import_node_fs22.default.readFileSync(realExcludeFile, "utf8");
     }
     const pattern = `/${WORKTREE_MANAGED_DIR}/`;
     const hasEntry = existing.split(/\r?\n/).some((line) => {
@@ -61970,29 +64277,29 @@ async function ensureWorktreeDirExcludedInGitInfo(repoRoot) {
     const prefix = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
     const lineToWrite = `${prefix}${pattern}
 `;
-    const noFollow = import_node_fs21.default.constants.O_NOFOLLOW ?? 0;
+    const noFollow = import_node_fs22.default.constants.O_NOFOLLOW ?? 0;
     if (excludeExists) {
-      const reStat = import_node_fs21.default.lstatSync(realExcludeFile);
+      const reStat = import_node_fs22.default.lstatSync(realExcludeFile);
       if (reStat.isSymbolicLink() || !reStat.isFile()) return;
-      const fd = import_node_fs21.default.openSync(
+      const fd = import_node_fs22.default.openSync(
         realExcludeFile,
-        import_node_fs21.default.constants.O_WRONLY | import_node_fs21.default.constants.O_APPEND | noFollow
+        import_node_fs22.default.constants.O_WRONLY | import_node_fs22.default.constants.O_APPEND | noFollow
       );
       try {
-        import_node_fs21.default.writeSync(fd, lineToWrite, void 0, "utf8");
+        import_node_fs22.default.writeSync(fd, lineToWrite, void 0, "utf8");
       } finally {
-        import_node_fs21.default.closeSync(fd);
+        import_node_fs22.default.closeSync(fd);
       }
     } else {
-      const fd = import_node_fs21.default.openSync(
+      const fd = import_node_fs22.default.openSync(
         excludeFile,
-        import_node_fs21.default.constants.O_WRONLY | import_node_fs21.default.constants.O_CREAT | import_node_fs21.default.constants.O_EXCL | noFollow,
+        import_node_fs22.default.constants.O_WRONLY | import_node_fs22.default.constants.O_CREAT | import_node_fs22.default.constants.O_EXCL | noFollow,
         420
       );
       try {
-        import_node_fs21.default.writeSync(fd, lineToWrite, void 0, "utf8");
+        import_node_fs22.default.writeSync(fd, lineToWrite, void 0, "utf8");
       } finally {
-        import_node_fs21.default.closeSync(fd);
+        import_node_fs22.default.closeSync(fd);
       }
     }
   } catch {
@@ -62032,7 +64339,7 @@ async function inspectWorktrees(workspaceRoot) {
   }
   const worktrees = await Promise.all(
     ctx.rawEntries.map(async (raw) => {
-      const exists = import_node_fs21.default.existsSync(raw.path);
+      const exists = import_node_fs22.default.existsSync(raw.path);
       let isDirty2 = false;
       let changedFilesCount = 0;
       if (exists && !raw.bare) {
@@ -62126,35 +64433,35 @@ async function createWorktree(workspaceRoot, opts) {
   const branch = validateGitRef(opts.branch);
   const baseRef = opts.baseRef !== void 0 && opts.baseRef !== "" ? validateGitRef(opts.baseRef) : void 0;
   const safeSlug = opts.dirName !== void 0 && opts.dirName !== "" ? validateWorktreeDirName(opts.dirName) : deriveSafeWorktreeSlug(branch);
-  const repoRealRoot = import_node_fs21.default.realpathSync(ctx.mainRootReal);
+  const repoRealRoot = import_node_fs22.default.realpathSync(ctx.mainRootReal);
   const alreadyCheckedOut = ctx.rawEntries.find((w) => w.branch === branch);
   if (alreadyCheckedOut) {
     throw new Error(
       `Branch "${branch}" is already checked out in worktree: ${alreadyCheckedOut.path}`
     );
   }
-  const managedRootCandidate = import_node_path27.default.join(repoRealRoot, WORKTREE_MANAGED_DIR);
+  const managedRootCandidate = import_node_path28.default.join(repoRealRoot, WORKTREE_MANAGED_DIR);
   if (!isPathInside(repoRealRoot, managedRootCandidate)) {
     throw new Error("Controlled worktree root escapes repository boundary.");
   }
-  if (import_node_fs21.default.existsSync(managedRootCandidate)) {
-    const lstat = import_node_fs21.default.lstatSync(managedRootCandidate);
+  if (import_node_fs22.default.existsSync(managedRootCandidate)) {
+    const lstat = import_node_fs22.default.lstatSync(managedRootCandidate);
     if (lstat.isSymbolicLink() || !lstat.isDirectory()) {
       throw new Error(
         `Controlled worktree root "${managedRootCandidate}" must be a real directory (not a symlink or file).`
       );
     }
-    const realManaged = import_node_fs21.default.realpathSync(managedRootCandidate);
+    const realManaged = import_node_fs22.default.realpathSync(managedRootCandidate);
     if (!isPathInside(repoRealRoot, realManaged)) {
       throw new Error("Controlled worktree root symlink escapes repository boundary.");
     }
   }
-  const preTargetPath = import_node_path27.default.join(managedRootCandidate, safeSlug);
+  const preTargetPath = import_node_path28.default.join(managedRootCandidate, safeSlug);
   if (!isPathInside(managedRootCandidate, preTargetPath)) {
     throw new Error(`Target worktree path escapes controlled directory "${WORKTREE_MANAGED_DIR}".`);
   }
   try {
-    import_node_fs21.default.lstatSync(preTargetPath);
+    import_node_fs22.default.lstatSync(preTargetPath);
     throw new Error(
       `Target worktree directory already exists (refusing to overwrite): ${preTargetPath}`
     );
@@ -62176,13 +64483,13 @@ async function createWorktree(workspaceRoot, opts) {
     `refs/heads/${branch}`
   ]);
   const branchExists = branchRefRes.ok;
-  import_node_fs21.default.mkdirSync(managedRootCandidate, { recursive: true });
-  const realManagedRoot = import_node_fs21.default.realpathSync(managedRootCandidate);
+  import_node_fs22.default.mkdirSync(managedRootCandidate, { recursive: true });
+  const realManagedRoot = import_node_fs22.default.realpathSync(managedRootCandidate);
   if (!isPathInside(repoRealRoot, realManagedRoot)) {
     throw new Error("Controlled worktree root escapes repository boundary after creation.");
   }
-  const targetPath = import_node_path27.default.join(realManagedRoot, safeSlug);
-  if (import_node_path27.default.dirname(targetPath) !== realManagedRoot || !isPathInside(realManagedRoot, targetPath)) {
+  const targetPath = import_node_path28.default.join(realManagedRoot, safeSlug);
+  if (import_node_path28.default.dirname(targetPath) !== realManagedRoot || !isPathInside(realManagedRoot, targetPath)) {
     throw new Error("Resolved target worktree path escapes controlled worktree root.");
   }
   await ensureWorktreeDirExcludedInGitInfo(repoRealRoot);
@@ -62254,7 +64561,7 @@ async function getWorktreeDiffSummary(workspaceRoot, worktreePath, baseRef) {
   }
   let normalizedInput;
   try {
-    normalizedInput = import_node_fs21.default.realpathSync(import_node_path27.default.resolve(worktreePath));
+    normalizedInput = import_node_fs22.default.realpathSync(import_node_path28.default.resolve(worktreePath));
   } catch {
     throw new Error(`Worktree path does not exist or is not accessible: ${worktreePath}`);
   }
@@ -62398,10 +64705,10 @@ async function cleanupWorktree(workspaceRoot, opts) {
   };
 }
 function createDemoWorktreeStore(workspaceRoot) {
-  const repoRoot = import_node_path27.default.resolve(workspaceRoot);
-  const managedRoot = import_node_path27.default.join(repoRoot, WORKTREE_MANAGED_DIR);
-  const featPath = import_node_path27.default.join(managedRoot, "feat-verify-gate");
-  const fixPath = import_node_path27.default.join(managedRoot, "fix-cache-leak");
+  const repoRoot = import_node_path28.default.resolve(workspaceRoot);
+  const managedRoot = import_node_path28.default.join(repoRoot, WORKTREE_MANAGED_DIR);
+  const featPath = import_node_path28.default.join(managedRoot, "feat-verify-gate");
+  const fixPath = import_node_path28.default.join(managedRoot, "fix-cache-leak");
   let seq = 1;
   const entries = [
     {
@@ -62505,7 +64812,7 @@ function createDemoWorktreeStore(workspaceRoot) {
         validateGitRef(opts.baseRef);
       }
       const safeSlug = opts.dirName !== void 0 && opts.dirName !== "" ? validateWorktreeDirName(opts.dirName) : deriveSafeWorktreeSlug(branch);
-      const targetPath = import_node_path27.default.join(managedRoot, safeSlug);
+      const targetPath = import_node_path28.default.join(managedRoot, safeSlug);
       if (!isPathInside(managedRoot, targetPath)) {
         throw new Error("Target worktree path escapes controlled worktree root.");
       }
@@ -62548,7 +64855,7 @@ function createDemoWorktreeStore(workspaceRoot) {
         throw new Error("Invalid worktreePath: must be a non-empty filesystem path.");
       }
       const resolvedBaseRef = baseRef !== void 0 && baseRef !== "" ? validateGitRef(baseRef) : "main";
-      const normalized = import_node_path27.default.resolve(worktreePath);
+      const normalized = import_node_path28.default.resolve(worktreePath);
       const entry = entries.find((e) => e.path === normalized);
       if (!entry) {
         throw new Error(
@@ -62586,7 +64893,7 @@ function createDemoWorktreeStore(workspaceRoot) {
       if (!opts.worktreePath || !opts.worktreePath.trim()) {
         throw new Error("Either worktreePath or pruneOnly: true must be provided.");
       }
-      const normalized = import_node_path27.default.resolve(opts.worktreePath);
+      const normalized = import_node_path28.default.resolve(opts.worktreePath);
       const idx = entries.findIndex((e) => e.path === normalized);
       if (idx < 0) {
         throw new Error(
@@ -62670,7 +64977,7 @@ function formatDiffSummary(diff) {
   return lines.join("\n");
 }
 function registerWorktreeModule(server, options, uiResourceUri) {
-  const workspaceRoot = import_node_path28.default.resolve(options.workspaceRoot);
+  const workspaceRoot = import_node_path29.default.resolve(options.workspaceRoot);
   const isDemo = options.demoMode === true;
   const demoStore = isDemo ? createDemoWorktreeStore(workspaceRoot) : null;
   const APP_ONLY_META2 = {
@@ -62907,19 +65214,19 @@ function registerWorktreeModule(server, options, uiResourceUri) {
 }
 
 // src/modules/xray/register.ts
-var import_node_path33 = __toESM(require("node:path"), 1);
+var import_node_path34 = __toESM(require("node:path"), 1);
 
 // src/modules/xray/analytics.ts
-var import_node_fs25 = __toESM(require("node:fs"), 1);
+var import_node_fs26 = __toESM(require("node:fs"), 1);
 
 // src/modules/xray/discovery.ts
-var import_node_fs24 = __toESM(require("node:fs"), 1);
+var import_node_fs25 = __toESM(require("node:fs"), 1);
 var import_node_os5 = __toESM(require("node:os"), 1);
-var import_node_path31 = __toESM(require("node:path"), 1);
+var import_node_path32 = __toESM(require("node:path"), 1);
 
 // src/modules/xray/pricing.ts
-var import_node_fs22 = __toESM(require("node:fs"), 1);
-var import_node_path29 = __toESM(require("node:path"), 1);
+var import_node_fs23 = __toESM(require("node:fs"), 1);
+var import_node_path30 = __toESM(require("node:path"), 1);
 var MAX_OVERRIDES_FILE_BYTES = 1024 * 1024;
 var BUILTIN_MODEL_PRICING = Object.freeze({
   "gemini-4-neon": { inputPerM: 2.5, cacheReadPerM: 0.25, outputPerM: 12 },
@@ -62991,19 +65298,19 @@ function sanitizeOverridesRecord(raw) {
 }
 function loadPricingOverrides(dataDir) {
   if (!dataDir || !dataDir.trim()) return {};
-  const resolved = import_node_path29.default.resolve(dataDir);
+  const resolved = import_node_path30.default.resolve(dataDir);
   const candidates = [
-    import_node_path29.default.join(resolved, "pricing-overrides.json"),
-    import_node_path29.default.join(resolved, "modules", "xray", "pricing-overrides.json")
+    import_node_path30.default.join(resolved, "pricing-overrides.json"),
+    import_node_path30.default.join(resolved, "modules", "xray", "pricing-overrides.json")
   ];
   for (const filePath of candidates) {
     try {
-      if (!import_node_fs22.default.existsSync(filePath)) continue;
-      const stat = import_node_fs22.default.statSync(filePath);
+      if (!import_node_fs23.default.existsSync(filePath)) continue;
+      const stat = import_node_fs23.default.statSync(filePath);
       if (!stat.isFile() || stat.size === 0 || stat.size > MAX_OVERRIDES_FILE_BYTES) {
         continue;
       }
-      const rawText = import_node_fs22.default.readFileSync(filePath, "utf8");
+      const rawText = import_node_fs23.default.readFileSync(filePath, "utf8");
       const parsed = JSON.parse(rawText);
       return sanitizeOverridesRecord(parsed);
     } catch {
@@ -63444,8 +65751,8 @@ function searchDemoSessions(query) {
 }
 
 // src/modules/xray/transcript.ts
-var import_node_fs23 = __toESM(require("node:fs"), 1);
-var import_node_path30 = __toESM(require("node:path"), 1);
+var import_node_fs24 = __toESM(require("node:fs"), 1);
+var import_node_path31 = __toESM(require("node:path"), 1);
 var import_node_url3 = require("node:url");
 
 // src/modules/xray/sanitize.ts
@@ -63543,7 +65850,7 @@ function cleanUserRequest(raw) {
 function toSafeFileUri(filePath) {
   if (filePath.startsWith("file://")) return filePath;
   try {
-    return (0, import_node_url3.pathToFileURL)(import_node_path30.default.resolve(filePath)).href;
+    return (0, import_node_url3.pathToFileURL)(import_node_path31.default.resolve(filePath)).href;
   } catch {
     return `file://${filePath}`;
   }
@@ -63569,17 +65876,17 @@ function extractFilePathsFromArgs(args) {
   return results;
 }
 function listArtifactsInBrainDir(brainDir) {
-  if (!brainDir || !import_node_fs23.default.existsSync(brainDir)) return [];
+  if (!brainDir || !import_node_fs24.default.existsSync(brainDir)) return [];
   const artifacts = [];
   try {
-    for (const entry of import_node_fs23.default.readdirSync(brainDir, { withFileTypes: true })) {
+    for (const entry of import_node_fs24.default.readdirSync(brainDir, { withFileTypes: true })) {
       if (!entry.isFile()) continue;
       if (!/\.(md|txt|json|html|svg)$/i.test(entry.name)) continue;
       if (entry.name.startsWith(".")) continue;
-      const fullPath = import_node_path30.default.join(brainDir, entry.name);
+      const fullPath = import_node_path31.default.join(brainDir, entry.name);
       try {
-        const stat = import_node_fs23.default.statSync(fullPath);
-        const content = import_node_fs23.default.readFileSync(fullPath, "utf8").slice(0, 800);
+        const stat = import_node_fs24.default.statSync(fullPath);
+        const content = import_node_fs24.default.readFileSync(fullPath, "utf8").slice(0, 800);
         artifacts.push({
           name: entry.name,
           path: fullPath,
@@ -63644,9 +65951,9 @@ function isSubagentToolCall(toolName, args) {
   return false;
 }
 function listSiblingBrainDirs(siblingBrainRoot, parentSessionId) {
-  if (!siblingBrainRoot || !import_node_fs23.default.existsSync(siblingBrainRoot)) return [];
+  if (!siblingBrainRoot || !import_node_fs24.default.existsSync(siblingBrainRoot)) return [];
   try {
-    const entries = import_node_fs23.default.readdirSync(siblingBrainRoot, { withFileTypes: true });
+    const entries = import_node_fs24.default.readdirSync(siblingBrainRoot, { withFileTypes: true });
     return entries.filter((entry) => entry.isDirectory() && isSafeChildId(entry.name, parentSessionId)).map((entry) => entry.name).sort((a, b) => b.length - a.length);
   } catch {
     return [];
@@ -63732,25 +66039,25 @@ function extractChildIdFromStep(step, parentSessionId, siblingDirNames, usedIds)
   return extractChildIdFromText(content, parentSessionId, siblingDirNames, usedIds);
 }
 function resolveChildTranscriptPath(siblingBrainRoot, childId) {
-  if (!siblingBrainRoot || !import_node_fs23.default.existsSync(siblingBrainRoot)) return null;
+  if (!siblingBrainRoot || !import_node_fs24.default.existsSync(siblingBrainRoot)) return null;
   let realRoot;
   try {
-    realRoot = import_node_fs23.default.realpathSync(siblingBrainRoot);
+    realRoot = import_node_fs24.default.realpathSync(siblingBrainRoot);
   } catch {
     return null;
   }
   const candidates = [
-    import_node_path30.default.join(siblingBrainRoot, childId, ".system_generated", "logs", "transcript.jsonl"),
-    import_node_path30.default.join(siblingBrainRoot, childId, "transcript.jsonl")
+    import_node_path31.default.join(siblingBrainRoot, childId, ".system_generated", "logs", "transcript.jsonl"),
+    import_node_path31.default.join(siblingBrainRoot, childId, "transcript.jsonl")
   ];
   for (const candidate of candidates) {
-    if (!import_node_fs23.default.existsSync(candidate)) continue;
+    if (!import_node_fs24.default.existsSync(candidate)) continue;
     try {
-      const realCandidate = import_node_fs23.default.realpathSync(candidate);
-      if (realCandidate !== realRoot && !realCandidate.startsWith(`${realRoot}${import_node_path30.default.sep}`)) {
+      const realCandidate = import_node_fs24.default.realpathSync(candidate);
+      if (realCandidate !== realRoot && !realCandidate.startsWith(`${realRoot}${import_node_path31.default.sep}`)) {
         continue;
       }
-      const stat = import_node_fs23.default.statSync(realCandidate);
+      const stat = import_node_fs24.default.statSync(realCandidate);
       if (!stat.isFile()) continue;
       return realCandidate;
     } catch {
@@ -63789,11 +66096,11 @@ var MAX_CHILD_TRANSCRIPT_BYTES = 20 * 1024 * 1024;
 function readChildTranscriptStats(transcriptPath) {
   let rawText;
   try {
-    const st = import_node_fs23.default.statSync(transcriptPath);
+    const st = import_node_fs24.default.statSync(transcriptPath);
     if (!st.isFile() || st.size > MAX_CHILD_TRANSCRIPT_BYTES) {
       return null;
     }
-    rawText = import_node_fs23.default.readFileSync(transcriptPath, "utf8");
+    rawText = import_node_fs24.default.readFileSync(transcriptPath, "utf8");
   } catch {
     return null;
   }
@@ -63857,11 +66164,11 @@ function hasRetrySignalInStep(step) {
   return parts.some((part) => Boolean(part) && RETRY_SIGNAL_RE.test(part));
 }
 function parseTranscriptFile(transcriptPath, opts = {}) {
-  const rawText = import_node_fs23.default.readFileSync(transcriptPath, "utf8");
+  const rawText = import_node_fs24.default.readFileSync(transcriptPath, "utf8");
   return parseTranscriptLines(rawText.split(/\r?\n/), {
     transcriptPath,
-    brainDir: opts.brainDir ?? import_node_path30.default.resolve(import_node_path30.default.dirname(transcriptPath), "..", ".."),
-    sessionId: opts.sessionId ?? import_node_path30.default.basename(import_node_path30.default.resolve(import_node_path30.default.dirname(transcriptPath), "..", "..")),
+    brainDir: opts.brainDir ?? import_node_path31.default.resolve(import_node_path31.default.dirname(transcriptPath), "..", ".."),
+    sessionId: opts.sessionId ?? import_node_path31.default.basename(import_node_path31.default.resolve(import_node_path31.default.dirname(transcriptPath), "..", "..")),
     source: opts.source ?? "desktop",
     siblingBrainRoot: opts.siblingBrainRoot,
     pricingOverrides: opts.pricingOverrides
@@ -64038,11 +66345,11 @@ function parseTranscriptLines(lines, meta3) {
         const op = classifyToolFileOp(name);
         if (op) {
           for (const fp of extractFilePathsFromArgs(tc.args)) {
-            const normalized = import_node_path30.default.resolve(fp);
+            const normalized = import_node_path31.default.resolve(fp);
             const cur = fileMap.get(normalized) ?? {
               path: normalized,
-              basename: import_node_path30.default.basename(normalized),
-              dir: import_node_path30.default.dirname(normalized),
+              basename: import_node_path31.default.basename(normalized),
+              dir: import_node_path31.default.dirname(normalized),
               uri: toSafeFileUri(normalized),
               ops: [],
               readCount: 0,
@@ -64480,18 +66787,18 @@ function renderRedactedBrief(detail) {
 function getDefaultBrainDirs2() {
   const home = import_node_os5.default.homedir();
   const candidates = [
-    { dir: import_node_path31.default.join(home, ".gemini", "antigravity", "brain"), source: "desktop" },
-    { dir: import_node_path31.default.join(home, ".gemini", "antigravity-cli", "brain"), source: "cli" },
-    { dir: import_node_path31.default.join(home, ".gemini", "antigravity-ide", "brain"), source: "ide" }
+    { dir: import_node_path32.default.join(home, ".gemini", "antigravity", "brain"), source: "desktop" },
+    { dir: import_node_path32.default.join(home, ".gemini", "antigravity-cli", "brain"), source: "cli" },
+    { dir: import_node_path32.default.join(home, ".gemini", "antigravity-ide", "brain"), source: "ide" }
   ];
-  return candidates.filter((c) => import_node_fs24.default.existsSync(c.dir));
+  return candidates.filter((c) => import_node_fs25.default.existsSync(c.dir));
 }
 function readLiveHookState(dataDir) {
   if (!dataDir) return { recentEvents: [] };
-  const statePath = import_node_path31.default.join(dataDir, "live-state.json");
-  if (!import_node_fs24.default.existsSync(statePath)) return { recentEvents: [] };
+  const statePath = import_node_path32.default.join(dataDir, "live-state.json");
+  if (!import_node_fs25.default.existsSync(statePath)) return { recentEvents: [] };
   try {
-    const parsed = JSON.parse(import_node_fs24.default.readFileSync(statePath, "utf8"));
+    const parsed = JSON.parse(import_node_fs25.default.readFileSync(statePath, "utf8"));
     return {
       ...parsed,
       recentEvents: Array.isArray(parsed.recentEvents) ? parsed.recentEvents : []
@@ -64505,26 +66812,26 @@ function discoverTranscriptEntries(opts = {}) {
   const entries = [];
   const seen = /* @__PURE__ */ new Set();
   for (const root of roots) {
-    if (!import_node_fs24.default.existsSync(root.dir)) continue;
+    if (!import_node_fs25.default.existsSync(root.dir)) continue;
     let children;
     try {
-      children = import_node_fs24.default.readdirSync(root.dir, { withFileTypes: true });
+      children = import_node_fs25.default.readdirSync(root.dir, { withFileTypes: true });
     } catch {
       continue;
     }
     for (const child of children) {
       if (!child.isDirectory()) continue;
-      const brainDir = import_node_path31.default.join(root.dir, child.name);
+      const brainDir = import_node_path32.default.join(root.dir, child.name);
       const candidates = [
-        import_node_path31.default.join(brainDir, ".system_generated", "logs", "transcript.jsonl"),
-        import_node_path31.default.join(brainDir, "transcript.jsonl")
+        import_node_path32.default.join(brainDir, ".system_generated", "logs", "transcript.jsonl"),
+        import_node_path32.default.join(brainDir, "transcript.jsonl")
       ];
       for (const transcriptPath of candidates) {
-        if (!import_node_fs24.default.existsSync(transcriptPath)) continue;
+        if (!import_node_fs25.default.existsSync(transcriptPath)) continue;
         if (seen.has(transcriptPath)) continue;
         seen.add(transcriptPath);
         try {
-          const stat = import_node_fs24.default.statSync(transcriptPath);
+          const stat = import_node_fs25.default.statSync(transcriptPath);
           if (stat.size === 0) continue;
           entries.push({
             id: child.name,
@@ -64580,19 +66887,19 @@ function loadSessionDetail(sessionId, opts = {}) {
         sessionId: match.id,
         source: match.source,
         brainDir: match.brainDir,
-        siblingBrainRoot: import_node_path31.default.dirname(match.brainDir),
+        siblingBrainRoot: import_node_path32.default.dirname(match.brainDir),
         pricingOverrides
       });
     }
   }
-  if (!sessionId && hookState.activeTranscriptPath && import_node_fs24.default.existsSync(hookState.activeTranscriptPath)) {
-    const parentDir = import_node_path31.default.dirname(hookState.activeTranscriptPath);
-    const activeBrainDir = import_node_path31.default.basename(parentDir) === "logs" && import_node_path31.default.basename(import_node_path31.default.dirname(parentDir)) === ".system_generated" ? import_node_path31.default.resolve(parentDir, "..", "..") : parentDir;
+  if (!sessionId && hookState.activeTranscriptPath && import_node_fs25.default.existsSync(hookState.activeTranscriptPath)) {
+    const parentDir = import_node_path32.default.dirname(hookState.activeTranscriptPath);
+    const activeBrainDir = import_node_path32.default.basename(parentDir) === "logs" && import_node_path32.default.basename(import_node_path32.default.dirname(parentDir)) === ".system_generated" ? import_node_path32.default.resolve(parentDir, "..", "..") : parentDir;
     return parseTranscriptFile(hookState.activeTranscriptPath, {
-      sessionId: hookState.activeConversationId ?? import_node_path31.default.basename(activeBrainDir) ?? "active",
+      sessionId: hookState.activeConversationId ?? import_node_path32.default.basename(activeBrainDir) ?? "active",
       source: "desktop",
       brainDir: activeBrainDir,
-      siblingBrainRoot: import_node_path31.default.dirname(activeBrainDir),
+      siblingBrainRoot: import_node_path32.default.dirname(activeBrainDir),
       pricingOverrides
     });
   }
@@ -64602,7 +66909,7 @@ function loadSessionDetail(sessionId, opts = {}) {
     sessionId: latest.id,
     source: latest.source,
     brainDir: latest.brainDir,
-    siblingBrainRoot: import_node_path31.default.dirname(latest.brainDir),
+    siblingBrainRoot: import_node_path32.default.dirname(latest.brainDir),
     pricingOverrides
   });
 }
@@ -64784,7 +67091,7 @@ function computeCostAnalytics(opts = {}) {
   let totalCacheSavingsUsdRaw = 0;
   for (const entry of entries) {
     try {
-      const st = import_node_fs25.default.statSync(entry.transcriptPath);
+      const st = import_node_fs26.default.statSync(entry.transcriptPath);
       if (!st.isFile() || st.size === 0 || st.size > MAX_ANALYTICS_TRANSCRIPT_BYTES) {
         continue;
       }
@@ -65316,8 +67623,8 @@ function renderUsageCsv(analytics) {
 }
 
 // src/modules/xray/search.ts
-var import_node_fs26 = __toESM(require("node:fs"), 1);
-var import_node_path32 = __toESM(require("node:path"), 1);
+var import_node_fs27 = __toESM(require("node:fs"), 1);
+var import_node_path33 = __toESM(require("node:path"), 1);
 var import_node_url4 = require("node:url");
 function tokenize2(text) {
   const lower = text.toLowerCase();
@@ -65362,7 +67669,7 @@ function collectDocuments(opts) {
     const updatedAt = new Date(entry.mtimeMs).toISOString();
     const transcriptChunks = [];
     try {
-      const lines = import_node_fs26.default.readFileSync(entry.transcriptPath, "utf8").split(/\r?\n/);
+      const lines = import_node_fs27.default.readFileSync(entry.transcriptPath, "utf8").split(/\r?\n/);
       for (const line of lines) {
         if (!line.trim()) continue;
         try {
@@ -65403,14 +67710,14 @@ function collectDocuments(opts) {
       });
     }
     try {
-      for (const dirent of import_node_fs26.default.readdirSync(entry.brainDir, { withFileTypes: true })) {
+      for (const dirent of import_node_fs27.default.readdirSync(entry.brainDir, { withFileTypes: true })) {
         if (!dirent.isFile() || !/\.md$/i.test(dirent.name) || dirent.name.startsWith(".")) continue;
-        const artPath = import_node_path32.default.join(entry.brainDir, dirent.name);
-        const content = import_node_fs26.default.readFileSync(artPath, "utf8").slice(0, 4e4);
+        const artPath = import_node_path33.default.join(entry.brainDir, dirent.name);
+        const content = import_node_fs27.default.readFileSync(artPath, "utf8").slice(0, 4e4);
         docs.push({
           sessionId: entry.id,
           sessionTitle,
-          updatedAt: import_node_fs26.default.statSync(artPath).mtime.toISOString(),
+          updatedAt: import_node_fs27.default.statSync(artPath).mtime.toISOString(),
           sourceKind: "artifact",
           sourceLabel: dirent.name,
           filePath: artPath,
@@ -65505,7 +67812,7 @@ function registerXrayModule(server, opts, uiResourceUri) {
   const moduleDataDir = getModuleDataDir(opts.dataDir, "xray");
   const discoveryOpts = {
     dataDir: moduleDataDir,
-    brainDirs: opts.brainDir ? [{ dir: import_node_path33.default.resolve(opts.brainDir), source: "custom" }] : void 0,
+    brainDirs: opts.brainDir ? [{ dir: import_node_path34.default.resolve(opts.brainDir), source: "custom" }] : void 0,
     demoMode: opts.demoMode
   };
   const INLINE_META = {
@@ -65861,7 +68168,7 @@ function registerXrayModule(server, opts, uiResourceUri) {
 
 // src/server/index.ts
 var UI_RESOURCE_URI = "ui://agy-nov/app.html";
-var NOV_VERSION = "0.6.0";
+var NOV_VERSION = "0.7.0";
 var UI_ENTRYPOINT_META = {
   ui: { resourceUri: UI_RESOURCE_URI },
   "com.google.antigravity/ui": {
@@ -65874,24 +68181,24 @@ var UI_ENTRYPOINT_META = {
 var APP_ONLY_META = {
   ui: { visibility: ["app"] }
 };
-var OPEN_TAB_ENUM = [...MODULE_IDS, "modules"];
+var OPEN_TAB_ENUM = [...MODULE_IDS, "modules", "hub", "settings"];
 function resolveUiHtmlPath(override) {
   const envOverride = process.env.AGY_NOV_APP_HTML;
   const candidates = [
     override,
     envOverride,
-    import_node_path34.default.resolve(process.cwd(), "dist/ui/app.html"),
-    import_node_path34.default.resolve(import_node_path34.default.dirname(process.argv[1] || process.cwd()), "ui/app.html"),
-    import_node_path34.default.resolve(import_node_path34.default.dirname(process.argv[1] || process.cwd()), "../dist/ui/app.html")
+    import_node_path35.default.resolve(process.cwd(), "dist/ui/app.html"),
+    import_node_path35.default.resolve(import_node_path35.default.dirname(process.argv[1] || process.cwd()), "ui/app.html"),
+    import_node_path35.default.resolve(import_node_path35.default.dirname(process.argv[1] || process.cwd()), "../dist/ui/app.html")
   ].filter((p) => Boolean(p));
   for (const candidate of candidates) {
-    if (import_node_fs27.default.existsSync(candidate)) return candidate;
+    if (import_node_fs28.default.existsSync(candidate)) return candidate;
   }
-  return candidates[0] ?? import_node_path34.default.resolve(process.cwd(), "dist/ui/app.html");
+  return candidates[0] ?? import_node_path35.default.resolve(process.cwd(), "dist/ui/app.html");
 }
 var DEFAULT_CONFIG_POLL_MS = 1500;
 function hasConfigChanged(prev, next) {
-  if (prev.locale !== next.locale || prev.defaultTab !== next.defaultTab) {
+  if (prev.locale !== next.locale || prev.defaultTab !== next.defaultTab || (prev.startupView ?? "hub") !== (next.startupView ?? "hub")) {
     return true;
   }
   return MODULE_IDS.some((id) => Boolean(prev.modules[id]) !== Boolean(next.modules[id]));
@@ -65900,7 +68207,7 @@ function readDiskConfigForSync(rootDataDir) {
   const cfgPath = getConfigPath(rootDataDir);
   let rawText;
   try {
-    rawText = import_node_fs27.default.readFileSync(cfgPath, "utf8");
+    rawText = import_node_fs28.default.readFileSync(cfgPath, "utf8");
   } catch (err) {
     if (err?.code === "ENOENT") {
       return { status: "missing", config: createDefaultConfig() };
@@ -65920,7 +68227,7 @@ function readDiskConfigForSync(rootDataDir) {
 function createNovServer(rawOpts = {}) {
   const options = {
     dataDir: resolveNovDataDir(rawOpts.dataDir),
-    workspaceRoot: import_node_path34.default.resolve(rawOpts.workspaceRoot ?? process.cwd()),
+    workspaceRoot: import_node_path35.default.resolve(rawOpts.workspaceRoot ?? process.cwd()),
     demoMode: Boolean(rawOpts.demoMode),
     brainDir: rawOpts.brainDir,
     uiHtmlPath: rawOpts.uiHtmlPath,
@@ -65946,7 +68253,7 @@ function createNovServer(rawOpts = {}) {
     },
     async () => {
       const htmlPath = resolveUiHtmlPath(options.uiHtmlPath);
-      const html = import_node_fs27.default.existsSync(htmlPath) ? import_node_fs27.default.readFileSync(htmlPath, "utf8") : "<!doctype html><html><body><p>agy-NOV UI bundle missing. Run npm run build.</p></body></html>";
+      const html = import_node_fs28.default.existsSync(htmlPath) ? import_node_fs28.default.readFileSync(htmlPath, "utf8") : "<!doctype html><html><body><p>agy-NOV UI bundle missing. Run npm run build.</p></body></html>";
       return {
         contents: [
           {
@@ -66037,6 +68344,13 @@ function createNovServer(rawOpts = {}) {
       }
     }
   }
+  function refreshFeedSnapshotSafe(cfg) {
+    try {
+      const remoteRunning = Boolean(registrations.get("remote")?.isRuntimeRunning?.());
+      writeFeedSnapshotIfDataDirExists(options.dataDir, cfg, { remoteRunning });
+    } catch {
+    }
+  }
   function syncConfigFromDiskIfChanged() {
     if (disposed) return Promise.resolve(false);
     return enqueueMutation(async () => {
@@ -66065,6 +68379,7 @@ function createNovServer(rawOpts = {}) {
       syncToolVisibility(next);
       await syncModuleRuntimes(prev, next);
       broadcastSnapshot();
+      refreshFeedSnapshotSafe(next);
       return true;
     });
   }
@@ -66076,6 +68391,7 @@ function createNovServer(rawOpts = {}) {
     syncToolVisibility(next);
     await syncModuleRuntimes(prev, next);
     broadcastSnapshot();
+    refreshFeedSnapshotSafe(next);
     return next;
   });
   const applyPresetMutation = (preset) => enqueueMutation(async () => {
@@ -66086,6 +68402,7 @@ function createNovServer(rawOpts = {}) {
     syncToolVisibility(next);
     await syncModuleRuntimes(prev, next);
     broadcastSnapshot();
+    refreshFeedSnapshotSafe(next);
     return next;
   });
   const applyLocaleMutation = (locale) => enqueueMutation(async () => {
@@ -66096,6 +68413,40 @@ function createNovServer(rawOpts = {}) {
     syncToolVisibility(next);
     await syncModuleRuntimes(prev, next);
     broadcastSnapshot();
+    refreshFeedSnapshotSafe(next);
+    return next;
+  });
+  const applyStartupViewMutation = (startupView) => enqueueMutation(async () => {
+    const prev = currentConfig;
+    const next = setNovStartupView(options.dataDir, startupView);
+    lastConfigSignature = getConfigFileSignature(options.dataDir);
+    currentConfig = next;
+    syncToolVisibility(next);
+    await syncModuleRuntimes(prev, next);
+    broadcastSnapshot();
+    refreshFeedSnapshotSafe(next);
+    return next;
+  });
+  const applyImportConfigMutation = (importedConfig) => enqueueMutation(async () => {
+    const prev = currentConfig;
+    const next = saveNovConfig(options.dataDir, importedConfig);
+    lastConfigSignature = getConfigFileSignature(options.dataDir);
+    currentConfig = next;
+    syncToolVisibility(next);
+    await syncModuleRuntimes(prev, next);
+    broadcastSnapshot();
+    refreshFeedSnapshotSafe(next);
+    return next;
+  });
+  const applyResetConfigMutation = () => enqueueMutation(async () => {
+    const prev = currentConfig;
+    const next = resetNovConfig(options.dataDir);
+    lastConfigSignature = getConfigFileSignature(options.dataDir);
+    currentConfig = next;
+    syncToolVisibility(next);
+    await syncModuleRuntimes(prev, next);
+    broadcastSnapshot();
+    refreshFeedSnapshotSafe(next);
     return next;
   });
   const BASE_READONLY_OFFLINE_EXEMPT = /* @__PURE__ */ new Set(["app_remote_get_hub_state"]);
@@ -66193,7 +68544,7 @@ function createNovServer(rawOpts = {}) {
         structuredContent: {
           ...snapshot,
           toolName: "nov_open",
-          novModule: targetModule ?? currentConfig.defaultTab
+          novModule: targetModule ?? (currentConfig.startupView === "last" ? currentConfig.defaultTab : "hub")
         }
       };
     }
@@ -66297,6 +68648,113 @@ function createNovServer(rawOpts = {}) {
       };
     }
   );
+  server.registerTool(
+    "nov_app_get_hub_state",
+    {
+      title: "Get agy-NOV Hub State",
+      description: "App-only: sync disk config and return unified Hub snapshot, dual-star feed summary, and read-only team preset.",
+      inputSchema: {},
+      _meta: APP_ONLY_META
+    },
+    async () => {
+      await syncConfigFromDiskIfChanged();
+      const snapshot = buildConfigSnapshot();
+      const feed = options.demoMode ? buildDemoFeedSnapshot(currentConfig, { remoteRunning: snapshot.remoteRunning }) : buildFeedSnapshot(options.dataDir, currentConfig, { remoteRunning: snapshot.remoteRunning });
+      const teamPreset = loadTeamPresetReadOnly(options.workspaceRoot);
+      const payload = { snapshot, feed, teamPreset };
+      return {
+        content: [{ type: "text", text: JSON.stringify(payload) }],
+        structuredContent: payload
+      };
+    }
+  );
+  server.registerTool(
+    "nov_app_set_startup_view",
+    {
+      title: "Set agy-NOV Startup View",
+      description: "App-only: persist default startup view preference (hub or last).",
+      inputSchema: {
+        startupView: external_exports.enum(STARTUP_VIEW_IDS)
+      },
+      _meta: APP_ONLY_META
+    },
+    async ({ startupView }) => {
+      await applyStartupViewMutation(startupView);
+      const snapshot = buildConfigSnapshot();
+      return {
+        content: [{ type: "text", text: JSON.stringify(snapshot) }],
+        structuredContent: { ...snapshot }
+      };
+    }
+  );
+  server.registerTool(
+    "nov_app_export_config",
+    {
+      title: "Export Sanitized agy-NOV Config",
+      description: "App-only: export strictly whitelisted agy-NOV configuration JSON with zero secrets or local paths.",
+      inputSchema: {},
+      _meta: APP_ONLY_META
+    },
+    async () => {
+      await syncConfigFromDiskIfChanged();
+      const exported = exportSanitizedConfig(currentConfig);
+      return {
+        content: [{ type: "text", text: JSON.stringify(exported, null, 2) }],
+        structuredContent: { ...exported }
+      };
+    }
+  );
+  server.registerTool(
+    "nov_app_import_config",
+    {
+      title: "Import agy-NOV Config",
+      description: "App-only: validate and apply a sanitized agy-NOV configuration JSON payload with hot tool sync.",
+      inputSchema: {
+        json: external_exports.string().max(MAX_CONFIG_IMPORT_BYTES)
+      },
+      _meta: APP_ONLY_META
+    },
+    async ({ json: json2 }) => {
+      const parsed = parseAndValidateConfigImport(json2);
+      if (!parsed.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: parsed.error }],
+          structuredContent: { ok: false, error: parsed.error }
+        };
+      }
+      await applyImportConfigMutation(parsed.config);
+      const snapshot = buildConfigSnapshot();
+      const payload = {
+        ok: true,
+        warnings: parsed.warnings,
+        snapshot
+      };
+      return {
+        content: [{ type: "text", text: JSON.stringify(payload) }],
+        structuredContent: payload
+      };
+    }
+  );
+  server.registerTool(
+    "nov_app_reset_config",
+    {
+      title: "Reset agy-NOV Config",
+      description: "App-only: reset agy-NOV configuration back to the default core preset.",
+      inputSchema: {
+        confirm: external_exports.literal(true)
+      },
+      _meta: APP_ONLY_META
+    },
+    async () => {
+      await applyResetConfigMutation();
+      const snapshot = buildConfigSnapshot();
+      return {
+        content: [{ type: "text", text: JSON.stringify(snapshot) }],
+        structuredContent: { ...snapshot }
+      };
+    }
+  );
   async function dispose() {
     disposed = true;
     if (configPollTimer) {
@@ -66323,6 +68781,8 @@ function createNovServer(rawOpts = {}) {
     setModule: applySingleToggle,
     applyPreset: applyPresetMutation,
     setLocale: applyLocaleMutation,
+    setStartupView: applyStartupViewMutation,
+    resetConfig: applyResetConfigMutation,
     subscribeSnapshot,
     syncConfigFromDisk: syncConfigFromDiskIfChanged,
     dispose

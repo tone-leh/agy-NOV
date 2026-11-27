@@ -23,9 +23,10 @@ import {
   type ModuleId,
   type PresetId,
 } from '../core/config.js';
+import { getFeedSnapshotPath, MAX_FEED_SNAPSHOT_BYTES } from '../core/feed.js';
 import { hasCliFlag, parseCliFlag } from '../core/utils.js';
 
-const CLI_VERSION = '0.6.0';
+const CLI_VERSION = '0.7.0';
 
 function printHelp(): void {
   console.log(`agy-NOV CLI (v${CLI_VERSION}) — The 100% Native Modular Super-Workbench for Antigravity 2.0
@@ -498,8 +499,23 @@ function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRecommend
   };
 }
 
+function resolvePluginRootDir(): string {
+  const scriptDir = path.dirname(process.argv[1] || process.cwd());
+  const candidates = [
+    path.resolve(scriptDir, '..'),
+    path.resolve(scriptDir, '../..'),
+    process.cwd(),
+  ];
+  for (const dir of candidates) {
+    if (fs.existsSync(path.join(dir, 'plugin.json'))) {
+      return dir;
+    }
+  }
+  return candidates[0];
+}
+
 function runDoctor(dataDir: string): number {
-  const rootDir = path.resolve(path.dirname(process.argv[1] || process.cwd()), '..');
+  const rootDir = resolvePluginRootDir();
   const requiredFiles = [
     'plugin.json',
     'mcp_config.json',
@@ -563,6 +579,31 @@ function runDoctor(dataDir: string): number {
   console.log(
     `  OK   config readable (preset=${cfg.preset}, locale=${cfg.locale}, remote=${cfg.modules.remote ? 'ON' : 'OFF'})`,
   );
+
+  // Read-only dual-star feed snapshot status check (never writes or creates directories)
+  const feedPath = getFeedSnapshotPath(dataDir);
+  let feedStatusTag = 'OK  ';
+  let feedNote = 'not generated yet (lazy read-only until first write)';
+  try {
+    const feedStat = fs.lstatSync(feedPath);
+    if (feedStat.isSymbolicLink() || !feedStat.isFile()) {
+      ok = false;
+      feedStatusTag = 'FAIL';
+      feedNote = 'unsafe symlink or non-regular file';
+    } else if (feedStat.size > MAX_FEED_SNAPSHOT_BYTES) {
+      ok = false;
+      feedStatusTag = 'FAIL';
+      feedNote = `exceeds 64 KB cap (${feedStat.size} bytes)`;
+    } else {
+      feedNote = `ready (${(feedStat.size / 1024).toFixed(1)} KB)`;
+    }
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      feedNote = 'unreadable';
+    }
+  }
+  console.log(`  ${feedStatusTag} Feed Snapshot: ${feedPath} (${feedNote})`);
+
   return ok ? 0 : 1;
 }
 

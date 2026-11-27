@@ -682,7 +682,10 @@ describe('v0.6.0 CLI recommend + Ops MCP Tool Contract & Demo Zero-Write', () =>
       const plainRes = await runCliRecommend(wsPlain);
       assert.equal(plainRes.code, 0, plainRes.stderr);
       const plainJson = JSON.parse(plainRes.stdout);
-      assert.equal(plainJson.version, '0.6.0');
+      const pkgVersion = JSON.parse(
+        fs.readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf8'),
+      ).version;
+      assert.equal(plainJson.version, pkgVersion);
       assert.equal(plainJson.recommendedPreset, 'core');
       assert.equal(plainJson.teamPreset.found, false);
       assert.equal(plainJson.teamPreset.valid, true);

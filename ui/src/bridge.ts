@@ -4,7 +4,13 @@ import {
   applyHostStyleVariables,
 } from '@modelcontextprotocol/ext-apps';
 import { z } from 'zod';
-import type { ModuleId, NovConfig, NovLocale, PresetId } from '../../src/core/catalog.js';
+import type {
+  ModuleId,
+  NovConfig,
+  NovLocale,
+  NovStartupView,
+  PresetId,
+} from '../../src/core/catalog.js';
 import type { ModuleRuntimeState } from '../../src/core/types.js';
 
 declare global {
@@ -34,6 +40,173 @@ export interface NovConfigSnapshot {
   moduleRuntimes?: Partial<Record<ModuleId, ModuleRuntimeState>>;
   demoMode: boolean;
   workspaceRoot: string;
+}
+
+export interface NovFeedAlert {
+  level: 'info' | 'warn' | 'danger' | 'error' | string;
+  moduleId: ModuleId | string;
+  code: string;
+  message: string;
+}
+
+export interface NovFeedPaths {
+  configFile?: string;
+  feedFile?: string;
+  modulesRoot?: string;
+  moduleFiles?: Record<string, string>;
+  dataDir?: string;
+  configPath?: string;
+  feedSnapshotPath?: string;
+  feedPath?: string;
+}
+
+export interface NovFeedSummary {
+  guard?: {
+    enabled?: boolean;
+    blockedCount?: number;
+    askCount?: number;
+    totalSnapshots?: number;
+    secretCatches?: number;
+    lastEvent?: {
+      decision: string;
+      toolName: string;
+      reason: string;
+      timestamp: string;
+    };
+    [key: string]: unknown;
+  };
+  spec?: {
+    enabled?: boolean;
+    activeSpecId?: string | null;
+    title?: string | null;
+    status?: string | null;
+    writeLockActive?: boolean;
+    totalTasks?: number;
+    doneTasks?: number;
+    readyTasks?: number;
+    totalSpecs?: number;
+    [key: string]: unknown;
+  };
+  verify?: {
+    enabled?: boolean;
+    enforceOnStop?: boolean;
+    lastStatus?: 'pass' | 'fail' | 'blocked' | 'idle' | string;
+    lastOutcome?: string | null;
+    lastPassed?: boolean | null;
+    passedRuns?: number;
+    failedRuns?: number;
+    blockedStops?: number;
+    totalRuns?: number;
+    dirtyFilesCount?: number;
+    [key: string]: unknown;
+  };
+  mem?: {
+    enabled?: boolean;
+    totalMemories?: number;
+    staleCount?: number;
+    total?: number;
+    pinned?: number;
+    stale?: number;
+    drifted?: number;
+    [key: string]: unknown;
+  };
+  radar?: {
+    enabled?: boolean;
+    runningCount?: number;
+    awaitingCount?: number;
+    stalledCount?: number;
+    unreadCount?: number;
+    total?: number;
+    running?: number;
+    awaitingApproval?: number;
+    awaiting_approval?: number;
+    stalled?: number;
+    unread?: number;
+    orphanSubagents?: number;
+    [key: string]: unknown;
+  };
+  xray?: {
+    enabled?: boolean;
+    activeModel?: string | null;
+    peakContextTokens?: number;
+    estimatedCostUsd?: number;
+    totalTokens?: number;
+    peakTokens?: number;
+    cacheHitRate?: number;
+    estCostUsd?: number;
+    todayCostUsd?: number;
+    [key: string]: unknown;
+  };
+  turbo?: {
+    enabled?: boolean;
+    savedTokens?: number;
+    totalSavedTokens?: number;
+    avgCompressionRatio?: number;
+    compactionCount?: number;
+    [key: string]: unknown;
+  };
+  remote?: {
+    enabled?: boolean;
+    running?: boolean;
+    connectedClients?: number;
+    pendingApprovals?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+export interface NovFeedSnapshot {
+  schemaVersion?: number;
+  version?: string;
+  generatedAt?: string;
+  updatedAt?: string;
+  preset?: PresetId | 'custom';
+  locale?: NovLocale;
+  startupView?: NovStartupView;
+  enabledCount?: number;
+  totalModules?: number;
+  summary: NovFeedSummary;
+  alerts: NovFeedAlert[];
+  paths?: NovFeedPaths;
+  exposedModelTools?: number;
+  toolBudgetLimit?: number;
+  feedExists?: boolean;
+  [key: string]: unknown;
+}
+
+export interface NovHubTeamPresetSummary {
+  found?: boolean;
+  valid?: boolean;
+  preset?: string;
+  path?: string;
+  warnings?: string[];
+  errors?: string[];
+  [key: string]: unknown;
+}
+
+export interface NovHubStatePayload {
+  snapshot: NovConfigSnapshot;
+  feed: NovFeedSnapshot;
+  teamPreset?: NovHubTeamPresetSummary | null;
+}
+
+export interface SanitizedConfigExportPayload {
+  schemaVersion: 1;
+  exportedAt: string;
+  sanitized: true;
+  config: {
+    preset: PresetId | 'custom';
+    modules: Record<ModuleId, boolean>;
+    defaultTab: ModuleId;
+    startupView: NovStartupView;
+    locale: NovLocale;
+  };
+}
+
+export interface ImportConfigResultPayload {
+  ok: true;
+  warnings: string[];
+  snapshot: NovConfigSnapshot;
 }
 
 const ToggleAuxPaneResultSchema = z
@@ -101,7 +274,7 @@ export class NovBridge {
       return;
     }
 
-    const app = new McpApp({ name: 'agy-NOV', version: '0.6.0' }, {});
+    const app = new McpApp({ name: 'agy-NOV', version: '0.7.0' }, {});
     this.app = app;
 
     app.ontoolresult = (result) => {
@@ -438,6 +611,36 @@ export class NovBridge {
 
   async setLocale(locale: NovLocale): Promise<NovConfigSnapshot> {
     const next = await this.callTool<NovConfigSnapshot>('nov_app_set_locale', { locale });
+    this.emitConfigChange(next);
+    return next;
+  }
+
+  getHubState(): Promise<NovHubStatePayload> {
+    return this.callTool<NovHubStatePayload>('nov_app_get_hub_state', {});
+  }
+
+  async setStartupView(startupView: NovStartupView): Promise<NovConfigSnapshot> {
+    const next = await this.callTool<NovConfigSnapshot>('nov_app_set_startup_view', {
+      startupView,
+    });
+    this.emitConfigChange(next);
+    return next;
+  }
+
+  exportConfig(): Promise<SanitizedConfigExportPayload> {
+    return this.callTool<SanitizedConfigExportPayload>('nov_app_export_config', {});
+  }
+
+  async importConfig(json: string): Promise<ImportConfigResultPayload> {
+    const res = await this.callTool<ImportConfigResultPayload>('nov_app_import_config', { json });
+    if (res?.snapshot) {
+      this.emitConfigChange(res.snapshot);
+    }
+    return res;
+  }
+
+  async resetConfig(): Promise<NovConfigSnapshot> {
+    const next = await this.callTool<NovConfigSnapshot>('nov_app_reset_config', { confirm: true });
     this.emitConfigChange(next);
     return next;
   }
