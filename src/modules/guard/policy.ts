@@ -56,6 +56,10 @@ export function normalizePermissionMode(value: unknown): GuardPermissionMode {
   return 'balanced-dev';
 }
 
+export function normalizeBlockInboundPromptSecrets(value: unknown): boolean {
+  return value === false ? false : true;
+}
+
 export function isMutatingFileToolName(toolName: string): boolean {
   return MUTATING_FILE_TOOL_NAMES.has(normalizeGuardToolName(toolName));
 }

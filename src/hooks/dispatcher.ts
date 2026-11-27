@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  getModuleDataDir,
   loadNovConfigReadOnly,
   resolveNovDataDir,
   sanitizeDataDirCandidate,
@@ -12,8 +11,16 @@ import {
   redactFeedText,
   writeFeedSnapshotIfDataDirExists,
 } from '../core/feed.js';
+import { detectHighConfidenceSecrets } from '../core/sanitize.js';
 import type { HookEventName, NormalizedHookPayload } from '../core/types.js';
-import { normalizeHookEvent, normalizeHookPayload, parseCliFlag } from '../core/utils.js';
+import {
+  canonicalRealpathSync,
+  hasUnsafeSymlinkAncestor,
+  isPathInsideDir,
+  normalizeHookEvent,
+  normalizeHookPayload,
+  parseCliFlag,
+} from '../core/utils.js';
 import { handleGuardPreToolHook } from '../modules/guard/hook.js';
 import { handleMemSessionStartHook, handleMemStopHook } from '../modules/mem/hook.js';
 import { handleRadarHook } from '../modules/radar/hook.js';
@@ -37,6 +44,7 @@ export interface UnifiedHookResult {
   overwrite?: Record<string, unknown>;
   injectSteps?: unknown[];
   terminationBehavior?: '' | 'terminate' | 'force_continue';
+  errorMessage?: string;
 }
 
 export interface DispatchNovHookOverrides {
@@ -52,27 +60,63 @@ export interface DispatchNovHookOverrides {
 }
 
 const PRE_INVOCATION_GUARD_WINDOW_MS = 5 * 60 * 1000;
-const MAX_PRE_INVOCATION_FILE_BYTES = 2 * 1024 * 1024;
+const MAX_HOOK_READONLY_FILE_BYTES = 2 * 1024 * 1024;
 
-function readJsonStrictReadOnly(rootDataDir: string, moduleId: 'spec' | 'mem' | 'guard', fileName: string): unknown | null {
+type ReadOnlyHookModuleId = 'spec' | 'mem' | 'guard' | 'verify' | 'turbo';
+
+function readJsonStrictReadOnly(
+  rootDataDir: string,
+  moduleId: ReadOnlyHookModuleId,
+  fileName: string,
+): unknown | null {
   try {
+    if (!rootDataDir || rootDataDir.includes('\0')) return null;
+    if (hasUnsafeSymlinkAncestor(rootDataDir)) return null;
     const rootStat = fs.lstatSync(rootDataDir);
     if (rootStat.isSymbolicLink() || !rootStat.isDirectory()) return null;
-    const modulesRoot = path.join(rootDataDir, 'modules');
+    const realRoot = canonicalRealpathSync(rootDataDir);
+
+    const modulesRoot = path.join(realRoot, 'modules');
     const modsStat = fs.lstatSync(modulesRoot);
     if (modsStat.isSymbolicLink() || !modsStat.isDirectory()) return null;
-    const modDir = getModuleDataDir(rootDataDir, moduleId);
+    const realMods = canonicalRealpathSync(modulesRoot);
+    if (!isPathInsideDir(realRoot, realMods)) return null;
+
+    const modDir = path.join(realMods, moduleId);
     const modStat = fs.lstatSync(modDir);
     if (modStat.isSymbolicLink() || !modStat.isDirectory()) return null;
-    const filePath = path.join(modDir, fileName);
+    const realMod = canonicalRealpathSync(modDir);
+    if (!isPathInsideDir(realMods, realMod)) return null;
+
+    const filePath = path.join(realMod, fileName);
     const fileStat = fs.lstatSync(filePath);
-    if (fileStat.isSymbolicLink() || !fileStat.isFile() || fileStat.size > MAX_PRE_INVOCATION_FILE_BYTES) {
+    if (fileStat.isSymbolicLink() || !fileStat.isFile() || fileStat.size > MAX_HOOK_READONLY_FILE_BYTES) {
       return null;
     }
-    return JSON.parse(fs.readFileSync(filePath, 'utf8')) as unknown;
+    const realFile = canonicalRealpathSync(filePath);
+    if (!isPathInsideDir(realMod, realFile)) return null;
+
+    return JSON.parse(fs.readFileSync(realFile, 'utf8')) as unknown;
   } catch {
     return null;
   }
+}
+
+function isGuardInboundSecretGateActive(rootDataDir: string): boolean {
+  const raw = readJsonStrictReadOnly(rootDataDir, 'guard', 'policy.json');
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    // Default GuardPolicy has enabled=true and blockInboundPromptSecrets=true (fail-closed when missing/corrupt)
+    return true;
+  }
+  const policy = raw as Record<string, unknown>;
+  if (policy.enabled === false) return false;
+  if (policy.blockInboundPromptSecrets === false) return false;
+  return true;
+}
+
+function toPositiveInt(value: unknown): number {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? Math.floor(num) : 0;
 }
 
 function stripBidiAndZeroWidth(input: string): string {
@@ -183,6 +227,201 @@ function buildPreInvocationReceiptLines(rootDataDir: string, config: NovConfig):
   return lines;
 }
 
+function extractTurboSavingsFromRecord(rec: Record<string, unknown>): {
+  compactions: number;
+  savedTokens: number;
+  savedBytes: number;
+  rawBytes: number;
+  savedPercent: number;
+} {
+  let savedTokens = toPositiveInt(rec.totalSavedTokens ?? rec.savedTokens);
+  const compactions = toPositiveInt(rec.totalCompactions ?? rec.totalOperations ?? rec.operations);
+  const savedBytes = toPositiveInt(rec.totalSavedBytes ?? rec.savedBytes);
+  const rawBytes = toPositiveInt(rec.totalRawBytes ?? rec.rawBytes);
+  let savedPercent = toPositiveInt(rec.avgCompressionPercent ?? rec.savedPercent);
+  if (savedPercent > 100) savedPercent = 100;
+
+  if (savedTokens === 0 && Array.isArray(rec.recent)) {
+    for (const entry of rec.recent) {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+      savedTokens += toPositiveInt((entry as Record<string, unknown>).savedTokens);
+    }
+  }
+
+  return { compactions, savedTokens, savedBytes, rawBytes, savedPercent };
+}
+
+function buildPostInvocationSummaryParts(rootDataDir: string, config: NovConfig): string[] {
+  const { modules } = config;
+  const parts: string[] = [];
+
+  // 1. Guard: count recent deny blocks within the 5-minute window
+  if (modules.guard) {
+    const raw = readJsonStrictReadOnly(rootDataDir, 'guard', 'audit.json');
+    const events = Array.isArray(raw)
+      ? raw
+      : raw && typeof raw === 'object' && Array.isArray((raw as Record<string, unknown>).events)
+        ? ((raw as Record<string, unknown>).events as unknown[])
+        : [];
+    const nowMs = Date.now();
+    let recentDenyCount = 0;
+    let newestTs = -Infinity;
+    let newestTool = '';
+    for (const item of events) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+      const rec = item as Record<string, unknown>;
+      const decision = String(rec.decision ?? '').trim().toLowerCase();
+      if (decision !== 'deny') continue;
+      const tsMs = typeof rec.timestamp === 'string' ? Date.parse(rec.timestamp) : Number.NaN;
+      if (!Number.isFinite(tsMs)) continue;
+      const ageMs = nowMs - tsMs;
+      if (ageMs > PRE_INVOCATION_GUARD_WINDOW_MS || ageMs < -60_000) continue;
+      recentDenyCount += 1;
+      if (tsMs > newestTs) {
+        newestTs = tsMs;
+        newestTool = sanitizeInlineCodeToken(redactFeedText(String(rec.toolName ?? rec.tool_name ?? ''), 48));
+      }
+    }
+    if (recentDenyCount > 0) {
+      const toolSuffix = newestTool ? ` (latest: \`${newestTool}\`)` : '';
+      parts.push(`🛡️ **Guard**: ${recentDenyCount} recent deny block(s)${toolSuffix}`);
+    }
+  }
+
+  // 2. Verify: dirtyFiles count & latest fail/blocked evidence status
+  if (modules.verify) {
+    const raw = readJsonStrictReadOnly(rootDataDir, 'verify', 'state.json');
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      const state = raw as Record<string, unknown>;
+      const dirtySet = new Set<string>();
+      const addDirtyList = (list: unknown): void => {
+        if (!Array.isArray(list)) return;
+        for (const f of list) {
+          if (typeof f === 'string' && f.trim()) {
+            dirtySet.add(f.trim());
+          }
+        }
+      };
+
+      addDirtyList(state.dirtyFiles);
+      const sessionsRaw = state.sessions;
+      const sessionList = Array.isArray(sessionsRaw)
+        ? sessionsRaw
+        : sessionsRaw && typeof sessionsRaw === 'object'
+          ? Object.values(sessionsRaw as Record<string, unknown>)
+          : [];
+      for (const session of sessionList) {
+        if (!session || typeof session !== 'object' || Array.isArray(session)) continue;
+        addDirtyList((session as Record<string, unknown>).dirtyFiles);
+      }
+
+      const evidenceRaw = Array.isArray(state.evidence) ? state.evidence : [];
+      let latestEvidence: Record<string, unknown> | null = null;
+      let latestTs = -Infinity;
+      for (const item of evidenceRaw) {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+        const rec = item as Record<string, unknown>;
+        const tsMs = typeof rec.timestamp === 'string' ? Date.parse(rec.timestamp) : Number.NaN;
+        if (!latestEvidence) {
+          latestEvidence = rec;
+          latestTs = Number.isFinite(tsMs) ? tsMs : -Infinity;
+          continue;
+        }
+        if (Number.isFinite(tsMs) && tsMs > latestTs) {
+          latestEvidence = rec;
+          latestTs = tsMs;
+        }
+      }
+
+      let latestFailureStatus: 'fail' | 'blocked' | null = null;
+      const nowMsForVerify = Date.now();
+      const latestEvidenceIsFresh =
+        Number.isFinite(latestTs) &&
+        nowMsForVerify - latestTs <= PRE_INVOCATION_GUARD_WINDOW_MS &&
+        nowMsForVerify - latestTs >= -60_000;
+      if (latestEvidence && (dirtySet.size > 0 || latestEvidenceIsFresh)) {
+        const outcome = typeof latestEvidence.outcome === 'string' ? latestEvidence.outcome.trim().toLowerCase() : '';
+        if (outcome === 'blocked' || latestEvidence.blocked === true) {
+          latestFailureStatus = 'blocked';
+        } else if (
+          outcome === 'fail' ||
+          (outcome !== 'pass' && outcome !== 'guardrail-allow' && latestEvidence.passed === false)
+        ) {
+          latestFailureStatus = 'fail';
+        }
+      }
+
+      if (dirtySet.size > 0 || latestFailureStatus) {
+        const verifyBits: string[] = [];
+        if (dirtySet.size > 0) {
+          verifyBits.push(`${dirtySet.size} dirty file(s)`);
+        }
+        if (latestFailureStatus) {
+          verifyBits.push(`latest check ${escapeMarkdownInline(redactFeedText(latestFailureStatus, 24))}`);
+        }
+        parts.push(`🧪 **Verify**: ${verifyBits.join(', ')}`);
+      }
+    }
+  }
+
+  // 3. Turbo: strictly read-only summary from fresh persisted stats.json or gain.json
+  if (modules.turbo) {
+    const rawStats = readJsonStrictReadOnly(rootDataDir, 'turbo', 'stats.json');
+    const rawGain = readJsonStrictReadOnly(rootDataDir, 'turbo', 'gain.json');
+    const nowMsForTurbo = Date.now();
+    let chosen: ReturnType<typeof extractTurboSavingsFromRecord> | null = null;
+
+    const isFreshTurboRecord = (rec: Record<string, unknown>): boolean => {
+      const tsCandidates: unknown[] = [rec.updatedAt, rec.lastUpdatedAt, rec.timestamp];
+      if (Array.isArray(rec.recent) && rec.recent.length > 0) {
+        const first = rec.recent[0];
+        if (first && typeof first === 'object' && !Array.isArray(first)) {
+          tsCandidates.push((first as Record<string, unknown>).timestamp);
+        }
+      }
+      for (const rawTs of tsCandidates) {
+        if (typeof rawTs !== 'string' || !rawTs.trim()) continue;
+        const tsMs = Date.parse(rawTs);
+        if (!Number.isFinite(tsMs)) continue;
+        const ageMs = nowMsForTurbo - tsMs;
+        if (ageMs <= PRE_INVOCATION_GUARD_WINDOW_MS && ageMs >= -60_000) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    for (const candidate of [rawStats, rawGain]) {
+      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) continue;
+      const rec = candidate as Record<string, unknown>;
+      if (!isFreshTurboRecord(rec)) continue;
+      const parsed = extractTurboSavingsFromRecord(rec);
+      if (parsed.savedTokens > 0 || parsed.savedBytes > 0 || (parsed.compactions > 0 && parsed.rawBytes > 0)) {
+        chosen = parsed;
+        break;
+      }
+    }
+
+    if (chosen) {
+      if (chosen.savedTokens > 0) {
+        const details: string[] = [];
+        if (chosen.compactions > 0) details.push(`${chosen.compactions} run(s)`);
+        if (chosen.savedPercent > 0) details.push(`${chosen.savedPercent}%`);
+        const suffix = details.length > 0 ? ` (${details.join(', ')})` : '';
+        parts.push(`🚀 **Turbo**: ~${chosen.savedTokens} token(s) saved${suffix}`);
+      } else if (chosen.savedBytes > 0) {
+        const suffix = chosen.compactions > 0 ? ` (${chosen.compactions} run(s))` : '';
+        parts.push(`🚀 **Turbo**: ${chosen.savedBytes} B saved${suffix}`);
+      } else {
+        const kib = Math.max(1, Math.round(chosen.rawBytes / 1024));
+        parts.push(`🚀 **Turbo**: ${chosen.compactions} compaction(s) (${kib} KiB processed)`);
+      }
+    }
+  }
+
+  return parts;
+}
+
 function refreshFeedSnapshotBestEffort(rootDataDir: string, config: NovConfig): void {
   try {
     writeFeedSnapshotIfDataDirExists(rootDataDir, config);
@@ -244,10 +483,31 @@ export async function dispatchNovHook(
   }
 
   if (payload.event === 'PreInvocation') {
-    // O(1) short-circuit: zero disk reads and zero disk writes when all 3 receipt sources are off.
+    // O(1) short-circuit: zero disk reads and zero disk writes when all 3 receipt/gate sources are off.
     if (!modules.spec && !modules.mem && !modules.guard) {
       return {};
     }
+
+    // Security-first inbound secret hard gate: blocks high-confidence credentials before cloud transmission.
+    if (
+      modules.guard &&
+      typeof payload.lastUserInput === 'string' &&
+      payload.lastUserInput.length >= 16
+    ) {
+      try {
+        const secretMatches = detectHighConfidenceSecrets(payload.lastUserInput);
+        if (secretMatches.length > 0 && isGuardInboundSecretGateActive(rootDataDir)) {
+          const labels = secretMatches.map((m) => `${m.label} (${m.ruleId})`).join(', ');
+          return {
+            terminationBehavior: 'terminate',
+            errorMessage: `[agy-NOV Guard] Blocked inbound prompt before cloud transmission: detected ${labels}. Remove or redact credentials before retrying (or disable Guard inbound secret gating).`,
+          };
+        }
+      } catch {
+        // fail-open on unexpected internal exception
+      }
+    }
+
     try {
       const lines = buildPreInvocationReceiptLines(rootDataDir, config);
       if (lines.length === 0) {
@@ -260,6 +520,34 @@ export async function dispatchNovHook(
               systemMessage: '',
               metadata: {
                 user_markdown: lines.join('\n'),
+              },
+            },
+          },
+        ],
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  if (payload.event === 'PostInvocation') {
+    // O(1) short-circuit: zero disk reads and zero disk writes when all 3 telemetry sources are off.
+    if (!modules.guard && !modules.turbo && !modules.verify) {
+      return {};
+    }
+    try {
+      const parts = buildPostInvocationSummaryParts(rootDataDir, config);
+      if (parts.length === 0) {
+        return {};
+      }
+      const summaryLine = `📊 **agy-NOV Post-Invocation** — ${parts.join(' · ')}`;
+      return {
+        injectSteps: [
+          {
+            systemMessage: {
+              systemMessage: '',
+              metadata: {
+                user_markdown: summaryLine,
               },
             },
           },

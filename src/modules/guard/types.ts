@@ -7,6 +7,7 @@ export interface GuardPolicy {
   permissionMode: GuardPermissionMode;
   protectEnvAndKeys: GuardDecision;
   blockSecretWrites: GuardDecision;
+  blockInboundPromptSecrets?: boolean;
   blockDestructiveCommands: GuardDecision;
   askOnNetworkPipes: GuardDecision;
   autoSnapshotBeforeEdit: boolean;
@@ -177,6 +178,7 @@ export const DEFAULT_POLICY: GuardPolicy = {
   permissionMode: 'balanced-dev',
   protectEnvAndKeys: 'deny',
   blockSecretWrites: 'deny',
+  blockInboundPromptSecrets: true,
   blockDestructiveCommands: 'deny',
   askOnNetworkPipes: 'ask',
   autoSnapshotBeforeEdit: true,

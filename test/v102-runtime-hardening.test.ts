@@ -18,7 +18,7 @@ import {
   getModuleDataDir,
   setModuleEnabled,
 } from '../src/core/config.js';
-import { buildFeedSnapshot } from '../src/core/feed.js';
+import { buildFeedSnapshot, FEED_SNAPSHOT_VERSION } from '../src/core/feed.js';
 import { canonicalRealpathSync, isSamePath } from '../src/core/utils.js';
 import { MemoryStore } from '../src/modules/mem/store.js';
 import { defaultRemoteConfig, saveConfig } from '../src/modules/remote/config.js';
@@ -425,7 +425,7 @@ describe('v1.0.2 Dual-Star Feed, Mem Verify Re-Anchor, Auto-RTK Unicode & Remote
       );
 
       const snap = buildFeedSnapshot(dataDir, cfg);
-      assert.equal(snap.version, '1.0.2');
+      assert.equal(snap.version, FEED_SNAPSHOT_VERSION);
       assert.equal(snap.summary.guard.blockedCount, 1);
       assert.equal(snap.summary.guard.askCount, 1);
       assert.equal(snap.summary.guard.forceAskCount, 1);

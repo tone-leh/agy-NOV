@@ -788,6 +788,7 @@ describe('Spec Flow — McpServer 4+4 tool alignment & end-to-end tool calls', (
       assert.deepEqual(reg.exemptReadOnlyAppTools, [
         'app_spec_get_state',
         'app_spec_diff_revisions',
+        'app_spec_compile_workflow',
       ]);
 
       const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -810,6 +811,7 @@ describe('Spec Flow — McpServer 4+4 tool alignment & end-to-end tool calls', (
           'app_spec_resolve_annotation',
           'app_spec_diff_revisions',
           'app_spec_archive_to_mem',
+          'app_spec_compile_workflow',
         ];
         assert.deepEqual(
           listed.tools.map((t) => t.name),

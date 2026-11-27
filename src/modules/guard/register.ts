@@ -614,6 +614,7 @@ export function registerGuardModule(
         permissionMode: z.enum(['readonly-audit', 'balanced-dev', 'strict-gate']).optional(),
         protectEnvAndKeys: z.enum(['allow', 'ask', 'force_ask', 'deny']).optional(),
         blockSecretWrites: z.enum(['allow', 'ask', 'force_ask', 'deny']).optional(),
+        blockInboundPromptSecrets: z.boolean().optional(),
         blockDestructiveCommands: z.enum(['allow', 'ask', 'force_ask', 'deny']).optional(),
         askOnNetworkPipes: z.enum(['allow', 'ask', 'force_ask', 'deny']).optional(),
         autoSnapshotBeforeEdit: z.boolean().optional(),

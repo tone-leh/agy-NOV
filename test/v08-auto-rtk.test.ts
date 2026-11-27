@@ -661,7 +661,12 @@ describe('v0.8.0 PostToolUse hotspots & version/catalog alignment', () => {
   });
 
   it('updates catalog turbo hooks and aligns core version constants with manifests', () => {
-    assert.deepEqual(MODULE_CATALOG.turbo.hooks, ['SessionStart', 'PreToolUse', 'PostToolUse']);
+    assert.deepEqual(MODULE_CATALOG.turbo.hooks, [
+      'SessionStart',
+      'PreToolUse',
+      'PostToolUse',
+      'PostInvocation',
+    ]);
 
     const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8')) as { version: string };
     const plugin = JSON.parse(fs.readFileSync(path.resolve('plugin.json'), 'utf8')) as { version: string };

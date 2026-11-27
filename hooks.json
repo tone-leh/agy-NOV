@@ -38,6 +38,13 @@
         "timeout": 5
       }
     ],
+    "PostInvocation": [
+      {
+        "type": "command",
+        "command": "node dist/hook.cjs --event PostInvocation",
+        "timeout": 5
+      }
+    ],
     "Stop": [
       {
         "type": "command",

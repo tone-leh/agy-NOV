@@ -287,8 +287,8 @@ const HIGH_CONFIDENCE_SECRET_PATTERNS: ReadonlyArray<{
   },
   {
     ruleId: 'inbound.openai-anthropic-key',
-    label: 'OpenAI / Anthropic API key',
-    regex: /\bsk-(?:proj-|ant-|live-)[A-Za-z0-9_-]{20,256}\b/,
+    label: 'OpenAI / Anthropic / Stripe API key',
+    regex: /\b(?:sk-(?:proj-|ant-|live-)[A-Za-z0-9_-]{20,256}|sk_live_[A-Za-z0-9]{20,256})\b/,
   },
   {
     ruleId: 'inbound.github-token',
@@ -357,7 +357,13 @@ export function isSensitivePathSegment(filePath: string): boolean {
     base === 'id_ecdsa' ||
     base === '.netrc' ||
     base === '.npmrc' ||
-    base === '.pypirc'
+    base === '.pypirc' ||
+    base === 'secrets.yaml' ||
+    base === 'secrets.yml' ||
+    base === 'secrets.json' ||
+    base === 'credentials' ||
+    base === 'credentials.json' ||
+    base === 'master.key'
   ) {
     return true;
   }

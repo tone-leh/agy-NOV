@@ -8,6 +8,21 @@ import {
 } from './annotations.js';
 import { archiveSpecToMemory } from './archive.js';
 import {
+  compileActiveSpecWorkflowReadOnly,
+  compileSpecToWorkflow,
+  type SpecCompileOptions,
+  type SpecSwarmPlan,
+  type SpecSwarmTaskEntry,
+  type SpecSwarmWave,
+  type SpecWorkflowCompilationFailure,
+  type SpecWorkflowCompilationResult,
+  type SpecWorkflowCompilationSuccess,
+  type SpecWorkflowModelTier,
+  type SpecWorkflowTarget,
+  type SpecWorkflowWave,
+  type SpecWorkflowWaveTask,
+} from './compiler.js';
+import {
   buildSpecDocumentView,
   buildSpecStateView,
   computeSpecTaskViews,
@@ -106,6 +121,17 @@ export type {
   ArchiveSpecToMemoryResult,
   DagValidationResult,
   DagValidationError,
+  SpecWorkflowTarget,
+  SpecWorkflowModelTier,
+  SpecCompileOptions,
+  SpecWorkflowWaveTask,
+  SpecWorkflowWave,
+  SpecSwarmTaskEntry,
+  SpecSwarmWave,
+  SpecSwarmPlan,
+  SpecWorkflowCompilationSuccess,
+  SpecWorkflowCompilationFailure,
+  SpecWorkflowCompilationResult,
 };
 
 export {
@@ -146,6 +172,8 @@ export {
   applySetSpecStatusInMemory,
   applyUpdateSpecTaskInMemory,
   archiveSpecToMemory,
+  compileSpecToWorkflow,
+  compileActiveSpecWorkflowReadOnly,
   createDemoSpecState,
 };
 

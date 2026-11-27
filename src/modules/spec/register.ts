@@ -17,6 +17,7 @@ import {
   archiveSpecToMemory,
   buildAnnotationFeedbackPrompt,
   buildSpecStateView,
+  compileSpecToWorkflow,
   createDemoSpecState,
   deleteSpecAnnotation,
   diffSpecRevisions,
@@ -38,6 +39,8 @@ import {
   type SpecStatus,
   type SpecTaskStatus,
   type SpecTaskView,
+  type SpecWorkflowModelTier,
+  type SpecWorkflowTarget,
   type UpdateSpecTaskInput,
 } from './core.js';
 
@@ -537,7 +540,7 @@ export function registerSpecModule(
   );
   modelTools.push(toHandle('spec_update_task', updateTaskTool));
 
-  // App-only tools (8 total: 2 read-only exempt + 6 write tools disabled when spec module is OFF)
+  // App-only tools (9 total: 3 read-only exempt + 6 write tools disabled when spec module is OFF)
   server.registerTool(
     'app_spec_get_state',
     {
@@ -860,9 +863,85 @@ export function registerSpecModule(
     },
   );
 
+  server.registerTool(
+    'app_spec_compile_workflow',
+    {
+      title: 'Compile Spec DAG to /run-workflow & /swarm (App Only, Read-Only)',
+      description:
+        'Compile the active (or specified) Spec Task DAG into read-only Antigravity /run-workflow Python orchestration and /swarm plan JSON with secret redaction and cycle detection (zero disk writes).',
+      inputSchema: {
+        specId: z.string().max(64).optional(),
+        target: z.enum(['workflow', 'swarm', 'both']).optional(),
+        includeReviewGate: z.boolean().optional(),
+        includeVerifyGate: z.boolean().optional(),
+        useShareWorkspace: z.boolean().optional(),
+        modelTier: z.enum(['inherit', 'flash', 'pro']).optional(),
+        includeCompleted: z.boolean().optional(),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({
+      specId,
+      target,
+      includeReviewGate,
+      includeVerifyGate,
+      useShareWorkspace,
+      modelTier,
+      includeCompleted,
+    }) => {
+      const current = demoState
+        ? demoState
+        : loadSpecStateReadOnly(moduleDataDir, { preserveRawTaskDeps: true });
+      const targetId = specId?.trim() || current.activeSpecId || undefined;
+      if (!targetId) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: 'No specId specified and no active spec exists.' }],
+        };
+      }
+      const spec = current.specs.find((s) => s.id === targetId);
+      if (!spec) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Spec not found: "${targetId}".` }],
+        };
+      }
+      const compiled = compileSpecToWorkflow(spec, {
+        target: target as SpecWorkflowTarget | undefined,
+        includeReviewGate,
+        includeVerifyGate,
+        useShareWorkspace,
+        modelTier: modelTier as SpecWorkflowModelTier | undefined,
+        includeCompleted,
+      });
+      if (!compiled.ok) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: compiled.error }],
+        };
+      }
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Compiled spec "${compiled.title}" (${compiled.specId}) into ${compiled.waveCount} wave(s), ${compiled.compiledTasks}/${compiled.totalTasks} task(s).`,
+          },
+        ],
+        structuredContent: {
+          ...compiled,
+          runtimeMode: isDemo ? 'demo' : 'live',
+        },
+      };
+    },
+  );
+
   return {
     moduleId: 'spec',
     modelTools,
-    exemptReadOnlyAppTools: ['app_spec_get_state', 'app_spec_diff_revisions'],
+    exemptReadOnlyAppTools: [
+      'app_spec_get_state',
+      'app_spec_diff_revisions',
+      'app_spec_compile_workflow',
+    ],
   };
 }

@@ -164,7 +164,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
     uiMode: 'scroll',
     hasUiTab: true,
     defaultEnabled: true,
-    hooks: ['PreToolUse', 'PreInvocation'],
+    hooks: ['PreToolUse', 'PreInvocation', 'PostInvocation'],
     modelToolNames: [
       'guard_status',
       'guard_list_snapshots',
@@ -208,7 +208,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
     uiMode: 'scroll',
     hasUiTab: true,
     defaultEnabled: false,
-    hooks: ['SessionStart', 'PreToolUse', 'PostToolUse'],
+    hooks: ['SessionStart', 'PreToolUse', 'PostToolUse', 'PostInvocation'],
     modelToolNames: ['turbo_batch_search', 'turbo_read_outline', 'turbo_compact_output'],
   },
   radar: {
@@ -242,7 +242,7 @@ export const MODULE_CATALOG: Record<ModuleId, ModuleMetadata> = {
     uiMode: 'scroll',
     hasUiTab: true,
     defaultEnabled: false,
-    hooks: ['PostToolUse', 'Stop'],
+    hooks: ['PostToolUse', 'PostInvocation', 'Stop'],
     modelToolNames: [
       'verify_get_policy',
       'verify_set_policy',

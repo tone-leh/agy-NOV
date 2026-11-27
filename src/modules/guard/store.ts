@@ -8,7 +8,12 @@ import {
   isSamePath,
 } from '../../core/utils.js';
 import { computeLineDiff } from './diff.js';
-import { isSensitivePath, normalizePermissionMode, redactCommand } from './policy.js';
+import {
+  isSensitivePath,
+  normalizeBlockInboundPromptSecrets,
+  normalizePermissionMode,
+  redactCommand,
+} from './policy.js';
 import {
   DEFAULT_POLICY,
   type AuditEvent,
@@ -184,6 +189,7 @@ export function loadPolicy(dataDir: string): GuardPolicy {
     ...DEFAULT_POLICY,
     ...stored,
     permissionMode: normalizePermissionMode(stored.permissionMode),
+    blockInboundPromptSecrets: normalizeBlockInboundPromptSecrets(stored.blockInboundPromptSecrets),
   };
 }
 
@@ -193,6 +199,11 @@ export function savePolicy(dataDir: string, patch: Partial<GuardPolicy>): GuardP
     ...current,
     ...patch,
     permissionMode: normalizePermissionMode(patch.permissionMode ?? current.permissionMode),
+    blockInboundPromptSecrets: normalizeBlockInboundPromptSecrets(
+      patch.blockInboundPromptSecrets !== undefined
+        ? patch.blockInboundPromptSecrets
+        : current.blockInboundPromptSecrets,
+    ),
   };
   writePrivateJson(path.join(dataDir, 'policy.json'), next);
   return next;

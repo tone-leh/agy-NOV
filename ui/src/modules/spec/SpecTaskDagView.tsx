@@ -10,6 +10,7 @@ import {
 import type {
   NormalizedTaskNode,
   SetSpecStatusParams,
+  SpecCompiledWorkflowResponse,
   SpecDocumentView,
   SpecMode,
   SpecPanelExtraLabels,
@@ -28,11 +29,20 @@ export interface SpecTaskDagViewProps {
   busyAction: string | null;
   isBusy: boolean;
   actions: SpecPanelExtraLabels;
+  compiledWorkflow: SpecCompiledWorkflowResponse | null;
+  workflowPreviewOpen: boolean;
+  workflowPreviewTab: 'workflow' | 'swarm';
+  workflowIncludeCompleted: boolean;
   onOpenCreate: () => void;
   onOpenReview: () => void;
   onSetSpecStatus: (params: SetSpecStatusParams) => Promise<void>;
   onUpdateTask: (taskId: string, status: SpecTaskStatus) => Promise<void>;
   onArchiveToMem: () => Promise<void>;
+  onCompileWorkflow: (includeCompletedOverride?: boolean) => Promise<void>;
+  onCloseWorkflowPreview: () => void;
+  onSetWorkflowPreviewTab: (tab: 'workflow' | 'swarm') => void;
+  onToggleWorkflowIncludeCompleted: (next: boolean) => Promise<void>;
+  onCopyCompiledWorkflow: () => Promise<void>;
 }
 
 export const SpecTaskDagView: React.FC<SpecTaskDagViewProps> = ({
@@ -46,11 +56,20 @@ export const SpecTaskDagView: React.FC<SpecTaskDagViewProps> = ({
   busyAction,
   isBusy,
   actions,
+  compiledWorkflow,
+  workflowPreviewOpen,
+  workflowPreviewTab,
+  workflowIncludeCompleted,
   onOpenCreate,
   onOpenReview,
   onSetSpecStatus,
   onUpdateTask,
   onArchiveToMem,
+  onCompileWorkflow,
+  onCloseWorkflowPreview,
+  onSetWorkflowPreviewTab,
+  onToggleWorkflowIncludeCompleted,
+  onCopyCompiledWorkflow,
 }) => {
   const { dict } = useNovI18n();
   const sDict = dict.panels.spec;
@@ -196,6 +215,16 @@ export const SpecTaskDagView: React.FC<SpecTaskDagViewProps> = ({
                 >
                   {actions.openReviewLink}
                   {unresolvedCount > 0 ? ` (${unresolvedCount})` : ''}
+                </button>
+                <button
+                  type="button"
+                  className={`nov-p-btn ${workflowPreviewOpen ? 'is-primary' : ''}`}
+                  disabled={isBusy}
+                  onClick={() => void onCompileWorkflow()}
+                >
+                  {busyAction === 'compile-workflow'
+                    ? dict.common.loading
+                    : actions.compileWorkflowBtn}
                 </button>
                 <button
                   type="button"
@@ -371,6 +400,123 @@ export const SpecTaskDagView: React.FC<SpecTaskDagViewProps> = ({
               </div>
             )}
           </section>
+
+          {/* Compiled /run-workflow & /swarm read-only preview card */}
+          {workflowPreviewOpen && compiledWorkflow && (
+            <section className="nov-p-card">
+              <div className="nov-p-row">
+                <div style={SPEC_STYLES.flexWrapCenterGap8}>
+                  <h3 className="nov-card-title">{actions.workflowPreviewTitle}</h3>
+                  <span className="nov-badge" style={SPEC_STYLES.monoXs}>
+                    {compiledWorkflow.waveCount} {actions.workflowWavesBadge}
+                  </span>
+                  <span
+                    className={`nov-badge ${compiledWorkflow.parallelWaveCount > 0 ? 'is-accent' : ''}`}
+                    style={SPEC_STYLES.monoXs}
+                  >
+                    {compiledWorkflow.parallelWaveCount} {actions.workflowParallelBadge}
+                  </span>
+                  <span className="nov-badge" style={SPEC_STYLES.monoXs}>
+                    {compiledWorkflow.compiledTasks}/{compiledWorkflow.totalTasks}{' '}
+                    {actions.workflowTasksBadge}
+                  </span>
+                  {compiledWorkflow.skippedCompletedTasks > 0 && (
+                    <span className="nov-badge is-offline" style={SPEC_STYLES.monoXs}>
+                      {compiledWorkflow.skippedCompletedTasks} {actions.workflowSkippedDoneBadge}
+                    </span>
+                  )}
+                </div>
+
+                <div style={SPEC_STYLES.flexWrapGap6AlignCenter}>
+                  <label style={SPEC_STYLES.workflowCheckboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={workflowIncludeCompleted}
+                      disabled={isBusy}
+                      onChange={(e) => void onToggleWorkflowIncludeCompleted(e.target.checked)}
+                    />
+                    <span>{actions.workflowIncludeCompletedLabel}</span>
+                  </label>
+                  <button
+                    type="button"
+                    className="nov-p-btn"
+                    disabled={isBusy}
+                    onClick={onCloseWorkflowPreview}
+                  >
+                    {actions.workflowCloseBtn}
+                  </button>
+                </div>
+              </div>
+
+              {(compiledWorkflow.status === 'draft' || compiledWorkflow.writeLockActive) && (
+                <div style={SPEC_STYLES.workflowWarningBanner}>
+                  ⚠ {actions.workflowDraftWarning}
+                </div>
+              )}
+
+              {compiledWorkflow.waves.length > 0 ? (
+                <div style={SPEC_STYLES.flexWrapCenterGap6}>
+                  {compiledWorkflow.waves.map((wave, idx) => (
+                    <React.Fragment key={wave.waveIndex}>
+                      {idx > 0 && (
+                        <span style={{ color: 'var(--nov-text-2)', fontSize: '11px' }}>→</span>
+                      )}
+                      <span
+                        className={`nov-badge ${wave.parallelizable ? 'is-accent' : ''}`}
+                        style={SPEC_STYLES.monoXs}
+                        title={wave.tasks.map((t) => `${t.id}: ${t.title}`).join('\n')}
+                      >
+                        {actions.workflowWavePrefix} {wave.waveIndex} ({wave.tasks.length})
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </div>
+              ) : (
+                <p style={SPEC_STYLES.mutedParagraph}>{actions.workflowEmptyHint}</p>
+              )}
+
+              <div className="nov-p-row">
+                <div style={SPEC_STYLES.flexWrapGap6}>
+                  <button
+                    type="button"
+                    className={`nov-preset-btn ${workflowPreviewTab === 'workflow' ? 'is-active' : ''}`}
+                    onClick={() => onSetWorkflowPreviewTab('workflow')}
+                  >
+                    {actions.workflowTabPython}
+                  </button>
+                  <button
+                    type="button"
+                    className={`nov-preset-btn ${workflowPreviewTab === 'swarm' ? 'is-active' : ''}`}
+                    onClick={() => onSetWorkflowPreviewTab('swarm')}
+                  >
+                    {actions.workflowTabSwarm}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="nov-p-btn is-primary"
+                  disabled={
+                    isBusy ||
+                    !(workflowPreviewTab === 'workflow'
+                      ? compiledWorkflow.workflowPython
+                      : compiledWorkflow.swarmPlanJson)
+                  }
+                  onClick={() => void onCopyCompiledWorkflow()}
+                >
+                  {actions.workflowCopyBtn}
+                </button>
+              </div>
+
+              <div style={SPEC_STYLES.codeBox}>
+                <pre style={SPEC_STYLES.workflowCodePre}>
+                  {workflowPreviewTab === 'workflow'
+                    ? (compiledWorkflow.workflowPython ?? '')
+                    : (compiledWorkflow.swarmPlanJson ?? '')}
+                </pre>
+              </div>
+            </section>
+          )}
 
           {/* Dependency Task DAG card */}
           <section className="nov-p-card">

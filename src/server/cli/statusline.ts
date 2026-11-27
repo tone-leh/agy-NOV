@@ -5,7 +5,7 @@ import {
   loadNovConfigReadOnly,
   MODULE_IDS,
 } from '../../core/config.js';
-import { getFeedSnapshotPath } from '../../core/feed.js';
+import { getFeedSnapshotPath, redactFeedText } from '../../core/feed.js';
 import {
   asPlainRecord,
   CLI_VERSION,
@@ -16,11 +16,15 @@ import {
 } from './helpers.js';
 
 const DEFAULT_CONTEXT_WINDOW_TOKENS = 200_000;
+const MAX_HOST_STDIN_BYTES = 256 * 1024;
+const DEFAULT_HOST_STDIN_TIMEOUT_MS = 120;
 
 export const STATUSLINE_SEGMENTS = [
   'brand',
+  'model',
   'context',
   'burn',
+  'quota',
   'cache',
   'spec',
   'verify',
@@ -51,6 +55,251 @@ export function parseStatusLineSegments(raw: string | undefined): StatusLineSegm
   return result;
 }
 
+export interface StatusLineHostStdinPayload {
+  model?: string;
+  contextPercent?: number;
+  costUsd?: number;
+  quotaRemainingPercent?: number;
+  runningSubagents?: number;
+  workspaceName?: string;
+  sessionId?: string;
+}
+
+function clampPercent(val: number): number {
+  return Math.max(0, Math.min(100, Math.round(val)));
+}
+
+function sanitizeShortLabel(raw: unknown, maxLen: number): string | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const cleaned = redactFeedText(raw, maxLen).trim();
+  return cleaned || undefined;
+}
+
+/**
+ * Pure read-only parser for Antigravity 2.35 CLI `statusLine` stdin JSON telemetry.
+ * Tolerates partial payloads, nested model/context_window/cost/quota/subagents/workspace shapes,
+ * and rejects malformed or oversized text without ever throwing.
+ */
+export function parseHostStatusLineStdin(rawText: string): StatusLineHostStdinPayload | undefined {
+  if (typeof rawText !== 'string') return undefined;
+  const trimmed = rawText.trim();
+  if (!trimmed || trimmed.length > MAX_HOST_STDIN_BYTES || !trimmed.startsWith('{')) {
+    return undefined;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return undefined;
+  }
+  const obj = asPlainRecord(parsed);
+  if (!obj) return undefined;
+
+  // 1. Model name (string or { display_name | id | name })
+  let model: string | undefined;
+  if (typeof obj.model === 'string') {
+    model = sanitizeShortLabel(obj.model, 48);
+  } else {
+    const modelObj = asPlainRecord(obj.model);
+    if (modelObj) {
+      model =
+        sanitizeShortLabel(modelObj.display_name, 48) ??
+        sanitizeShortLabel(modelObj.name, 48) ??
+        sanitizeShortLabel(modelObj.id, 48);
+    }
+  }
+
+  // 2. Context window usage percent
+  const ctxObj = asPlainRecord(obj.context_window) ?? asPlainRecord(obj.contextWindow);
+  const currentUsage = asPlainRecord(ctxObj?.current_usage) ?? asPlainRecord(ctxObj?.currentUsage);
+  const explicitCtxPct = pickFiniteNonNegNumber(
+    ctxObj?.used_percentage,
+    ctxObj?.usedPercentage,
+    obj.context_percent,
+    obj.contextPercent,
+  );
+  let contextPercent: number | undefined;
+  if (explicitCtxPct !== undefined) {
+    contextPercent = clampPercent(explicitCtxPct);
+  } else {
+    const usedTokens = pickFinitePositiveNumber(
+      currentUsage?.input_tokens,
+      currentUsage?.inputTokens,
+      ctxObj?.total_input_tokens,
+      ctxObj?.totalInputTokens,
+      ctxObj?.used_tokens,
+      ctxObj?.usedTokens,
+    );
+    const windowSize =
+      pickFinitePositiveNumber(
+        ctxObj?.context_window_size,
+        ctxObj?.contextWindowSize,
+        ctxObj?.max_tokens,
+        ctxObj?.maxTokens,
+      ) ?? DEFAULT_CONTEXT_WINDOW_TOKENS;
+    if (usedTokens !== undefined) {
+      contextPercent = clampPercent((usedTokens / windowSize) * 100);
+    }
+  }
+
+  // 3. Cost USD
+  const costObj = asPlainRecord(obj.cost);
+  const rawCost = pickFiniteNonNegNumber(
+    costObj?.total_cost_usd,
+    costObj?.totalCostUsd,
+    costObj?.session_cost_usd,
+    costObj?.usd,
+    obj.total_cost_usd,
+    obj.cost_usd,
+  );
+  const costUsd = rawCost !== undefined ? Math.round(rawCost * 10000) / 10000 : undefined;
+
+  // 4. Quota remaining percentage
+  const quotaObj = asPlainRecord(obj.quota);
+  let quotaRemainingPercent: number | undefined;
+  const remPct = pickFiniteNonNegNumber(
+    quotaObj?.remaining_percentage,
+    quotaObj?.remainingPercentage,
+    quotaObj?.remaining_percent,
+    obj.quota_remaining_percentage,
+  );
+  if (remPct !== undefined) {
+    quotaRemainingPercent = clampPercent(remPct);
+  } else {
+    const usedQuota = pickFiniteNonNegNumber(
+      quotaObj?.used_percentage,
+      quotaObj?.usedPercentage,
+      obj.quota_used_percentage,
+    );
+    if (usedQuota !== undefined) {
+      quotaRemainingPercent = clampPercent(100 - usedQuota);
+    }
+  }
+
+  // 5. Subagents active/running count
+  let runningSubagents: number | undefined;
+  if (Array.isArray(obj.subagents)) {
+    const active = obj.subagents.filter((item) => {
+      const rec = asPlainRecord(item);
+      if (!rec) return false;
+      const st = String(rec.status ?? rec.state ?? '').toLowerCase();
+      return st === 'running' || st === 'active' || st === 'working' || st === '';
+    }).length;
+    runningSubagents = active;
+  } else {
+    const subObj = asPlainRecord(obj.subagents);
+    const count = pickFiniteNonNegNumber(
+      subObj?.running,
+      subObj?.active,
+      subObj?.count,
+      obj.running_subagents,
+      obj.runningSubagents,
+    );
+    if (count !== undefined) {
+      runningSubagents = Math.floor(count);
+    }
+  }
+
+  // 6. Workspace basename only (cross-platform normalize '\' -> '/', never leak host path or '..')
+  const wsObj = asPlainRecord(obj.workspace);
+  const rawWsPath =
+    (typeof wsObj?.current_dir === 'string' && wsObj.current_dir.trim()) ||
+    (typeof wsObj?.project_dir === 'string' && wsObj.project_dir.trim()) ||
+    (typeof obj.cwd === 'string' && obj.cwd.trim()) ||
+    '';
+  let workspaceName: string | undefined;
+  if (rawWsPath) {
+    const normalizedPosix = rawWsPath.replace(/\\/g, '/').replace(/\/+$/, '');
+    const candidateBase = path.posix.basename(normalizedPosix);
+    if (
+      candidateBase &&
+      candidateBase !== '.' &&
+      candidateBase !== '..' &&
+      !/^[A-Za-z]:$/.test(candidateBase)
+    ) {
+      workspaceName = sanitizeShortLabel(candidateBase, 40);
+    }
+  }
+
+  // 7. Session / conversation id
+  const sessionId =
+    sanitizeShortLabel(obj.session_id, 48) ??
+    sanitizeShortLabel(obj.sessionId, 48) ??
+    sanitizeShortLabel(obj.conversation_id, 48) ??
+    sanitizeShortLabel(obj.conversationId, 48);
+
+  const result: StatusLineHostStdinPayload = {
+    ...(model ? { model } : {}),
+    ...(contextPercent !== undefined ? { contextPercent } : {}),
+    ...(costUsd !== undefined ? { costUsd } : {}),
+    ...(quotaRemainingPercent !== undefined ? { quotaRemainingPercent } : {}),
+    ...(runningSubagents !== undefined ? { runningSubagents } : {}),
+    ...(workspaceName ? { workspaceName } : {}),
+    ...(sessionId ? { sessionId } : {}),
+  };
+
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+/**
+ * Bounded non-blocking stdin reader for CLI `statusline` invocations.
+ * Returns immediately on TTY; caps piped stdin by byte count and timeout so CLI never stalls.
+ */
+export function readHostStatusLineStdinAsync(
+  timeoutMs = DEFAULT_HOST_STDIN_TIMEOUT_MS,
+  maxBytes = MAX_HOST_STDIN_BYTES,
+): Promise<StatusLineHostStdinPayload | undefined> {
+  if (process.stdin.isTTY) {
+    return Promise.resolve(undefined);
+  }
+  return new Promise((resolve) => {
+    const chunks: Buffer[] = [];
+    let totalBytes = 0;
+    let settled = false;
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      process.stdin.removeListener('data', onData);
+      process.stdin.removeListener('end', onEnd);
+      process.stdin.removeListener('error', onError);
+      try {
+        process.stdin.pause();
+      } catch {
+        // ignore
+      }
+      const text = chunks.length > 0 ? Buffer.concat(chunks).toString('utf8') : '';
+      resolve(parseHostStatusLineStdin(text));
+    };
+
+    const onData = (chunk: Buffer | string) => {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, 'utf8');
+      if (totalBytes + buf.length > maxBytes) {
+        const remaining = Math.max(0, maxBytes - totalBytes);
+        if (remaining > 0) chunks.push(buf.subarray(0, remaining));
+        totalBytes = maxBytes;
+        finish();
+        return;
+      }
+      chunks.push(buf);
+      totalBytes += buf.length;
+    };
+
+    const onEnd = () => finish();
+    const onError = () => finish();
+
+    const timer = setTimeout(finish, Math.max(20, Math.min(timeoutMs, 1000)));
+    timer.unref?.();
+
+    process.stdin.on('data', onData);
+    process.stdin.on('end', onEnd);
+    process.stdin.on('error', onError);
+    process.stdin.resume();
+  });
+}
+
 function normalizeGuardModeForStatusLine(raw: unknown): 'readonly-audit' | 'balanced-dev' | 'strict-gate' {
   if (raw === 'readonly-audit' || raw === 'strict-gate' || raw === 'balanced-dev') {
     return raw;
@@ -65,7 +314,7 @@ function formatGuardModeAbbr(mode: string): 'RO' | 'BAL' | 'STRICT' {
 }
 
 function formatContextUsageBar(percent: number): string {
-  const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+  const clamped = clampPercent(percent);
   const filled = Math.max(0, Math.min(5, Math.round(clamped / 20)));
   return `Ctx[${'█'.repeat(filled)}${'░'.repeat(5 - filled)}]${clamped}%`;
 }
@@ -79,6 +328,7 @@ export interface StatusLineSnapshot {
   locale: string;
   network: 'offline' | 'opt-in-remote';
   segments?: string[];
+  host?: StatusLineHostStdinPayload;
   guard?: {
     enabled: boolean;
     permissionMode: string;
@@ -88,6 +338,7 @@ export interface StatusLineSnapshot {
     contextPercent?: number;
     burn5hUsd?: number;
     cacheHitRate?: number;
+    quotaRemainingPercent?: number;
   };
   verify?: {
     enabled: boolean;
@@ -121,6 +372,7 @@ export interface StatusLineSnapshot {
 
 export interface BuildStatusLineOptions {
   segments?: StatusLineSegmentId[];
+  hostStdin?: StatusLineHostStdinPayload;
 }
 
 export function buildStatusLine(
@@ -132,6 +384,7 @@ export function buildStatusLine(
   const enabledCount = MODULE_IDS.filter((id) => cfg.modules[id]).length;
   const modelTools = countEnabledModelTools(cfg.modules);
   const network: 'offline' | 'opt-in-remote' = cfg.modules.remote ? 'opt-in-remote' : 'offline';
+  const hostStdin = opts.hostStdin;
 
   // Read-only optional feed-snapshot.json fallback (rejects symlinks & > 2 MiB, zero writes)
   const feedSnapshot = readJsonSilent(getFeedSnapshotPath(dataDir));
@@ -326,6 +579,10 @@ export function buildStatusLine(
 
   let xraySummary: StatusLineSnapshot['xray'];
   let telemetrySummary: StatusLineSnapshot['telemetry'];
+  let contextPercent: number | undefined;
+  let burn5hUsd: number | undefined;
+  let cacheHitRate: number | undefined;
+
   if (cfg.modules.xray) {
     const live = readJsonSilent(path.join(getModuleDataDir(dataDir, 'xray'), 'live-state.json'));
     const feedXray = asPlainRecord(feedSummary?.xray);
@@ -361,11 +618,10 @@ export function buildStatusLine(
         feedXray?.maxContextTokens,
       ) ?? DEFAULT_CONTEXT_WINDOW_TOKENS;
 
-    let contextPercent: number | undefined;
     if (explicitCtxPct !== undefined) {
-      contextPercent = Math.max(0, Math.min(100, Math.round(explicitCtxPct)));
+      contextPercent = clampPercent(explicitCtxPct);
     } else if (peakTokens !== undefined) {
-      contextPercent = Math.max(0, Math.min(100, Math.round((peakTokens / contextWindow) * 100)));
+      contextPercent = clampPercent((peakTokens / contextWindow) * 100);
     }
 
     const rawBurn5h = pickFiniteNonNegNumber(
@@ -385,8 +641,7 @@ export function buildStatusLine(
       feedXray?.estCostUsd,
       feedXray?.todayCostUsd,
     );
-    const burn5hUsd =
-      rawBurn5h !== undefined ? Math.round(rawBurn5h * 10000) / 10000 : undefined;
+    burn5hUsd = rawBurn5h !== undefined ? Math.round(rawBurn5h * 10000) / 10000 : undefined;
 
     let rawCacheHit = pickFiniteNonNegNumber(
       live?.cacheHitRate,
@@ -411,23 +666,33 @@ export function buildStatusLine(
         rawCacheHit = Math.min(1, cacheRead / totalInput);
       }
     }
-    let cacheHitRate: number | undefined;
     if (rawCacheHit !== undefined) {
       const normalized = rawCacheHit > 1 ? Math.min(1, rawCacheHit / 100) : Math.min(1, rawCacheHit);
       cacheHitRate = Math.round(normalized * 10000) / 10000;
     }
+  }
 
-    if (
-      contextPercent !== undefined ||
-      burn5hUsd !== undefined ||
-      cacheHitRate !== undefined
-    ) {
-      telemetrySummary = {
-        ...(contextPercent !== undefined ? { contextPercent } : {}),
-        ...(burn5hUsd !== undefined ? { burn5hUsd } : {}),
-        ...(cacheHitRate !== undefined ? { cacheHitRate } : {}),
-      };
-    }
+  // Live CLI host stdin JSON overrides stale local context/cost estimates when supplied
+  if (hostStdin?.contextPercent !== undefined) {
+    contextPercent = hostStdin.contextPercent;
+  }
+  if (hostStdin?.costUsd !== undefined) {
+    burn5hUsd = hostStdin.costUsd;
+  }
+  const quotaRemainingPercent = hostStdin?.quotaRemainingPercent;
+
+  if (
+    contextPercent !== undefined ||
+    burn5hUsd !== undefined ||
+    cacheHitRate !== undefined ||
+    quotaRemainingPercent !== undefined
+  ) {
+    telemetrySummary = {
+      ...(contextPercent !== undefined ? { contextPercent } : {}),
+      ...(burn5hUsd !== undefined ? { burn5hUsd } : {}),
+      ...(cacheHitRate !== undefined ? { cacheHitRate } : {}),
+      ...(quotaRemainingPercent !== undefined ? { quotaRemainingPercent } : {}),
+    };
   }
 
   let line: string;
@@ -442,6 +707,8 @@ export function buildStatusLine(
             ? `NOV ${enabledCount}/${MODULE_IDS.length} (${modelTools}t)`
             : `agy-NOV ${cfg.preset} · ${enabledCount}/${MODULE_IDS.length} (${modelTools}t)`,
         );
+      } else if (seg === 'model') {
+        customParts.push(hostStdin?.model ? `Model:${hostStdin.model}` : 'Model:auto');
       } else if (seg === 'context') {
         customParts.push(
           telemetrySummary?.contextPercent !== undefined
@@ -451,6 +718,12 @@ export function buildStatusLine(
       } else if (seg === 'burn') {
         const usd = telemetrySummary?.burn5hUsd ?? 0;
         customParts.push(`5h:$${usd.toFixed(2)}`);
+      } else if (seg === 'quota') {
+        customParts.push(
+          telemetrySummary?.quotaRemainingPercent !== undefined
+            ? `Quota:${telemetrySummary.quotaRemainingPercent}%`
+            : 'Quota:n/a',
+        );
       } else if (seg === 'cache') {
         customParts.push(
           telemetrySummary?.cacheHitRate !== undefined
@@ -485,13 +758,16 @@ export function buildStatusLine(
       } else if (seg === 'radar') {
         if (radarSummary) {
           const radarBits: string[] = [];
-          if (radarSummary.running > 0) radarBits.push(`${radarSummary.running}run`);
+          const running = Math.max(radarSummary.running, hostStdin?.runningSubagents ?? 0);
+          if (running > 0) radarBits.push(`${running}run`);
           if (radarSummary.awaitingApproval > 0) radarBits.push(`${radarSummary.awaitingApproval}wait`);
           if (radarSummary.stalled > 0) radarBits.push(`${radarSummary.stalled}stall`);
           if (radarSummary.orphanSubagents > 0) radarBits.push(`${radarSummary.orphanSubagents}orphan`);
           if (radarSummary.error > 0) radarBits.push(`${radarSummary.error}err`);
           if (radarSummary.unread > 0) radarBits.push(`${radarSummary.unread}unread`);
           customParts.push(radarBits.length > 0 ? `Radar:${radarBits.join('/')}` : 'Radar:idle');
+        } else if (hostStdin?.runningSubagents && hostStdin.runningSubagents > 0) {
+          customParts.push(`Radar:${hostStdin.runningSubagents}run`);
         } else {
           customParts.push('Radar:idle');
         }
@@ -501,7 +777,7 @@ export function buildStatusLine(
     }
     line = customParts.join(' · ');
   } else {
-    // Preserve exact default format for 100% backwards compatibility
+    // Preserve exact default format when hostStdin is absent for 100% backwards compatibility
     const parts: string[] = compact
       ? [`NOV ${enabledCount}/${MODULE_IDS.length} (${modelTools}t)`]
       : [
@@ -509,6 +785,26 @@ export function buildStatusLine(
           `${enabledCount}/${MODULE_IDS.length} (${modelTools}t)`,
           network === 'offline' ? 'offline' : 'remote:ON',
         ];
+
+    if (hostStdin) {
+      if (!compact && hostStdin.model) {
+        parts.push(hostStdin.model);
+      }
+      if (hostStdin.contextPercent !== undefined) {
+        parts.push(
+          compact ? `Ctx:${hostStdin.contextPercent}%` : formatContextUsageBar(hostStdin.contextPercent),
+        );
+      }
+      if (!compact && hostStdin.costUsd !== undefined) {
+        parts.push(`$${hostStdin.costUsd.toFixed(2)}`);
+      }
+      if (!compact && hostStdin.quotaRemainingPercent !== undefined) {
+        parts.push(`Quota:${hostStdin.quotaRemainingPercent}%`);
+      }
+      if (hostStdin.runningSubagents && hostStdin.runningSubagents > 0 && !radarSummary) {
+        parts.push(`Sub:${hostStdin.runningSubagents}`);
+      }
+    }
 
     if (verifySummary) {
       const tag =
@@ -529,7 +825,8 @@ export function buildStatusLine(
 
     if (radarSummary) {
       const radarBits: string[] = [];
-      if (radarSummary.running > 0) radarBits.push(`${radarSummary.running}run`);
+      const running = Math.max(radarSummary.running, hostStdin?.runningSubagents ?? 0);
+      if (running > 0) radarBits.push(`${running}run`);
       if (radarSummary.awaitingApproval > 0) radarBits.push(`${radarSummary.awaitingApproval}wait`);
       if (radarSummary.stalled > 0) radarBits.push(`${radarSummary.stalled}stall`);
       if (radarSummary.orphanSubagents > 0) radarBits.push(`${radarSummary.orphanSubagents}orphan`);
@@ -551,6 +848,7 @@ export function buildStatusLine(
     locale: cfg.locale,
     network,
     ...(customSegments !== undefined ? { segments: customSegments } : {}),
+    ...(hostStdin ? { host: hostStdin } : {}),
     ...(guardSummary ? { guard: guardSummary } : {}),
     ...(telemetrySummary ? { telemetry: telemetrySummary } : {}),
     verify: verifySummary,

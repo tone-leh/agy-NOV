@@ -15,6 +15,7 @@ const ALL_SKILL_NAMES = [
   'nov-debug',
   'nov-review',
   'nov-handoff',
+  'nov-workflow',
 ] as const;
 
 const NEW_PLAYBOOK_SKILLS = [
@@ -22,6 +23,7 @@ const NEW_PLAYBOOK_SKILLS = [
   'nov-debug',
   'nov-review',
   'nov-handoff',
+  'nov-workflow',
 ] as const;
 
 const NEW_READONLY_AGENTS = [
@@ -56,6 +58,7 @@ const CANONICAL_CLI_COMMANDS = new Set([
   'recommend',
   'doctor',
   'compact-run',
+  'compile-spec',
 ]);
 
 const CANONICAL_MODEL_TOOLS = new Set<string>([
@@ -315,6 +318,21 @@ describe('v0.9.0 native /nov-* playbook skills', () => {
       'Clean Fork',
     ]) {
       assert.ok(handoffText.includes(token), `nov-handoff missing required token: ${token}`);
+    }
+
+    const workflowText = readSkill('nov-workflow');
+    for (const token of [
+      '`nov_status`',
+      '`spec_get_state`',
+      '`spec_update_task`',
+      '`verify_run_checks`',
+      'compile-spec',
+      '/run-workflow',
+      '/swarm',
+      '`nov-blind-reviewer`',
+      '`nov-security-auditor`',
+    ]) {
+      assert.ok(workflowText.includes(token), `nov-workflow missing required token: ${token}`);
     }
   });
 });

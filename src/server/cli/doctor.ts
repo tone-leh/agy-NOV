@@ -16,6 +16,7 @@ export function runDoctor(dataDir: string): number {
     'skills/nov-debug/SKILL.md',
     'skills/nov-review/SKILL.md',
     'skills/nov-handoff/SKILL.md',
+    'skills/nov-workflow/SKILL.md',
     'agents/nov-blind-reviewer.md',
     'agents/nov-security-auditor.md',
     'assets/logo.svg',

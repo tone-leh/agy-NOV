@@ -60,6 +60,45 @@ export interface SpecRevisionDiffResponse {
   hunks: SpecRevisionDiffHunk[];
 }
 
+export interface SpecCompiledWorkflowWaveTask {
+  id: string;
+  title: string;
+  description?: string;
+  status: SpecTaskStatus;
+  dependsOn: string[];
+  files: string[];
+  role: string;
+  suggestedWorkspace: 'share' | 'inherit';
+}
+
+export interface SpecCompiledWorkflowWave {
+  waveIndex: number;
+  parallelizable: boolean;
+  suggestedWorkspace: 'share' | 'inherit';
+  tasks: SpecCompiledWorkflowWaveTask[];
+}
+
+export interface SpecCompiledWorkflowResponse {
+  ok: true;
+  target: 'workflow' | 'swarm' | 'both';
+  specId: string;
+  title: string;
+  status: SpecStatus;
+  mode: SpecMode;
+  revision: number;
+  writeLockActive: boolean;
+  totalTasks: number;
+  compiledTasks: number;
+  skippedCompletedTasks: number;
+  waveCount: number;
+  parallelWaveCount: number;
+  waves: SpecCompiledWorkflowWave[];
+  warnings: string[];
+  workflowPython?: string;
+  swarmPlanJson?: string;
+  runtimeMode?: string;
+}
+
 export interface SpecTaskView {
   id: string;
   title: string;
@@ -215,6 +254,21 @@ export interface SpecPanelExtraLabels {
   acceptancePlaceholder: string;
   openReviewLink: string;
   annotationAddedToast: string;
+  compileWorkflowBtn: string;
+  workflowPreviewTitle: string;
+  workflowTabPython: string;
+  workflowTabSwarm: string;
+  workflowCopyBtn: string;
+  workflowCopiedToast: string;
+  workflowCloseBtn: string;
+  workflowDraftWarning: string;
+  workflowWavesBadge: string;
+  workflowParallelBadge: string;
+  workflowTasksBadge: string;
+  workflowSkippedDoneBadge: string;
+  workflowIncludeCompletedLabel: string;
+  workflowWavePrefix: string;
+  workflowEmptyHint: string;
 }
 
 export interface SetSpecStatusParams {

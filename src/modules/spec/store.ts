@@ -1,7 +1,12 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { atomicWriteJson } from '../../core/utils.js';
+import {
+  atomicWriteJson,
+  canonicalRealpathSync,
+  hasUnsafeSymlinkAncestor,
+  isPathInsideDir,
+} from '../../core/fs-safe.js';
 import { buildSpecDocumentView, validateAndNormalizeTaskInputs } from './dag.js';
 import {
   MAX_ANNOTATIONS_PER_SPEC,
@@ -57,7 +62,11 @@ export function createEmptySpecState(): SpecStateFile {
   };
 }
 
-function normalizeTaskFromDisk(raw: unknown, fallbackIso: string): SpecTask | null {
+function normalizeTaskFromDisk(
+  raw: unknown,
+  fallbackIso: string,
+  preserveRawTaskDeps = false,
+): SpecTask | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const obj = raw as Record<string, unknown>;
   if (typeof obj.id !== 'string' || !SPEC_TASK_ID_RE.test(obj.id.trim())) return null;
@@ -76,7 +85,12 @@ function normalizeTaskFromDisk(raw: unknown, fallbackIso: string): SpecTask | nu
     for (const dep of obj.dependsOn) {
       if (typeof dep === 'string') {
         const cleanDep = dep.trim();
-        if (cleanDep && cleanDep !== id && SPEC_TASK_ID_RE.test(cleanDep) && !seen.has(cleanDep)) {
+        if (
+          cleanDep &&
+          (preserveRawTaskDeps || cleanDep !== id) &&
+          SPEC_TASK_ID_RE.test(cleanDep) &&
+          !seen.has(cleanDep)
+        ) {
           seen.add(cleanDep);
           dependsOn.push(cleanDep);
         }
@@ -200,7 +214,7 @@ function normalizeAnnotationsFromDisk(
   return out;
 }
 
-function normalizeSpecFromDisk(raw: unknown): SpecDocument | null {
+function normalizeSpecFromDisk(raw: unknown, preserveRawTaskDeps = false): SpecDocument | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const obj = raw as Record<string, unknown>;
   if (typeof obj.id !== 'string' || !SPEC_ID_RE.test(obj.id.trim())) return null;
@@ -229,7 +243,7 @@ function normalizeSpecFromDisk(raw: unknown): SpecDocument | null {
   if (Array.isArray(obj.tasks)) {
     const seenTaskIds = new Set<string>();
     for (const item of obj.tasks.slice(0, MAX_TASKS_PER_SPEC)) {
-      const task = normalizeTaskFromDisk(item, updatedAt);
+      const task = normalizeTaskFromDisk(item, updatedAt, preserveRawTaskDeps);
       if (task && !seenTaskIds.has(task.id)) {
         seenTaskIds.add(task.id);
         rawTasks.push(task);
@@ -237,10 +251,12 @@ function normalizeSpecFromDisk(raw: unknown): SpecDocument | null {
     }
   }
   const knownTaskIds = new Set(rawTasks.map((t) => t.id));
-  const tasks = rawTasks.map((t) => ({
-    ...t,
-    dependsOn: t.dependsOn.filter((dep) => knownTaskIds.has(dep)),
-  }));
+  const tasks = preserveRawTaskDeps
+    ? rawTasks
+    : rawTasks.map((t) => ({
+        ...t,
+        dependsOn: t.dependsOn.filter((dep) => knownTaskIds.has(dep)),
+      }));
 
   const rawPlanMarkdown =
     typeof obj.planMarkdown === 'string' ? sanitizePlanMarkdown(obj.planMarkdown) : '';
@@ -299,16 +315,44 @@ function normalizeSpecFromDisk(raw: unknown): SpecDocument | null {
   };
 }
 
+const MAX_SPEC_STATE_FILE_BYTES = 2 * 1024 * 1024;
+
+export interface LoadSpecStateOptions {
+  /**
+   * When true, keep raw self-dependencies and unknown `dependsOn` entries intact so
+   * strict DAG compilers can surface explicit dependency errors rather than dropping them.
+   */
+  preserveRawTaskDeps?: boolean;
+}
+
 /**
- * Pure read-only load. Never creates directories or writes to disk.
+ * Pure read-only load. Never creates directories, never writes to disk, and rejects symlinks
+ * or oversized files (> 2 MiB).
  */
-export function loadSpecStateReadOnly(moduleDataDir: string): SpecStateFile {
-  const statePath = getSpecStatePath(moduleDataDir);
-  if (!fs.existsSync(statePath)) {
+export function loadSpecStateReadOnly(
+  moduleDataDir: string,
+  options?: LoadSpecStateOptions,
+): SpecStateFile {
+  const preserveRawTaskDeps = options?.preserveRawTaskDeps === true;
+  if (hasUnsafeSymlinkAncestor(moduleDataDir)) {
     return createEmptySpecState();
   }
   try {
-    const raw = JSON.parse(fs.readFileSync(statePath, 'utf8')) as Record<string, unknown>;
+    const dirStat = fs.lstatSync(moduleDataDir);
+    if (dirStat.isSymbolicLink() || !dirStat.isDirectory()) {
+      return createEmptySpecState();
+    }
+    const realDir = canonicalRealpathSync(moduleDataDir);
+    const statePath = getSpecStatePath(realDir);
+    const fileStat = fs.lstatSync(statePath);
+    if (fileStat.isSymbolicLink() || !fileStat.isFile() || fileStat.size > MAX_SPEC_STATE_FILE_BYTES) {
+      return createEmptySpecState();
+    }
+    const realStatePath = canonicalRealpathSync(statePath);
+    if (!isPathInsideDir(realDir, realStatePath)) {
+      return createEmptySpecState();
+    }
+    const raw = JSON.parse(fs.readFileSync(realStatePath, 'utf8')) as Record<string, unknown>;
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
       return createEmptySpecState();
     }
@@ -316,7 +360,7 @@ export function loadSpecStateReadOnly(moduleDataDir: string): SpecStateFile {
     const seenSpecIds = new Set<string>();
     if (Array.isArray(raw.specs)) {
       for (const item of raw.specs.slice(0, MAX_SPECS)) {
-        const spec = normalizeSpecFromDisk(item);
+        const spec = normalizeSpecFromDisk(item, preserveRawTaskDeps);
         if (spec && !seenSpecIds.has(spec.id)) {
           seenSpecIds.add(spec.id);
           specs.push(spec);

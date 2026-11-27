@@ -15,6 +15,7 @@ import {
   TEAM_CONFIG_FILENAME,
 } from '../core/config.js';
 import { canonicalRealpathSync, hasCliFlag, parseCliFlag } from '../core/utils.js';
+import { compileActiveSpecWorkflowReadOnly } from '../modules/spec/core.js';
 import { executeSafeCompactRun } from '../modules/turbo/auto-rtk.js';
 import { runDoctor } from './cli/doctor.js';
 import { CLI_VERSION, printHelp, printStatus } from './cli/helpers.js';
@@ -29,9 +30,12 @@ import {
 } from './cli/recommend.js';
 import {
   buildStatusLine,
+  parseHostStatusLineStdin,
   parseStatusLineSegments,
+  readHostStatusLineStdinAsync,
   STATUSLINE_SEGMENTS,
   type BuildStatusLineOptions,
+  type StatusLineHostStdinPayload,
   type StatusLineSegmentId,
   type StatusLineSnapshot,
 } from './cli/statusline.js';
@@ -40,6 +44,7 @@ export {
   buildStatusLine,
   buildTeamPresetDraft,
   buildWorkspaceRecommendation,
+  parseHostStatusLineStdin,
   parseStatusLineSegments,
   STATUSLINE_SEGMENTS,
 };
@@ -47,13 +52,14 @@ export type {
   BuildStatusLineOptions,
   OfflineModuleId,
   SafeRecommendedPreset,
+  StatusLineHostStdinPayload,
   StatusLineSegmentId,
   StatusLineSnapshot,
   TeamPresetDraft,
   WorkspaceRecommendation,
 };
 
-function main(): void {
+async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   const cmd = argv.find((a) => !a.startsWith('-')) ?? 'status';
   const positional = argv.filter((a) => !a.startsWith('-'));
@@ -113,7 +119,8 @@ function main(): void {
     const rawSegments =
       rawSegmentsFlag !== undefined ? rawSegmentsFlag : process.env.AGY_NOV_STATUSLINE_SEGMENTS;
     const segments = parseStatusLineSegments(rawSegments);
-    const snap = buildStatusLine(dataDir, compact, { segments });
+    const hostStdin = await readHostStatusLineStdinAsync();
+    const snap = buildStatusLine(dataDir, compact, { segments, hostStdin });
     console.log(asJson ? JSON.stringify(snap) : snap.line);
     return;
   }
@@ -243,6 +250,70 @@ function main(): void {
     process.exit(result.exitCode);
   }
 
+  if (cmd === 'compile-spec') {
+    const specId = parseCliFlag(argv, '--spec');
+    const rawFormat = (parseCliFlag(argv, '--format') ?? parseCliFlag(argv, '--target') ?? 'both')
+      .trim()
+      .toLowerCase();
+    const format: 'workflow' | 'swarm' | 'both' =
+      rawFormat === 'workflow' || rawFormat === 'swarm' ? rawFormat : 'both';
+    const asJson = hasCliFlag(argv, '--json');
+    const includeCompleted = hasCliFlag(argv, '--include-completed');
+    const includeReviewGate = !hasCliFlag(argv, '--no-review') && !hasCliFlag(argv, '--no-review-gate');
+    const includeVerifyGate = !hasCliFlag(argv, '--no-verify') && !hasCliFlag(argv, '--no-verify-gate');
+    const workspaceFlag = (parseCliFlag(argv, '--workspace') ?? '').trim().toLowerCase();
+    const useShareWorkspace =
+      !hasCliFlag(argv, '--inherit-workspace') && workspaceFlag !== 'inherit';
+    const rawModel = (parseCliFlag(argv, '--model') ?? 'inherit').trim().toLowerCase();
+    const modelTier: 'inherit' | 'flash' | 'pro' =
+      rawModel === 'flash' || rawModel === 'pro' ? rawModel : 'inherit';
+
+    const compiled = compileActiveSpecWorkflowReadOnly(dataDir, specId, {
+      target: format,
+      includeCompleted,
+      includeReviewGate,
+      includeVerifyGate,
+      useShareWorkspace,
+      modelTier,
+    });
+
+    if (!compiled.ok) {
+      if (asJson) {
+        console.log(JSON.stringify(compiled, null, 2));
+      } else {
+        console.error(`[agy-NOV compile-spec] ${compiled.error}`);
+      }
+      process.exit(1);
+    }
+
+    if (asJson) {
+      console.log(JSON.stringify(compiled, null, 2));
+      return;
+    }
+
+    const pyText = compiled.workflowPython ?? '';
+    const swarmText = compiled.swarmPlanJson ?? '';
+
+    if (format === 'workflow') {
+      process.stdout.write(pyText.endsWith('\n') ? pyText : `${pyText}\n`);
+      return;
+    }
+
+    if (format === 'swarm') {
+      process.stdout.write(swarmText.endsWith('\n') ? swarmText : `${swarmText}\n`);
+      return;
+    }
+
+    console.log(
+      `# agy-NOV Compiled Spec Workflow (${compiled.specId} · ${compiled.status} · ${compiled.waves.length} wave(s))`,
+    );
+    console.log('\n## /run-workflow Python Blueprint\n');
+    console.log(pyText);
+    console.log('\n## /swarm plan.json Blueprint\n');
+    console.log(swarmText);
+    return;
+  }
+
   console.error(`Unknown command "${cmd}".`);
   printHelp();
   process.exit(2);
@@ -275,5 +346,5 @@ function isCliEntrypoint(): boolean {
 }
 
 if (isCliEntrypoint()) {
-  main();
+  void main();
 }

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNovI18n } from '../../i18n/index.js';
 import { SpecCreateModal } from './SpecCreateModal.js';
 import { SpecPlanReviewView } from './SpecPlanReviewView.js';
@@ -15,6 +15,7 @@ import {
   type NovModulePanelProps,
   type SetSpecStatusParams,
   type SpecAnnotationKind,
+  type SpecCompiledWorkflowResponse,
   type SpecDeltaKind,
   type SpecDocumentView,
   type SpecMode,
@@ -67,6 +68,15 @@ export const SpecPanel: React.FC<NovModulePanelProps> = ({
   const [diffToRev, setDiffToRev] = useState<number | undefined>(undefined);
   const [diffResult, setDiffResult] = useState<SpecRevisionDiffResponse | null>(null);
 
+  // Compiled /run-workflow & /swarm preview state
+  const [compiledWorkflow, setCompiledWorkflow] = useState<SpecCompiledWorkflowResponse | null>(
+    null,
+  );
+  const [workflowPreviewOpen, setWorkflowPreviewOpen] = useState(false);
+  const [workflowPreviewTab, setWorkflowPreviewTab] = useState<'workflow' | 'swarm'>('workflow');
+  const [workflowIncludeCompleted, setWorkflowIncludeCompleted] = useState(false);
+  const lastCompiledStampRef = useRef<string | null>(null);
+
   // New spec / delta creation draft form
   const [draftMode, setDraftMode] = useState<SpecMode>('full');
   const [draftTitle, setDraftTitle] = useState('');
@@ -113,7 +123,7 @@ export const SpecPanel: React.FC<NovModulePanelProps> = ({
   const writeLockActive = Boolean(state?.writeLockActive);
   const isBusy = busyAction !== null;
 
-  // Reset line selection & diff view when active spec changes
+  // Reset line selection, diff view & compiled workflow preview when active spec changes
   const activeSpecIdRef = activeSpec?.id ?? null;
   useEffect(() => {
     setSelStart(null);
@@ -124,7 +134,46 @@ export const SpecPanel: React.FC<NovModulePanelProps> = ({
     setDiffResult(null);
     setDiffFromRev(undefined);
     setDiffToRev(undefined);
+    setCompiledWorkflow(null);
+    setWorkflowPreviewOpen(false);
+    lastCompiledStampRef.current = null;
   }, [activeSpecIdRef]);
+
+  // Keep open workflow preview synced when active spec status or tasks change
+  const activeSpecUpdatedAt = activeSpec?.updatedAt ?? null;
+  const activeSpecStatus = activeSpec?.status ?? null;
+  const activeSpecStamp = activeSpecIdRef
+    ? `${activeSpecIdRef}:${activeSpecStatus ?? ''}:${activeSpecUpdatedAt ?? ''}:${workflowIncludeCompleted ? '1' : '0'}`
+    : null;
+  useEffect(() => {
+    if (!workflowPreviewOpen || !activeSpecIdRef || !activeSpecStamp) return;
+    if (lastCompiledStampRef.current === activeSpecStamp) return;
+    let cancelled = false;
+    void bridge
+      .callTool<SpecCompiledWorkflowResponse>('app_spec_compile_workflow', {
+        specId: activeSpecIdRef,
+        target: 'both',
+        includeCompleted: workflowIncludeCompleted,
+      })
+      .then((res) => {
+        if (!cancelled) {
+          lastCompiledStampRef.current = activeSpecStamp;
+          setCompiledWorkflow(res);
+        }
+      })
+      .catch(() => {
+        // Keep last preview visible on transient refresh error
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeSpecIdRef,
+    activeSpecStamp,
+    bridge,
+    workflowIncludeCompleted,
+    workflowPreviewOpen,
+  ]);
 
   const dagNodes = useMemo(
     () => (activeSpec && Array.isArray(activeSpec.tasks) ? computeDagNodes(activeSpec.tasks) : []),
@@ -457,6 +506,69 @@ export const SpecPanel: React.FC<NovModulePanelProps> = ({
     }
   };
 
+  const handleCompileWorkflow = useCallback(
+    async (includeCompletedOverride?: boolean) => {
+      if (!activeSpec || busyAction) return;
+      const nextIncludeCompleted =
+        typeof includeCompletedOverride === 'boolean'
+          ? includeCompletedOverride
+          : workflowIncludeCompleted;
+      setBusyAction('compile-workflow');
+      try {
+        const res = await bridge.callTool<SpecCompiledWorkflowResponse>(
+          'app_spec_compile_workflow',
+          {
+            specId: activeSpec.id,
+            target: 'both',
+            includeCompleted: nextIncludeCompleted,
+          },
+        );
+        lastCompiledStampRef.current = `${activeSpec.id}:${activeSpec.status ?? ''}:${activeSpec.updatedAt ?? ''}:${nextIncludeCompleted ? '1' : '0'}`;
+        setCompiledWorkflow(res);
+        setWorkflowPreviewOpen(true);
+      } catch (err) {
+        onNotify?.(err instanceof Error ? err.message : String(err));
+      } finally {
+        setBusyAction(null);
+      }
+    },
+    [activeSpec, bridge, busyAction, onNotify, workflowIncludeCompleted],
+  );
+
+  const handleToggleWorkflowIncludeCompleted = useCallback(
+    async (next: boolean) => {
+      setWorkflowIncludeCompleted(next);
+      await handleCompileWorkflow(next);
+    },
+    [handleCompileWorkflow],
+  );
+
+  const handleCopyCompiledWorkflow = useCallback(async () => {
+    if (!compiledWorkflow) return;
+    const text =
+      workflowPreviewTab === 'workflow'
+        ? (compiledWorkflow.workflowPython ?? '')
+        : (compiledWorkflow.swarmPlanJson ?? '');
+    if (!text) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      onNotify?.(actions.workflowCopiedToast);
+    } catch (err) {
+      onNotify?.(err instanceof Error ? err.message : String(err));
+    }
+  }, [actions.workflowCopiedToast, compiledWorkflow, onNotify, workflowPreviewTab]);
+
   const handleAddDraftDelta = () => {
     const cleanText = newDeltaText.trim();
     if (!cleanText) return;
@@ -751,11 +863,20 @@ export const SpecPanel: React.FC<NovModulePanelProps> = ({
           busyAction={busyAction}
           isBusy={isBusy}
           actions={actions}
+          compiledWorkflow={compiledWorkflow}
+          workflowPreviewOpen={workflowPreviewOpen}
+          workflowPreviewTab={workflowPreviewTab}
+          workflowIncludeCompleted={workflowIncludeCompleted}
           onOpenCreate={() => setTab('create')}
           onOpenReview={() => setTab('review')}
           onSetSpecStatus={handleSetSpecStatus}
           onUpdateTask={handleUpdateTask}
           onArchiveToMem={handleArchiveToMem}
+          onCompileWorkflow={handleCompileWorkflow}
+          onCloseWorkflowPreview={() => setWorkflowPreviewOpen(false)}
+          onSetWorkflowPreviewTab={setWorkflowPreviewTab}
+          onToggleWorkflowIncludeCompleted={handleToggleWorkflowIncludeCompleted}
+          onCopyCompiledWorkflow={handleCopyCompiledWorkflow}
         />
       )}
 

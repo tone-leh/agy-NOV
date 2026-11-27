@@ -60,9 +60,11 @@ import { registerTurboModule } from '../modules/turbo/register.js';
 import { registerVerifyModule } from '../modules/verify/register.js';
 import { registerWorktreeModule } from '../modules/worktree/register.js';
 import { registerXrayModule } from '../modules/xray/register.js';
+import { NOV_CONTEXT_RESOURCE_URIS, registerNovContextResources } from './context-resources.js';
 
+export { NOV_CONTEXT_RESOURCE_URIS };
 export const UI_RESOURCE_URI = 'ui://agy-nov/app.html';
-export const NOV_VERSION = '1.0.2';
+export const NOV_VERSION = '1.1.0';
 
 const MCP_APPS_UI_EXTENSION_ID = 'io.modelcontextprotocol/ui';
 
@@ -247,6 +249,12 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
       };
     },
   );
+
+  // Register zero-injection-tax read-only on-demand MCP context resources (+0 model tools)
+  registerNovContextResources(server, options, async () => {
+    await syncConfigFromDiskIfChanged();
+    return currentConfig;
+  });
 
   const registrations = new Map<ModuleId, ModuleRegistrationResult>();
 

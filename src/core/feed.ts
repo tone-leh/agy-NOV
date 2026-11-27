@@ -23,7 +23,7 @@ import {
   isPathInsideDir,
 } from './fs-safe.js';
 
-export const FEED_SNAPSHOT_VERSION = '1.0.2' as const;
+export const FEED_SNAPSHOT_VERSION = '1.1.0' as const;
 export const FEED_SNAPSHOT_FILENAME = 'feed-snapshot.json' as const;
 export const MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
 export const MAX_FEED_ALERTS = 6;
@@ -182,7 +182,7 @@ export function redactFeedText(input: string, maxLen = 180): string {
     privateReplacement: '[REDACTED_PRIVATE]',
   });
   const normalized = redacted
-    .replace(/[\x00-\x1f\x7f]+/g, ' ')
+    .replace(/[\x00-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   return truncateUtf16Safe(normalized, maxLen, '…');

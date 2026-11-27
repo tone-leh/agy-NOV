@@ -386,7 +386,7 @@ describe('v1.0.1 Cross-Platform Core Utils (src/core/utils.ts)', () => {
 });
 
 describe('v1.0.1 Hook Manifest, CLI Entrypoint, LF Line Endings & Test Runner Hygiene', () => {
-  it('uses cross-platform plugin-root relative commands in all 5 hooks.json entries (no unexpanded ${PLUGIN_ROOT}/${PLUGIN_DATA})', () => {
+  it('uses cross-platform plugin-root relative commands in all 6 hooks.json entries (no unexpanded ${PLUGIN_ROOT}/${PLUGIN_DATA})', () => {
     const hooksPath = path.join(REPO_ROOT, 'hooks.json');
     const parsed = JSON.parse(fs.readFileSync(hooksPath, 'utf8')) as {
       'agy-nov-hooks': Record<
@@ -411,11 +411,11 @@ describe('v1.0.1 Hook Manifest, CLI Entrypoint, LF Line Endings & Test Runner Hy
       }
     }
 
-    assert.equal(commands.length, 5, 'Expected exactly 5 hook commands in hooks.json');
+    assert.equal(commands.length, 6, 'Expected exactly 6 hook commands in hooks.json');
     for (const cmd of commands) {
       assert.match(
         cmd,
-        /^node dist\/hook\.cjs --event (?:SessionStart|PreToolUse|PostToolUse|PreInvocation|Stop)$/,
+        /^node dist\/hook\.cjs --event (?:SessionStart|PreToolUse|PostToolUse|PreInvocation|PostInvocation|Stop)$/,
         `Hook command must use cross-platform relative path for sh -c and cmd /c: ${cmd}`,
       );
       assert.equal(

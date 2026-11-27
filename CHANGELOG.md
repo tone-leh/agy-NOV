@@ -2,6 +2,40 @@
 
 All notable changes to **agy-NOV** will be documented in this file.
 
+## [1.1.0] - 2026-11-28
+
+### Added
+- **4-Layer Modular Systems Architecture Refactor & Governance (`src/core/`, `docs/`, `test/`):**
+  - Extracted a zero-module-import Layer 1 core kernel (`src/core/fs-safe.ts`, `src/core/process-safe.ts`, `src/core/brain-paths.ts`, `src/core/sanitize.ts`, `src/core/module-contract.ts`) unifying cross-platform `canonicalRealpathSync`, NTFS atomic rename retries, `shell: false` Windows JS entry resolution, Brain path discovery, linear O(n) `<private>` stripping, and secret redaction across every module.
+  - Split 8 oversized monolithic files (`src/modules/ops/core.ts`, `src/modules/verify/core.ts`, `src/modules/studio/core.ts`, `src/modules/turbo/core.ts`, `src/modules/spec/core.ts`, `src/modules/worktree/core.ts`, `src/server/cli.ts`, and `ui/src/modules/spec/SpecPanel.tsx`) into cohesive, single-responsibility vertical submodules with **zero circular dependencies** across the entire repository.
+  - Published [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) and [`CONTRIBUTING.md`](./CONTRIBUTING.md), backed by automated architecture gatekeeping tests (`test/architecture-hygiene.test.ts`) enforcing unidirectional 4-layer imports, zero cycles, and clean kernel boundaries.
+- **Spec DAG → `/run-workflow` & `/swarm` Native Orchestration Compiler (+0 Model Tools) (`spec`, `cli`, `ui`, `skills/`):**
+  - Added pure read-only compiler `src/modules/spec/compiler.ts` using Kahn topological wave layering to compile approved Spec Task DAGs into standard Antigravity `/run-workflow` Python orchestration scripts (`phase`, `parallel`, `agent`, `log` automatically chaining `nov-blind-reviewer`, `nov-security-auditor`, and `Verify Gate`) and structured `/swarm` `plan.json` blueprints, rejecting dependency cycles and unknown dependencies with linear `<private>` and secret redaction.
+  - Added App-only `app_spec_compile_workflow` (`visibility: ['app']`, +0 model tools) and a 1-click preview & export dialog inside the Spec Task DAG header across all 8 UI languages (full key-symmetric localization).
+  - Added the **10th native CLI command** `agy-nov compile-spec [--spec=<id>] [--format=workflow|swarm|both] [--json] [--include-completed] [--no-review-gate] [--no-verify-gate] [--workspace=inherit] [--model=inherit|flash|pro]` for zero-write offline compilation.
+  - Added the **6th official on-demand Skill** `/nov-workflow` (`skills/nov-workflow/SKILL.md`), expanding `agy-nov doctor` verification to all **16** core plugin assets.
+- **Deterministic Security & Zero-Injection Context 2.0 (+0 Model Tools) (`hooks`, `guard`, `server`):**
+  - **PreInvocation Inbound Secret Hard Gate (`hooks`, `guard`):** Scans inbound user prompts locally before cloud transmission for high-confidence private keys and API credentials, blocking leaks via official `terminationBehavior: "terminate"` with a zero-secret-echo `errorMessage` (configurable via Guard policy `blockInboundPromptSecrets`).
+  - **Official 6th Lifecycle Hook — `PostInvocation` (`hooks.json`, `hooks`):** Added `PostInvocation` (`5s` timeout) with first-line O(1) read-only short-circuiting when `guard`, `turbo`, and `verify` are disabled; emits zero-token visual turn receipts (`systemMessage: ""` + `metadata.user_markdown`) summarizing Guard blocks, Verify dirty files/failures, and Turbo RTK savings.
+  - **4 Zero-Injection-Tax Read-Only MCP Context Resources (`src/server/context-resources.ts`):** Exposed `agy-nov://context/review`, `agy-nov://context/mem`, `agy-nov://context/turbo`, and `agy-nov://context/xray` under module toggle gating with full linear `<private>`/secret redaction, `<= 32 KiB` caps, symlink refusal, and strict zero-write isolation.
+- **Antigravity 2.35 CLI `statusLine` stdin JSON Fusion (`cli`):**
+  - Upgraded `agy-nov statusline` to asynchronously read bounded host CLI stdin JSON telemetry (`model`, `context_window`, `cost`, `quota`, `subagents`, `workspace`) with zero-delay TTY detection, `120ms` timeout protection, and `256 KiB` size caps, adding new `model` and `quota` composable segments (expanding `statusline --segments` to **11** segments fused seamlessly with `agy-NOV` engineering state).
+- **Expanded Automated Regression Verification (`test`):**
+  - Added `test/architecture-hygiene.test.ts` and `test/v110-workflow-protocol.test.ts`, expanding total automated verification to **97 test suites / 274 tests** passing green.
+
+### Changed
+- **Preserved 13-Module Architecture, 5 Presets & Strictly 47 Canonical Model Tools (+0 Inflation):** All 13 toggleable native modules (12 local offline + 1 opt-in `remote`), 5 presets (`minimal` 6 / `core` 12 / `power` 32 / `local-all` 43 / `full` 47), and all **47 canonical model tool names** remain 100% backward-compatible from `v0.4` through `v1.1.0`; all Spec workflow compilation UI controls stay strictly App-only (`visibility: ['app']`) and hidden automatically on headless CLI clients without MCP UI extensions.
+- **Updated Runtime Bundles, 6 Hooks, 6 Skills, 10 CLI Commands & 16-Asset `doctor` (`v1.1.0`):**
+  - Measured minified `v1.1.0` artifacts: `dist/server.cjs` **`1,572.2 KB`**, `dist/hook.cjs` **`211.9 KB`**, `dist/cli.cjs` **`124.1 KB`**, and single-file 8-language UI `dist/ui/app.html` **`1,390.2 KB`** (`~1.36 MiB`, far below the 10 MiB cap, extending the 755 core dictionary keys × 8 locales with full key-symmetric localization for Spec workflow compilation).
+  - Updated `hooks.json` to **6 official Lifecycle Hooks** (`SessionStart`, `PreToolUse`, `PostToolUse`, `PreInvocation`, `PostInvocation`, `Stop`), `skills/` to **6 official Skills** (`agy-nov` + `/nov-spec`, `/nov-debug`, `/nov-review`, `/nov-handoff`, `/nov-workflow`), `cli.ts` to **10 native CLI commands**, and `doctor` to verify all **16** core plugin assets (`version=1.1.0`).
+  - Synchronized `README.md`, all 7 localized `docs/i18n/README.*.md` files, `llms.txt`, `docs/llms-install.md`, and `skills/agy-nov/SKILL.md` to `v1.1.0` with links to `docs/ARCHITECTURE.md` and `CONTRIBUTING.md`.
+
+### Security
+- **Inbound Prompt Secret Interception & Zero-Echo Guarantees (`hooks`, `guard`):** `PreInvocation` detects high-confidence private keys and API tokens locally before cloud dispatch, terminating with `terminationBehavior: "terminate"` and returning rule labels only with zero raw secret echoing (controllable via Guard policy `blockInboundPromptSecrets`).
+- **MCP Context Resources Containment (`server`):** All 4 `agy-nov://context/*` resources enforce active module enablement checks, symlink refusal (`lstatSync` + `realpath` boundary verification), linear O(n) `<private>` stripping and secret redaction, strict `<= 32 KiB` output caps, and zero directory creation or disk writes.
+- **Spec DAG Compiler Safety (`spec`, `cli`):** `compile-spec` and `app_spec_compile_workflow` run strictly read-only, reject dependency cycles and unknown task references before emitting artifacts, strip `<private>` spans and redact secrets linearly, and encode Python string literals safely without raw triple-quote injection.
+- **Zero-Touch & Architecture Invariants Preserved (`v1.1.0`):** Maintained 100% Zero ASAR / Zero CDP boundaries, four-zero OFF-state isolation for `remote`, bounded `statusline` stdin parsing (`256 KiB` / `120ms` timeout, zero writes when `dataDir` is absent), clean `https://github.com/tone-leh/agy-Sag` companion links, and 97 suites / 274 tests verified green.
+
 ## [1.0.2] - 2026-11-27
 
 ### Added
