@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { atomicRenameSync, hasUnsafeSymlinkAncestor } from './utils.js';
+import { atomicRenameSync, hasUnsafeSymlinkAncestor } from './fs-safe.js';
 import {
   countEnabledModelTools,
   isModuleDomainId,

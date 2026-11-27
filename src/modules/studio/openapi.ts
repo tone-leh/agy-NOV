@@ -1,11 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  redactStudioSecrets,
-  resolveStudioWorkspaceFile,
   sanitizeHeadersMap,
   validateLoopbackProbeUrl,
-} from './core.js';
+} from './http-probe.js';
+import {
+  redactStudioSecrets,
+  resolveStudioWorkspaceFile,
+} from './sources.js';
 
 // ============================================================================
 // Security Constants & Public Types

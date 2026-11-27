@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { redactFeedText } from '../../core/feed.js';
+import { stripPrivateBlocksLinear } from '../../core/sanitize.js';
 import {
   atomicRenameSync,
   canonicalRealpathSync,
@@ -10,7 +11,7 @@ import {
   isPathInsideDir,
   resolveSafeSpawnTarget,
 } from '../../core/utils.js';
-import { CompactedChunkStore } from './core.js';
+import { CompactedChunkStore } from './compress.js';
 
 export interface TurboPrefs {
   schemaVersion: 1;
@@ -1180,69 +1181,8 @@ export function buildAutoRtkOverwriteCommand(
 // Linear O(n) Multiline Redaction for Raw Log Tail (<= 128 KiB)
 // ---------------------------------------------------------------------------
 
-function stripNestedPrivateBlocksLinear(input: string): string {
-  if (!input.includes('<')) return input;
-  const openTag = '<private';
-  const closeTag = '</private';
-  const chunks: string[] = [];
-  let cursor = 0;
-  let i = 0;
-  let depth = 0;
-  const len = input.length;
-
-  const isAsciiTagMatch = (pos: number, expected: string): boolean => {
-    if (pos + expected.length > len) return false;
-    for (let k = 0; k < expected.length; k += 1) {
-      let c = input.charCodeAt(pos + k);
-      if (c >= 65 && c <= 90) c += 32;
-      if (c !== expected.charCodeAt(k)) return false;
-    }
-    return true;
-  };
-
-  while (i < len) {
-    if (input.charCodeAt(i) === 60) {
-      if (isAsciiTagMatch(i, openTag)) {
-        const after = i + openTag.length;
-        const ch = after < len ? input.charCodeAt(after) : -1;
-        if (ch === 62 || ch === 32 || ch === 9 || ch === 10 || ch === 13 || ch === 47) {
-          const endBracket = input.indexOf('>', after);
-          if (endBracket !== -1) {
-            const selfClosing = input.charCodeAt(endBracket - 1) === 47;
-            if (depth === 0) {
-              if (i > cursor) chunks.push(input.slice(cursor, i));
-              chunks.push('[REDACTED_PRIVATE]');
-            }
-            if (!selfClosing) depth += 1;
-            else if (depth === 0) cursor = endBracket + 1;
-            i = endBracket + 1;
-            continue;
-          }
-        }
-      } else if (depth > 0 && isAsciiTagMatch(i, closeTag)) {
-        const after = i + closeTag.length;
-        const ch = after < len ? input.charCodeAt(after) : -1;
-        if (ch === 62 || ch === 32 || ch === 9 || ch === 10 || ch === 13) {
-          const endBracket = input.indexOf('>', after);
-          if (endBracket !== -1) {
-            depth -= 1;
-            i = endBracket + 1;
-            if (depth === 0) cursor = i;
-            continue;
-          }
-        }
-      }
-    }
-    i += 1;
-  }
-  if (depth === 0 && cursor < len) {
-    chunks.push(input.slice(cursor));
-  }
-  return chunks.join('');
-}
-
 function stripMultilinePemAndPrivateLinear(input: string): string {
-  let out = stripNestedPrivateBlocksLinear(input);
+  let out = stripPrivateBlocksLinear(input, '[REDACTED_PRIVATE]');
 
   // Strip PEM private key blocks linearly across multiple lines
   const beginMarker = '-----BEGIN ';

@@ -6,7 +6,7 @@ import {
   type ModuleId,
   type PresetId,
 } from './catalog.js';
-import { canonicalRealpathSync, isPathInsideDir } from './utils.js';
+import { canonicalRealpathSync, isPathInsideDir } from './fs-safe.js';
 
 export const TEAM_CONFIG_FILENAME = '.agy-nov.json';
 export const MAX_TEAM_CONFIG_BYTES = 64 * 1024; // 64 KiB hard cap

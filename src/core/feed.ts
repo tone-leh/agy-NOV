@@ -13,11 +13,15 @@ import {
   type PresetId,
 } from './config.js';
 import {
+  redactSecretsLinear,
+  truncateUtf16Safe,
+} from './sanitize.js';
+import {
   atomicRenameSync,
   canonicalRealpathSync,
   hasUnsafeSymlinkAncestor,
   isPathInsideDir,
-} from './utils.js';
+} from './fs-safe.js';
 
 export const FEED_SNAPSHOT_VERSION = '1.0.2' as const;
 export const FEED_SNAPSHOT_FILENAME = 'feed-snapshot.json' as const;
@@ -166,220 +170,22 @@ export function getFeedSnapshotPath(rootDataDir: string): string {
   return path.join(rootDataDir, FEED_SNAPSHOT_FILENAME);
 }
 
-// ---------------------------------------------------------------------------
-// Strict O(n) linear-time redaction helpers (zero ReDoS risk)
-// ---------------------------------------------------------------------------
-
-function isAsciiSpace(code: number): boolean {
-  return code === 0x20 || code === 0x09 || code === 0x0d || code === 0x0a;
-}
-
-function asciiLower(code: number): number {
-  return code >= 0x41 && code <= 0x5a ? code + 0x20 : code;
-}
-
-function startsWithAsciiCI(input: string, idx: number, lowerPrefix: string): boolean {
-  if (idx + lowerPrefix.length > input.length) return false;
-  for (let i = 0; i < lowerPrefix.length; i += 1) {
-    if (asciiLower(input.charCodeAt(idx + i)) !== lowerPrefix.charCodeAt(i)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function matchPrivateOpenEnd(input: string, idx: number): number {
-  if (!startsWithAsciiCI(input, idx, '<private')) return -1;
-  let cur = idx + 8;
-  if (cur >= input.length) return -1;
-  const ch = input.charCodeAt(cur);
-  if (ch === 0x3e) return cur;
-  if (!isAsciiSpace(ch)) return -1;
-  cur += 1;
-  while (cur < input.length) {
-    const code = input.charCodeAt(cur);
-    if (code === 0x3e) return cur;
-    if (code === 0x3c) return -1;
-    cur += 1;
-  }
-  return -1;
-}
-
-function matchPrivateCloseEnd(input: string, idx: number): number {
-  if (!startsWithAsciiCI(input, idx, '</private')) return -1;
-  let cur = idx + 9;
-  while (cur < input.length && isAsciiSpace(input.charCodeAt(cur))) {
-    cur += 1;
-  }
-  return cur < input.length && input.charCodeAt(cur) === 0x3e ? cur : -1;
-}
-
-function stripPrivateBlocksLinear(input: string): string {
-  if (!input.includes('<')) return input;
-  const chunks: string[] = [];
-  let cur = 0;
-  while (cur < input.length) {
-    const lt = input.indexOf('<', cur);
-    if (lt === -1) {
-      chunks.push(input.slice(cur));
-      break;
-    }
-    const openEnd = matchPrivateOpenEnd(input, lt);
-    if (openEnd === -1) {
-      chunks.push(input.slice(cur, lt + 1));
-      cur = lt + 1;
-      continue;
-    }
-    if (lt > cur) chunks.push(input.slice(cur, lt));
-    let depth = 1;
-    let scan = openEnd + 1;
-    while (scan < input.length && depth > 0) {
-      const nextLt = input.indexOf('<', scan);
-      if (nextLt === -1) {
-        scan = input.length;
-        break;
-      }
-      const nestedOpen = matchPrivateOpenEnd(input, nextLt);
-      if (nestedOpen !== -1) {
-        depth += 1;
-        scan = nestedOpen + 1;
-        continue;
-      }
-      const closeEnd = matchPrivateCloseEnd(input, nextLt);
-      if (closeEnd !== -1) {
-        depth -= 1;
-        scan = closeEnd + 1;
-        continue;
-      }
-      scan = nextLt + 1;
-    }
-    chunks.push('[REDACTED_PRIVATE]');
-    cur = depth > 0 ? input.length : scan;
-  }
-  return chunks.join('');
-}
-
-function stripPemPrivateKeysLinear(input: string): string {
-  const beginMarker = '-----BEGIN ';
-  if (!input.includes(beginMarker)) return input;
-
-  const chunks: string[] = [];
-  let cur = 0;
-  while (cur < input.length) {
-    const start = input.indexOf(beginMarker, cur);
-    if (start === -1) {
-      chunks.push(input.slice(cur));
-      break;
-    }
-    const headerEnd = input.indexOf('-----', start + beginMarker.length);
-    if (headerEnd === -1) {
-      chunks.push(input.slice(cur));
-      break;
-    }
-    const label = input.slice(start + beginMarker.length, headerEnd);
-    if (!/^[A-Z0-9 _-]{0,48}PRIVATE KEY(?: BLOCK)?$/i.test(label)) {
-      chunks.push(input.slice(cur, headerEnd + 5));
-      cur = headerEnd + 5;
-      continue;
-    }
-
-    if (start > cur) chunks.push(input.slice(cur, start));
-    chunks.push('[REDACTED_PRIVATE_KEY]');
-
-    const endPrefix = '-----END ';
-    const searchFrom = headerEnd + 5;
-    let endIdx = input.indexOf(endPrefix, searchFrom);
-    let closedAt = -1;
-    while (endIdx !== -1) {
-      const footerEnd = input.indexOf('-----', endIdx + endPrefix.length);
-      if (footerEnd === -1) break;
-      const endLabel = input.slice(endIdx + endPrefix.length, footerEnd);
-      if (/^[A-Z0-9 _-]{0,48}PRIVATE KEY(?: BLOCK)?$/i.test(endLabel)) {
-        closedAt = footerEnd + 5;
-        break;
-      }
-      endIdx = input.indexOf(endPrefix, footerEnd + 5);
-    }
-
-    // Truncated PEM private key: redact through end of input to prevent leaking key material
-    cur = closedAt === -1 ? input.length : closedAt;
-  }
-  return chunks.join('');
-}
-
-const LINEAR_REDACT_PATTERNS: ReadonlyArray<[RegExp, string]> = [
-  // IM webhook URLs
-  [/https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/_-]+/gi, '[REDACTED_WEBHOOK]'],
-  [/https:\/\/(?:discord\.com|discordapp\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9_-]+/gi, '[REDACTED_WEBHOOK]'],
-  [/https:\/\/open\.(?:feishu\.cn|larksuite\.com)\/open-apis\/bot\/v2\/hook\/[A-Za-z0-9_-]+/gi, '[REDACTED_WEBHOOK]'],
-  [/https:\/\/oapi\.dingtalk\.com\/robot\/send\?[^\s"'<>]+/gi, '[REDACTED_WEBHOOK]'],
-  [/https:\/\/qyapi\.weixin\.qq\.com\/cgi-bin\/webhook\/send\?[^\s"'<>]+/gi, '[REDACTED_WEBHOOK]'],
-  // URL embedded credentials and sensitive query params
-  [/(https?:\/\/[^:\s/@]+:)([^@\s/]+)(@)/gi, '$1[REDACTED]$3'],
-  [/([?&](?:token|access_token|api[_-]?key|key|secret|sign|sig|pin|code)=)([^&#\s"'<>]+)/gi, '$1[REDACTED]'],
-  // Authorization headers (including custom schemes like Token / ApiKey / Digest / HMAC) & JWTs
-  [
-    /\b(Authorization[ \t]*:[ \t]*(?:Bearer|Basic|Token|ApiKey|Digest|HMAC)[ \t]+)([^\s"',;}{]+)/gi,
-    '$1[REDACTED]',
-  ],
-  [/\bBearer[ \t]+[A-Za-z0-9\-._~+/]+=*/gi, 'Bearer [REDACTED]'],
-  [/\bBasic[ \t]+[A-Za-z0-9+/]+=*/gi, 'Basic [REDACTED]'],
-  [/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g, '[REDACTED_JWT]'],
-  // Telegram bot tokens & cloud/provider API keys
-  [/\b\d{6,12}:[A-Za-z0-9_-]{20,}\b/g, '[REDACTED_BOT_TOKEN]'],
-  [
-    /\b(?:sk-proj-|sk-ant-|sk_(?:live|test)_|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[baprs]-|AKIA|ASIA|npm_|hf_|pypi-)[A-Za-z0-9_-]{10,}\b/g,
-    '[REDACTED_KEY]',
-  ],
-  // Uppercase environment variable secret assignments (e.g. OPENAI_API_KEY=..., MY_TOKEN=...)
-  [
-    /\b([A-Z][A-Z0-9_]{1,40}_(?:KEY|SECRET|TOKEN|PASSWORD|PASSWD|WEBHOOK|PIN|AUTH|CREDENTIAL|CREDENTIALS)[ \t]*=[ \t]*["']?)([^\s"',;}{]+)(["']?)/g,
-    '$1[REDACTED]$3',
-  ],
-  // Key-value secret/token/pairing-code assignments
-  [
-    /(["']?(?:api[_-]?key|apikey|access[_-]?token|auth[_-]?token|bot[_-]?token|pairing[_-]?token|pairing[_-]?pin|pairing[_ -]?code|pair[_-]?code|passcode|signing[_-]?secret|client[_-]?secret|private[_-]?key|csrf[_-]?token|webhook[_-]?url|webhook|secret|token|password|passwd|authorization|pin)["']?[ \t]*[:=][ \t]*["']?)([^\s"',;}{]{4,})(["']?)/gi,
-    '$1[REDACTED]$3',
-  ],
-];
-
-function redactGenericWebhookUrlsLinear(input: string): string {
-  // Single-pass O(n) URL matcher: never backtracks across repeated "https://" sequences
-  return input.replace(/https?:\/\/[^\s"'<>]+/gi, (match) =>
-    match.toLowerCase().includes('webhook') ? '[REDACTED_WEBHOOK]' : match,
-  );
-}
-
-function truncateUtf16Safe(input: string, maxLen: number): string {
-  if (maxLen <= 0 || input.length <= maxLen) return input;
-  let end = Math.max(1, maxLen - 1);
-  if (end > 0) {
-    const code = input.charCodeAt(end - 1);
-    // Avoid slicing in the middle of a UTF-16 surrogate pair (high surrogate 0xD800..0xDBFF)
-    if (code >= 0xd800 && code <= 0xdbff) {
-      end = Math.max(0, end - 1);
-    }
-  }
-  return `${input.slice(0, end).trimEnd()}…`;
-}
-
 /**
  * Redacts credentials, API keys, webhooks, PEM/PGP private keys, pairing codes, env values,
  * and `<private>` blocks in strict O(n) linear time without splitting UTF-16 surrogate pairs.
+ * Delegates to the shared `src/core/sanitize.ts` security kernel.
  */
 export function redactFeedText(input: string, maxLen = 180): string {
   if (typeof input !== 'string' || !input) return '';
-  let out = stripPrivateBlocksLinear(input);
-  out = stripPemPrivateKeysLinear(out);
-  out = redactGenericWebhookUrlsLinear(out);
-  for (const [pattern, replacement] of LINEAR_REDACT_PATTERNS) {
-    out = out.replace(pattern, replacement);
-  }
-  out = out
+  const redacted = redactSecretsLinear(input, {
+    stripPrivate: true,
+    privateReplacement: '[REDACTED_PRIVATE]',
+  });
+  const normalized = redacted
     .replace(/[\x00-\x1f\x7f]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-  return truncateUtf16Safe(out, maxLen);
+  return truncateUtf16Safe(normalized, maxLen, '…');
 }
 
 // ---------------------------------------------------------------------------

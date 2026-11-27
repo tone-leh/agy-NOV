@@ -1,4 +1,4 @@
-import type { ModuleId, NovConfig, NovLocale, PresetId } from './config.js';
+import type { ModuleId, NovConfig, NovLocale, PresetId } from './catalog.js';
 
 export type HookEventName =
   | 'SessionStart'

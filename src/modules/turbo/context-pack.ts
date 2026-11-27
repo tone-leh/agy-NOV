@@ -1,8 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { stripPrivateBlocksWithStats } from '../../core/sanitize.js';
 import { canonicalRealpathSync, isPathInsideDir } from '../../core/utils.js';
-import { isSensitiveTurboPath, resolveInsideWorkspaceReal } from './core.js';
+import { isSensitiveTurboPath, resolveInsideWorkspaceReal } from './search.js';
 
 export const CONTEXT_PACK_DEFAULT_MAX_TOKENS = 8_000;
 export const CONTEXT_PACK_MIN_TOKENS = 256;
@@ -88,77 +89,6 @@ export interface ContextPackResult {
 // ---------------------------------------------------------------------------
 // Strict O(n) multiline credential & <private> redactor (preserves code layout)
 // ---------------------------------------------------------------------------
-
-function matchPrivateOpenEnd(input: string, ltIndex: number): number {
-  const tagPrefix = '<private';
-  if (ltIndex + tagPrefix.length > input.length) return -1;
-  if (input.slice(ltIndex, ltIndex + tagPrefix.length).toLowerCase() !== tagPrefix) return -1;
-  const after = input[ltIndex + tagPrefix.length];
-  if (after !== '>' && after !== ' ' && after !== '\t' && after !== '\r' && after !== '\n' && after !== '/') {
-    return -1;
-  }
-  const closeIdx = input.indexOf('>', ltIndex + tagPrefix.length);
-  if (closeIdx === -1 || closeIdx - ltIndex > 128) return -1;
-  return closeIdx;
-}
-
-function matchPrivateCloseEnd(input: string, ltIndex: number): number {
-  const tagPrefix = '</private';
-  if (ltIndex + tagPrefix.length > input.length) return -1;
-  if (input.slice(ltIndex, ltIndex + tagPrefix.length).toLowerCase() !== tagPrefix) return -1;
-  let pos = ltIndex + tagPrefix.length;
-  while (pos < input.length && (input[pos] === ' ' || input[pos] === '\t' || input[pos] === '\r' || input[pos] === '\n')) {
-    pos += 1;
-  }
-  return input[pos] === '>' ? pos : -1;
-}
-
-function stripPrivateBlocksLinear(input: string): { text: string; count: number } {
-  if (!input.includes('<')) return { text: input, count: 0 };
-  const chunks: string[] = [];
-  let cur = 0;
-  let count = 0;
-  while (cur < input.length) {
-    const lt = input.indexOf('<', cur);
-    if (lt === -1) {
-      chunks.push(input.slice(cur));
-      break;
-    }
-    const openEnd = matchPrivateOpenEnd(input, lt);
-    if (openEnd === -1) {
-      chunks.push(input.slice(cur, lt + 1));
-      cur = lt + 1;
-      continue;
-    }
-    if (lt > cur) chunks.push(input.slice(cur, lt));
-    let depth = 1;
-    let scan = openEnd + 1;
-    while (scan < input.length && depth > 0) {
-      const nextLt = input.indexOf('<', scan);
-      if (nextLt === -1) {
-        scan = input.length;
-        break;
-      }
-      const nestedOpen = matchPrivateOpenEnd(input, nextLt);
-      if (nestedOpen !== -1) {
-        depth += 1;
-        scan = nestedOpen + 1;
-        continue;
-      }
-      const closeEnd = matchPrivateCloseEnd(input, nextLt);
-      if (closeEnd !== -1) {
-        depth -= 1;
-        scan = closeEnd + 1;
-        continue;
-      }
-      scan = nextLt + 1;
-    }
-    chunks.push('[REDACTED_PRIVATE]');
-    count += 1;
-    cur = depth > 0 ? input.length : scan;
-  }
-  return { text: chunks.join(''), count };
-}
 
 function stripPemPrivateKeysLinear(input: string): { text: string; count: number } {
   const beginMarker = '-----BEGIN ';
@@ -267,9 +197,9 @@ export function redactCodeTextLinear(input: string): { text: string; redactions:
   if (typeof input !== 'string' || !input) return { text: '', redactions: 0 };
   let total = 0;
 
-  const priv = stripPrivateBlocksLinear(input);
+  const priv = stripPrivateBlocksWithStats(input, '[REDACTED_PRIVATE]');
   let out = priv.text;
-  total += priv.count;
+  total += priv.strippedCount;
 
   const pem = stripPemPrivateKeysLinear(out);
   out = pem.text;
