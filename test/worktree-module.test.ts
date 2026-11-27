@@ -23,7 +23,7 @@ import {
   type WorktreeInspectResult,
 } from '../src/modules/worktree/core.js';
 import { registerWorktreeModule } from '../src/modules/worktree/register.js';
-import { createDirSymlink } from './helpers/cross-platform.js';
+import { createDirSymlink, createFileSymlink } from './helpers/cross-platform.js';
 
 function withTempDir<T>(prefix: string, fn: (dir: string) => Promise<T> | T): Promise<T> {
   const dir = canonicalRealpathSync(fs.mkdtempSync(path.join(os.tmpdir(), prefix)));
@@ -154,11 +154,12 @@ describe('v0.3.0 Worktree Orchestrator module', () => {
       assert.equal(createdRes.created.changedFilesCount, 1);
 
       // Verify carried file content in new worktree and that main worktree stays intact
+      const normalizeLf = (s: string) => s.replace(/\r\n/g, '\n');
       assert.equal(
-        fs.readFileSync(path.join(createdRes.created.path, 'src', 'app.ts'), 'utf8'),
-        dirtyContent,
+        normalizeLf(fs.readFileSync(path.join(createdRes.created.path, 'src', 'app.ts'), 'utf8')),
+        normalizeLf(dirtyContent),
       );
-      assert.equal(fs.readFileSync(mainAppPath, 'utf8'), dirtyContent);
+      assert.equal(normalizeLf(fs.readFileSync(mainAppPath, 'utf8')), normalizeLf(dirtyContent));
 
       // Commit the carried change inside the new worktree -> ahead=1, isDirty=false, isMerged=false
       gitSync(createdRes.created.path, ['add', 'src/app.ts']);
@@ -408,20 +409,26 @@ describe('v0.3.0 Worktree Orchestrator module', () => {
       fs.writeFileSync(outsideExcludeTarget, '# keep untouched\n', 'utf8');
       const excludePath1 = path.join(repoExcludeFileSym, '.git', 'info', 'exclude');
       fs.rmSync(excludePath1, { force: true });
-      fs.symlinkSync(outsideExcludeTarget, excludePath1);
-
-      const res1 = await createWorktree(repoExcludeFileSym, { branch: 'feat/exclude-sym-existing' });
-      assert.equal(fs.existsSync(res1.created.path), true);
-      assert.equal(fs.readFileSync(outsideExcludeTarget, 'utf8'), '# keep untouched\n');
+      if (createFileSymlink(outsideExcludeTarget, excludePath1)) {
+        const res1 = await createWorktree(repoExcludeFileSym, { branch: 'feat/exclude-sym-existing' });
+        assert.equal(fs.existsSync(res1.created.path), true);
+        assert.equal(fs.readFileSync(outsideExcludeTarget, 'utf8'), '# keep untouched\n');
+      }
 
       // Dangling symlink on `.git/info/exclude` must not create external file
       const outsideDanglingTarget = path.join(tmpDir, 'outside-dangling-exclude.txt');
       fs.rmSync(excludePath1, { force: true });
-      fs.symlinkSync(outsideDanglingTarget, excludePath1);
-
-      const res2 = await createWorktree(repoExcludeFileSym, { branch: 'feat/exclude-sym-dangling' });
-      assert.equal(fs.existsSync(res2.created.path), true);
-      assert.equal(fs.existsSync(outsideDanglingTarget), false);
+      if (createFileSymlink(outsideDanglingTarget, excludePath1)) {
+        try {
+          const res2 = await createWorktree(repoExcludeFileSym, { branch: 'feat/exclude-sym-dangling' });
+          assert.equal(fs.existsSync(res2.created.path), true);
+        } catch (err) {
+          // Git for Windows natively refuses to operate with a dangling `.git/info/exclude` symlink
+          if (process.platform !== 'win32') throw err;
+          assert.match(String(err), /exclude/i);
+        }
+        assert.equal(fs.existsSync(outsideDanglingTarget), false);
+      }
 
       // Symlink on `.git/info` directory itself must not write inside external directory
       const repoInfoDirSym = initTempGitRepo(path.join(tmpDir, 'repo-info-dir-sym'));

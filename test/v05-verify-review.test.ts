@@ -96,12 +96,13 @@ describe('v0.5.0 Verify — read-only project stack auto-detection', () => {
         '[project]\nname = "demo"\n\n[tool.ruff]\nline-length = 100\n',
         'utf8',
       );
+      const expectedPython = process.platform === 'win32' ? 'python' : 'python3';
       const pyDetected = detectWorkspaceVerifyCommands(pyDir);
       assert.deepEqual(pyDetected.detectedStacks, ['python']);
       assert.deepEqual(
         pyDetected.recommendations.map((r) => [r.executable, ...r.args]),
         [
-          ['python3', '-m', 'pytest'],
+          [expectedPython, '-m', 'pytest'],
           ['ruff', 'check', '.'],
         ],
       );
@@ -114,7 +115,7 @@ describe('v0.5.0 Verify — read-only project stack auto-detection', () => {
       assert.deepEqual(pyMiniDetected.detectedStacks, ['python']);
       assert.deepEqual(
         pyMiniDetected.recommendations.map((r) => [r.executable, ...r.args]),
-        [['python3', '-m', 'pytest']],
+        [[expectedPython, '-m', 'pytest']],
       );
 
       // Rust

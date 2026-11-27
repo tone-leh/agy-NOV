@@ -500,6 +500,17 @@ describe('v1.0.1 Cross-Platform Module Security (Auto-RTK, Guard, Mem)', () => {
     assert.equal(isSafeAbsolutePathArg('C:relative\\cli.cjs', 'win32'), false);
     assert.equal(isSafeAbsolutePathArg('dist/cli.cjs', 'linux'), false);
     assert.equal(isSafeAbsolutePathArg('/opt/agy-nov/dist/cli.cjs', 'linux'), true);
+
+    // Windows 8.3 short paths (e.g. RUNNER~1, PROGRA~1) must be accepted safely in double-quoted commands
+    const win83Cli = 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\cli.cjs';
+    const win83Data = 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\.agy-nov';
+    assert.equal(isSafeAbsolutePathArg(win83Cli, 'win32'), true);
+    const rewritten83 = buildAutoRtkOverwriteCommand(win83Cli, parsed, win83Data, 'win32');
+    assert.ok(
+      rewritten83 &&
+        rewritten83.startsWith('node "C:/Users/RUNNER~1/AppData/Local/Temp/cli.cjs" compact-run --payload='),
+      `Expected Windows 8.3 short path accepted, got: ${rewritten83}`,
+    );
   });
 
   it('blocks Windows destructive and remote-pipe commands in Guard evaluateToolCall while allowing safe commands', () => {

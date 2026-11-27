@@ -7403,7 +7403,7 @@ var PATH_META_HARD_DENY_RE = /[%!^"';&|`$><()\r\n\x00-\x1f\x7f]/;
 var UNQUOTED_SHELL_SYNTAX_RE = /[*?[\]{}#]/;
 var SAFE_EXECUTABLE_RE = /^[a-z][a-z0-9-]*$/;
 var SAFE_SHELL_PATH_RE = /^[A-Za-z0-9._/@:+ -]+$/;
-var SAFE_WIN_PATH_BODY_RE = /^[A-Za-z0-9._/@\\+ -]+$/;
+var SAFE_WIN_PATH_BODY_RE = /^[A-Za-z0-9._/@\\+ ~-]+$/;
 var SAFE_B64URL_RE = /^[A-Za-z0-9_-]+$/;
 var ENV_ASSIGN_TOKEN_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
 var FORBIDDEN_SHELL_EXECUTABLES = /* @__PURE__ */ new Set([

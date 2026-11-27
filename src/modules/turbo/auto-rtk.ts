@@ -79,7 +79,7 @@ const PATH_META_HARD_DENY_RE = /[%!^"';&|`$><()\r\n\x00-\x1f\x7f]/;
 const UNQUOTED_SHELL_SYNTAX_RE = /[*?[\]{}#]/;
 const SAFE_EXECUTABLE_RE = /^[a-z][a-z0-9-]*$/;
 const SAFE_SHELL_PATH_RE = /^[A-Za-z0-9._/@:+ -]+$/;
-const SAFE_WIN_PATH_BODY_RE = /^[A-Za-z0-9._/@\\+ -]+$/;
+const SAFE_WIN_PATH_BODY_RE = /^[A-Za-z0-9._/@\\+ ~-]+$/;
 const SAFE_B64URL_RE = /^[A-Za-z0-9_-]+$/;
 const ENV_ASSIGN_TOKEN_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
 
