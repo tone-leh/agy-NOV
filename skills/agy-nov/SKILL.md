@@ -1,20 +1,36 @@
 ---
 name: agy-nov
-description: Open and use agy-NOV, the all-in-one modular native MCP App workbench for Google Antigravity 2.0 (PR diff review, pre-edit snapshot & secret shield, context X-Ray, visual artifact canvas, code-anchored memory graph, and opt-in mobile/IM remote control). Toggle modules anytime from the Modules tab.
+description: Open and manage agy-NOV, the 100% native modular super-workbench for Google Antigravity 2.0 (Zero ASAR, Zero CDP, survives every client update). Packs 9 independently toggleable superpowers (Diff Review, Secret Shield & Pre-Edit Snapshots, Context X-Ray, Turbo Batch Search & Output Guard, Session Radar & Chime, Visual Canvas, Code-Anchored Memory Graph, Prompt Vault & Workspace Doctor, and Opt-In Mobile/IM Remote) with built-in 8-language UI and zero token tax when off.
 ---
 
-# agy-NOV Modular Workbench
+# agy-NOV — 100% Native Modular Super-Workbench for Antigravity 2.0
 
-`agy-NOV` packs six focused Antigravity 2.0 capabilities into one native MCP App side pane and unified lifecycle hook dispatcher, letting the user toggle each module on or off without paying unnecessary Token or process overhead.
+`agy-NOV` unifies 9 high-demand Google Antigravity 2.0 workflows into one strictly official native plugin (Zero ASAR, Zero CDP) with live per-module toggles, 5 presets, and built-in **8-language UI** (`English`, `简体中文`, `繁體中文`, `日本語`, `한국어`, `Español`, `Français`, `Deutsch`). Disabled modules unregister immediately from `tools/list` (0 token tax) and short-circuit hooks in O(1).
 
-## When to use
+## Core Entry Tools (Always Available)
 
-- Call `nov_open` to open the unified **agy-NOV** side pane (optionally passing `module`: `review`, `guard`, `xray`, `canvas`, `mem`, `remote`, or `modules`).
-- Call `nov_status` to inspect which modules are currently enabled and how many tools are exposed.
-- Only tools belonging to **enabled modules** are active:
-  - **Review** (`review_*`, default ON): inspect working-tree or staged Git diffs line by line, collect inline annotations, and apply structured `file:line` fix requests.
-  - **Guard** (`guard_*`, default ON): scan for secrets, inspect pre-edit file snapshots, and create manual safety checkpoints before risky refactors.
-  - **X-Ray** (`xray_*`, default ON): inspect cached vs. fresh token breakdowns, live workspace file activity, and cross-session full-text search.
-  - **Canvas** (`canvas_*`, opt-in): publish HTML prototypes, SVG diagrams, slides, Markdown specs, or images for visual pin/region annotations.
-  - **Memory** (`mem_*`, opt-in): save, recall, or forget code-anchored project decisions with SHA-256 drift checks.
-  - **Remote** (`remote_*`, opt-in, strictly offline when OFF): check gateway status, send alerts, or dispatch remote tasks when the user has explicitly enabled the Remote module.
+- `nov_open`: Open the unified **agy-NOV** side-pane or global workbench (pass `module`: `review`, `guard`, `xray`, `turbo`, `radar`, `canvas`, `mem`, `ops`, `remote`, or `modules`).
+- `nov_status`: Inspect enabled modules, active preset, UI locale, exposed model tool count, and network isolation status.
+
+## 9 Toggleable Native Modules (Tools Exposed Only When Enabled)
+
+### Tier 1 — 8 Local Offline Native Modules (100% Offline)
+- **Review** (`review_*`, default ON): Line-by-line Git diff review with categorized annotations and structured `file:line` fix prompts.
+- **Guard** (`guard_*`, default ON): `.env`/SSH/secret leak shield, destructive command firewall, and zero-Git pre-edit file snapshots.
+- **X-Ray** (`xray_*`, default ON): Real cached vs. fresh token breakdown, workspace file activity, and EN+CJK BM25 cross-session search.
+- **Turbo** (`turbo_*`, opt-in): Multi-pattern workspace batch search, top-level symbol outline slicing, and compact indexed log compression.
+- **Radar** (`radar_*`, opt-in): Multi-session attention board (`running`, `awaiting_approval`, `completed`, `stalled`, `error`) with optional chime alerts.
+- **Canvas** (`canvas_*`, opt-in): Sandboxed HTML/SVG/Slides/Markdown/image preview with numbered visual pin annotations.
+- **Memory** (`mem_*`, opt-in): SHA-256 code-anchored architectural memory with `SessionStart` recall and stale drift checks.
+- **Ops** (`ops_*`, opt-in): Parameterized `{{var}}` Prompt Vault plus read-only workspace rules/skills/MCP token & storage audit.
+
+### Tier 2 — 1 Strictly Opt-In Remote Bridge (OFF by Default)
+- **Remote** (`remote_*`, default OFF): Local mobile PWA and Telegram/Feishu/DingTalk/WeCom/Slack/Discord alerts, risky command approval, and task dispatch.
+
+## CLI & Safety Verification
+
+- Read-only health check: `node dist/cli.cjs doctor`
+- Inspect status & tool count: `node dist/cli.cjs status`
+- Switch presets: `node dist/cli.cjs preset <minimal|core|power|local-all|full>`
+- Switch plugin UI language: `node dist/cli.cjs locale <auto|en|zh-CN|zh-TW|ja|ko|es|fr|de>`
+- Never enable `remote` without explicit user consent; it stays strictly inert (zero ports, zero polling, zero outbound calls, zero writes) while OFF.

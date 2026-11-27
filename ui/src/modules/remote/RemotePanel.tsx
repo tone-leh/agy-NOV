@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { NovBridge } from '../../bridge.js';
+import { useNovI18n } from '../../i18n/index.js';
 import './styles.css';
 
 export interface NovModulePanelProps {
@@ -101,8 +102,12 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
   onNotify,
   incomingEvent,
 }) => {
+  const { dict } = useNovI18n();
+  const rm = dict.panels.remote;
+
   const [tab, setTab] = useState<RemoteSubTab>('hub');
   const [data, setData] = useState<RemoteHubPayload | null>(null);
+  const [togglingGateway, setTogglingGateway] = useState<boolean>(false);
   const [selectedChannel, setSelectedChannel] = useState<string>('feishu');
   const [webhookUrl, setWebhookUrl] = useState('');
   const [secret, setSecret] = useState('');
@@ -366,6 +371,19 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
     }
   };
 
+  const handleToggleGateway = async (enable: boolean) => {
+    setTogglingGateway(true);
+    try {
+      await bridge.setModule('remote', enable);
+      notify(enable ? rm.startGateway : rm.stopGateway);
+      await refresh();
+    } catch (err) {
+      notify(`Gateway toggle failed: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setTogglingGateway(false);
+    }
+  };
+
   const pairingUrl = data?.status?.pairingUrl ?? '';
   const pairingPin = data?.status?.pairingPin ?? '------';
 
@@ -374,12 +392,20 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
       <header className="remote-hdr">
         <div className="remote-brand">
           <span className="remote-logo">RM</span>
-          <span>Mobile &amp; IM Remote</span>
+          <span>{rm.title}</span>
           <span className={`remote-badge ${isRunning ? 'is-good' : 'is-warn'}`}>
-            {isRunning ? 'GATEWAY LIVE' : 'OFFLINE'}
+            {isRunning ? dict.statusGatewayRunning : dict.common.disabled}
           </span>
         </div>
         <div className="remote-row">
+          <button
+            type="button"
+            className={`remote-btn ${isRunning ? 'is-danger' : 'is-good'}`}
+            onClick={() => void handleToggleGateway(!isRunning)}
+            disabled={togglingGateway || loading}
+          >
+            {isRunning ? rm.stopGateway : rm.startGateway}
+          </button>
           <button
             type="button"
             className="remote-btn"
@@ -394,7 +420,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
             onClick={() => void refresh()}
             disabled={loading}
           >
-            {loading ? 'Refreshing…' : 'Refresh'}
+            {loading ? dict.common.loading : dict.common.refresh}
           </button>
         </div>
       </header>
@@ -408,25 +434,20 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
       {data && !isRunning && (
         <section className="remote-offline-banner" role="status">
           <div className="remote-offline-title">
-            <span className="remote-badge is-good">100% OFFLINE</span>
-            <span>Remote Gateway is stopped</span>
+            <span className="remote-badge is-good">{dict.badgeOffline}</span>
+            <span>{rm.title}</span>
           </div>
-          <p className="remote-offline-desc">
-            Zero local ports are listening, zero outbound network requests are made, and background
-            polling is completely stopped. To enable Mobile PWA pairing or IM remote approvals, open
-            the <strong>Modules</strong> control center in the top bar and switch on{' '}
-            <strong>Mobile &amp; IM Remote</strong>.
-          </p>
+          <p className="remote-offline-desc">{rm.offlineNotice}</p>
         </section>
       )}
 
-      <nav className="remote-tabs" aria-label="Remote Hub sections">
+      <nav className="remote-tabs" aria-label={rm.title}>
         <button
           type="button"
           className={`remote-tab ${tab === 'hub' ? 'is-active' : ''}`}
           onClick={() => setTab('hub')}
         >
-          Remote Hub{' '}
+          {rm.tabHub}{' '}
           {pendingApprovals.length > 0 && (
             <span className="remote-badge is-warn">{pendingApprovals.length}</span>
           )}
@@ -436,27 +457,27 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
           className={`remote-tab ${tab === 'channels' ? 'is-active' : ''}`}
           onClick={() => setTab('channels')}
         >
-          IM Channels
+          {rm.tabChannels}
         </button>
         <button
           type="button"
           className={`remote-tab ${tab === 'conversations' ? 'is-active' : ''}`}
           onClick={() => setTab('conversations')}
         >
-          Conversations
+          {rm.tabConversations}
         </button>
         <button
           type="button"
           className={`remote-tab ${tab === 'audit' ? 'is-active' : ''}`}
           onClick={() => setTab('audit')}
         >
-          Audit &amp; Policy
+          {rm.tabAudit}
         </button>
       </nav>
 
       {!data ? (
         <div className="remote-card remote-muted">
-          {loading ? 'Checking Remote gateway state…' : 'Open this tab to check Remote gateway state.'}
+          {loading ? dict.common.loading : rm.offlineNotice}
         </div>
       ) : (
         <>
@@ -475,10 +496,12 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                 </div>
                 <div className="remote-card">
                   <div className="remote-kpi-label">Pairing PIN</div>
-                  <div className="remote-kpi-value remote-mono">{isRunning ? pairingPin : 'OFFLINE'}</div>
+                  <div className="remote-kpi-value remote-mono">
+                    {isRunning ? pairingPin : dict.common.disabled}
+                  </div>
                 </div>
                 <div className="remote-card">
-                  <div className="remote-kpi-label">IM Channels Active</div>
+                  <div className="remote-kpi-label">{rm.tabChannels}</div>
                   <div className="remote-kpi-value">
                     {channels.filter((c) => c.enabled).length}
                   </div>
@@ -487,7 +510,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
 
               <div className="remote-card">
                 <div className="remote-row is-between" style={{ marginBottom: 8 }}>
-                  <strong>Mobile PWA Pairing Link</strong>
+                  <strong>{rm.pairMobile}</strong>
                   <div className="remote-row">
                     <button
                       type="button"
@@ -495,10 +518,10 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                       disabled={!isRunning || !pairingUrl}
                       onClick={() => {
                         void navigator.clipboard?.writeText(pairingUrl);
-                        notify('Copied pairing URL to clipboard');
+                        notify(dict.common.copied);
                       }}
                     >
-                      Copy Link
+                      {dict.common.copy}
                     </button>
                     {isRunning && /^https?:\/\//i.test(pairingUrl) && (
                       <button
@@ -531,9 +554,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                   </div>
                 </div>
                 <div className="remote-codebox">
-                  {isRunning && pairingUrl
-                    ? pairingUrl
-                    : '(Gateway offline — enable Mobile & IM Remote in Modules to start local gateway)'}
+                  {isRunning && pairingUrl ? pairingUrl : rm.offlineNotice}
                 </div>
                 <div className="remote-muted" style={{ marginTop: 6 }}>
                   Open on your phone over LAN Wi-Fi, Tailscale, or Cloudflare Tunnel — zero cloud middleman.
@@ -544,9 +565,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                 <strong style={{ display: 'block', marginBottom: 8 }}>Pending Risky Approvals</strong>
                 {pendingApprovals.length === 0 ? (
                   <div className="remote-muted">
-                    {isRunning
-                      ? 'All clear. Click "Simulate Approval" above to test the real-time phone & sidebar queue.'
-                      : 'Gateway offline — no approvals queued.'}
+                    {isRunning ? dict.common.empty : rm.offlineNotice}
                   </div>
                 ) : (
                   <div className="remote-stack-sm">
@@ -586,16 +605,16 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
           {tab === 'channels' && (
             <div className="remote-stack">
               <div className="remote-card remote-stack-sm">
-                <strong>Configured Channels (Credentials stored locally in mode 0600)</strong>
+                <strong>{rm.tabChannels}</strong>
                 {channels.length === 0 ? (
-                  <div className="remote-muted">No channel definitions loaded yet.</div>
+                  <div className="remote-muted">{dict.common.empty}</div>
                 ) : (
                   channels.map((ch) => (
                     <div key={ch.id} className="remote-item remote-row is-between">
                       <div>
                         <strong>{ch.label}</strong>{' '}
                         <span className={`remote-badge ${ch.enabled ? 'is-good' : ''}`}>
-                          {ch.enabled ? 'ON' : 'OFF'}
+                          {ch.enabled ? dict.common.enabled : dict.common.disabled}
                         </span>{' '}
                         {ch.configured && <span className="remote-badge is-info">CONFIGURED</span>}
                       </div>
@@ -613,7 +632,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                           disabled={!isRunning}
                           onClick={() => void handleTestChannel(ch.id)}
                         >
-                          Test Ping
+                          {rm.sendAlert}
                         </button>
                       </div>
                     </div>
@@ -661,16 +680,18 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                   <button
                     type="button"
                     className="remote-btn is-good"
+                    disabled={!isRunning}
                     onClick={() => void handleSaveChannel(true)}
                   >
-                    Save &amp; Enable
+                    {dict.common.save} ({dict.common.enabled})
                   </button>
                   <button
                     type="button"
                     className="remote-btn"
+                    disabled={!isRunning}
                     onClick={() => void handleSaveChannel(false)}
                   >
-                    Save Disabled
+                    {dict.common.save} ({dict.common.disabled})
                   </button>
                 </div>
               </div>
@@ -684,7 +705,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                 onSubmit={(e) => void handleDispatch(e)}
               >
                 <div className="remote-row is-between">
-                  <strong>Dispatch New Desktop Conversation</strong>
+                  <strong>{rm.dispatchTask}</strong>
                   <span className="remote-badge is-info">
                     {data.conversationApiLive ? 'LIVE API' : 'DEMO MOCK'}
                   </span>
@@ -703,7 +724,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                 <textarea
                   className="remote-textarea"
                   rows={2}
-                  placeholder="Prompt to run on your desktop Antigravity..."
+                  placeholder={rm.promptPlaceholder}
                   value={taskPrompt}
                   onChange={(e) => setTaskPrompt(e.target.value)}
                 />
@@ -712,14 +733,16 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                   className="remote-btn is-primary"
                   disabled={!isRunning || !taskPrompt.trim()}
                 >
-                  Start Background Conversation
+                  {rm.dispatchTask}
                 </button>
               </form>
 
               <div className="remote-card remote-stack-sm">
-                <strong>Active &amp; Recent Conversations ({conversations.length})</strong>
+                <strong>
+                  {rm.tabConversations} ({conversations.length})
+                </strong>
                 {conversations.length === 0 ? (
-                  <div className="remote-muted">No conversations available.</div>
+                  <div className="remote-muted">{dict.common.empty}</div>
                 ) : (
                   conversations.map((c) => (
                     <div key={c.id} className="remote-item">
@@ -798,8 +821,8 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                   />
                 </label>
                 <div className="remote-row">
-                  <button type="submit" className="remote-btn is-primary">
-                    Save Policy Settings
+                  <button type="submit" className="remote-btn is-primary" disabled={!isRunning}>
+                    {dict.common.save}
                   </button>
                 </div>
               </form>
@@ -814,9 +837,11 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
               </div>
 
               <div className="remote-card remote-stack-sm">
-                <strong>Remote Audit Trail ({audit.length})</strong>
+                <strong>
+                  {rm.tabAudit} ({audit.length})
+                </strong>
                 {audit.length === 0 ? (
-                  <div className="remote-muted">No remote events logged yet.</div>
+                  <div className="remote-muted">{dict.common.empty}</div>
                 ) : (
                   audit.map((entry) => (
                     <div key={entry.id} className="remote-item">

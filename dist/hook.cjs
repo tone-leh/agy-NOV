@@ -33,7 +33,7 @@ __export(dispatcher_exports, {
   dispatchNovHook: () => dispatchNovHook
 });
 module.exports = __toCommonJS(dispatcher_exports);
-var import_node_fs9 = __toESM(require("node:fs"), 1);
+var import_node_fs12 = __toESM(require("node:fs"), 1);
 
 // src/core/config.ts
 var import_node_fs = __toESM(require("node:fs"), 1);
@@ -41,36 +41,230 @@ var import_node_os = __toESM(require("node:os"), 1);
 var import_node_path = __toESM(require("node:path"), 1);
 
 // src/core/catalog.ts
-var MODULE_IDS = ["review", "guard", "xray", "canvas", "mem", "remote"];
-var PRESET_IDS = ["core", "local-all", "full", "minimal"];
+var MODULE_IDS = [
+  "review",
+  "guard",
+  "xray",
+  "turbo",
+  "radar",
+  "canvas",
+  "mem",
+  "ops",
+  "remote"
+];
+var PRESET_IDS = ["core", "power", "local-all", "full", "minimal"];
+var UI_LOCALE_IDS = ["en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de"];
+var LOCALE_IDS = ["auto", ...UI_LOCALE_IDS];
+var MODULE_CATALOG = {
+  review: {
+    id: "review",
+    category: "core-dev",
+    name: "Diff Review",
+    shortLabel: "Review",
+    tagline: "PR-grade inline diff review & line annotations",
+    description: "Review working-tree, staged, or commit diffs line by line, drop categorized comments, and send pinpoint file:line fix prompts back to the agent.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "full-height",
+    hasUiTab: true,
+    defaultEnabled: true,
+    hooks: ["PostToolUse", "Stop"],
+    modelToolNames: ["review_open", "review_get_summary"]
+  },
+  guard: {
+    id: "guard",
+    category: "safety",
+    name: "Guard & Snapshots",
+    shortLabel: "Guard",
+    tagline: "Secret leak shield, command firewall & pre-edit snapshots",
+    description: "Blocks .env/SSH/credential leaks and destructive commands before execution, snapshots files prior to edits without touching Git, and restores in one click.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: true,
+    hooks: ["PreToolUse"],
+    modelToolNames: [
+      "guard_status",
+      "guard_list_snapshots",
+      "guard_create_checkpoint",
+      "guard_scan_secrets"
+    ]
+  },
+  xray: {
+    id: "xray",
+    category: "observability",
+    name: "Context X-Ray",
+    shortLabel: "X-Ray",
+    tagline: "Token & cache breakdown, live file tree & cross-session search",
+    description: "Inspect real cached vs. fresh tokens per turn, diagnose cache misses and token-heavy tools, open touched files in one click, and search past sessions with EN+CJK BM25.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: true,
+    hooks: ["PostToolUse", "Stop"],
+    modelToolNames: [
+      "xray_analyze_context",
+      "xray_get_file_activity",
+      "xray_search_sessions",
+      "xray_export_brief"
+    ]
+  },
+  turbo: {
+    id: "turbo",
+    category: "core-dev",
+    name: "Turbo & Output Guard",
+    shortLabel: "Turbo",
+    tagline: "Batch codebase search, outline slices & large-output compression",
+    description: "Cut wasted turns and context bloat with multi-pattern workspace search, symbol outline slicing, and compact indexed summaries for oversized command/log outputs.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: ["SessionStart"],
+    modelToolNames: ["turbo_batch_search", "turbo_read_outline", "turbo_compact_output"]
+  },
+  radar: {
+    id: "radar",
+    category: "observability",
+    name: "Session Radar & Chime",
+    shortLabel: "Radar",
+    tagline: "Multi-session attention board, stall detector & completion alerts",
+    description: "Track parallel conversations across Running, Awaiting Approval, Completed, and Stalled states via lifecycle hooks, with configurable desktop chime notifications.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: ["PreToolUse", "PostToolUse", "Stop"],
+    modelToolNames: ["radar_get_board", "radar_ack_session"]
+  },
+  canvas: {
+    id: "canvas",
+    category: "workspace",
+    name: "Visual Canvas",
+    shortLabel: "Canvas",
+    tagline: "HTML/SVG/Slides/Markdown visual preview & pin annotations",
+    description: "Render web mockups, SVG diagrams, slide decks, Markdown specs, and images in an isolated sandbox, drop numbered visual pins, and send edits back to the agent.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "full-height",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: [],
+    modelToolNames: [
+      "canvas_publish_artifact",
+      "canvas_open_file",
+      "canvas_get_feedback",
+      "canvas_resolve_annotations"
+    ]
+  },
+  mem: {
+    id: "mem",
+    category: "workspace",
+    name: "Memory Graph",
+    shortLabel: "Memory",
+    tagline: "Code-anchored long-term memory with drift detection",
+    description: "Capture architectural decisions anchored to SHA-256 file hashes, auto-recall relevant context at SessionStart, and flag stale memories when code changes.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: ["SessionStart", "Stop"],
+    modelToolNames: ["mem_remember", "mem_recall", "mem_forget"]
+  },
+  ops: {
+    id: "ops",
+    category: "workspace",
+    name: "Prompt Vault & Doctor",
+    shortLabel: "Ops",
+    tagline: "Parameterized prompt vault, workspace asset audit & storage hygiene",
+    description: "Manage reusable {{var}} prompt templates, inspect workspace skills/rules/MCP footprint with read-only token estimates, and audit local agy-NOV storage.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: [],
+    modelToolNames: ["ops_list_prompts", "ops_render_prompt", "ops_audit_workspace"]
+  },
+  remote: {
+    id: "remote",
+    category: "connectivity",
+    name: "Mobile & IM Remote",
+    shortLabel: "Remote",
+    tagline: "Opt-in Mobile PWA & IM remote alerts / risky approvals",
+    description: "Strictly OFF by default (zero ports, zero outbound requests). When enabled, pairs your phone PWA or Telegram/Feishu/DingTalk/WeCom/Slack/Discord webhooks for task alerts and approvals.",
+    isolationTier: "opt-in-network",
+    networkAccess: "opt-in-network",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: ["PreToolUse", "Stop"],
+    modelToolNames: [
+      "remote_status",
+      "remote_send_alert",
+      "remote_list_conversations",
+      "remote_dispatch_task"
+    ]
+  }
+};
+function makeModulesMap(enabled) {
+  const set = new Set(enabled);
+  const out = {};
+  for (const id of MODULE_IDS) {
+    out[id] = set.has(id);
+  }
+  return out;
+}
+var OFFLINE_NATIVE_MODULE_IDS = MODULE_IDS.filter(
+  (id) => MODULE_CATALOG[id].isolationTier === "offline"
+);
 var PRESET_DEFINITIONS = {
   core: {
     id: "core",
     label: "Core (Default)",
-    description: "Review + Guard + X-Ray \u2014 100% offline local essentials with low token footprint.",
-    modules: { review: true, guard: true, xray: true, canvas: false, mem: false, remote: false }
+    description: "Review + Guard + X-Ray \u2014 100% offline local essentials with low token footprint (12 model tools).",
+    enabledModules: ["review", "guard", "xray"],
+    modules: makeModulesMap(["review", "guard", "xray"])
+  },
+  power: {
+    id: "power",
+    label: "Power Dev (6 Offline)",
+    description: "Core + Turbo + Radar + Ops \u2014 daily high-velocity offline suite with zero network usage (20 model tools).",
+    enabledModules: ["review", "guard", "xray", "turbo", "radar", "ops"],
+    modules: makeModulesMap(["review", "guard", "xray", "turbo", "radar", "ops"])
   },
   "local-all": {
     id: "local-all",
-    label: "Local All (5 Offline)",
-    description: "All 5 local modules enabled; Remote stays completely off with zero network activity.",
-    modules: { review: true, guard: true, xray: true, canvas: true, mem: true, remote: false }
+    label: "Local All (8 Offline)",
+    description: "All 8 native offline modules enabled; Remote stays strictly off with zero ports (27 model tools).",
+    enabledModules: ["review", "guard", "xray", "turbo", "radar", "canvas", "mem", "ops"],
+    modules: makeModulesMap(["review", "guard", "xray", "turbo", "radar", "canvas", "mem", "ops"])
   },
   full: {
     id: "full",
-    label: "Full Suite (6 Modules)",
-    description: "All 6 modules including the opt-in Mobile PWA / IM remote approval hub.",
-    modules: { review: true, guard: true, xray: true, canvas: true, mem: true, remote: true }
+    label: "Full Suite (All 9)",
+    description: "All 9 native modules including the opt-in Mobile PWA & IM remote approval hub (31 model tools).",
+    enabledModules: [...MODULE_IDS],
+    modules: makeModulesMap(MODULE_IDS)
   },
   minimal: {
     id: "minimal",
     label: "Minimal Shield",
-    description: "Guard only \u2014 secret shield & pre-edit snapshots with minimum model tool overhead.",
-    modules: { review: false, guard: true, xray: false, canvas: false, mem: false, remote: false }
+    description: "Guard only \u2014 secret shield & pre-edit snapshots with minimum model tool overhead (6 tools).",
+    enabledModules: ["guard"],
+    modules: makeModulesMap(["guard"])
   }
 };
 function isModuleId(value) {
   return typeof value === "string" && MODULE_IDS.includes(value);
+}
+function isNovLocale(value) {
+  return typeof value === "string" && LOCALE_IDS.includes(value);
 }
 
 // src/core/config.ts
@@ -96,6 +290,7 @@ function createDefaultConfig() {
     preset: "core",
     modules: { ...PRESET_DEFINITIONS.core.modules },
     defaultTab: "review",
+    locale: "auto",
     updatedAt: (/* @__PURE__ */ new Date()).toISOString()
   };
 }
@@ -119,13 +314,15 @@ function normalizeConfig(raw) {
       modules[id] = rawMods[id];
     }
   }
-  const enabledList = MODULE_IDS.filter((id) => modules[id]);
-  const defaultTab = isModuleId(obj.defaultTab) && modules[obj.defaultTab] ? obj.defaultTab : enabledList[0] ?? "review";
+  const enabledTabList = MODULE_IDS.filter((id) => modules[id] && MODULE_CATALOG[id].hasUiTab);
+  const defaultTab = isModuleId(obj.defaultTab) && modules[obj.defaultTab] && MODULE_CATALOG[obj.defaultTab].hasUiTab ? obj.defaultTab : enabledTabList[0] ?? "review";
+  const locale = isNovLocale(obj.locale) ? obj.locale : "auto";
   return {
     schemaVersion: 1,
     preset: detectPreset(modules),
     modules,
     defaultTab,
+    locale,
     updatedAt: typeof obj.updatedAt === "string" ? obj.updatedAt : base.updatedAt
   };
 }
@@ -144,6 +341,7 @@ function loadNovConfigReadOnly(rootDataDir) {
 
 // src/core/utils.ts
 var import_node_fs2 = __toESM(require("node:fs"), 1);
+var import_node_path2 = __toESM(require("node:path"), 1);
 function parseCliFlag(argv, flag) {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -162,6 +360,13 @@ function ensurePrivateDir(dirPath) {
     import_node_fs2.default.chmodSync(dirPath, 448);
   } catch {
   }
+}
+function atomicWriteJson(filePath, data) {
+  ensurePrivateDir(import_node_path2.default.dirname(filePath));
+  const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}`;
+  import_node_fs2.default.writeFileSync(tmpPath, `${JSON.stringify(data, null, 2)}
+`, { mode: 384 });
+  import_node_fs2.default.renameSync(tmpPath, filePath);
 }
 function normalizeHookEvent(rawEvent, fallback) {
   if (rawEvent === "SessionStart" || rawEvent === "PreToolUse" || rawEvent === "PostToolUse" || rawEvent === "Stop") {
@@ -236,10 +441,10 @@ function normalizeHookPayload(rawInput, fallbackEvent) {
 }
 
 // src/modules/guard/hook.ts
-var import_node_path4 = __toESM(require("node:path"), 1);
+var import_node_path5 = __toESM(require("node:path"), 1);
 
 // src/modules/guard/policy.ts
-var import_node_path2 = __toESM(require("node:path"), 1);
+var import_node_path3 = __toESM(require("node:path"), 1);
 var SECRET_PATTERNS = [
   {
     ruleId: "secret.private-key",
@@ -473,7 +678,7 @@ function isCatastrophicRmTarget(rawTarget) {
   const collapsed = trimmed.replace(/\/+/g, "/");
   const candidates = [collapsed];
   if (collapsed.startsWith("/")) {
-    const normalizedAbs = import_node_path2.default.posix.normalize(collapsed);
+    const normalizedAbs = import_node_path3.default.posix.normalize(collapsed);
     if (normalizedAbs !== collapsed) candidates.push(normalizedAbs);
   }
   for (const target of candidates) {
@@ -489,7 +694,7 @@ function isCatastrophicRmCommand(commandLine) {
   for (const { segment } of splitShellSegments(commandLine)) {
     const tokens = stripCommandWrappers(tokenizeSimpleShellSegment(segment));
     if (tokens.length < 2) continue;
-    const cmd = import_node_path2.default.posix.basename(tokens[0].replace(/\\/g, "/"));
+    const cmd = import_node_path3.default.posix.basename(tokens[0].replace(/\\/g, "/"));
     if (cmd !== "rm") continue;
     let hasRecursive = false;
     let endOfFlags = false;
@@ -548,7 +753,7 @@ function hasDangerousSqlCommand(commandLine) {
     if (!SQL_DESTRUCTIVE_REGEX.test(segment)) continue;
     const tokens = stripCommandWrappers(tokenizeSimpleShellSegment(segment));
     if (tokens.length === 0) return true;
-    const cmd = import_node_path2.default.posix.basename(tokens[0].replace(/\\/g, "/")).toLowerCase();
+    const cmd = import_node_path3.default.posix.basename(tokens[0].replace(/\\/g, "/")).toLowerCase();
     const sub = (tokens[1] ?? "").toLowerCase();
     const hasRedirection = hasUnquotedRedirection(segment);
     if (!pipedToNext && !hasRedirection) {
@@ -574,7 +779,7 @@ function detectCommandSensitiveAccess(commandLine, customProtectedPaths) {
   for (const rawTok of rawTokens) {
     const norm = rawTok.replace(/\\/g, "/").replace(/\/+$/, "");
     if (!norm || norm === "-" || norm === "--") continue;
-    const base = import_node_path2.default.posix.basename(norm);
+    const base = import_node_path3.default.posix.basename(norm);
     const lowerBase = base.toLowerCase();
     if (lowerBase === ".env" || lowerBase === ".envrc" || lowerBase.startsWith(".env.") || /^\.env[*?[]/.test(lowerBase)) {
       if (!isSafeEnvBasename(lowerBase)) {
@@ -707,7 +912,7 @@ function isSensitivePath(filePath, customPatterns = []) {
   if (!filePath) return { sensitive: false };
   const normalized = filePath.replace(/\\/g, "/").trim().replace(/\/+$/, "");
   if (!normalized) return { sensitive: false };
-  const base = import_node_path2.default.posix.basename(normalized);
+  const base = import_node_path3.default.posix.basename(normalized);
   const lowerBase = base.toLowerCase();
   for (const rule of SENSITIVE_PATH_REGEXES) {
     if (rule.regex.test(normalized)) {
@@ -730,7 +935,7 @@ function isSensitivePath(filePath, customPatterns = []) {
   if (SENSITIVE_BASENAMES.has(lowerBase)) {
     return { sensitive: true, ruleId: "path.sensitive-file", label: `Protected credential file (${base})` };
   }
-  const ext = import_node_path2.default.posix.extname(lowerBase);
+  const ext = import_node_path3.default.posix.extname(lowerBase);
   if (SENSITIVE_EXTENSIONS.has(ext)) {
     return { sensitive: true, ruleId: "path.private-key-ext", label: `Private key / certificate file (${base})` };
   }
@@ -814,7 +1019,7 @@ function evaluateToolCall(toolName, args, policy, options) {
         decision: policy.protectEnvAndKeys,
         category: check.ruleId?.startsWith("custom.") ? "custom" : "sensitive-file",
         ruleId: check.ruleId,
-        reason: `Blocked ${toolName} on protected path: ${check.label} (${import_node_path2.default.basename(targetPath)})`,
+        reason: `Blocked ${toolName} on protected path: ${check.label} (${import_node_path3.default.basename(targetPath)})`,
         findings: []
       };
     }
@@ -825,7 +1030,7 @@ function evaluateToolCall(toolName, args, policy, options) {
           decision: policy.protectEnvAndKeys,
           category: realCheck.ruleId?.startsWith("custom.") ? "custom" : "sensitive-file",
           ruleId: realCheck.ruleId,
-          reason: `Blocked ${toolName} via symlink resolving to protected path: ${realCheck.label} (${import_node_path2.default.basename(options.resolvedTargetPath)})`,
+          reason: `Blocked ${toolName} via symlink resolving to protected path: ${realCheck.label} (${import_node_path3.default.basename(options.resolvedTargetPath)})`,
           findings: []
         };
       }
@@ -936,7 +1141,7 @@ function evaluateToolCall(toolName, args, policy, options) {
 // src/modules/guard/store.ts
 var import_node_crypto = __toESM(require("node:crypto"), 1);
 var import_node_fs3 = __toESM(require("node:fs"), 1);
-var import_node_path3 = __toESM(require("node:path"), 1);
+var import_node_path4 = __toESM(require("node:path"), 1);
 
 // src/modules/guard/types.ts
 var DEFAULT_POLICY = {
@@ -963,7 +1168,7 @@ function ensureDir(dir) {
   }
 }
 function writePrivateJson(filePath, data) {
-  ensureDir(import_node_path3.default.dirname(filePath));
+  ensureDir(import_node_path4.default.dirname(filePath));
   const tmp = `${filePath}.${process.pid}.${import_node_crypto.default.randomBytes(4).toString("hex")}.tmp`;
   import_node_fs3.default.writeFileSync(tmp, `${JSON.stringify(data, null, 2)}
 `, { encoding: "utf8", mode: 384 });
@@ -977,13 +1182,13 @@ function resolveRealPathWithMissingTail(inputPath, depth = 0) {
   if (depth > MAX_SYMLINK_DEPTH) {
     throw new Error(`Too many levels of symbolic links: ${inputPath}`);
   }
-  const resolved = import_node_path3.default.resolve(inputPath);
+  const resolved = import_node_path4.default.resolve(inputPath);
   const missingSegments = [];
   let current = resolved;
   while (true) {
     try {
       const realBase = import_node_fs3.default.realpathSync(current);
-      return missingSegments.length > 0 ? import_node_path3.default.join(realBase, ...missingSegments.reverse()) : realBase;
+      return missingSegments.length > 0 ? import_node_path4.default.join(realBase, ...missingSegments.reverse()) : realBase;
     } catch (err) {
       const code = err?.code;
       if (code !== "ENOENT" && code !== "ENOTDIR") {
@@ -993,17 +1198,17 @@ function resolveRealPathWithMissingTail(inputPath, depth = 0) {
         const lstat = import_node_fs3.default.lstatSync(current);
         if (lstat.isSymbolicLink()) {
           const linkTarget = import_node_fs3.default.readlinkSync(current);
-          const resolvedLink = import_node_path3.default.resolve(import_node_path3.default.dirname(current), linkTarget);
-          const nextTarget = missingSegments.length > 0 ? import_node_path3.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
+          const resolvedLink = import_node_path4.default.resolve(import_node_path4.default.dirname(current), linkTarget);
+          const nextTarget = missingSegments.length > 0 ? import_node_path4.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
           return resolveRealPathWithMissingTail(nextTarget, depth + 1);
         }
       } catch {
       }
-      const parent = import_node_path3.default.dirname(current);
+      const parent = import_node_path4.default.dirname(current);
       if (parent === current) {
         return resolved;
       }
-      missingSegments.push(import_node_path3.default.basename(current));
+      missingSegments.push(import_node_path4.default.basename(current));
       current = parent;
     }
   }
@@ -1016,9 +1221,9 @@ function assertInsideWorkspace(workspaceRoot, targetPath) {
     throw new Error("Invalid target path");
   }
   const realRoot = resolveRealPathWithMissingTail(workspaceRoot);
-  const candidate = import_node_path3.default.isAbsolute(targetPath) ? targetPath : import_node_path3.default.resolve(workspaceRoot, targetPath);
+  const candidate = import_node_path4.default.isAbsolute(targetPath) ? targetPath : import_node_path4.default.resolve(workspaceRoot, targetPath);
   const realTarget = resolveRealPathWithMissingTail(candidate);
-  const rootPrefix = realRoot.endsWith(import_node_path3.default.sep) ? realRoot : `${realRoot}${import_node_path3.default.sep}`;
+  const rootPrefix = realRoot.endsWith(import_node_path4.default.sep) ? realRoot : `${realRoot}${import_node_path4.default.sep}`;
   if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
     throw new Error(`Path escapes workspace boundary: ${targetPath}`);
   }
@@ -1028,7 +1233,7 @@ function assertNotSensitive(rawPath, realPath, customProtectedPaths, action) {
   const rawCheck = isSensitivePath(rawPath, customProtectedPaths);
   const realCheck = isSensitivePath(realPath, customProtectedPaths);
   if (rawCheck.sensitive || realCheck.sensitive) {
-    const label = rawCheck.label ?? realCheck.label ?? import_node_path3.default.basename(realPath);
+    const label = rawCheck.label ?? realCheck.label ?? import_node_path4.default.basename(realPath);
     throw new Error(`Refused to ${action} sensitive path: ${label}`);
   }
 }
@@ -1044,17 +1249,17 @@ function sha256Buffer(buf) {
   return import_node_crypto.default.createHash("sha256").update(buf).digest("hex");
 }
 function loadPolicy(dataDir) {
-  const stored = readJsonSafe(import_node_path3.default.join(dataDir, "policy.json"), {});
+  const stored = readJsonSafe(import_node_path4.default.join(dataDir, "policy.json"), {});
   return { ...DEFAULT_POLICY, ...stored };
 }
 function loadSnapshots(dataDir) {
-  return readJsonSafe(import_node_path3.default.join(dataDir, "snapshots.json"), []);
+  return readJsonSafe(import_node_path4.default.join(dataDir, "snapshots.json"), []);
 }
 function saveSnapshots(dataDir, records) {
-  writePrivateJson(import_node_path3.default.join(dataDir, "snapshots.json"), records);
+  writePrivateJson(import_node_path4.default.join(dataDir, "snapshots.json"), records);
 }
 function loadAuditLog(dataDir) {
-  return readJsonSafe(import_node_path3.default.join(dataDir, "audit.json"), []);
+  return readJsonSafe(import_node_path4.default.join(dataDir, "audit.json"), []);
 }
 function appendAuditEvent(dataDir, event) {
   const existing = loadAuditLog(dataDir);
@@ -1072,21 +1277,21 @@ function appendAuditEvent(dataDir, event) {
     isDemo: event.isDemo
   };
   const next = [full, ...existing].slice(0, 200);
-  writePrivateJson(import_node_path3.default.join(dataDir, "audit.json"), next);
+  writePrivateJson(import_node_path4.default.join(dataDir, "audit.json"), next);
   return full;
 }
 function blobPath(dataDir, hash) {
   if (!SHA256_HEX_RE.test(hash)) {
     throw new Error("Invalid snapshot blob hash: expected 64 lowercase hexadecimal characters");
   }
-  return import_node_path3.default.join(dataDir, "blobs", `${hash}.blob`);
+  return import_node_path4.default.join(dataDir, "blobs", `${hash}.blob`);
 }
 function capturePreEditSnapshot(params) {
   const { dataDir, toolName, reason, policy, workspaceRoot, restoredFromId } = params;
   const realRoot = assertInsideWorkspace(workspaceRoot, workspaceRoot);
   const safePath = assertInsideWorkspace(workspaceRoot, params.filePath);
   assertNotSensitive(params.filePath, safePath, policy.customProtectedPaths, "snapshot");
-  const relPath = import_node_path3.default.relative(realRoot, safePath) || import_node_path3.default.basename(safePath);
+  const relPath = import_node_path4.default.relative(realRoot, safePath) || import_node_path4.default.basename(safePath);
   const existed = import_node_fs3.default.existsSync(safePath);
   let sha256 = "EMPTY_FILE";
   let sizeBytes = 0;
@@ -1103,7 +1308,7 @@ function capturePreEditSnapshot(params) {
     lineCount = raw.toString("utf8").split(/\r?\n/).length;
     const targetBlob = blobPath(dataDir, sha256);
     if (!import_node_fs3.default.existsSync(targetBlob)) {
-      ensureDir(import_node_path3.default.dirname(targetBlob));
+      ensureDir(import_node_path4.default.dirname(targetBlob));
       import_node_fs3.default.writeFileSync(targetBlob, raw, { mode: 384 });
       try {
         import_node_fs3.default.chmodSync(targetBlob, 384);
@@ -1161,7 +1366,7 @@ function handleGuardPreToolHook(payload, rootDataDir) {
   let resolvedTargetPath;
   let symlinkLoopBlocked = false;
   if (targetPath) {
-    const absTarget = import_node_path4.default.isAbsolute(targetPath) ? targetPath : import_node_path4.default.resolve(workspaceRoot, targetPath);
+    const absTarget = import_node_path5.default.isAbsolute(targetPath) ? targetPath : import_node_path5.default.resolve(workspaceRoot, targetPath);
     try {
       resolvedTargetPath = resolveRealPathWithMissingTail(absTarget);
     } catch {
@@ -1172,11 +1377,11 @@ function handleGuardPreToolHook(payload, rootDataDir) {
     decision: policy.protectEnvAndKeys,
     category: "sensitive-file",
     ruleId: "path.symlink-loop",
-    reason: `Blocked ${toolName} on unresolvable/cyclic symlink target (${import_node_path4.default.basename(targetPath ?? "")})`,
+    reason: `Blocked ${toolName} on unresolvable/cyclic symlink target (${import_node_path5.default.basename(targetPath ?? "")})`,
     findings: []
   } : evaluateToolCall(toolName, toolInput, policy, { resolvedTargetPath });
   const commandLine = extractCommandLine(toolInput);
-  const targetDisplay = targetPath ? import_node_path4.default.relative(workspaceRoot, import_node_path4.default.resolve(workspaceRoot, targetPath)) || import_node_path4.default.basename(targetPath) : commandLine ? redactCommand(commandLine).slice(0, 100) : toolName;
+  const targetDisplay = targetPath ? import_node_path5.default.relative(workspaceRoot, import_node_path5.default.resolve(workspaceRoot, targetPath)) || import_node_path5.default.basename(targetPath) : commandLine ? redactCommand(commandLine).slice(0, 100) : toolName;
   if (evalResult.decision === "deny" || evalResult.decision === "ask") {
     const safeReason = redactCommand(evalResult.reason);
     try {
@@ -1198,7 +1403,7 @@ function handleGuardPreToolHook(payload, rootDataDir) {
   }
   if (policy.enabled && policy.autoSnapshotBeforeEdit && MUTATING_FILE_TOOL_RE.test(toolName) && targetPath) {
     try {
-      const resolvedPath = import_node_path4.default.isAbsolute(targetPath) ? targetPath : import_node_path4.default.resolve(workspaceRoot, targetPath);
+      const resolvedPath = import_node_path5.default.isAbsolute(targetPath) ? targetPath : import_node_path5.default.resolve(workspaceRoot, targetPath);
       capturePreEditSnapshot({
         dataDir: moduleDataDir,
         filePath: resolvedPath,
@@ -1215,12 +1420,12 @@ function handleGuardPreToolHook(payload, rootDataDir) {
 
 // src/modules/mem/hook.ts
 var import_node_fs5 = __toESM(require("node:fs"), 1);
-var import_node_path6 = __toESM(require("node:path"), 1);
+var import_node_path7 = __toESM(require("node:path"), 1);
 
 // src/modules/mem/store.ts
 var import_node_crypto2 = __toESM(require("node:crypto"), 1);
 var import_node_fs4 = __toESM(require("node:fs"), 1);
-var import_node_path5 = __toESM(require("node:path"), 1);
+var import_node_path6 = __toESM(require("node:path"), 1);
 var import_node_url = require("node:url");
 
 // src/modules/mem/demo-memories.ts
@@ -1371,18 +1576,18 @@ function isSensitiveFilePath(filePath) {
   return false;
 }
 function isRelativeInside(rootDir, targetPath) {
-  const rel = import_node_path5.default.relative(rootDir, targetPath);
-  return rel !== "" && !rel.startsWith("..") && !import_node_path5.default.isAbsolute(rel);
+  const rel = import_node_path6.default.relative(rootDir, targetPath);
+  return rel !== "" && !rel.startsWith("..") && !import_node_path6.default.isAbsolute(rel);
 }
 function resolveExistingAncestorRealpath(absTarget) {
-  let cursor = import_node_path5.default.dirname(absTarget);
+  let cursor = import_node_path6.default.dirname(absTarget);
   while (true) {
     try {
       const realAncestor = import_node_fs4.default.realpathSync(cursor);
-      const tail = import_node_path5.default.relative(cursor, absTarget);
-      return import_node_path5.default.join(realAncestor, tail);
+      const tail = import_node_path6.default.relative(cursor, absTarget);
+      return import_node_path6.default.join(realAncestor, tail);
     } catch {
-      const parent = import_node_path5.default.dirname(cursor);
+      const parent = import_node_path6.default.dirname(cursor);
       if (parent === cursor) return void 0;
       cursor = parent;
     }
@@ -1392,14 +1597,14 @@ function inspectAnchorFile(filePath, workspacePath, maxBytes = MAX_ANCHOR_FILE_B
   if (!filePath || !filePath.trim()) {
     return { status: "skipped", reason: "unreadable" };
   }
-  const absFile = import_node_path5.default.resolve(filePath);
+  const absFile = import_node_path6.default.resolve(filePath);
   if (isSensitiveFilePath(filePath) || isSensitiveFilePath(absFile)) {
     return { status: "skipped", reason: "sensitive" };
   }
   const effectiveWorkspace = workspacePath && workspacePath.trim() ? workspacePath.trim() : process.cwd();
   let realWorkspace;
   try {
-    realWorkspace = import_node_fs4.default.realpathSync(import_node_path5.default.resolve(effectiveWorkspace));
+    realWorkspace = import_node_fs4.default.realpathSync(import_node_path6.default.resolve(effectiveWorkspace));
   } catch {
     return { status: "skipped", reason: "outside-workspace" };
   }
@@ -1459,7 +1664,7 @@ function inspectAnchorFile(filePath, workspacePath, maxBytes = MAX_ANCHOR_FILE_B
 }
 function safePathToFileUri(filePath) {
   try {
-    return (0, import_node_url.pathToFileURL)(import_node_path5.default.resolve(filePath)).href;
+    return (0, import_node_url.pathToFileURL)(import_node_path6.default.resolve(filePath)).href;
   } catch {
     return "";
   }
@@ -1469,7 +1674,7 @@ function normalizeAnchor(raw) {
   const r = raw;
   if (typeof r.filePath !== "string" || !r.filePath.trim()) return null;
   const filePath = r.filePath.trim();
-  const basename = typeof r.basename === "string" && r.basename.trim() ? r.basename.trim() : import_node_path5.default.basename(filePath);
+  const basename = typeof r.basename === "string" && r.basename.trim() ? r.basename.trim() : import_node_path6.default.basename(filePath);
   const uri = typeof r.uri === "string" && r.uri.trim() ? r.uri.trim() : safePathToFileUri(filePath);
   const symbol = typeof r.symbol === "string" && r.symbol.trim() ? r.symbol.trim() : void 0;
   const sha256 = typeof r.sha256 === "string" && r.sha256.trim() ? r.sha256.trim() : void 0;
@@ -1544,7 +1749,7 @@ var MemoryStore = class {
     this.dataDir = dataDir;
     this.demoMode = demoMode;
     this.defaultWorkspaceRoot = defaultWorkspaceRoot;
-    this.filePath = import_node_path5.default.join(dataDir, "memories.json");
+    this.filePath = import_node_path6.default.join(dataDir, "memories.json");
   }
   filePath;
   demoSeeded = false;
@@ -1641,8 +1846,8 @@ var MemoryStore = class {
   list(opts = {}) {
     let items = this.readRaw().map((m) => this.evaluateDrift(m));
     if (opts.workspacePath) {
-      const target = import_node_path5.default.resolve(opts.workspacePath);
-      items = items.filter((m) => !m.workspacePath || import_node_path5.default.resolve(m.workspacePath) === target);
+      const target = import_node_path6.default.resolve(opts.workspacePath);
+      items = items.filter((m) => !m.workspacePath || import_node_path6.default.resolve(m.workspacePath) === target);
     }
     if (opts.kind) items = items.filter((m) => m.kind === opts.kind);
     if (opts.pinnedOnly) items = items.filter((m) => m.pinned);
@@ -1653,11 +1858,11 @@ var MemoryStore = class {
   remember(input) {
     const items = this.readRaw();
     const now = (/* @__PURE__ */ new Date()).toISOString();
-    const requestedWorkspace = input.workspacePath ? import_node_path5.default.resolve(input.workspacePath) : void 0;
-    let inspectWorkspace = this.defaultWorkspaceRoot ? import_node_path5.default.resolve(this.defaultWorkspaceRoot) : requestedWorkspace;
+    const requestedWorkspace = input.workspacePath ? import_node_path6.default.resolve(input.workspacePath) : void 0;
+    let inspectWorkspace = this.defaultWorkspaceRoot ? import_node_path6.default.resolve(this.defaultWorkspaceRoot) : requestedWorkspace;
     let resolvedWorkspace = inspectWorkspace;
     if (requestedWorkspace && this.defaultWorkspaceRoot) {
-      const trustedRoot = import_node_path5.default.resolve(this.defaultWorkspaceRoot);
+      const trustedRoot = import_node_path6.default.resolve(this.defaultWorkspaceRoot);
       const realTrusted = (() => {
         try {
           return import_node_fs4.default.realpathSync(trustedRoot);
@@ -1678,13 +1883,13 @@ var MemoryStore = class {
     }
     const anchors = (input.anchors ?? []).filter((a) => a && typeof a.filePath === "string" && a.filePath.trim().length > 0).map((a) => {
       const rawPath = a.filePath.trim();
-      const abs = import_node_path5.default.isAbsolute(rawPath) ? import_node_path5.default.resolve(rawPath) : import_node_path5.default.resolve(inspectWorkspace ?? process.cwd(), rawPath);
+      const abs = import_node_path6.default.isAbsolute(rawPath) ? import_node_path6.default.resolve(rawPath) : import_node_path6.default.resolve(inspectWorkspace ?? process.cwd(), rawPath);
       const cleanSymbol = a.symbol ? redactSecrets(a.symbol.trim()) : void 0;
       const inspected = inspectAnchorFile(abs, inspectWorkspace);
       const driftStatus = inspected.status === "ok" ? "fresh" : inspected.status === "skipped" ? "skipped" : "untracked";
       return {
         filePath: abs,
-        basename: import_node_path5.default.basename(abs),
+        basename: import_node_path6.default.basename(abs),
         uri: safePathToFileUri(abs),
         ...cleanSymbol ? { symbol: cleanSymbol } : {},
         ...inspected.sha256 ? { sha256: inspected.sha256 } : {},
@@ -1900,7 +2105,7 @@ function handleMemSessionStartHook(payload, rootDataDir) {
   try {
     const resolvedRoot = resolveNovDataDir(rootDataDir);
     const dataDir = getModuleDataDir(resolvedRoot, "mem");
-    const storeFile = import_node_path6.default.join(dataDir, "memories.json");
+    const storeFile = import_node_path7.default.join(dataDir, "memories.json");
     if (!import_node_fs5.default.existsSync(storeFile)) {
       return {};
     }
@@ -1937,7 +2142,7 @@ function handleMemStopHook(payload, rootDataDir) {
       id: `mem_auto_${convId.slice(0, 12)}`,
       kind: "decision",
       title: `Session recap: ${userPrompt.slice(0, 56)}${userPrompt.length > 56 ? "\u2026" : ""}`,
-      content: `Auto-captured from conversation ${convId.slice(0, 8)}. Modified ${editedFiles.length} file(s): ${editedFiles.map((f) => import_node_path6.default.basename(f)).join(", ")}.`,
+      content: `Auto-captured from conversation ${convId.slice(0, 8)}. Modified ${editedFiles.length} file(s): ${editedFiles.map((f) => import_node_path7.default.basename(f)).join(", ")}.`,
       tags: ["auto-capture"],
       workspacePath,
       sourceConversationId: convId,
@@ -1948,10 +2153,317 @@ function handleMemStopHook(payload, rootDataDir) {
   }
 }
 
-// src/modules/remote/config.ts
+// src/modules/radar/hook.ts
 var import_node_crypto3 = __toESM(require("node:crypto"), 1);
+
+// src/modules/radar/core.ts
+var import_node_child_process = require("node:child_process");
 var import_node_fs6 = __toESM(require("node:fs"), 1);
-var import_node_path7 = __toESM(require("node:path"), 1);
+var import_node_path8 = __toESM(require("node:path"), 1);
+var DEFAULT_RADAR_PREFS = {
+  desktopNotify: false,
+  soundChime: false,
+  stallMinutes: 5
+};
+var MAX_STORED_SESSIONS = 100;
+function getRadarBoardPath(moduleDataDir) {
+  return import_node_path8.default.join(moduleDataDir, "board.json");
+}
+function normalizeRadarPrefs(raw) {
+  if (!raw || typeof raw !== "object") {
+    return { ...DEFAULT_RADAR_PREFS };
+  }
+  const obj = raw;
+  const rawStall = typeof obj.stallMinutes === "number" && Number.isFinite(obj.stallMinutes) ? Math.round(obj.stallMinutes) : DEFAULT_RADAR_PREFS.stallMinutes;
+  return {
+    desktopNotify: typeof obj.desktopNotify === "boolean" ? obj.desktopNotify : false,
+    soundChime: typeof obj.soundChime === "boolean" ? obj.soundChime : false,
+    stallMinutes: Math.max(1, Math.min(rawStall, 120))
+  };
+}
+function createEmptyBoard() {
+  return {
+    schemaVersion: 1,
+    prefs: { ...DEFAULT_RADAR_PREFS },
+    sessions: {},
+    updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+}
+function isStoredStatus(value) {
+  return value === "running" || value === "awaiting_approval" || value === "completed" || value === "error";
+}
+function normalizeSessionRecord(id, raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw;
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const status = isStoredStatus(obj.status) ? obj.status : "running";
+  const lastEvent = obj.lastEvent === "PreToolUse" || obj.lastEvent === "PostToolUse" || obj.lastEvent === "Stop" || obj.lastEvent === "manual" ? obj.lastEvent : "manual";
+  return {
+    conversationId: typeof obj.conversationId === "string" && obj.conversationId ? obj.conversationId : id,
+    status,
+    workspaceName: typeof obj.workspaceName === "string" && obj.workspaceName ? obj.workspaceName : "workspace",
+    workspaceRoot: typeof obj.workspaceRoot === "string" ? obj.workspaceRoot : void 0,
+    lastToolName: typeof obj.lastToolName === "string" ? obj.lastToolName : void 0,
+    lastEvent,
+    stepCount: typeof obj.stepCount === "number" && Number.isFinite(obj.stepCount) ? Math.max(0, Math.floor(obj.stepCount)) : 0,
+    unread: Boolean(obj.unread),
+    summary: typeof obj.summary === "string" ? obj.summary : void 0,
+    errorMessage: typeof obj.errorMessage === "string" ? obj.errorMessage : void 0,
+    startedAt: typeof obj.startedAt === "string" ? obj.startedAt : nowIso,
+    lastActiveAt: typeof obj.lastActiveAt === "string" ? obj.lastActiveAt : nowIso,
+    completedAt: typeof obj.completedAt === "string" ? obj.completedAt : void 0
+  };
+}
+function loadRadarBoardReadOnly(moduleDataDir) {
+  const boardPath = getRadarBoardPath(moduleDataDir);
+  if (!import_node_fs6.default.existsSync(boardPath)) {
+    return createEmptyBoard();
+  }
+  try {
+    const raw = JSON.parse(import_node_fs6.default.readFileSync(boardPath, "utf8"));
+    const prefs = normalizeRadarPrefs(raw.prefs);
+    const sessions = {};
+    if (raw.sessions && typeof raw.sessions === "object") {
+      for (const [id, rec] of Object.entries(raw.sessions)) {
+        const normalized = normalizeSessionRecord(id, rec);
+        if (normalized) {
+          sessions[normalized.conversationId] = normalized;
+        }
+      }
+    }
+    return {
+      schemaVersion: 1,
+      prefs,
+      sessions,
+      updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : (/* @__PURE__ */ new Date()).toISOString()
+    };
+  } catch {
+    return createEmptyBoard();
+  }
+}
+function saveRadarBoard(moduleDataDir, board) {
+  const entries = Object.values(board.sessions).sort(
+    (a, b) => Date.parse(b.lastActiveAt) - Date.parse(a.lastActiveAt)
+  );
+  const pruned = {};
+  for (const rec of entries.slice(0, MAX_STORED_SESSIONS)) {
+    pruned[rec.conversationId] = rec;
+  }
+  const next = {
+    schemaVersion: 1,
+    prefs: normalizeRadarPrefs(board.prefs),
+    sessions: pruned,
+    updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  atomicWriteJson(getRadarBoardPath(moduleDataDir), next);
+  return next;
+}
+function cleanBriefText(raw, maxLen = 160) {
+  if (!raw) return void 0;
+  const cleaned = raw.replace(/[\r\n\t\x00-\x1f]+/g, " ").trim();
+  if (!cleaned) return void 0;
+  return cleaned.length > maxLen ? `${cleaned.slice(0, maxLen - 1)}\u2026` : cleaned;
+}
+function recordRadarSessionEvent(moduleDataDir, input) {
+  const board = loadRadarBoardReadOnly(moduleDataDir);
+  const nowIso = input.timestampIso ?? (/* @__PURE__ */ new Date()).toISOString();
+  const convId = input.conversationId.trim().slice(0, 120) || "default-session";
+  const existing = board.sessions[convId];
+  const workspaceName = input.workspaceRoot ? import_node_path8.default.basename(import_node_path8.default.resolve(input.workspaceRoot)) || existing?.workspaceName || "workspace" : existing?.workspaceName ?? "workspace";
+  let nextStatus = existing?.status ?? "running";
+  let nextUnread = existing?.unread ?? false;
+  let completedAt = existing?.completedAt;
+  let errorMessage = existing?.errorMessage;
+  if (input.event === "PreToolUse") {
+    if (input.awaitingApproval) {
+      nextStatus = "awaiting_approval";
+      nextUnread = true;
+    } else {
+      nextStatus = "running";
+    }
+    completedAt = void 0;
+    errorMessage = void 0;
+  } else if (input.event === "PostToolUse") {
+    nextStatus = "running";
+    if (existing?.status === "awaiting_approval") {
+      nextUnread = false;
+    }
+    completedAt = void 0;
+    errorMessage = void 0;
+  } else if (input.event === "Stop") {
+    if (input.errorMessage) {
+      nextStatus = "error";
+      errorMessage = cleanBriefText(input.errorMessage, 160);
+    } else {
+      nextStatus = "completed";
+      errorMessage = void 0;
+    }
+    nextUnread = true;
+    completedAt = nowIso;
+  }
+  const nextSession = {
+    conversationId: convId,
+    status: nextStatus,
+    workspaceName,
+    workspaceRoot: input.workspaceRoot ?? existing?.workspaceRoot,
+    lastToolName: input.toolName ?? existing?.lastToolName,
+    lastEvent: input.event,
+    stepCount: (existing?.stepCount ?? 0) + 1,
+    unread: nextUnread,
+    summary: cleanBriefText(input.summary, 140) ?? existing?.summary,
+    errorMessage,
+    startedAt: existing?.startedAt ?? nowIso,
+    lastActiveAt: nowIso,
+    completedAt
+  };
+  board.sessions[convId] = nextSession;
+  const saved = saveRadarBoard(moduleDataDir, board);
+  return { board: saved, session: nextSession };
+}
+function sanitizeNotificationText(text, maxLen = 120) {
+  const stripped = String(text ?? "").replace(/[\x00-\x1f\x7f]/g, " ").replace(/["'`\\$<>|;&{}]/g, "").replace(/\s+/g, " ").trim();
+  if (!stripped) return "agy-NOV";
+  return stripped.length > maxLen ? `${stripped.slice(0, maxLen - 1)}\u2026` : stripped;
+}
+function buildSafeNotifyInvocation(platform, title, message, prefs) {
+  if (!prefs.desktopNotify && !prefs.soundChime) {
+    return null;
+  }
+  const safeTitle = sanitizeNotificationText(title, 64);
+  const safeMsg = sanitizeNotificationText(message, 140);
+  if (platform === "darwin") {
+    if (prefs.desktopNotify) {
+      const displayLine = prefs.soundChime ? 'display notification (item 1 of argv) with title (item 2 of argv) sound name "Glass"' : "display notification (item 1 of argv) with title (item 2 of argv)";
+      return {
+        command: "osascript",
+        args: ["-e", "on run argv", "-e", displayLine, "-e", "end run", "--", safeMsg, safeTitle]
+      };
+    }
+    if (prefs.soundChime) {
+      return {
+        command: "afplay",
+        args: ["/System/Library/Sounds/Glass.aiff"]
+      };
+    }
+  }
+  if (platform === "linux" && prefs.desktopNotify) {
+    return {
+      command: "notify-send",
+      args: ["--", safeTitle, safeMsg]
+    };
+  }
+  return null;
+}
+function triggerRadarNotification(title, message, prefs, platform = process.platform) {
+  if (process.env.NODE_ENV === "test" || Boolean(process.env.NODE_TEST_CONTEXT) || Boolean(process.env.AGY_NOV_NO_NOTIFY)) {
+    return { dispatched: false, reason: "suppressed-by-env" };
+  }
+  if (!prefs.desktopNotify && !prefs.soundChime) {
+    return { dispatched: false, reason: "disabled-in-prefs" };
+  }
+  const invocation = buildSafeNotifyInvocation(platform, title, message, prefs);
+  if (!invocation) {
+    return { dispatched: false, reason: "unsupported-platform" };
+  }
+  try {
+    const child = (0, import_node_child_process.execFile)(
+      invocation.command,
+      invocation.args,
+      { timeout: 3e3, windowsHide: true },
+      () => {
+      }
+    );
+    child.unref?.();
+    return { dispatched: true, invocation };
+  } catch {
+    return { dispatched: false, reason: "exec-failed" };
+  }
+}
+
+// src/modules/radar/hook.ts
+var APPROVAL_TOOL_RE = /\b(?:run_command|execute|bash|shell|terminal|delete|remove|deploy|publish|push)\b/i;
+function deriveConversationId(payload) {
+  if (payload.conversationId && payload.conversationId.trim()) {
+    return payload.conversationId.trim();
+  }
+  const seed = payload.workspaceRoot ?? payload.workspacePaths[0] ?? payload.cwd;
+  if (seed) {
+    const hash = import_node_crypto3.default.createHash("sha256").update(seed).digest("hex").slice(0, 10);
+    return `ws-${hash}`;
+  }
+  return "default-session";
+}
+function detectAwaitingApproval(payload) {
+  const raw = payload.raw ?? {};
+  if (raw.requiresApproval === true || raw.awaitingApproval === true || raw.approvalRequired === true || raw.requires_approval === true || raw.awaiting_approval === true) {
+    return true;
+  }
+  const input = payload.toolInput ?? {};
+  if (input.requiresApproval === true || input.approvalRequired === true || input.requires_approval === true) {
+    return true;
+  }
+  if (payload.toolName && APPROVAL_TOOL_RE.test(payload.toolName) && (input.SafeToAutoRun === false || input.safeToAutoRun === false)) {
+    return true;
+  }
+  return false;
+}
+function formatErrorValue(err) {
+  if (err === void 0 || err === null || err === false) return void 0;
+  if (typeof err === "string") return err.trim() || void 0;
+  if (err instanceof Error) return err.message || err.name;
+  if (typeof err === "object") {
+    const rec = err;
+    if (typeof rec.message === "string" && rec.message.trim()) return rec.message.trim();
+    if (typeof rec.code === "string" && rec.code.trim()) return `Error ${rec.code.trim()}`;
+    try {
+      const json = JSON.stringify(err);
+      return json && json !== "{}" ? json : "Unknown error";
+    } catch {
+      return "Unknown error";
+    }
+  }
+  return String(err);
+}
+function handleRadarHook(payload, rootDataDir) {
+  try {
+    if (payload.event !== "PreToolUse" && payload.event !== "PostToolUse" && payload.event !== "Stop") {
+      return;
+    }
+    const resolvedRoot = resolveNovDataDir(rootDataDir);
+    const moduleDataDir = getModuleDataDir(resolvedRoot, "radar");
+    const conversationId = deriveConversationId(payload);
+    const workspaceRoot = payload.workspaceRoot ?? payload.workspacePaths[0] ?? payload.cwd;
+    const awaitingApproval = payload.event === "PreToolUse" ? detectAwaitingApproval(payload) : false;
+    const errorMessage = payload.event === "Stop" ? formatErrorValue(payload.error) : void 0;
+    const summary = cleanBriefText(payload.lastUserInput, 120) ?? (payload.terminationReason ? cleanBriefText(payload.terminationReason, 120) : void 0);
+    const { board, session } = recordRadarSessionEvent(moduleDataDir, {
+      conversationId,
+      event: payload.event,
+      workspaceRoot,
+      toolName: payload.toolName,
+      awaitingApproval,
+      errorMessage,
+      summary
+    });
+    if (payload.event === "Stop") {
+      const title = session.status === "error" ? `agy-NOV Radar: Error (${session.workspaceName})` : `agy-NOV Radar: Completed (${session.workspaceName})`;
+      const message = session.status === "error" ? session.errorMessage || `Session ${session.conversationId} ended with an error.` : `Session ${session.conversationId} finished after ${session.stepCount} step(s).`;
+      triggerRadarNotification(title, message, board.prefs);
+    } else if (awaitingApproval) {
+      triggerRadarNotification(
+        `agy-NOV Radar: Approval Needed (${session.workspaceName})`,
+        `Tool ${session.lastToolName ?? "action"} is awaiting your confirmation.`,
+        board.prefs
+      );
+    }
+  } catch {
+  }
+}
+
+// src/modules/remote/config.ts
+var import_node_crypto4 = __toESM(require("node:crypto"), 1);
+var import_node_fs7 = __toESM(require("node:fs"), 1);
+var import_node_path9 = __toESM(require("node:path"), 1);
 var DEFAULT_PIN_TTL_MS = 5 * 60 * 1e3;
 var DEFAULT_RISK_PATTERNS = [
   "\\brm\\s+(-[a-zA-Z]*(?:r[a-zA-Z]*f|f[a-zA-Z]*r)|-[a-zA-Z]*r\\b[^;&|]*-[a-zA-Z]*f\\b)",
@@ -1998,10 +2510,10 @@ function redactText(text) {
   return out;
 }
 function generatePairingToken() {
-  return import_node_crypto3.default.randomBytes(24).toString("base64url");
+  return import_node_crypto4.default.randomBytes(24).toString("base64url");
 }
 function generatePairingPin() {
-  return String(import_node_crypto3.default.randomInt(1e5, 1e6));
+  return String(import_node_crypto4.default.randomInt(1e5, 1e6));
 }
 function defaultRemoteConfig(now = Date.now()) {
   return {
@@ -2026,7 +2538,7 @@ function defaultRemoteConfig(now = Date.now()) {
   };
 }
 function getRemoteConfigPath(dataDir) {
-  return import_node_path7.default.join(dataDir, "config.json");
+  return import_node_path9.default.join(dataDir, "config.json");
 }
 function normalizeRemoteConfig(raw) {
   const base = defaultRemoteConfig();
@@ -2045,11 +2557,11 @@ function normalizeRemoteConfig(raw) {
 }
 function loadConfigReadOnly(dataDir) {
   const cfgPath = getRemoteConfigPath(dataDir);
-  if (!import_node_fs6.default.existsSync(cfgPath)) {
+  if (!import_node_fs7.default.existsSync(cfgPath)) {
     return { config: defaultRemoteConfig(), persisted: false };
   }
   try {
-    const parsed = JSON.parse(import_node_fs6.default.readFileSync(cfgPath, "utf8"));
+    const parsed = JSON.parse(import_node_fs7.default.readFileSync(cfgPath, "utf8"));
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       return { config: defaultRemoteConfig(), persisted: false };
     }
@@ -2062,10 +2574,10 @@ function loadConfigReadOnly(dataDir) {
   }
 }
 function readRuntimeInfo(dataDir) {
-  const runtimePath = import_node_path7.default.join(dataDir, "runtime.json");
-  if (!import_node_fs6.default.existsSync(runtimePath)) return null;
+  const runtimePath = import_node_path9.default.join(dataDir, "runtime.json");
+  if (!import_node_fs7.default.existsSync(runtimePath)) return null;
   try {
-    const parsed = JSON.parse(import_node_fs6.default.readFileSync(runtimePath, "utf8"));
+    const parsed = JSON.parse(import_node_fs7.default.readFileSync(runtimePath, "utf8"));
     const port = Number(parsed.port);
     if (!Number.isInteger(port) || port < 1 || port > 65535) return null;
     const pid = Number(parsed.pid ?? 0);
@@ -2316,16 +2828,16 @@ async function handleRemoteStopHook(payload, rootDataDir) {
 }
 
 // src/modules/review/hook.ts
-var import_node_crypto4 = __toESM(require("node:crypto"), 1);
-var import_node_fs7 = __toESM(require("node:fs"), 1);
-var import_node_path8 = __toESM(require("node:path"), 1);
+var import_node_crypto5 = __toESM(require("node:crypto"), 1);
+var import_node_fs8 = __toESM(require("node:fs"), 1);
+var import_node_path10 = __toESM(require("node:path"), 1);
 var MUTATING_TOOL_RE = /(write|edit|replace|patch|create|delete|remove|rename|move|run_command|command|bash|shell|terminal|multi_replace)/i;
 function readReviewSignal(moduleDataDir) {
   if (!moduleDataDir) return null;
-  const signalPath = import_node_path8.default.join(moduleDataDir, "review-signal.json");
-  if (!import_node_fs7.default.existsSync(signalPath)) return null;
+  const signalPath = import_node_path10.default.join(moduleDataDir, "review-signal.json");
+  if (!import_node_fs8.default.existsSync(signalPath)) return null;
   try {
-    const parsed = JSON.parse(import_node_fs7.default.readFileSync(signalPath, "utf8"));
+    const parsed = JSON.parse(import_node_fs8.default.readFileSync(signalPath, "utf8"));
     return {
       lastEvent: parsed.lastEvent,
       lastToolName: parsed.lastToolName,
@@ -2346,7 +2858,7 @@ function handleReviewHook(payload, rootDataDir) {
   const now = (/* @__PURE__ */ new Date()).toISOString();
   try {
     ensurePrivateDir(moduleDataDir);
-    const signalPath = import_node_path8.default.join(moduleDataDir, "review-signal.json");
+    const signalPath = import_node_path10.default.join(moduleDataDir, "review-signal.json");
     const prev = readReviewSignal(moduleDataDir) ?? { changeCount: 0 };
     const isMutating = event === "Stop" || (toolName ? MUTATING_TOOL_RE.test(toolName) : false);
     const next = {
@@ -2359,19 +2871,455 @@ function handleReviewHook(payload, rootDataDir) {
       workspacePaths: payload.workspacePaths.length > 0 ? payload.workspacePaths : prev.workspacePaths,
       conversationId: payload.conversationId ?? prev.conversationId
     };
-    const tmpPath = `${signalPath}.${process.pid}.${import_node_crypto4.default.randomBytes(4).toString("hex")}.tmp`;
-    import_node_fs7.default.writeFileSync(tmpPath, `${JSON.stringify(next, null, 2)}
+    const tmpPath = `${signalPath}.${process.pid}.${import_node_crypto5.default.randomBytes(4).toString("hex")}.tmp`;
+    import_node_fs8.default.writeFileSync(tmpPath, `${JSON.stringify(next, null, 2)}
 `, { encoding: "utf8", mode: 384 });
-    import_node_fs7.default.renameSync(tmpPath, signalPath);
+    import_node_fs8.default.renameSync(tmpPath, signalPath);
   } catch {
   }
 }
 
+// src/modules/turbo/hook.ts
+var import_node_fs10 = __toESM(require("node:fs"), 1);
+var import_node_path12 = __toESM(require("node:path"), 1);
+
+// src/modules/turbo/core.ts
+var import_node_crypto6 = __toESM(require("node:crypto"), 1);
+var import_node_fs9 = __toESM(require("node:fs"), 1);
+var import_node_path11 = __toESM(require("node:path"), 1);
+var TURBO_MAX_FILE_BYTES = 512 * 1024;
+var TURBO_MAX_OUTLINE_FILE_BYTES = 1024 * 1024;
+var TURBO_MAX_COMPACTED_CHUNKS = 24;
+var SKIP_DIRS = /* @__PURE__ */ new Set([
+  ".git",
+  "node_modules",
+  "dist",
+  "coverage",
+  ".next",
+  ".nuxt",
+  ".cache",
+  ".turbo",
+  "build",
+  "out",
+  "target",
+  "__pycache__",
+  ".venv",
+  "venv",
+  ".idea",
+  ".vscode",
+  ".ssh",
+  ".aws",
+  ".gnupg",
+  ".kube"
+]);
+var SENSITIVE_EXTENSIONS2 = /* @__PURE__ */ new Set([".pem", ".key", ".p12", ".pfx", ".jks", ".keystore"]);
+var SENSITIVE_EXACT_BASENAMES = /* @__PURE__ */ new Set([
+  ".env",
+  ".envrc",
+  ".npmrc",
+  ".netrc",
+  ".pypirc",
+  "id_rsa",
+  "id_ed25519",
+  "id_dsa",
+  "id_ecdsa",
+  "master.key"
+]);
+var SENSITIVE_DIR_SEGMENT_RE = /(?:^|\/)\.(?:ssh|aws|gnupg|kube)(?:\/|$)/i;
+function isSensitiveTurboPath(inputPath) {
+  if (!inputPath) return false;
+  const normalized = inputPath.replace(/\\/g, "/").trim().replace(/\/+$/, "");
+  if (!normalized) return false;
+  if (SENSITIVE_DIR_SEGMENT_RE.test(normalized)) return true;
+  const segments = normalized.split("/").filter(Boolean);
+  for (const seg of segments) {
+    const lower = seg.toLowerCase();
+    if (lower === ".ssh" || lower === ".aws" || lower === ".gnupg" || lower === ".kube" || lower.startsWith(".env") || lower.startsWith("credentials") || lower.includes("secret")) {
+      return true;
+    }
+  }
+  const base = import_node_path11.default.posix.basename(normalized);
+  const lowerBase = base.toLowerCase();
+  if (SENSITIVE_EXACT_BASENAMES.has(lowerBase)) return true;
+  if (lowerBase.startsWith("id_rsa.") || lowerBase.startsWith("id_ed25519.") || lowerBase.startsWith("id_dsa.") || lowerBase.startsWith("id_ecdsa.")) {
+    return true;
+  }
+  const ext = import_node_path11.default.posix.extname(lowerBase);
+  if (SENSITIVE_EXTENSIONS2.has(ext)) return true;
+  return false;
+}
+var ERROR_LINE_RE = /\b(?:error|err!|fail|failed|failure|exception|fatal|panic|traceback|assertionerror|typeerror|syntaxerror|referenceerror|enoent|eacces|ts\d{4})\b|^\s*(?:✗|✖|×|FAIL\b)/i;
+var WARN_LINE_RE = /\b(?:warn|warning|deprecated)\b|^\s*⚠/i;
+function normalizeDiagKey(line) {
+  return line.trim().replace(/\b\d+\b/g, "#").replace(/\s+/g, " ").slice(0, 120);
+}
+var CompactedChunkStore = class {
+  entries = /* @__PURE__ */ new Map();
+  maxEntries;
+  totalCompactions = 0;
+  totalSavedTokens = 0;
+  totalRawBytes = 0;
+  constructor(maxEntries = TURBO_MAX_COMPACTED_CHUNKS) {
+    this.maxEntries = Math.max(1, maxEntries);
+  }
+  compact(dataDir, label, rawText, opts = {}) {
+    const safeLabel = (label || "output").replace(/[\r\n\t\x00-\x1f]/g, " ").trim().slice(0, 80) || "output";
+    const raw = typeof rawText === "string" ? rawText : String(rawText ?? "");
+    const lines = raw.split(/\r?\n/);
+    const totalLines = lines.length;
+    const rawBytes = Buffer.byteLength(raw, "utf8");
+    const estimatedRawTokens = Math.ceil(raw.length / 4);
+    const headCount = Math.max(1, Math.min(opts.headLines ?? 12, 50));
+    const tailCount = Math.max(1, Math.min(opts.tailLines ?? 15, 50));
+    const maxErrorLines = Math.max(1, Math.min(opts.maxErrorLines ?? 20, 60));
+    const chunkLines = Math.max(10, Math.min(opts.chunkLines ?? 40, 200));
+    const diagMap = /* @__PURE__ */ new Map();
+    let errorCount = 0;
+    let warningCount = 0;
+    for (let i = 0; i < lines.length; i += 1) {
+      const text = lines[i].trim();
+      if (!text) continue;
+      let severity = null;
+      if (ERROR_LINE_RE.test(text)) {
+        severity = "error";
+        errorCount += 1;
+      } else if (WARN_LINE_RE.test(text)) {
+        severity = "warning";
+        warningCount += 1;
+      }
+      if (!severity) continue;
+      const key = `${severity}:${normalizeDiagKey(text)}`;
+      const existing = diagMap.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        diagMap.set(key, {
+          line: i + 1,
+          severity,
+          count: 1,
+          text: text.slice(0, 180)
+        });
+      }
+    }
+    const diagnostics = Array.from(diagMap.values()).sort((a, b) => {
+      if (a.severity !== b.severity) return a.severity === "error" ? -1 : 1;
+      if (b.count !== a.count) return b.count - a.count;
+      return a.line - b.line;
+    }).slice(0, maxErrorLines);
+    const headSlice = lines.slice(0, Math.min(headCount, totalLines));
+    const tailStart = Math.max(headSlice.length, totalLines - tailCount);
+    const tailSlice = tailStart < totalLines ? lines.slice(tailStart) : [];
+    const omittedMid = Math.max(0, tailStart - headSlice.length);
+    const sections = [
+      `[Turbo Compact] ${safeLabel} \u2014 ${totalLines} lines, ${rawBytes} bytes (~${estimatedRawTokens} tokens), errors=${errorCount}, warnings=${warningCount}`
+    ];
+    if (diagnostics.length > 0) {
+      sections.push("--- Errors & Warnings (aggregated) ---");
+      for (const d of diagnostics) {
+        const repeat = d.count > 1 ? ` (x${d.count})` : "";
+        sections.push(`[${d.severity.toUpperCase()} L${d.line}]${repeat} ${d.text}`);
+      }
+    }
+    sections.push(`--- Head (L1-L${headSlice.length}) ---`);
+    sections.push(
+      headSlice.map((l, idx) => `${idx + 1} | ${l.slice(0, 220)}`).join("\n")
+    );
+    if (omittedMid > 0) {
+      sections.push(`... (${omittedMid} middle lines indexed in memory; query via chunkId) ...`);
+    }
+    if (tailSlice.length > 0) {
+      sections.push(`--- Tail (L${tailStart + 1}-L${totalLines}) ---`);
+      sections.push(
+        tailSlice.map((l, idx) => `${tailStart + idx + 1} | ${l.slice(0, 220)}`).join("\n")
+      );
+    }
+    const summaryText = sections.join("\n");
+    const summaryBytes = Buffer.byteLength(summaryText, "utf8");
+    const estimatedSummaryTokens = Math.ceil(summaryText.length / 4);
+    const estimatedSavedTokens = Math.max(0, estimatedRawTokens - estimatedSummaryTokens);
+    const compressionRatio = rawBytes > 0 ? Number((1 - Math.min(summaryBytes, rawBytes) / rawBytes).toFixed(3)) : 0;
+    const chunkCount = Math.max(1, Math.ceil(totalLines / chunkLines));
+    const chunkId = `chk_${Date.now().toString(36)}_${import_node_crypto6.default.randomBytes(3).toString("hex")}`;
+    const createdAt = (/* @__PURE__ */ new Date()).toISOString();
+    const meta = {
+      chunkId,
+      label: safeLabel,
+      createdAt,
+      totalLines,
+      rawBytes,
+      estimatedRawTokens,
+      estimatedSummaryTokens,
+      estimatedSavedTokens,
+      chunkCount,
+      errorCount,
+      warningCount
+    };
+    if (this.entries.size >= this.maxEntries) {
+      const oldestKey = this.entries.keys().next().value;
+      if (oldestKey !== void 0) {
+        this.entries.delete(oldestKey);
+      }
+    }
+    this.entries.set(chunkId, { meta, lines, chunkLines, summaryText });
+    this.totalCompactions += 1;
+    this.totalSavedTokens += estimatedSavedTokens;
+    this.totalRawBytes += rawBytes;
+    if (opts.persistStats && dataDir) {
+      try {
+        atomicWriteJson(import_node_path11.default.join(dataDir, "stats.json"), {
+          schemaVersion: 1,
+          totalCompactions: this.totalCompactions,
+          totalSavedTokens: this.totalSavedTokens,
+          totalRawBytes: this.totalRawBytes,
+          updatedAt: createdAt
+        });
+      } catch {
+      }
+    }
+    return {
+      ...meta,
+      summaryBytes,
+      compressionRatio,
+      diagnostics,
+      summaryText
+    };
+  }
+  query(chunkId, query, limit = 10) {
+    const cleanQuery = (query || "").trim();
+    const entry = this.entries.get(chunkId);
+    if (!entry) {
+      return {
+        found: false,
+        chunkId,
+        query: cleanQuery,
+        totalHits: 0,
+        matches: []
+      };
+    }
+    this.entries.delete(chunkId);
+    this.entries.set(chunkId, entry);
+    const maxHits = Math.max(1, Math.min(limit, 50));
+    const tokens = cleanQuery.toLowerCase().split(/\s+/).filter(Boolean);
+    const matches = [];
+    let totalHits = 0;
+    for (let i = 0; i < entry.lines.length; i += 1) {
+      const lower = entry.lines[i].toLowerCase();
+      const matched = tokens.length === 0 ? true : tokens.every((tok) => lower.includes(tok));
+      if (!matched) continue;
+      totalHits += 1;
+      if (matches.length < maxHits) {
+        const ctxStart = Math.max(0, i - 1);
+        const ctxEnd = Math.min(entry.lines.length - 1, i + 1);
+        const snippet = entry.lines.slice(ctxStart, ctxEnd + 1).map((l, offset) => `${ctxStart + offset + 1} | ${l.slice(0, 220)}`).join("\n");
+        matches.push({
+          chunkIndex: Math.floor(i / entry.chunkLines),
+          startLine: ctxStart + 1,
+          endLine: ctxEnd + 1,
+          matchedLine: i + 1,
+          snippet
+        });
+      }
+    }
+    return {
+      found: true,
+      chunkId,
+      label: entry.meta.label,
+      totalLines: entry.meta.totalLines,
+      query: cleanQuery,
+      totalHits,
+      matches
+    };
+  }
+  listChunks() {
+    return Array.from(this.entries.values()).map((e) => ({ ...e.meta })).reverse();
+  }
+  getStats() {
+    return {
+      indexedChunks: this.entries.size,
+      maxChunks: this.maxEntries,
+      totalCompactions: this.totalCompactions,
+      totalSavedTokens: this.totalSavedTokens,
+      totalRawBytes: this.totalRawBytes
+    };
+  }
+  clear() {
+    this.entries.clear();
+  }
+};
+var defaultCompactedChunkStore = new CompactedChunkStore(TURBO_MAX_COMPACTED_CHUNKS);
+var SNAPSHOT_EXPAND_DIRS = /* @__PURE__ */ new Set(["src", "app", "apps", "packages", "lib", "ui", "test", "tests", "scripts", "cmd", "pkg", "internal"]);
+function buildWorkspaceSnapshot(workspaceRoot) {
+  const startedAt = Date.now();
+  const realRoot = import_node_fs9.default.realpathSync(import_node_path11.default.resolve(workspaceRoot));
+  const rootPrefix = realRoot.endsWith(import_node_path11.default.sep) ? realRoot : `${realRoot}${import_node_path11.default.sep}`;
+  const workspaceName = import_node_path11.default.basename(realRoot) || "workspace";
+  const techStack = [];
+  const scripts = [];
+  let packageName;
+  let packageVersion;
+  const hasFile = (name) => {
+    try {
+      const candidate = import_node_path11.default.join(realRoot, name);
+      const real = import_node_fs9.default.realpathSync(candidate);
+      return real.startsWith(rootPrefix) && import_node_fs9.default.statSync(real).isFile();
+    } catch {
+      return false;
+    }
+  };
+  if (hasFile("package.json")) {
+    techStack.push("Node.js");
+    try {
+      const pkg = JSON.parse(import_node_fs9.default.readFileSync(import_node_path11.default.join(realRoot, "package.json"), "utf8"));
+      if (typeof pkg.name === "string") packageName = pkg.name.slice(0, 64);
+      if (typeof pkg.version === "string") packageVersion = pkg.version.slice(0, 32);
+      if (pkg.scripts && typeof pkg.scripts === "object") {
+        scripts.push(...Object.keys(pkg.scripts).slice(0, 8));
+      }
+      const allDeps = { ...pkg.dependencies ?? {}, ...pkg.devDependencies ?? {} };
+      if ("typescript" in allDeps) techStack.push("TypeScript");
+      if ("react" in allDeps) techStack.push("React");
+      if ("vite" in allDeps) techStack.push("Vite");
+      if ("next" in allDeps) techStack.push("Next.js");
+      if ("vue" in allDeps) techStack.push("Vue");
+    } catch {
+    }
+  }
+  if (hasFile("tsconfig.json") && !techStack.includes("TypeScript")) techStack.push("TypeScript");
+  if (hasFile("pyproject.toml") || hasFile("requirements.txt")) techStack.push("Python");
+  if (hasFile("go.mod")) techStack.push("Go");
+  if (hasFile("Cargo.toml")) techStack.push("Rust");
+  if (hasFile("Dockerfile") || hasFile("docker-compose.yml") || hasFile("compose.yaml")) {
+    techStack.push("Docker");
+  }
+  if (hasFile("AGENTS.md")) techStack.push("AGENTS.md");
+  if (hasFile("CLAUDE.md")) techStack.push("CLAUDE.md");
+  const treeLines = [];
+  const maxTreeLines = 28;
+  let extraEntries = 0;
+  try {
+    const entries = import_node_fs9.default.readdirSync(realRoot, { withFileTypes: true }).sort((a, b) => {
+      if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+    for (const entry of entries) {
+      if (SKIP_DIRS.has(entry.name) || isSensitiveTurboPath(entry.name)) continue;
+      if (entry.isSymbolicLink()) {
+        try {
+          const realEntry = import_node_fs9.default.realpathSync(import_node_path11.default.join(realRoot, entry.name));
+          const realEntryRel = import_node_path11.default.relative(realRoot, realEntry).replace(/\\/g, "/");
+          if (!realEntry.startsWith(rootPrefix) || isSensitiveTurboPath(realEntryRel)) continue;
+        } catch {
+          continue;
+        }
+      }
+      if (treeLines.length >= maxTreeLines) {
+        extraEntries += 1;
+        continue;
+      }
+      if (entry.isDirectory()) {
+        treeLines.push(`- ${entry.name}/`);
+        if (SNAPSHOT_EXPAND_DIRS.has(entry.name) && treeLines.length < maxTreeLines) {
+          try {
+            const subEntries = import_node_fs9.default.readdirSync(import_node_path11.default.join(realRoot, entry.name), { withFileTypes: true }).filter((sub) => {
+              if (SKIP_DIRS.has(sub.name) || isSensitiveTurboPath(`${entry.name}/${sub.name}`)) {
+                return false;
+              }
+              if (sub.isSymbolicLink()) {
+                try {
+                  const realSub = import_node_fs9.default.realpathSync(import_node_path11.default.join(realRoot, entry.name, sub.name));
+                  const realSubRel = import_node_path11.default.relative(realRoot, realSub).replace(/\\/g, "/");
+                  return realSub.startsWith(rootPrefix) && !isSensitiveTurboPath(realSubRel);
+                } catch {
+                  return false;
+                }
+              }
+              return true;
+            }).sort((a, b) => a.name.localeCompare(b.name));
+            const shown = subEntries.slice(0, 5);
+            for (const sub of shown) {
+              if (treeLines.length >= maxTreeLines) break;
+              treeLines.push(`  - ${sub.name}${sub.isDirectory() ? "/" : ""}`);
+            }
+            if (subEntries.length > shown.length && treeLines.length < maxTreeLines) {
+              treeLines.push(`  - ... (+${subEntries.length - shown.length} more)`);
+            }
+          } catch {
+          }
+        }
+      } else {
+        treeLines.push(`- ${entry.name}`);
+      }
+    }
+  } catch {
+  }
+  if (extraEntries > 0) {
+    treeLines.push(`- ... (+${extraEntries} more entries)`);
+  }
+  const lines = [
+    `Workspace: ${packageName ? `${packageName}${packageVersion ? `@${packageVersion}` : ""}` : workspaceName}`,
+    `Stack: ${techStack.length > 0 ? techStack.join(", ") : "Generic"}`
+  ];
+  if (scripts.length > 0) {
+    lines.push(`Scripts: ${scripts.join(", ")}`);
+  }
+  lines.push("Structure:");
+  lines.push(...treeLines);
+  const finalLines = lines.slice(0, 40);
+  if (lines.length > 40) {
+    finalLines[39] = "... (truncated to 40-line budget)";
+  }
+  return {
+    workspaceName,
+    packageName,
+    packageVersion,
+    techStack,
+    scripts,
+    treeLines,
+    lineCount: finalLines.length,
+    markdown: finalLines.join("\n"),
+    elapsedMs: Date.now() - startedAt
+  };
+}
+
+// src/modules/turbo/hook.ts
+function handleTurboSessionStartHook(payload, _rootDataDir) {
+  try {
+    const candidate = payload.workspaceRoot ?? payload.workspacePaths[0] ?? payload.cwd;
+    if (!candidate || typeof candidate !== "string" || candidate.includes("\0")) {
+      return {};
+    }
+    const resolved = import_node_path12.default.resolve(candidate);
+    if (!import_node_fs10.default.existsSync(resolved)) {
+      return {};
+    }
+    const stat = import_node_fs10.default.statSync(resolved);
+    if (!stat.isDirectory()) {
+      return {};
+    }
+    const snapshot = buildWorkspaceSnapshot(resolved);
+    if (!snapshot.markdown.trim()) {
+      return {};
+    }
+    return {
+      injectSteps: [
+        {
+          systemMessage: {
+            systemMessage: `[agy-NOV Turbo Workspace Map]
+${snapshot.markdown}`
+          }
+        }
+      ]
+    };
+  } catch {
+    return {};
+  }
+}
+
 // src/modules/xray/hook.ts
-var import_node_crypto5 = __toESM(require("node:crypto"), 1);
-var import_node_fs8 = __toESM(require("node:fs"), 1);
-var import_node_path9 = __toESM(require("node:path"), 1);
-function formatErrorValue(err) {
+var import_node_crypto7 = __toESM(require("node:crypto"), 1);
+var import_node_fs11 = __toESM(require("node:fs"), 1);
+var import_node_path13 = __toESM(require("node:path"), 1);
+function formatErrorValue2(err) {
   if (err === void 0 || err === null || err === "") return void 0;
   if (typeof err === "string") return err;
   if (err instanceof Error) return err.message;
@@ -2387,11 +3335,11 @@ function handleXrayHook(payload, rootDataDir) {
   const now = (/* @__PURE__ */ new Date()).toISOString();
   try {
     ensurePrivateDir(moduleDataDir);
-    const statePath = import_node_path9.default.join(moduleDataDir, "live-state.json");
+    const statePath = import_node_path13.default.join(moduleDataDir, "live-state.json");
     let state = { recentEvents: [] };
-    if (import_node_fs8.default.existsSync(statePath)) {
+    if (import_node_fs11.default.existsSync(statePath)) {
       try {
-        const parsed = JSON.parse(import_node_fs8.default.readFileSync(statePath, "utf8"));
+        const parsed = JSON.parse(import_node_fs11.default.readFileSync(statePath, "utf8"));
         state = {
           ...parsed,
           recentEvents: Array.isArray(parsed.recentEvents) ? parsed.recentEvents : []
@@ -2412,15 +3360,15 @@ function handleXrayHook(payload, rootDataDir) {
       toolName: payload.toolName,
       stepIdx: payload.stepIdx,
       timestamp: now,
-      error: formatErrorValue(payload.error)
+      error: formatErrorValue2(payload.error)
     });
     if (state.recentEvents.length > 50) {
       state.recentEvents = state.recentEvents.slice(-50);
     }
-    const tmpPath = `${statePath}.${process.pid}.${import_node_crypto5.default.randomBytes(4).toString("hex")}.tmp`;
-    import_node_fs8.default.writeFileSync(tmpPath, `${JSON.stringify(state, null, 2)}
+    const tmpPath = `${statePath}.${process.pid}.${import_node_crypto7.default.randomBytes(4).toString("hex")}.tmp`;
+    import_node_fs11.default.writeFileSync(tmpPath, `${JSON.stringify(state, null, 2)}
 `, { encoding: "utf8", mode: 384 });
-    import_node_fs8.default.renameSync(tmpPath, statePath);
+    import_node_fs11.default.renameSync(tmpPath, statePath);
   } catch {
   }
 }
@@ -2432,19 +3380,37 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
   const config = loadNovConfigReadOnly(rootDataDir);
   const { modules } = config;
   if (payload.event === "SessionStart") {
-    if (!modules.mem) return {};
-    try {
-      const memOut = handleMemSessionStartHook(payload, rootDataDir);
-      if (memOut && Array.isArray(memOut.injectSteps) && memOut.injectSteps.length > 0) {
-        return { injectSteps: memOut.injectSteps };
+    if (!modules.mem && !modules.turbo) return {};
+    const injectSteps = [];
+    if (modules.turbo) {
+      try {
+        const turboOut = handleTurboSessionStartHook(payload, rootDataDir);
+        if (turboOut && Array.isArray(turboOut.injectSteps) && turboOut.injectSteps.length > 0) {
+          injectSteps.push(...turboOut.injectSteps);
+        }
+      } catch {
       }
-    } catch {
     }
-    return {};
+    if (modules.mem) {
+      try {
+        const memOut = handleMemSessionStartHook(payload, rootDataDir);
+        if (memOut && Array.isArray(memOut.injectSteps) && memOut.injectSteps.length > 0) {
+          injectSteps.push(...memOut.injectSteps);
+        }
+      } catch {
+      }
+    }
+    return injectSteps.length > 0 ? { injectSteps } : {};
   }
   if (payload.event === "PreToolUse") {
-    if (!modules.guard && !modules.remote) {
+    if (!modules.guard && !modules.remote && !modules.radar) {
       return {};
+    }
+    if (modules.radar) {
+      try {
+        handleRadarHook(payload, rootDataDir);
+      } catch {
+      }
     }
     let finalDecision;
     const reasons = [];
@@ -2499,6 +3465,12 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
       } catch {
       }
     }
+    if (modules.radar) {
+      try {
+        handleRadarHook(payload, rootDataDir);
+      } catch {
+      }
+    }
     return {};
   }
   if (payload.event === "Stop") {
@@ -2511,6 +3483,12 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
     if (modules.xray) {
       try {
         handleXrayHook(payload, rootDataDir);
+      } catch {
+      }
+    }
+    if (modules.radar) {
+      try {
+        handleRadarHook(payload, rootDataDir);
       } catch {
       }
     }
@@ -2532,7 +3510,7 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
 }
 function readStdinText() {
   try {
-    return import_node_fs9.default.readFileSync(0, "utf8");
+    return import_node_fs12.default.readFileSync(0, "utf8");
   } catch {
     return "";
   }

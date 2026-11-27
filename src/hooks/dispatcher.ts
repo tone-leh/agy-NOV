@@ -8,8 +8,10 @@ import type { HookEventName, NormalizedHookPayload } from '../core/types.js';
 import { normalizeHookEvent, normalizeHookPayload, parseCliFlag } from '../core/utils.js';
 import { handleGuardPreToolHook } from '../modules/guard/hook.js';
 import { handleMemSessionStartHook, handleMemStopHook } from '../modules/mem/hook.js';
+import { handleRadarHook } from '../modules/radar/hook.js';
 import { handleRemotePreToolHook, handleRemoteStopHook } from '../modules/remote/hook.js';
 import { handleReviewHook } from '../modules/review/hook.js';
+import { handleTurboSessionStartHook } from '../modules/turbo/hook.js';
 import { handleXrayHook } from '../modules/xray/hook.js';
 
 export interface UnifiedHookResult {
@@ -25,31 +27,56 @@ export async function dispatchNovHook(
 ): Promise<UnifiedHookResult> {
   const payload: NormalizedHookPayload = normalizeHookPayload(rawInput, fallbackEvent);
   const rootDataDir = resolveNovDataDir(sanitizeDataDirCandidate(cliDataDir) ?? payload.pluginData);
-  // Pure read-only check so disabled modules cause zero disk writes and zero network calls.
+  // Pure read-only O(1) check so disabled modules cause zero disk writes and zero network/CDP calls.
   const config = loadNovConfigReadOnly(rootDataDir);
   const { modules } = config;
 
   if (payload.event === 'SessionStart') {
-    if (!modules.mem) return {};
-    try {
-      const memOut = handleMemSessionStartHook(payload, rootDataDir);
-      if (memOut && Array.isArray(memOut.injectSteps) && memOut.injectSteps.length > 0) {
-        return { injectSteps: memOut.injectSteps };
+    if (!modules.mem && !modules.turbo) return {};
+    const injectSteps: unknown[] = [];
+
+    if (modules.turbo) {
+      try {
+        const turboOut = handleTurboSessionStartHook(payload, rootDataDir);
+        if (turboOut && Array.isArray(turboOut.injectSteps) && turboOut.injectSteps.length > 0) {
+          injectSteps.push(...turboOut.injectSteps);
+        }
+      } catch {
+        // fail-open
       }
-    } catch {
-      // fail-open
     }
-    return {};
+
+    if (modules.mem) {
+      try {
+        const memOut = handleMemSessionStartHook(payload, rootDataDir);
+        if (memOut && Array.isArray(memOut.injectSteps) && memOut.injectSteps.length > 0) {
+          injectSteps.push(...memOut.injectSteps);
+        }
+      } catch {
+        // fail-open
+      }
+    }
+
+    return injectSteps.length > 0 ? { injectSteps } : {};
   }
 
   if (payload.event === 'PreToolUse') {
-    if (!modules.guard && !modules.remote) {
+    if (!modules.guard && !modules.remote && !modules.radar) {
       return {};
+    }
+
+    if (modules.radar) {
+      try {
+        handleRadarHook(payload, rootDataDir);
+      } catch {
+        // isolate observer error
+      }
     }
 
     let finalDecision: 'allow' | 'ask' | 'deny' | undefined;
     const reasons: string[] = [];
 
+    // Guard always takes strict precedence over remote
     if (modules.guard) {
       try {
         const guardRes = handleGuardPreToolHook(payload, rootDataDir);
@@ -108,6 +135,13 @@ export async function dispatchNovHook(
         // isolate module error
       }
     }
+    if (modules.radar) {
+      try {
+        handleRadarHook(payload, rootDataDir);
+      } catch {
+        // isolate module error
+      }
+    }
     return {};
   }
 
@@ -122,6 +156,13 @@ export async function dispatchNovHook(
     if (modules.xray) {
       try {
         handleXrayHook(payload, rootDataDir);
+      } catch {
+        // isolate
+      }
+    }
+    if (modules.radar) {
+      try {
+        handleRadarHook(payload, rootDataDir);
       } catch {
         // isolate
       }

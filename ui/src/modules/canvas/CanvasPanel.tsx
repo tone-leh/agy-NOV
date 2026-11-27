@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NovBridge } from '../../bridge.js';
+import { useNovI18n } from '../../i18n/index.js';
 import './styles.css';
 
 export interface NovModulePanelProps {
@@ -227,6 +228,9 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
   onNotify,
   incomingEvent,
 }) => {
+  const { dict } = useNovI18n();
+  const c = dict.panels.canvas;
+
   const [boards, setBoards] = useState<CanvasBoardSummary[]>([]);
   const [board, setBoard] = useState<CanvasBoard | null>(null);
   const [viewVersion, setViewVersion] = useState<number>(1);
@@ -239,6 +243,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
   const [draftNote, setDraftNote] = useState('');
   const [compiledPreview, setCompiledPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [resolvingAll, setResolvingAll] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [localToast, setLocalToast] = useState<string | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => bridge.getTheme());
@@ -512,6 +517,30 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
     }
   };
 
+  const handleResolveAll = async () => {
+    if (!board || resolvingAll) return;
+    const openPins = board.annotations.filter((a) => a.status === 'open');
+    if (openPins.length === 0) return;
+    setResolvingAll(true);
+    let lastRes: CanvasPayload | null = null;
+    try {
+      for (const pin of openPins) {
+        lastRes = await bridge.callTool<CanvasPayload>('app_canvas_toggle_annotation', {
+          boardId: board.id,
+          annotationId: pin.id,
+          status: 'resolved',
+        });
+      }
+      notify(c.resolveAll);
+    } catch (err) {
+      notify(`Failed to resolve pins: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      if (lastRes?.board) setBoard(lastRes.board);
+      if (Array.isArray(lastRes?.boards)) setBoards(lastRes.boards);
+      setResolvingAll(false);
+    }
+  };
+
   const handleSendFeedback = async () => {
     if (!board) return;
     try {
@@ -544,17 +573,18 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
       <header className="canvas-hdr">
         <div className="canvas-brand">
           <span className="canvas-logo">CV</span>
-          <span>Visual Canvas</span>
+          <span>{c.title}</span>
           {boards.length > 0 && (
             <select
               className="canvas-select"
-              aria-label="Select canvas board"
+              aria-label={c.title}
+              title={c.publishNew}
               value={board?.id ?? ''}
               onChange={(e) => void handleSelectBoard(e.target.value)}
             >
               {boards.map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.title} (v{b.currentVersion} · {b.openPins} open)
+                  {b.title} (v{b.currentVersion} · {b.openPins})
                 </option>
               ))}
             </select>
@@ -582,14 +612,14 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
             onClick={() => void handleRefresh()}
             disabled={loading}
           >
-            {loading ? 'Loading…' : 'Refresh'}
+            {loading ? dict.common.loading : dict.common.refresh}
           </button>
           <button
             type="button"
             className={`canvas-btn ${annotateMode ? 'is-active' : ''}`}
             onClick={() => setAnnotateMode((v) => !v)}
           >
-            {annotateMode ? 'Annotate: ON' : 'Interact Mode'}
+            {annotateMode ? c.annotations : c.preview}
           </button>
           {(board?.sourceUri || board?.sourcePath) && (
             <button
@@ -601,7 +631,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
                 notify(ok ? 'Opened source file in side pane' : 'Open source available in Side Pane mode');
               }}
             >
-              Open Source
+              {c.openFile}
             </button>
           )}
           <button
@@ -610,7 +640,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
             onClick={() => void handleSendFeedback()}
             disabled={!board}
           >
-            Send Feedback ({openCount})
+            {c.sendFeedback} ({openCount})
           </button>
         </div>
       </header>
@@ -619,9 +649,9 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
 
       {!board || !currentRev ? (
         <div className="canvas-stage-card canvas-empty-card">
-          <strong>{loading ? 'Loading canvas artifacts…' : 'No artifacts published to Visual Canvas yet.'}</strong>
+          <strong>{loading ? dict.common.loading : c.emptyCanvas}</strong>
           <p>
-            Ask Antigravity to call <code>canvas_publish_artifact</code> or <code>canvas_open_file</code>.
+            {c.publishNew}: <code>canvas_publish_artifact</code> / <code>canvas_open_file</code>
           </p>
         </div>
       ) : (
@@ -630,9 +660,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
             <div className="canvas-stage-bar">
               <span>
                 <strong>{board.kind.toUpperCase()}</strong> · v{currentRev.version} ·{' '}
-                {annotateMode
-                  ? 'Click or drag anywhere on the canvas to drop a numbered pin'
-                  : 'Interact mode — click inside preview normally'}
+                {annotateMode ? c.pinPlaceholder : c.preview}
               </span>
               {board.kind === 'slides' && slides.length > 0 && (
                 <div className="canvas-row">
@@ -750,12 +778,26 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
           </div>
 
           <aside className="canvas-sidebar">
-            <strong className="canvas-sidebar-title">Review Pins ({openCount} open)</strong>
+            <div className="canvas-row" style={{ justifyContent: 'space-between' }}>
+              <strong className="canvas-sidebar-title">
+                {c.annotations} ({openCount})
+              </strong>
+              {openCount > 0 && (
+                <button
+                  type="button"
+                  className="canvas-btn is-compact"
+                  disabled={resolvingAll}
+                  onClick={() => void handleResolveAll()}
+                >
+                  {resolvingAll ? dict.common.loading : c.resolveAll}
+                </button>
+              )}
+            </div>
 
             {draftBox && (
               <form className="canvas-pin-card is-active" onSubmit={(e) => void handleSavePin(e)}>
                 <div className="canvas-row" style={{ justifyContent: 'space-between' }}>
-                  <strong>New Pin</strong>
+                  <strong>{c.annotations}</strong>
                   <span className="canvas-badge">
                     x:{draftBox.xPct}% y:{draftBox.yPct}%
                   </span>
@@ -774,25 +816,23 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
                   className="canvas-textarea"
                   rows={2}
                   autoFocus
-                  placeholder="Describe the exact change needed here..."
+                  placeholder={c.pinPlaceholder}
                   value={draftNote}
                   onChange={(e) => setDraftNote(e.target.value)}
                 />
                 <div className="canvas-row">
                   <button type="submit" className="canvas-btn is-send" style={{ flex: 1 }}>
-                    Save Pin
+                    {dict.common.save}
                   </button>
                   <button type="button" className="canvas-btn" onClick={() => setDraftBox(null)}>
-                    Cancel
+                    {dict.common.clear}
                   </button>
                 </div>
               </form>
             )}
 
             {board.annotations.length === 0 ? (
-              <div className="canvas-muted">
-                Click or drag a rectangle anywhere on the preview to drop your first numbered review pin.
-              </div>
+              <div className="canvas-muted">{c.pinPlaceholder}</div>
             ) : (
               board.annotations.map((pin) => (
                 <div
@@ -825,7 +865,8 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
                       <button
                         type="button"
                         className="canvas-btn is-compact"
-                        aria-label={`Delete pin #${pin.number}`}
+                        title={dict.common.delete}
+                        aria-label={`${dict.common.delete} #${pin.number}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           void handleDeletePin(pin.id);

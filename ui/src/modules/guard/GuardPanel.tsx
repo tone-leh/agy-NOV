@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { NovBridge } from '../../bridge.js';
+import { useNovI18n } from '../../i18n/index.js';
 import type {
   GuardDashboardState,
   GuardDecision,
@@ -71,6 +72,9 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
   onNotify,
   incomingEvent,
 }) => {
+  const { dict } = useNovI18n();
+  const g = dict.panels.guard;
+
   const loadedOnceRef = useRef(false);
   const lastEventRef = useRef<typeof incomingEvent>(null);
   const toastTimerRef = useRef<number | null>(null);
@@ -336,14 +340,14 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
         <div className="gd-loading-shell">
           {loadError ? (
             <div className="gd-error-box">
-              <div className="gd-error-title">Unable to load Agy Guard</div>
+              <div className="gd-error-title">{g.title}</div>
               <div className="gd-muted">{loadError}</div>
               <button type="button" className="gd-btn gd-btn-primary" onClick={() => void loadState(true)}>
-                Retry
+                {dict.retry}
               </button>
             </div>
           ) : (
-            <div className="gd-muted">{loading ? 'Loading Agy Guard…' : 'Initializing Agy Guard…'}</div>
+            <div className="gd-muted">{dict.common.loading}</div>
           )}
         </div>
       </div>
@@ -358,16 +362,16 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
         <div className="gd-brand">
           <div className="gd-shield-badge">G</div>
           <div className="gd-brand-text">
-            <div className="gd-brand-title">Agy Guard</div>
-            <div className="gd-brand-sub">Local Security Guardrail &amp; Pre-Edit Snapshot Time Machine</div>
+            <div className="gd-brand-title">{g.title}</div>
+            <div className="gd-brand-sub">{dict.modules.guard.tagline}</div>
           </div>
         </div>
         <div className="gd-topbar-right">
           <span className={`gd-pill ${state.policy.enabled ? 'gd-pill-success' : 'gd-pill-danger'}`}>
-            {state.policy.enabled ? '● Shield Active' : '○ Shield Paused'}
+            {state.policy.enabled ? `● ${dict.statusActive}` : `○ ${dict.common.disabled}`}
           </span>
           <span className="gd-pill gd-pill-accent">
-            {state.mode === 'demo' ? 'DEMO MODE' : 'LIVE WORKSPACE'}
+            {state.mode === 'demo' ? dict.demoFixture : dict.badgeOffline}
           </span>
           <button
             type="button"
@@ -375,31 +379,31 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
             disabled={loading || busy}
             onClick={() => void loadState(true)}
           >
-            {loading ? 'Refreshing…' : 'Refresh'}
+            {loading ? dict.common.loading : dict.common.refresh}
           </button>
         </div>
       </header>
 
       <section className="gd-stats-strip">
         <div className="gd-stat-card">
-          <div className="gd-stat-label">Time Machine Snapshots</div>
+          <div className="gd-stat-label">{g.tabSnapshots}</div>
           <div className="gd-stat-val gd-val-success">{state.stats.totalSnapshots}</div>
         </div>
         <div className="gd-stat-card">
-          <div className="gd-stat-label">Threats Blocked</div>
+          <div className="gd-stat-label">{g.blocked}</div>
           <div className="gd-stat-val gd-val-danger">{state.stats.blockedCount}</div>
         </div>
         <div className="gd-stat-card">
-          <div className="gd-stat-label">Secret Leaks Caught</div>
+          <div className="gd-stat-label">{g.tabScanner}</div>
           <div className="gd-stat-val gd-val-warn">{state.stats.secretCatches}</div>
         </div>
         <div className="gd-stat-card">
-          <div className="gd-stat-label">Files Restored</div>
+          <div className="gd-stat-label">{g.restore}</div>
           <div className="gd-stat-val gd-val-accent">{state.stats.restoredCount}</div>
         </div>
       </section>
 
-      <nav className="gd-tabs" role="tablist" aria-label="Guard sections">
+      <nav className="gd-tabs" role="tablist" aria-label={g.title}>
         <button
           type="button"
           role="tab"
@@ -407,7 +411,7 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
           className={`gd-tab-btn ${tab === 'snapshots' ? 'is-active' : ''}`}
           onClick={() => setTab('snapshots')}
         >
-          Time Machine ({state.snapshots.length})
+          {g.tabSnapshots} ({state.snapshots.length})
         </button>
         <button
           type="button"
@@ -416,7 +420,7 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
           className={`gd-tab-btn ${tab === 'audit' ? 'is-active' : ''}`}
           onClick={() => setTab('audit')}
         >
-          Security Audit ({state.auditLog.length})
+          {g.tabAudit} ({state.auditLog.length})
         </button>
         <button
           type="button"
@@ -425,7 +429,7 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
           className={`gd-tab-btn ${tab === 'policy' ? 'is-active' : ''}`}
           onClick={() => setTab('policy')}
         >
-          Guard Policy
+          {g.tabPolicy}
         </button>
         <button
           type="button"
@@ -434,7 +438,7 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
           className={`gd-tab-btn ${tab === 'scanner' ? 'is-active' : ''}`}
           onClick={() => setTab('scanner')}
         >
-          Secret Scanner
+          {g.tabScanner}
         </button>
       </nav>
 
@@ -443,15 +447,12 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
           <div className="gd-split-grid">
             <div className="gd-card gd-snap-list-card">
               <div className="gd-card-header">
-                <span>Pre-Edit Checkpoints</span>
-                <span className="gd-header-meta">{state.stats.trackedFiles} files</span>
+                <span>{g.createCheckpoint}</span>
+                <span className="gd-header-meta">{state.stats.trackedFiles}</span>
               </div>
               <div className="gd-list-scroll">
                 {state.snapshots.length === 0 ? (
-                  <div className="gd-empty-box">
-                    No snapshots yet. Every file edit is automatically snapshotted before mutation — zero Git
-                    pollution.
-                  </div>
+                  <div className="gd-empty-box">{g.noSnapshots}</div>
                 ) : (
                   state.snapshots.map((snap) => (
                     <button
@@ -478,11 +479,11 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
               <div className="gd-card-header gd-diff-header">
                 <div className="gd-diff-title-group">
                   <span className="gd-mono gd-diff-file">
-                    {selectedSnap ? selectedSnap.relPath : 'Select a snapshot'}
+                    {selectedSnap ? selectedSnap.relPath : g.tabSnapshots}
                   </span>
                   {diff && (
                     <span className="gd-header-meta">
-                      {diff.identical ? 'Identical to current file' : `+${diff.added} / -${diff.removed} vs snapshot`}
+                      {diff.identical ? g.safe : `+${diff.added} / -${diff.removed}`}
                     </span>
                   )}
                 </div>
@@ -493,7 +494,7 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
                       className="gd-btn"
                       onClick={() => void handleOpenFile(selectedSnap.filePath)}
                     >
-                      Open File
+                      {dict.panels.canvas.openFile}
                     </button>
                     <button
                       type="button"
@@ -501,14 +502,14 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
                       disabled={busy || diff?.identical}
                       onClick={() => void handleRestore(selectedSnap.id)}
                     >
-                      {diff?.identical ? 'Up to Date' : 'Restore Snapshot'}
+                      {diff?.identical ? g.safe : g.restore}
                     </button>
                   </div>
                 )}
               </div>
               <div className="gd-diff-box">
                 {!diff ? (
-                  <div className="gd-empty-box">Select a checkpoint to inspect diff.</div>
+                  <div className="gd-empty-box">{dict.common.empty}</div>
                 ) : (
                   diff.hunks.map((line, idx) => (
                     <div key={idx} className={`gd-diff-line gd-diff-${line.type}`}>
@@ -529,7 +530,7 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
         {tab === 'audit' && (
           <div className="gd-stack">
             <div className="gd-sim-bar">
-              <strong className="gd-sim-title">Dry-Run Threat Simulator:</strong>
+              <strong className="gd-sim-title">{g.tabAudit}:</strong>
               <button
                 type="button"
                 className="gd-btn gd-btn-danger"
@@ -574,12 +575,12 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
 
             <div className="gd-card">
               <div className="gd-card-header">
-                <span>Deterministic PreToolUse &amp; Snapshot Audit Stream</span>
-                <span className="gd-header-meta">Last {state.auditLog.length} events</span>
+                <span>{g.tabAudit}</span>
+                <span className="gd-header-meta">{state.auditLog.length}</span>
               </div>
               <div className="gd-audit-list">
                 {state.auditLog.length === 0 ? (
-                  <div className="gd-empty-box">No security audit events recorded yet.</div>
+                  <div className="gd-empty-box">{dict.common.empty}</div>
                 ) : (
                   state.auditLog.map((evt) => {
                     const pillClass =
@@ -590,10 +591,20 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
                           : evt.decision === 'restored'
                             ? 'gd-pill-accent'
                             : 'gd-pill-success';
+                    const decisionLabel =
+                      evt.decision === 'deny'
+                        ? g.blocked
+                        : evt.decision === 'ask'
+                          ? g.ask
+                          : evt.decision === 'restored'
+                            ? g.restore
+                            : evt.decision === 'allow'
+                              ? g.safe
+                              : evt.decision.toUpperCase();
                     return (
                       <div key={evt.id} className="gd-audit-row">
                         <span className={`gd-pill gd-pill-center ${pillClass}`}>
-                          {evt.decision.toUpperCase()}
+                          {decisionLabel}
                         </span>
                         <span className="gd-mono gd-audit-tool">{evt.toolName}</span>
                         <div className="gd-audit-body">
@@ -615,9 +626,9 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
         {tab === 'policy' && (
           <div className="gd-policy-grid">
             <div className="gd-policy-card">
-              <div className="gd-policy-title">Master Guardrail Switch</div>
+              <div className="gd-policy-title">{g.rules}</div>
               <div className="gd-policy-desc">
-                Deterministic PreToolUse evaluation runs locally in &lt;5ms with zero cloud calls.
+                {dict.modules.guard.description}
               </div>
               <button
                 type="button"
@@ -625,7 +636,7 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
                 disabled={busy}
                 onClick={() => void handleUpdatePolicy({ enabled: !state.policy.enabled })}
               >
-                {state.policy.enabled ? 'Enabled — Click to Pause' : 'Paused — Click to Enable'}
+                {state.policy.enabled ? `● ${dict.common.enabled}` : `○ ${dict.common.disabled}`}
               </button>
             </div>
 
@@ -663,15 +674,15 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
                   aria-label={title}
                   onChange={(e) => void handleUpdatePolicy({ [field]: e.target.value as GuardDecision })}
                 >
-                  <option value="deny">DENY (Hard Block)</option>
-                  <option value="ask">ASK (Require Approval)</option>
-                  <option value="allow">ALLOW (Log Only)</option>
+                  <option value="deny">DENY — {g.blocked}</option>
+                  <option value="ask">ASK — {g.ask}</option>
+                  <option value="allow">ALLOW — {g.safe}</option>
                 </select>
               </div>
             ))}
 
             <div className="gd-policy-card">
-              <div className="gd-policy-title">Auto Pre-Edit Snapshot Time Machine</div>
+              <div className="gd-policy-title">{g.createCheckpoint}</div>
               <div className="gd-policy-desc">
                 SHA-256 deduplicated file backup before every mutating edit — zero Git stash/log pollution.
               </div>
@@ -685,7 +696,9 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
                   })
                 }
               >
-                {state.policy.autoSnapshotBeforeEdit ? 'Auto-Snapshot ON' : 'Auto-Snapshot OFF'}
+                {state.policy.autoSnapshotBeforeEdit
+                  ? `${g.tabSnapshots}: ${dict.common.enabled}`
+                  : `${g.tabSnapshots}: ${dict.common.disabled}`}
               </button>
             </div>
 
@@ -711,7 +724,7 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
                   })
                 }
               >
-                Save Path Rules
+                {dict.common.save} ({g.rules})
               </button>
             </div>
 
@@ -737,7 +750,7 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
                   })
                 }
               >
-                Save Command Rules
+                {dict.common.save} ({g.rules})
               </button>
             </div>
           </div>
@@ -746,22 +759,20 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
         {tab === 'scanner' && (
           <div className="gd-card">
             <div className="gd-card-header">
-              <span>Read-Only Workspace Secret Scanner (Masked Output Only)</span>
+              <span>{g.tabScanner}</span>
               <button
                 type="button"
                 className="gd-btn gd-btn-primary"
                 disabled={busy}
                 onClick={() => void handleScanWorkspace()}
               >
-                {busy ? 'Scanning…' : 'Run Secret Scan'}
+                {busy ? dict.common.loading : g.scanWorkspace}
               </button>
             </div>
             <div className="gd-scanner-body">
               {!state.lastScan ? (
                 <div className="gd-muted">
-                  Click <strong>Run Secret Scan</strong> to audit workspace source files for accidentally hardcoded API
-                  keys, JWTs, or private keys. Protected files like <code className="gd-mono">.env</code> are never
-                  opened.
+                  <strong>{g.scanWorkspace}</strong> — {dict.modules.guard.tagline}
                 </div>
               ) : (
                 <div>
@@ -773,13 +784,11 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
                         state.lastScan.findings.length === 0 ? 'gd-val-success' : 'gd-val-danger'
                       }
                     >
-                      {state.lastScan.findings.length} finding(s)
+                      {state.lastScan.findings.length}
                     </strong>
                   </div>
                   {state.lastScan.findings.length === 0 ? (
-                    <div className="gd-pill gd-pill-success">
-                      Clean — No hardcoded secrets detected in scanned source files.
-                    </div>
+                    <div className="gd-pill gd-pill-success">{g.safe}</div>
                   ) : (
                     state.lastScan.findings.map((item, i) => (
                       <div key={`${item.relPath}-${item.finding.line}-${i}`} className="gd-audit-row">
@@ -802,7 +811,7 @@ export const GuardPanel: React.FC<NovModulePanelProps> = ({
                           className="gd-btn"
                           onClick={() => void handleOpenFile(item.filePath)}
                         >
-                          Open
+                          {dict.panels.canvas.openFile}
                         </button>
                       </div>
                     ))

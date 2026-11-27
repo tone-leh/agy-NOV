@@ -4,7 +4,8 @@ import {
   applyHostStyleVariables,
 } from '@modelcontextprotocol/ext-apps';
 import { z } from 'zod';
-import type { ModuleId, NovConfig, PresetId } from '../../src/core/catalog.js';
+import type { ModuleId, NovConfig, NovLocale, PresetId } from '../../src/core/catalog.js';
+import type { ModuleRuntimeState } from '../../src/core/types.js';
 
 declare global {
   interface Window {
@@ -27,8 +28,10 @@ export interface ToolResultEvent {
 export interface NovConfigSnapshot {
   config: NovConfig;
   enabledCount: number;
+  totalModules: number;
   exposedModelTools: number;
   remoteRunning: boolean;
+  moduleRuntimes?: Partial<Record<ModuleId, ModuleRuntimeState>>;
   demoMode: boolean;
   workspaceRoot: string;
 }
@@ -40,7 +43,9 @@ const ToggleAuxPaneResultSchema = z
   .passthrough();
 
 type ThemeListener = (theme: 'dark' | 'light') => void;
+type LocaleHintListener = (localeHint: string) => void;
 type ToolResultListener = (evt: ToolResultEvent) => void;
+type ConfigChangeListener = (snapshot: NovConfigSnapshot) => void;
 
 export class NovBridge {
   private app: McpApp | null = null;
@@ -53,8 +58,12 @@ export class NovBridge {
     isWorkbench: false,
   };
   private themeListeners = new Set<ThemeListener>();
+  private localeListeners = new Set<LocaleHintListener>();
   private toolResultListeners = new Set<ToolResultListener>();
+  private configListeners = new Set<ConfigChangeListener>();
   private currentTheme: 'dark' | 'light' = 'dark';
+  private hostLocaleHint: string =
+    typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en';
 
   constructor() {
     this.isWorkbenchMode = Boolean(
@@ -68,11 +77,15 @@ export class NovBridge {
   private async init(): Promise<void> {
     if (typeof window === 'undefined') return;
 
-    // Listen for workbench theme toggle postMessages
+    // Listen for workbench theme & locale toggle postMessages
     window.addEventListener('message', (event) => {
       const data = event.data as Record<string, unknown> | null;
-      if (data && data.type === 'nov-workbench-theme' && (data.theme === 'dark' || data.theme === 'light')) {
+      if (!data) return;
+      if (data.type === 'nov-workbench-theme' && (data.theme === 'dark' || data.theme === 'light')) {
         this.applyTheme(data.theme);
+      }
+      if (data.type === 'nov-workbench-locale' && typeof data.locale === 'string') {
+        this.applyHostLocaleHint(data.locale);
       }
     });
 
@@ -88,7 +101,7 @@ export class NovBridge {
       return;
     }
 
-    const app = new McpApp({ name: 'agy-NOV', version: '0.1.0' }, {});
+    const app = new McpApp({ name: 'agy-NOV', version: '0.2.0' }, {});
     this.app = app;
 
     app.ontoolresult = (result) => {
@@ -116,6 +129,10 @@ export class NovBridge {
       if (ctx?.styles?.variables) {
         applyHostStyleVariables(ctx.styles.variables);
       }
+      const rawLocale = (ctx as { locale?: unknown } | undefined)?.locale;
+      if (typeof rawLocale === 'string' && rawLocale.trim()) {
+        this.applyHostLocaleHint(rawLocale.trim());
+      }
     };
 
     try {
@@ -128,6 +145,10 @@ export class NovBridge {
       }
       if (ctx?.styles?.variables) {
         applyHostStyleVariables(ctx.styles.variables);
+      }
+      const rawLocale = (ctx as { locale?: unknown } | undefined)?.locale;
+      if (typeof rawLocale === 'string' && rawLocale.trim()) {
+        this.applyHostLocaleHint(rawLocale.trim());
       }
       const caps = app.getHostCapabilities() as Record<string, unknown> | undefined;
       this.capabilities = {
@@ -146,6 +167,17 @@ export class NovBridge {
         isWorkbench: true,
       };
       this.applyTheme('dark');
+    }
+  }
+
+  private applyHostLocaleHint(localeHint: string): void {
+    this.hostLocaleHint = localeHint;
+    for (const listener of this.localeListeners) {
+      try {
+        listener(localeHint);
+      } catch {
+        // isolate listener error
+      }
     }
   }
 
@@ -180,14 +212,38 @@ export class NovBridge {
     return this.currentTheme;
   }
 
+  getHostLocaleHint(): string {
+    return this.hostLocaleHint;
+  }
+
   onThemeChange(listener: ThemeListener): () => void {
     this.themeListeners.add(listener);
     return () => this.themeListeners.delete(listener);
   }
 
+  onHostLocaleChange(listener: LocaleHintListener): () => void {
+    this.localeListeners.add(listener);
+    return () => this.localeListeners.delete(listener);
+  }
+
   onToolResult(listener: ToolResultListener): () => void {
     this.toolResultListeners.add(listener);
     return () => this.toolResultListeners.delete(listener);
+  }
+
+  onConfigChange(listener: ConfigChangeListener): () => void {
+    this.configListeners.add(listener);
+    return () => this.configListeners.delete(listener);
+  }
+
+  private emitConfigChange(snapshot: NovConfigSnapshot): void {
+    for (const listener of this.configListeners) {
+      try {
+        listener(snapshot);
+      } catch {
+        // isolate subscriber errors
+      }
+    }
   }
 
   async callTool<T = Record<string, unknown>>(
@@ -232,7 +288,6 @@ export class NovBridge {
     if (res?.structuredContent && typeof res.structuredContent === 'object') {
       return res.structuredContent as T;
     }
-    // Fallback parse JSON text if server returned text content
     const textItem = Array.isArray(res?.content)
       ? (res.content.find((c) => c && typeof c === 'object' && 'text' in c) as { text?: string } | undefined)
       : undefined;
@@ -369,12 +424,22 @@ export class NovBridge {
     return this.callTool<NovConfigSnapshot>('nov_app_get_config', {});
   }
 
-  setModule(module: ModuleId, enabled: boolean): Promise<NovConfigSnapshot> {
-    return this.callTool<NovConfigSnapshot>('nov_app_set_module', { module, enabled });
+  async setModule(module: ModuleId, enabled: boolean): Promise<NovConfigSnapshot> {
+    const next = await this.callTool<NovConfigSnapshot>('nov_app_set_module', { module, enabled });
+    this.emitConfigChange(next);
+    return next;
   }
 
-  applyPreset(preset: PresetId): Promise<NovConfigSnapshot> {
-    return this.callTool<NovConfigSnapshot>('nov_app_apply_preset', { preset });
+  async applyPreset(preset: PresetId): Promise<NovConfigSnapshot> {
+    const next = await this.callTool<NovConfigSnapshot>('nov_app_apply_preset', { preset });
+    this.emitConfigChange(next);
+    return next;
+  }
+
+  async setLocale(locale: NovLocale): Promise<NovConfigSnapshot> {
+    const next = await this.callTool<NovConfigSnapshot>('nov_app_set_locale', { locale });
+    this.emitConfigChange(next);
+    return next;
   }
 }
 

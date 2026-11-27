@@ -1,0 +1,342 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="1200" height="420" fill="none">
+  <defs>
+    <!-- Canvas background -->
+    <linearGradient id="ad-bg" x1="0" y1="0" x2="1200" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#070b14"/>
+      <stop offset="55%" stop-color="#0b1222"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <!-- Brand & tier gradients -->
+    <linearGradient id="ad-brand" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="52%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="ad-tier1-border" x1="282" y1="62" x2="1172" y2="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.72"/>
+      <stop offset="50%" stop-color="#2dd4bf" stop-opacity="0.72"/>
+      <stop offset="100%" stop-color="#34d399" stop-opacity="0.78"/>
+    </linearGradient>
+    <linearGradient id="ad-tier2-border" x1="282" y1="294" x2="1172" y2="398" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.78"/>
+      <stop offset="50%" stop-color="#fbbf24" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.78"/>
+    </linearGradient>
+    <linearGradient id="ad-logo-bg" x1="14" y1="14" x2="114" y2="114" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="ad-logo-accent" x1="26" y1="24" x2="104" y2="104" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="52%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+
+    <!-- Ambient glows -->
+    <radialGradient id="ad-glow-cyan" cx="0.24" cy="0.26" r="0.4">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ad-glow-emerald" cx="0.78" cy="0.34" r="0.36">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#34d399" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ad-glow-amber" cx="0.75" cy="0.92" r="0.34">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.09"/>
+      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Main canvas frame -->
+  <rect x="1" y="1" width="1198" height="418" rx="18" fill="url(#ad-bg)" stroke="#1e293b" stroke-width="1.5"/>
+  <rect x="1" y="1" width="1198" height="418" rx="18" fill="url(#ad-glow-cyan)"/>
+  <rect x="1" y="1" width="1198" height="418" rx="18" fill="url(#ad-glow-emerald)"/>
+  <rect x="1" y="1" width="1198" height="418" rx="18" fill="url(#ad-glow-amber)"/>
+  <line x1="40" y1="2" x2="1160" y2="2" stroke="url(#ad-brand)" stroke-width="2" stroke-opacity="0.65"/>
+
+  <!-- Subtle architectural grid -->
+  <g stroke="#94a3b8" stroke-opacity="0.045" stroke-width="1">
+    <line x1="120" y1="12" x2="120" y2="408"/>
+    <line x1="240" y1="12" x2="240" y2="408"/>
+    <line x1="360" y1="12" x2="360" y2="408"/>
+    <line x1="480" y1="12" x2="480" y2="408"/>
+    <line x1="600" y1="12" x2="600" y2="408"/>
+    <line x1="720" y1="12" x2="720" y2="408"/>
+    <line x1="840" y1="12" x2="840" y2="408"/>
+    <line x1="960" y1="12" x2="960" y2="408"/>
+    <line x1="1080" y1="12" x2="1080" y2="408"/>
+    <line x1="12" y1="105" x2="1188" y2="105"/>
+    <line x1="12" y1="210" x2="1188" y2="210"/>
+    <line x1="12" y1="315" x2="1188" y2="315"/>
+  </g>
+
+  <!-- ================= HEADER BAR ================= -->
+  <g>
+    <!-- Mini brand mark -->
+    <g transform="translate(26, 17) scale(0.21875)">
+      <rect x="12" y="12" width="104" height="104" rx="26" fill="url(#ad-logo-bg)" stroke="url(#ad-logo-accent)" stroke-width="4.5"/>
+      <polygon points="64,26 95,44 95,84 64,102 33,84 33,44" stroke="url(#ad-logo-accent)" stroke-width="3.5" fill="#38bdf8" fill-opacity="0.1"/>
+      <path d="M48 80V48L80 80V48" stroke="#f8fafc" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="64" cy="26" r="5" fill="#38bdf8"/>
+      <circle cx="95" cy="44" r="5" fill="#818cf8"/>
+      <circle cx="95" cy="84" r="5" fill="#34d399"/>
+      <circle cx="64" cy="102" r="5" fill="#38bdf8"/>
+      <circle cx="33" cy="84" r="5" fill="#818cf8"/>
+      <circle cx="33" cy="44" r="5" fill="#34d399"/>
+    </g>
+
+    <text x="64" y="37" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="16" font-weight="800" fill="#f8fafc">agy-NOV <tspan fill="#7dd3fc" font-weight="700">v0.2</tspan> <tspan fill="#475569" font-weight="400">—</tspan> <tspan fill="#cbd5e1" font-weight="600">Native Architecture</tspan></text>
+
+    <!-- Core Positioning Pill -->
+    <rect x="378" y="20" width="356" height="24" rx="12" fill="#0d1b30" stroke="#38bdf8" stroke-opacity="0.48" stroke-width="1"/>
+    <text x="556" y="35.5" text-anchor="middle" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="9.8" font-weight="700" fill="#7dd3fc">Zero ASAR · Zero CDP · 100% Official Antigravity Specs</text>
+
+    <!-- Legend Capsule 1: Tier 1 -->
+    <rect x="794" y="20" width="160" height="24" rx="12" fill="#0d1e2b" stroke="#34d399" stroke-opacity="0.48" stroke-width="1"/>
+    <circle cx="810" cy="32" r="3.6" fill="#34d399"/>
+    <text x="820" y="36" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="600" fill="#d1fae5">Tier 1 · Offline Core</text>
+
+    <!-- Legend Capsule 2: Tier 2 -->
+    <rect x="964" y="20" width="208" height="24" rx="12" fill="#1c1614" stroke="#fbbf24" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="4 3"/>
+    <circle cx="980" cy="32" r="3.4" fill="none" stroke="#fbbf24" stroke-width="1.6"/>
+    <text x="990" y="36" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" font-weight="600" fill="#fde68a">Tier 2 · Opt-In Net (OFF)</text>
+  </g>
+
+  <!-- ================= LEFT COLUMN: GOOGLE ANTIGRAVITY 2.0 HOST ================= -->
+  <g>
+    <rect x="28" y="62" width="206" height="336" rx="14" fill="#0d1526" stroke="#1e293b" stroke-width="1.3"/>
+    <line x1="42" y1="63" x2="220" y2="63" stroke="#38bdf8" stroke-opacity="0.4" stroke-width="1.5"/>
+
+    <text x="44" y="85" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="9.5" font-weight="700" letter-spacing="0.8" fill="#64748b">HOST ENVIRONMENT</text>
+    <text x="44" y="109" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="15.5" font-weight="800" fill="#f8fafc">Google Antigravity</text>
+    <text x="44" y="128" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="url(#ad-brand)">2.0 Host Runtime</text>
+
+    <line x1="44" y1="141" x2="218" y2="141" stroke="#1e293b" stroke-width="1"/>
+
+    <!-- Host Surface 1: Desktop -->
+    <rect x="44" y="152" width="174" height="36" rx="9" fill="#111d33" stroke="#1e3a5f" stroke-width="1"/>
+    <circle cx="60" cy="170" r="3.8" fill="#38bdf8"/>
+    <text x="72" y="174" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#f1f5f9">Desktop</text>
+    <text x="206" y="173.5" text-anchor="end" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="9.5" fill="#7dd3fc">App</text>
+
+    <!-- Host Surface 2: CLI -->
+    <rect x="44" y="196" width="174" height="36" rx="9" fill="#111d33" stroke="#2e2a5c" stroke-width="1"/>
+    <circle cx="60" cy="214" r="3.8" fill="#818cf8"/>
+    <text x="72" y="218" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#f1f5f9">CLI</text>
+    <text x="206" y="217.5" text-anchor="end" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="9.5" fill="#a5b4fc">Terminal</text>
+
+    <!-- Host Surface 3: IDE -->
+    <rect x="44" y="240" width="174" height="36" rx="9" fill="#111d33" stroke="#164e3e" stroke-width="1"/>
+    <circle cx="60" cy="258" r="3.8" fill="#34d399"/>
+    <text x="72" y="262" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#f1f5f9">IDE</text>
+    <text x="206" y="261.5" text-anchor="end" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="9.5" fill="#6ee7b7">Workspace</text>
+
+    <!-- Official Protocol Surface Box -->
+    <rect x="44" y="292" width="174" height="90" rx="10" fill="#09101f" stroke="#1e293b" stroke-width="1"/>
+    <text x="56" y="310" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="9" font-weight="700" letter-spacing="0.6" fill="#64748b">OFFICIAL SURFACES</text>
+    <circle cx="59" cy="328" r="2.4" fill="#38bdf8"/>
+    <text x="68" y="331.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="500" fill="#cbd5e1">STDIO MCP Protocol</text>
+    <circle cx="59" cy="348" r="2.4" fill="#818cf8"/>
+    <text x="68" y="351.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="500" fill="#cbd5e1">Official Lifecycle Hooks</text>
+    <circle cx="59" cy="368" r="2.4" fill="#34d399"/>
+    <text x="68" y="371.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="500" fill="#cbd5e1">Sandboxed MCP App UI</text>
+  </g>
+
+  <!-- ================= HOST -> TIER 1 & TIER 2 CONNECTORS ================= -->
+  <g>
+    <!-- Solid channel 1 -> MCP Server -->
+    <line x1="234" y1="128" x2="275" y2="128" stroke="#38bdf8" stroke-width="1.8"/>
+    <polygon points="274,123.5 282,128 274,132.5" fill="#38bdf8"/>
+
+    <!-- Solid channel 2 -> Hook Dispatcher -->
+    <line x1="234" y1="186" x2="275" y2="186" stroke="#2dd4bf" stroke-width="1.8"/>
+    <polygon points="274,181.5 282,186 274,190.5" fill="#2dd4bf"/>
+
+    <!-- Solid channel 3 -> Single-File 8-Language UI -->
+    <line x1="234" y1="244" x2="275" y2="244" stroke="#34d399" stroke-width="1.8"/>
+    <polygon points="274,239.5 282,244 274,248.5" fill="#34d399"/>
+
+    <!-- Dashed disconnected channel -> Tier 2 -->
+    <line x1="234" y1="346" x2="275" y2="346" stroke="#fbbf24" stroke-opacity="0.72" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <polygon points="274,342 281,346 274,350" fill="#fbbf24" fill-opacity="0.78"/>
+    <rect x="241" y="337" width="30" height="18" rx="9" fill="#1c1614" stroke="#fbbf24" stroke-opacity="0.68" stroke-width="1"/>
+    <text x="256" y="349" text-anchor="middle" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="8.5" font-weight="700" fill="#fcd34d">OFF</text>
+  </g>
+
+  <!-- ================= TIER 1: NATIVE ZERO-TOUCH CORE ================= -->
+  <g>
+    <rect x="282" y="62" width="890" height="218" rx="14" fill="#0b1525" fill-opacity="0.95" stroke="url(#ad-tier1-border)" stroke-width="1.6"/>
+
+    <!-- Tier 1 Header -->
+    <circle cx="300" cy="81" r="4.5" fill="#34d399"/>
+    <text x="313" y="85" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="800" letter-spacing="0.4" fill="#d1fae5">TIER 1 — NATIVE ZERO-TOUCH CORE</text>
+
+    <rect x="816" y="70" width="340" height="22" rx="11" fill="#0a2426" stroke="#34d399" stroke-opacity="0.48" stroke-width="1"/>
+    <text x="986" y="84.5" text-anchor="middle" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="9.5" font-weight="600" fill="#6ee7b7">Zero ASAR · Zero CDP · 100% Offline Native</text>
+
+    <!-- ===== MIDDLE COLUMN: 3 RESIDENT CORE RUNTIME UNITS ===== -->
+    <!-- Unit 1: Resident MCP Server -->
+    <g>
+      <rect x="298" y="102" width="352" height="52" rx="10" fill="#101d32" stroke="#38bdf8" stroke-opacity="0.42" stroke-width="1.1"/>
+      <circle cx="313" cy="120" r="3.5" fill="#38bdf8"/>
+      <text x="324" y="124" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#f8fafc">1× Resident MCP Server</text>
+      <rect x="530" y="110" width="110" height="19" rx="9.5" fill="#0c2640" stroke="#38bdf8" stroke-opacity="0.45" stroke-width="0.9"/>
+      <text x="585" y="123" text-anchor="middle" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="9.5" font-weight="600" fill="#7dd3fc">dist/server.cjs</text>
+      <text x="324" y="143" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="500" fill="#94a3b8">Dynamic <tspan font-family="'SFMono-Regular', Menlo, Consolas, monospace" fill="#cbd5e1">tools/list</tspan> · <tspan fill="#6ee7b7" font-weight="600">0 token tax</tspan> when disabled</text>
+    </g>
+
+    <!-- Unit 2: Unified Hook Dispatcher -->
+    <g>
+      <rect x="298" y="160" width="352" height="52" rx="10" fill="#101d32" stroke="#2dd4bf" stroke-opacity="0.42" stroke-width="1.1"/>
+      <circle cx="313" cy="178" r="3.5" fill="#2dd4bf"/>
+      <text x="324" y="182" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#f8fafc">1× Unified Hook Dispatcher</text>
+      <rect x="542" y="168" width="98" height="19" rx="9.5" fill="#0b282b" stroke="#2dd4bf" stroke-opacity="0.45" stroke-width="0.9"/>
+      <text x="591" y="181" text-anchor="middle" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="9.5" font-weight="600" fill="#5eead4">dist/hook.cjs</text>
+      <text x="324" y="201" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="500" fill="#94a3b8"><tspan font-family="'SFMono-Regular', Menlo, Consolas, monospace" fill="#cbd5e1">O(1)</tspan> read-only config short-circuit per hook event</text>
+    </g>
+
+    <!-- Unit 3: Single-File 8-Language UI -->
+    <g>
+      <rect x="298" y="218" width="352" height="52" rx="10" fill="#101d32" stroke="#34d399" stroke-opacity="0.42" stroke-width="1.1"/>
+      <circle cx="313" cy="236" r="3.5" fill="#34d399"/>
+      <text x="324" y="240" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#f8fafc">1× Single-File 8-Language UI</text>
+      <rect x="506" y="226" width="134" height="19" rx="9.5" fill="#092924" stroke="#34d399" stroke-opacity="0.45" stroke-width="0.9"/>
+      <text x="573" y="239" text-anchor="middle" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="9" font-weight="600" fill="#6ee7b7">ui://agy-nov/app.html</text>
+      <text x="324" y="259" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.3" font-weight="500" fill="#94a3b8">Auto Dark / Light · <tspan fill="#cbd5e1">en/zh/ja/ko/es/fr/de</tspan> · &lt; 10 MiB</text>
+    </g>
+
+    <!-- ===== INTERNAL BUS CONNECTIONS ===== -->
+    <g stroke="#38bdf8" stroke-opacity="0.65" stroke-width="1.5">
+      <line x1="650" y1="128" x2="671" y2="128"/>
+      <line x1="650" y1="186" x2="671" y2="186"/>
+      <line x1="650" y1="244" x2="671" y2="244"/>
+      <line x1="671" y1="128" x2="671" y2="244"/>
+      <line x1="671" y1="156" x2="686" y2="156"/>
+      <line x1="671" y1="244" x2="686" y2="244"/>
+    </g>
+    <polygon points="685,152 692,156 685,160" fill="#38bdf8"/>
+    <polygon points="685,240 692,244 685,248" fill="#34d399"/>
+
+    <!-- ===== RIGHT COLUMN: 8 OFFLINE NATIVE MODULES + STORAGE ===== -->
+    <!-- 8 Offline Modules Matrix Box -->
+    <rect x="692" y="102" width="464" height="110" rx="10" fill="#0d172a" stroke="#1e3a5f" stroke-width="1.1"/>
+    <text x="704" y="118" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="9.5" font-weight="700" letter-spacing="0.6" fill="#7dd3fc">8 OFFLINE NATIVE MODULES</text>
+    <text x="1144" y="118" text-anchor="end" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="9" font-weight="600" fill="#64748b">100% LOCAL · ZERO NETWORK</text>
+
+    <!-- Module Row 1: review, guard, xray (ON), turbo (OPT) -->
+    <rect x="702" y="126" width="105" height="36" rx="8" fill="#102536" stroke="#34d399" stroke-opacity="0.55" stroke-width="1"/>
+    <circle cx="713" cy="139" r="2.8" fill="#34d399"/>
+    <text x="721" y="142.5" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11" font-weight="700" fill="#f8fafc">review</text>
+    <text x="799" y="141.5" text-anchor="end" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="8.2" font-weight="700" fill="#6ee7b7">ON</text>
+    <text x="712" y="156" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#94a3b8">Diff &amp; Pins</text>
+
+    <rect x="815" y="126" width="105" height="36" rx="8" fill="#102536" stroke="#34d399" stroke-opacity="0.55" stroke-width="1"/>
+    <circle cx="826" cy="139" r="2.8" fill="#34d399"/>
+    <text x="834" y="142.5" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11" font-weight="700" fill="#f8fafc">guard</text>
+    <text x="912" y="141.5" text-anchor="end" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="8.2" font-weight="700" fill="#6ee7b7">ON</text>
+    <text x="825" y="156" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#94a3b8">Shield &amp; Snap</text>
+
+    <rect x="928" y="126" width="105" height="36" rx="8" fill="#102536" stroke="#34d399" stroke-opacity="0.55" stroke-width="1"/>
+    <circle cx="939" cy="139" r="2.8" fill="#34d399"/>
+    <text x="947" y="142.5" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11" font-weight="700" fill="#f8fafc">xray</text>
+    <text x="1025" y="141.5" text-anchor="end" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="8.2" font-weight="700" fill="#6ee7b7">ON</text>
+    <text x="938" y="156" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#94a3b8">Tokens &amp; Cache</text>
+
+    <rect x="1041" y="126" width="105" height="36" rx="8" fill="#0f182a" stroke="#243247" stroke-width="1"/>
+    <circle cx="1052" cy="139" r="2.8" fill="#38bdf8" fill-opacity="0.72"/>
+    <text x="1060" y="142.5" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11" font-weight="700" fill="#e2e8f0">turbo</text>
+    <text x="1138" y="141.5" text-anchor="end" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="8.2" font-weight="600" fill="#64748b">OPT</text>
+    <text x="1051" y="156" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#64748b">Batch &amp; Guard</text>
+
+    <!-- Module Row 2: radar, canvas, mem, ops -->
+    <rect x="702" y="168" width="105" height="36" rx="8" fill="#0f182a" stroke="#243247" stroke-width="1"/>
+    <circle cx="713" cy="181" r="2.8" fill="#38bdf8" fill-opacity="0.72"/>
+    <text x="721" y="184.5" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11" font-weight="700" fill="#e2e8f0">radar</text>
+    <text x="799" y="183.5" text-anchor="end" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="8.2" font-weight="600" fill="#64748b">OPT</text>
+    <text x="712" y="198" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#64748b">Sessions</text>
+
+    <rect x="815" y="168" width="105" height="36" rx="8" fill="#0f182a" stroke="#243247" stroke-width="1"/>
+    <circle cx="826" cy="181" r="2.8" fill="#38bdf8" fill-opacity="0.72"/>
+    <text x="834" y="184.5" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11" font-weight="700" fill="#e2e8f0">canvas</text>
+    <text x="912" y="183.5" text-anchor="end" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="8.2" font-weight="600" fill="#64748b">OPT</text>
+    <text x="825" y="198" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#64748b">Visual Sandbox</text>
+
+    <rect x="928" y="168" width="105" height="36" rx="8" fill="#0f182a" stroke="#243247" stroke-width="1"/>
+    <circle cx="939" cy="181" r="2.8" fill="#38bdf8" fill-opacity="0.72"/>
+    <text x="947" y="184.5" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11" font-weight="700" fill="#e2e8f0">mem</text>
+    <text x="1025" y="183.5" text-anchor="end" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="8.2" font-weight="600" fill="#64748b">OPT</text>
+    <text x="938" y="198" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#64748b">Code Memory</text>
+
+    <rect x="1041" y="168" width="105" height="36" rx="8" fill="#0f182a" stroke="#243247" stroke-width="1"/>
+    <circle cx="1052" cy="181" r="2.8" fill="#38bdf8" fill-opacity="0.72"/>
+    <text x="1060" y="184.5" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="11" font-weight="700" fill="#e2e8f0">ops</text>
+    <text x="1138" y="183.5" text-anchor="end" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="8.2" font-weight="600" fill="#64748b">OPT</text>
+    <text x="1051" y="198" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#64748b">Prompts &amp; Ops</text>
+
+    <!-- Isolated Local Storage Box -->
+    <rect x="692" y="218" width="464" height="52" rx="10" fill="#0d1b28" stroke="#34d399" stroke-opacity="0.42" stroke-width="1.1"/>
+    <!-- Lock Icon -->
+    <g transform="translate(706, 232)">
+      <path d="M4 9 V6 C4 3.2 6.2 1 9 1 C11.8 1 14 3.2 14 6 V9" stroke="#34d399" stroke-width="1.6" stroke-linecap="round"/>
+      <rect x="2" y="9" width="14" height="11" rx="2.5" fill="#064e3b" stroke="#34d399" stroke-width="1.4"/>
+      <circle cx="9" cy="14.5" r="1.6" fill="#6ee7b7"/>
+    </g>
+    <text x="732" y="239" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#f8fafc">Isolated Local Storage</text>
+    <rect x="1054" y="226" width="90" height="19" rx="9.5" fill="#064e3b" stroke="#34d399" stroke-opacity="0.5" stroke-width="0.9"/>
+    <text x="1099" y="239" text-anchor="middle" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="9.5" font-weight="700" fill="#6ee7b7">0700 / 0600</text>
+    <text x="732" y="258" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.2" font-weight="500" fill="#94a3b8"><tspan font-family="'SFMono-Regular', Menlo, Consolas, monospace" fill="#cbd5e1">realpath</tspan> workspace guard · zero <tspan font-family="'SFMono-Regular', Menlo, Consolas, monospace" fill="#cbd5e1">~/.gemini</tspan> writes · redacted logs</text>
+  </g>
+
+  <!-- ================= TIER 2: OPT-IN NETWORK BRIDGE (AMBER DASHED ISOLATION ZONE) ================= -->
+  <g>
+    <rect x="282" y="294" width="890" height="104" rx="14" fill="#171316" fill-opacity="0.94" stroke="url(#ad-tier2-border)" stroke-width="1.6" stroke-dasharray="7 5"/>
+
+    <!-- Tier 2 Header -->
+    <circle cx="300" cy="313" r="4.2" fill="none" stroke="#fbbf24" stroke-width="1.8"/>
+    <text x="313" y="317" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" font-weight="800" letter-spacing="0.4" fill="#fde68a">TIER 2 — OPT-IN NETWORK BRIDGE</text>
+
+    <rect x="738" y="302" width="418" height="22" rx="11" fill="#281d12" stroke="#fbbf24" stroke-opacity="0.52" stroke-width="1"/>
+    <text x="947" y="316.5" text-anchor="middle" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="9.1" font-weight="700" fill="#fcd34d">STRICTLY OFF BY DEFAULT · 0 PORTS · 0 POLLING · 0 OUTBOUND CALLS</text>
+
+    <!-- Core Module Card: Mobile & IM Remote -->
+    <g>
+      <rect x="298" y="330" width="340" height="56" rx="10" fill="#1f1816" stroke="#fbbf24" stroke-opacity="0.58" stroke-width="1.15" stroke-dasharray="5 3"/>
+      <circle cx="313" cy="349" r="3.6" fill="none" stroke="#fbbf24" stroke-width="1.7"/>
+      <text x="325" y="353" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#fef3c7">Mobile &amp; IM Remote</text>
+      <rect x="542" y="339" width="84" height="18" rx="9" fill="#2e2212" stroke="#fbbf24" stroke-opacity="0.6" stroke-width="0.9"/>
+      <text x="584" y="351.2" text-anchor="middle" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="8.5" font-weight="700" fill="#fcd34d">OPT-IN · OFF</text>
+      <text x="325" y="373" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.2" font-weight="500" fill="#cbd5e1">Explicit user opt-in only · 4 tools disabled when off</text>
+    </g>
+
+    <!-- Dashed connector arrow -->
+    <line x1="638" y1="358" x2="661" y2="358" stroke="#fbbf24" stroke-opacity="0.72" stroke-width="1.5" stroke-dasharray="3 2.5"/>
+    <polygon points="660,354 667,358 660,362" fill="#fbbf24" fill-opacity="0.8"/>
+
+    <!-- Endpoint 1: Local Mobile PWA -->
+    <g>
+      <rect x="668" y="330" width="174" height="56" rx="10" fill="#1a1516" stroke="#fbbf24" stroke-opacity="0.45" stroke-width="1.05" stroke-dasharray="4 3"/>
+      <circle cx="682" cy="349" r="2.8" fill="#fbbf24" fill-opacity="0.85"/>
+      <text x="692" y="353" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#fde68a">Local PWA</text>
+      <rect x="782" y="339.5" width="48" height="17" rx="8.5" fill="#2a1f12" stroke="#fbbf24" stroke-opacity="0.45" stroke-width="0.85"/>
+      <text x="806" y="351" text-anchor="middle" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="8.2" font-weight="700" fill="#fcd34d">LAN/QR</text>
+      <text x="680" y="373" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="500" fill="#cbd5e1">Phone alerts &amp; approvals</text>
+    </g>
+
+    <!-- Plus connector between parallel channels -->
+    <g stroke="#fbbf24" stroke-opacity="0.7" stroke-width="1.5" stroke-linecap="round">
+      <line x1="848.5" y1="358" x2="855.5" y2="358"/>
+      <line x1="852" y1="354.5" x2="852" y2="361.5"/>
+    </g>
+
+    <!-- Endpoint 2: 6 IM Webhooks -->
+    <g>
+      <rect x="862" y="330" width="294" height="56" rx="10" fill="#1a1516" stroke="#fbbf24" stroke-opacity="0.45" stroke-width="1.05" stroke-dasharray="4 3"/>
+      <circle cx="876" cy="349" r="2.8" fill="#fbbf24" fill-opacity="0.85"/>
+      <text x="886" y="353" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#fde68a">IM Webhook Channels</text>
+      <rect x="1090" y="339.5" width="54" height="17" rx="8.5" fill="#2a1f12" stroke="#fbbf24" stroke-opacity="0.45" stroke-width="0.85"/>
+      <text x="1117" y="351" text-anchor="middle" font-family="'SFMono-Regular', Menlo, Consolas, monospace" font-size="8.2" font-weight="700" fill="#fcd34d">6 APPS</text>
+      <text x="874" y="373" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.8" font-weight="500" fill="#cbd5e1">Telegram · Feishu · DingTalk · WeCom · Slack · Discord</text>
+    </g>
+  </g>
+</svg>

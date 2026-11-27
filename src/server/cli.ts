@@ -5,26 +5,32 @@ import {
   countEnabledModelTools,
   getConfigPath,
   isModuleId,
+  isNovLocale,
   isPresetId,
+  LOCALE_IDS,
   loadNovConfigReadOnly,
   MODULE_CATALOG,
+  MODULE_CATEGORY_IDS,
+  MODULE_CATEGORY_META,
   MODULE_IDS,
   PRESET_DEFINITIONS,
   PRESET_IDS,
   resolveNovDataDir,
   setModuleEnabled,
+  setNovLocale,
 } from '../core/config.js';
 import { parseCliFlag } from '../core/utils.js';
 
 function printHelp(): void {
-  console.log(`agy-NOV CLI (v0.1.0) — Modular Native MCP App Workbench for Antigravity 2.0
+  console.log(`agy-NOV CLI (v0.2.0) — The 100% Native Modular Super-Workbench for Antigravity 2.0
 
 Usage:
-  agy-nov status [--data-dir=<dir>]          Show enabled modules, preset & token footprint
-  agy-nov enable <module> [--data-dir=<dir>] Enable a module (${MODULE_IDS.join(' | ')})
-  agy-nov disable <module> [--data-dir=<dir>] Disable a module
-  agy-nov preset <name> [--data-dir=<dir>]   Apply preset (${PRESET_IDS.join(' | ')})
-  agy-nov doctor [--data-dir=<dir>]          Verify plugin bundle, manifests & config health
+  agy-nov status [--data-dir=<dir>]                 Show enabled modules, preset, UI language & token footprint
+  agy-nov enable <module> [--data-dir=<dir>]        Enable a module (${MODULE_IDS.join(' | ')})
+  agy-nov disable <module> [--data-dir=<dir>]       Disable a module
+  agy-nov preset <name> [--data-dir=<dir>]          Apply preset (${PRESET_IDS.join(' | ')})
+  agy-nov locale <lang> [--data-dir=<dir>]          Set UI language (${LOCALE_IDS.join(' | ')})
+  agy-nov doctor [--data-dir=<dir>]                 Verify plugin bundle, manifests & config health (read-only)
 `);
 }
 
@@ -32,20 +38,27 @@ function printStatus(dataDir: string): void {
   const cfg = loadNovConfigReadOnly(dataDir);
   const enabledCount = MODULE_IDS.filter((id) => cfg.modules[id]).length;
   const modelTools = countEnabledModelTools(cfg.modules);
-  console.log(`agy-NOV Status`);
-  console.log(`  Data Dir:     ${dataDir}`);
-  console.log(`  Config File:  ${getConfigPath(dataDir)} (${fs.existsSync(getConfigPath(dataDir)) ? 'persisted' : 'defaults'})`);
-  console.log(`  Preset:       ${cfg.preset}`);
-  console.log(`  Modules:      ${enabledCount}/${MODULE_IDS.length} enabled (${modelTools} model tools)`);
-  console.log(`  Network:      ${cfg.modules.remote ? 'Remote Hub enabled (opt-in)' : '100% offline'}`);
+  console.log(`agy-NOV v0.2.0 Status`);
+  console.log(`  Architecture:   100% Native MCP Apps & Hooks (Zero ASAR / Zero CDP)`);
+  console.log(`  Data Dir:       ${dataDir}`);
+  console.log(`  Config File:    ${getConfigPath(dataDir)} (${fs.existsSync(getConfigPath(dataDir)) ? 'persisted' : 'defaults'})`);
+  console.log(`  Preset:         ${cfg.preset}`);
+  console.log(`  UI Locale:      ${cfg.locale}`);
+  console.log(`  Modules:        ${enabledCount}/${MODULE_IDS.length} enabled (${modelTools} model tools)`);
+  console.log(`  Network:        ${cfg.modules.remote ? 'Remote Hub enabled (opt-in)' : '100% offline'}`);
   console.log('');
-  for (const id of MODULE_IDS) {
-    const meta = MODULE_CATALOG[id];
-    const flag = cfg.modules[id] ? 'ON ' : 'OFF';
-    const net = meta.networkAccess === 'offline' ? 'offline' : 'opt-in-net';
-    console.log(
-      `  [${flag}] ${id.padEnd(8)} ${meta.name.padEnd(20)} (${meta.modelToolNames.length} tools · ${net})`,
-    );
+
+  for (const catId of MODULE_CATEGORY_IDS) {
+    const cat = MODULE_CATEGORY_META[catId];
+    console.log(`  [${cat.label}]`);
+    for (const id of MODULE_IDS.filter((m) => MODULE_CATALOG[m].category === catId)) {
+      const meta = MODULE_CATALOG[id];
+      const flag = cfg.modules[id] ? 'ON ' : 'OFF';
+      const tier = meta.isolationTier === 'offline' ? 'offline' : 'opt-in-net';
+      console.log(
+        `    [${flag}] ${id.padEnd(8)} ${meta.name.padEnd(24)} (${meta.modelToolNames.length} tools · ${tier})`,
+      );
+    }
   }
 }
 
@@ -64,7 +77,7 @@ function runDoctor(dataDir: string): number {
   ];
 
   let ok = true;
-  console.log('agy-NOV Doctor');
+  console.log('agy-NOV Doctor (v0.2.0 · Zero ASAR / Zero CDP)');
   for (const rel of requiredFiles) {
     const abs = path.join(rootDir, rel);
     const exists = fs.existsSync(abs);
@@ -94,7 +107,7 @@ function runDoctor(dataDir: string): number {
       ok = false;
       console.log(`  FAIL plugin.json contains unknown keys: ${unknown.join(', ')}`);
     } else {
-      console.log(`  OK   plugin.json schema clean (name=${String(manifest.name)})`);
+      console.log(`  OK   plugin.json schema clean (name=${String(manifest.name)}, version=${String(manifest.version)})`);
     }
   }
 
@@ -111,7 +124,9 @@ function runDoctor(dataDir: string): number {
   }
 
   const cfg = loadNovConfigReadOnly(dataDir);
-  console.log(`  OK   config readable (preset=${cfg.preset}, remote=${cfg.modules.remote ? 'ON' : 'OFF'})`);
+  console.log(
+    `  OK   config readable (preset=${cfg.preset}, locale=${cfg.locale}, remote=${cfg.modules.remote ? 'ON' : 'OFF'})`,
+  );
   return ok ? 0 : 1;
 }
 
@@ -154,6 +169,17 @@ function main(): void {
     const def = PRESET_DEFINITIONS[target];
     console.log(`Applied preset "${def.label}" (${next.preset}).`);
     printStatus(dataDir);
+    return;
+  }
+
+  if (cmd === 'locale') {
+    const target = positional[1];
+    if (!isNovLocale(target)) {
+      console.error(`Unknown locale "${target ?? ''}". Valid locales: ${LOCALE_IDS.join(', ')}`);
+      process.exit(2);
+    }
+    const next = setNovLocale(dataDir, target);
+    console.log(`Updated agy-NOV UI locale to "${next.locale}".`);
     return;
   }
 

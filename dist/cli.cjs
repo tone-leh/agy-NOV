@@ -32,27 +32,81 @@ var import_node_os = __toESM(require("node:os"), 1);
 var import_node_path = __toESM(require("node:path"), 1);
 
 // src/core/catalog.ts
-var MODULE_IDS = ["review", "guard", "xray", "canvas", "mem", "remote"];
-var PRESET_IDS = ["core", "local-all", "full", "minimal"];
+var MODULE_IDS = [
+  "review",
+  "guard",
+  "xray",
+  "turbo",
+  "radar",
+  "canvas",
+  "mem",
+  "ops",
+  "remote"
+];
+var MODULE_CATEGORY_IDS = [
+  "core-dev",
+  "safety",
+  "observability",
+  "workspace",
+  "connectivity"
+];
+var PRESET_IDS = ["core", "power", "local-all", "full", "minimal"];
+var UI_LOCALE_IDS = ["en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de"];
+var LOCALE_IDS = ["auto", ...UI_LOCALE_IDS];
+var MODULE_CATEGORY_META = {
+  "core-dev": {
+    id: "core-dev",
+    label: "Code & Speed",
+    description: "PR-grade diff review and token-saving batch codebase tools."
+  },
+  safety: {
+    id: "safety",
+    label: "Safety Shield",
+    description: "Pre-tool secret leak firewall, command guard, and zero-Git edit snapshots."
+  },
+  observability: {
+    id: "observability",
+    label: "Context & Radar",
+    description: "Token/cache X-Ray, cross-session search, and multi-session completion radar."
+  },
+  workspace: {
+    id: "workspace",
+    label: "Canvas, Memory & Ops",
+    description: "Visual annotation canvas, code-anchored memory graph, prompt vault & doctor."
+  },
+  connectivity: {
+    id: "connectivity",
+    label: "Opt-In Remote",
+    description: "Strictly OFF by default: local mobile PWA and IM webhook alerts / approvals."
+  }
+};
 var MODULE_CATALOG = {
   review: {
     id: "review",
+    category: "core-dev",
     name: "Diff Review",
     shortLabel: "Review",
     tagline: "PR-grade inline diff review & line annotations",
     description: "Review working-tree, staged, or commit diffs line by line, drop categorized comments, and send pinpoint file:line fix prompts back to the agent.",
+    isolationTier: "offline",
     networkAccess: "offline",
+    uiMode: "full-height",
+    hasUiTab: true,
     defaultEnabled: true,
     hooks: ["PostToolUse", "Stop"],
     modelToolNames: ["review_open", "review_get_summary"]
   },
   guard: {
     id: "guard",
+    category: "safety",
     name: "Guard & Snapshots",
     shortLabel: "Guard",
     tagline: "Secret leak shield, command firewall & pre-edit snapshots",
     description: "Blocks .env/SSH/credential leaks and destructive commands before execution, snapshots files prior to edits without touching Git, and restores in one click.",
+    isolationTier: "offline",
     networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
     defaultEnabled: true,
     hooks: ["PreToolUse"],
     modelToolNames: [
@@ -64,11 +118,15 @@ var MODULE_CATALOG = {
   },
   xray: {
     id: "xray",
+    category: "observability",
     name: "Context X-Ray",
     shortLabel: "X-Ray",
-    tagline: "Token breakdown, live file tree & cross-session search",
-    description: "Inspect real cached vs. fresh tokens per turn, identify token-heavy tools, open touched workspace files in one click, and search past sessions with EN+CJK BM25.",
+    tagline: "Token & cache breakdown, live file tree & cross-session search",
+    description: "Inspect real cached vs. fresh tokens per turn, diagnose cache misses and token-heavy tools, open touched files in one click, and search past sessions with EN+CJK BM25.",
+    isolationTier: "offline",
     networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
     defaultEnabled: true,
     hooks: ["PostToolUse", "Stop"],
     modelToolNames: [
@@ -78,13 +136,47 @@ var MODULE_CATALOG = {
       "xray_export_brief"
     ]
   },
+  turbo: {
+    id: "turbo",
+    category: "core-dev",
+    name: "Turbo & Output Guard",
+    shortLabel: "Turbo",
+    tagline: "Batch codebase search, outline slices & large-output compression",
+    description: "Cut wasted turns and context bloat with multi-pattern workspace search, symbol outline slicing, and compact indexed summaries for oversized command/log outputs.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: ["SessionStart"],
+    modelToolNames: ["turbo_batch_search", "turbo_read_outline", "turbo_compact_output"]
+  },
+  radar: {
+    id: "radar",
+    category: "observability",
+    name: "Session Radar & Chime",
+    shortLabel: "Radar",
+    tagline: "Multi-session attention board, stall detector & completion alerts",
+    description: "Track parallel conversations across Running, Awaiting Approval, Completed, and Stalled states via lifecycle hooks, with configurable desktop chime notifications.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: ["PreToolUse", "PostToolUse", "Stop"],
+    modelToolNames: ["radar_get_board", "radar_ack_session"]
+  },
   canvas: {
     id: "canvas",
+    category: "workspace",
     name: "Visual Canvas",
     shortLabel: "Canvas",
     tagline: "HTML/SVG/Slides/Markdown visual preview & pin annotations",
     description: "Render web mockups, SVG diagrams, slide decks, Markdown specs, and images in an isolated sandbox, drop numbered visual pins, and send edits back to the agent.",
+    isolationTier: "offline",
     networkAccess: "offline",
+    uiMode: "full-height",
+    hasUiTab: true,
     defaultEnabled: false,
     hooks: [],
     modelToolNames: [
@@ -96,22 +188,45 @@ var MODULE_CATALOG = {
   },
   mem: {
     id: "mem",
+    category: "workspace",
     name: "Memory Graph",
     shortLabel: "Memory",
     tagline: "Code-anchored long-term memory with drift detection",
     description: "Capture architectural decisions anchored to SHA-256 file hashes, auto-recall relevant context at SessionStart, and flag stale memories when code changes.",
+    isolationTier: "offline",
     networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
     defaultEnabled: false,
     hooks: ["SessionStart", "Stop"],
     modelToolNames: ["mem_remember", "mem_recall", "mem_forget"]
   },
+  ops: {
+    id: "ops",
+    category: "workspace",
+    name: "Prompt Vault & Doctor",
+    shortLabel: "Ops",
+    tagline: "Parameterized prompt vault, workspace asset audit & storage hygiene",
+    description: "Manage reusable {{var}} prompt templates, inspect workspace skills/rules/MCP footprint with read-only token estimates, and audit local agy-NOV storage.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: [],
+    modelToolNames: ["ops_list_prompts", "ops_render_prompt", "ops_audit_workspace"]
+  },
   remote: {
     id: "remote",
+    category: "connectivity",
     name: "Mobile & IM Remote",
     shortLabel: "Remote",
     tagline: "Opt-in Mobile PWA & IM remote alerts / risky approvals",
     description: "Strictly OFF by default (zero ports, zero outbound requests). When enabled, pairs your phone PWA or Telegram/Feishu/DingTalk/WeCom/Slack/Discord webhooks for task alerts and approvals.",
+    isolationTier: "opt-in-network",
     networkAccess: "opt-in-network",
+    uiMode: "scroll",
+    hasUiTab: true,
     defaultEnabled: false,
     hooks: ["PreToolUse", "Stop"],
     modelToolNames: [
@@ -122,30 +237,52 @@ var MODULE_CATALOG = {
     ]
   }
 };
+function makeModulesMap(enabled) {
+  const set = new Set(enabled);
+  const out = {};
+  for (const id of MODULE_IDS) {
+    out[id] = set.has(id);
+  }
+  return out;
+}
+var OFFLINE_NATIVE_MODULE_IDS = MODULE_IDS.filter(
+  (id) => MODULE_CATALOG[id].isolationTier === "offline"
+);
 var PRESET_DEFINITIONS = {
   core: {
     id: "core",
     label: "Core (Default)",
-    description: "Review + Guard + X-Ray \u2014 100% offline local essentials with low token footprint.",
-    modules: { review: true, guard: true, xray: true, canvas: false, mem: false, remote: false }
+    description: "Review + Guard + X-Ray \u2014 100% offline local essentials with low token footprint (12 model tools).",
+    enabledModules: ["review", "guard", "xray"],
+    modules: makeModulesMap(["review", "guard", "xray"])
+  },
+  power: {
+    id: "power",
+    label: "Power Dev (6 Offline)",
+    description: "Core + Turbo + Radar + Ops \u2014 daily high-velocity offline suite with zero network usage (20 model tools).",
+    enabledModules: ["review", "guard", "xray", "turbo", "radar", "ops"],
+    modules: makeModulesMap(["review", "guard", "xray", "turbo", "radar", "ops"])
   },
   "local-all": {
     id: "local-all",
-    label: "Local All (5 Offline)",
-    description: "All 5 local modules enabled; Remote stays completely off with zero network activity.",
-    modules: { review: true, guard: true, xray: true, canvas: true, mem: true, remote: false }
+    label: "Local All (8 Offline)",
+    description: "All 8 native offline modules enabled; Remote stays strictly off with zero ports (27 model tools).",
+    enabledModules: ["review", "guard", "xray", "turbo", "radar", "canvas", "mem", "ops"],
+    modules: makeModulesMap(["review", "guard", "xray", "turbo", "radar", "canvas", "mem", "ops"])
   },
   full: {
     id: "full",
-    label: "Full Suite (6 Modules)",
-    description: "All 6 modules including the opt-in Mobile PWA / IM remote approval hub.",
-    modules: { review: true, guard: true, xray: true, canvas: true, mem: true, remote: true }
+    label: "Full Suite (All 9)",
+    description: "All 9 native modules including the opt-in Mobile PWA & IM remote approval hub (31 model tools).",
+    enabledModules: [...MODULE_IDS],
+    modules: makeModulesMap(MODULE_IDS)
   },
   minimal: {
     id: "minimal",
     label: "Minimal Shield",
-    description: "Guard only \u2014 secret shield & pre-edit snapshots with minimum model tool overhead.",
-    modules: { review: false, guard: true, xray: false, canvas: false, mem: false, remote: false }
+    description: "Guard only \u2014 secret shield & pre-edit snapshots with minimum model tool overhead (6 tools).",
+    enabledModules: ["guard"],
+    modules: makeModulesMap(["guard"])
   }
 };
 function isModuleId(value) {
@@ -153,6 +290,9 @@ function isModuleId(value) {
 }
 function isPresetId(value) {
   return typeof value === "string" && PRESET_IDS.includes(value);
+}
+function isNovLocale(value) {
+  return typeof value === "string" && LOCALE_IDS.includes(value);
 }
 function countEnabledModelTools(modules) {
   let count = 2;
@@ -184,6 +324,7 @@ function createDefaultConfig() {
     preset: "core",
     modules: { ...PRESET_DEFINITIONS.core.modules },
     defaultTab: "review",
+    locale: "auto",
     updatedAt: (/* @__PURE__ */ new Date()).toISOString()
   };
 }
@@ -207,13 +348,15 @@ function normalizeConfig(raw) {
       modules[id] = rawMods[id];
     }
   }
-  const enabledList = MODULE_IDS.filter((id) => modules[id]);
-  const defaultTab = isModuleId(obj.defaultTab) && modules[obj.defaultTab] ? obj.defaultTab : enabledList[0] ?? "review";
+  const enabledTabList = MODULE_IDS.filter((id) => modules[id] && MODULE_CATALOG[id].hasUiTab);
+  const defaultTab = isModuleId(obj.defaultTab) && modules[obj.defaultTab] && MODULE_CATALOG[obj.defaultTab].hasUiTab ? obj.defaultTab : enabledTabList[0] ?? "review";
+  const locale = isNovLocale(obj.locale) ? obj.locale : "auto";
   return {
     schemaVersion: 1,
     preset: detectPreset(modules),
     modules,
     defaultTab,
+    locale,
     updatedAt: typeof obj.updatedAt === "string" ? obj.updatedAt : base.updatedAt
   };
 }
@@ -271,7 +414,7 @@ function setModuleEnabled(rootDataDir, moduleId, enabled) {
   return saveNovConfig(rootDataDir, {
     ...current,
     modules: nextModules,
-    defaultTab: enabled ? moduleId : current.defaultTab
+    defaultTab: enabled && MODULE_CATALOG[moduleId].hasUiTab ? moduleId : current.defaultTab
   });
 }
 function applyPresetConfig(rootDataDir, preset) {
@@ -281,7 +424,14 @@ function applyPresetConfig(rootDataDir, preset) {
     ...current,
     preset,
     modules: { ...def.modules },
-    defaultTab: MODULE_IDS.find((id) => def.modules[id]) ?? "review"
+    defaultTab: MODULE_IDS.find((id) => def.modules[id] && MODULE_CATALOG[id].hasUiTab) ?? "review"
+  });
+}
+function setNovLocale(rootDataDir, locale) {
+  const current = loadOrInitNovConfig(rootDataDir);
+  return saveNovConfig(rootDataDir, {
+    ...current,
+    locale
   });
 }
 
@@ -301,34 +451,41 @@ function parseCliFlag(argv, flag) {
 
 // src/server/cli.ts
 function printHelp() {
-  console.log(`agy-NOV CLI (v0.1.0) \u2014 Modular Native MCP App Workbench for Antigravity 2.0
+  console.log(`agy-NOV CLI (v0.2.0) \u2014 The 100% Native Modular Super-Workbench for Antigravity 2.0
 
 Usage:
-  agy-nov status [--data-dir=<dir>]          Show enabled modules, preset & token footprint
-  agy-nov enable <module> [--data-dir=<dir>] Enable a module (${MODULE_IDS.join(" | ")})
-  agy-nov disable <module> [--data-dir=<dir>] Disable a module
-  agy-nov preset <name> [--data-dir=<dir>]   Apply preset (${PRESET_IDS.join(" | ")})
-  agy-nov doctor [--data-dir=<dir>]          Verify plugin bundle, manifests & config health
+  agy-nov status [--data-dir=<dir>]                 Show enabled modules, preset, UI language & token footprint
+  agy-nov enable <module> [--data-dir=<dir>]        Enable a module (${MODULE_IDS.join(" | ")})
+  agy-nov disable <module> [--data-dir=<dir>]       Disable a module
+  agy-nov preset <name> [--data-dir=<dir>]          Apply preset (${PRESET_IDS.join(" | ")})
+  agy-nov locale <lang> [--data-dir=<dir>]          Set UI language (${LOCALE_IDS.join(" | ")})
+  agy-nov doctor [--data-dir=<dir>]                 Verify plugin bundle, manifests & config health (read-only)
 `);
 }
 function printStatus(dataDir) {
   const cfg = loadNovConfigReadOnly(dataDir);
   const enabledCount = MODULE_IDS.filter((id) => cfg.modules[id]).length;
   const modelTools = countEnabledModelTools(cfg.modules);
-  console.log(`agy-NOV Status`);
-  console.log(`  Data Dir:     ${dataDir}`);
-  console.log(`  Config File:  ${getConfigPath(dataDir)} (${import_node_fs2.default.existsSync(getConfigPath(dataDir)) ? "persisted" : "defaults"})`);
-  console.log(`  Preset:       ${cfg.preset}`);
-  console.log(`  Modules:      ${enabledCount}/${MODULE_IDS.length} enabled (${modelTools} model tools)`);
-  console.log(`  Network:      ${cfg.modules.remote ? "Remote Hub enabled (opt-in)" : "100% offline"}`);
+  console.log(`agy-NOV v0.2.0 Status`);
+  console.log(`  Architecture:   100% Native MCP Apps & Hooks (Zero ASAR / Zero CDP)`);
+  console.log(`  Data Dir:       ${dataDir}`);
+  console.log(`  Config File:    ${getConfigPath(dataDir)} (${import_node_fs2.default.existsSync(getConfigPath(dataDir)) ? "persisted" : "defaults"})`);
+  console.log(`  Preset:         ${cfg.preset}`);
+  console.log(`  UI Locale:      ${cfg.locale}`);
+  console.log(`  Modules:        ${enabledCount}/${MODULE_IDS.length} enabled (${modelTools} model tools)`);
+  console.log(`  Network:        ${cfg.modules.remote ? "Remote Hub enabled (opt-in)" : "100% offline"}`);
   console.log("");
-  for (const id of MODULE_IDS) {
-    const meta = MODULE_CATALOG[id];
-    const flag = cfg.modules[id] ? "ON " : "OFF";
-    const net = meta.networkAccess === "offline" ? "offline" : "opt-in-net";
-    console.log(
-      `  [${flag}] ${id.padEnd(8)} ${meta.name.padEnd(20)} (${meta.modelToolNames.length} tools \xB7 ${net})`
-    );
+  for (const catId of MODULE_CATEGORY_IDS) {
+    const cat = MODULE_CATEGORY_META[catId];
+    console.log(`  [${cat.label}]`);
+    for (const id of MODULE_IDS.filter((m) => MODULE_CATALOG[m].category === catId)) {
+      const meta = MODULE_CATALOG[id];
+      const flag = cfg.modules[id] ? "ON " : "OFF";
+      const tier = meta.isolationTier === "offline" ? "offline" : "opt-in-net";
+      console.log(
+        `    [${flag}] ${id.padEnd(8)} ${meta.name.padEnd(24)} (${meta.modelToolNames.length} tools \xB7 ${tier})`
+      );
+    }
   }
 }
 function runDoctor(dataDir) {
@@ -345,7 +502,7 @@ function runDoctor(dataDir) {
     "dist/ui/app.html"
   ];
   let ok = true;
-  console.log("agy-NOV Doctor");
+  console.log("agy-NOV Doctor (v0.2.0 \xB7 Zero ASAR / Zero CDP)");
   for (const rel of requiredFiles) {
     const abs = import_node_path2.default.join(rootDir, rel);
     const exists = import_node_fs2.default.existsSync(abs);
@@ -373,7 +530,7 @@ function runDoctor(dataDir) {
       ok = false;
       console.log(`  FAIL plugin.json contains unknown keys: ${unknown.join(", ")}`);
     } else {
-      console.log(`  OK   plugin.json schema clean (name=${String(manifest.name)})`);
+      console.log(`  OK   plugin.json schema clean (name=${String(manifest.name)}, version=${String(manifest.version)})`);
     }
   }
   const uiPath = import_node_path2.default.join(rootDir, "dist/ui/app.html");
@@ -387,7 +544,9 @@ function runDoctor(dataDir) {
     }
   }
   const cfg = loadNovConfigReadOnly(dataDir);
-  console.log(`  OK   config readable (preset=${cfg.preset}, remote=${cfg.modules.remote ? "ON" : "OFF"})`);
+  console.log(
+    `  OK   config readable (preset=${cfg.preset}, locale=${cfg.locale}, remote=${cfg.modules.remote ? "ON" : "OFF"})`
+  );
   return ok ? 0 : 1;
 }
 function main() {
@@ -425,6 +584,16 @@ function main() {
     const def = PRESET_DEFINITIONS[target];
     console.log(`Applied preset "${def.label}" (${next.preset}).`);
     printStatus(dataDir);
+    return;
+  }
+  if (cmd === "locale") {
+    const target = positional[1];
+    if (!isNovLocale(target)) {
+      console.error(`Unknown locale "${target ?? ""}". Valid locales: ${LOCALE_IDS.join(", ")}`);
+      process.exit(2);
+    }
+    const next = setNovLocale(dataDir, target);
+    console.log(`Updated agy-NOV UI locale to "${next.locale}".`);
     return;
   }
   if (cmd === "doctor") {

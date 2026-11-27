@@ -4,29 +4,51 @@ import path from 'node:path';
 import {
   countEnabledModelTools,
   isModuleId,
+  isNovLocale,
   isPresetId,
+  LOCALE_IDS,
+  LOCALE_NATIVE_LABELS,
   MODULE_CATALOG,
+  MODULE_CATEGORY_IDS,
+  MODULE_CATEGORY_META,
   MODULE_IDS,
+  OFFLINE_NATIVE_MODULE_IDS,
   PRESET_DEFINITIONS,
   PRESET_IDS,
+  UI_LOCALE_IDS,
+  type IsolationTier,
+  type ModuleCategoryId,
   type ModuleId,
   type ModuleMetadata,
   type NovConfig,
+  type NovLocale,
   type PresetId,
+  type ResolvedUiLocale,
 } from './catalog.js';
 
 export {
   countEnabledModelTools,
   isModuleId,
+  isNovLocale,
   isPresetId,
+  LOCALE_IDS,
+  LOCALE_NATIVE_LABELS,
   MODULE_CATALOG,
+  MODULE_CATEGORY_IDS,
+  MODULE_CATEGORY_META,
   MODULE_IDS,
+  OFFLINE_NATIVE_MODULE_IDS,
   PRESET_DEFINITIONS,
   PRESET_IDS,
+  UI_LOCALE_IDS,
+  type IsolationTier,
+  type ModuleCategoryId,
   type ModuleId,
   type ModuleMetadata,
   type NovConfig,
+  type NovLocale,
   type PresetId,
+  type ResolvedUiLocale,
 };
 
 export function sanitizeDataDirCandidate(candidate: string | undefined | null): string | undefined {
@@ -54,12 +76,23 @@ export function getConfigPath(rootDataDir: string): string {
   return path.join(rootDataDir, 'config.json');
 }
 
+export function getConfigFileSignature(rootDataDir: string): string | null {
+  const cfgPath = getConfigPath(rootDataDir);
+  try {
+    const st = fs.statSync(cfgPath);
+    return `${st.ino}:${st.mtimeMs}:${st.size}`;
+  } catch {
+    return null;
+  }
+}
+
 export function createDefaultConfig(): NovConfig {
   return {
     schemaVersion: 1,
     preset: 'core',
     modules: { ...PRESET_DEFINITIONS.core.modules },
     defaultTab: 'review',
+    locale: 'auto',
     updatedAt: new Date().toISOString(),
   };
 }
@@ -86,16 +119,18 @@ export function normalizeConfig(raw: unknown): NovConfig {
       modules[id] = rawMods[id];
     }
   }
-  const enabledList = MODULE_IDS.filter((id) => modules[id]);
+  const enabledTabList = MODULE_IDS.filter((id) => modules[id] && MODULE_CATALOG[id].hasUiTab);
   const defaultTab =
-    isModuleId(obj.defaultTab) && modules[obj.defaultTab]
+    isModuleId(obj.defaultTab) && modules[obj.defaultTab] && MODULE_CATALOG[obj.defaultTab].hasUiTab
       ? obj.defaultTab
-      : enabledList[0] ?? 'review';
+      : enabledTabList[0] ?? 'review';
+  const locale: NovLocale = isNovLocale(obj.locale) ? obj.locale : 'auto';
   return {
     schemaVersion: 1,
     preset: detectPreset(modules),
     modules,
     defaultTab,
+    locale,
     updatedAt: typeof obj.updatedAt === 'string' ? obj.updatedAt : base.updatedAt,
   };
 }
@@ -162,7 +197,7 @@ export function setModuleEnabled(
   return saveNovConfig(rootDataDir, {
     ...current,
     modules: nextModules,
-    defaultTab: enabled ? moduleId : current.defaultTab,
+    defaultTab: enabled && MODULE_CATALOG[moduleId].hasUiTab ? moduleId : current.defaultTab,
   });
 }
 
@@ -173,6 +208,14 @@ export function applyPresetConfig(rootDataDir: string, preset: PresetId): NovCon
     ...current,
     preset,
     modules: { ...def.modules },
-    defaultTab: MODULE_IDS.find((id) => def.modules[id]) ?? 'review',
+    defaultTab: MODULE_IDS.find((id) => def.modules[id] && MODULE_CATALOG[id].hasUiTab) ?? 'review',
+  });
+}
+
+export function setNovLocale(rootDataDir: string, locale: NovLocale): NovConfig {
+  const current = loadOrInitNovConfig(rootDataDir);
+  return saveNovConfig(rootDataDir, {
+    ...current,
+    locale,
   });
 }

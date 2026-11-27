@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NovBridge } from '../../bridge.js';
+import { useNovI18n } from '../../i18n/index.js';
 import './styles.css';
 
 export interface NovModulePanelProps {
@@ -90,6 +91,9 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
   onNotify,
   incomingEvent,
 }) => {
+  const { dict } = useNovI18n();
+  const memDict = dict.panels.mem;
+
   const [tab, setTab] = useState<MemSubTab>('cards');
   const [data, setData] = useState<{
     memories: MemoryItem[];
@@ -371,8 +375,8 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
       <header className="mem-hdr">
         <div className="mem-brand">
           <span className="mem-logo">MG</span>
-          <span>Memory Graph</span>
-          <span className="mem-badge is-purple">Glass-Box Graph</span>
+          <span>{memDict.title}</span>
+          <span className="mem-badge is-purple">{dict.badgeOffline}</span>
         </div>
         <button
           type="button"
@@ -380,38 +384,38 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
           onClick={() => void refresh()}
           disabled={loading}
         >
-          {loading ? 'Refreshing…' : 'Refresh'}
+          {loading ? dict.common.loading : dict.common.refresh}
         </button>
       </header>
 
-      <nav className="mem-tabs" aria-label="Memory Graph sections">
+      <nav className="mem-tabs" aria-label={memDict.title}>
         <button
           type="button"
           className={`mem-tab ${tab === 'cards' ? 'is-active' : ''}`}
           onClick={() => setTab('cards')}
         >
-          Memory Cards ({memories.length})
+          {memDict.tabCards} ({memories.length})
         </button>
         <button
           type="button"
           className={`mem-tab ${tab === 'graph' ? 'is-active' : ''}`}
           onClick={() => setTab('graph')}
         >
-          Knowledge Graph
+          {memDict.tabGraph}
         </button>
         <button
           type="button"
           className={`mem-tab ${tab === 'add' ? 'is-active' : ''}`}
           onClick={() => setTab('add')}
         >
-          + Teach Memory
+          {memDict.tabAdd}
         </button>
         <button
           type="button"
           className={`mem-tab ${tab === 'injection' ? 'is-active' : ''}`}
           onClick={() => setTab('injection')}
         >
-          SessionStart Preview
+          {memDict.tabInjection}
         </button>
       </nav>
 
@@ -422,28 +426,26 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
       )}
 
       {!data ? (
-        <div className="mem-card mem-muted">
-          {loading ? 'Loading local memory graph…' : 'Waiting for memory graph state…'}
-        </div>
+        <div className="mem-card mem-muted">{dict.common.loading}</div>
       ) : (
         <>
           <div className="mem-kpi-grid">
             <div className="mem-card">
-              <div className="mem-kpi-label">Total Memories</div>
+              <div className="mem-kpi-label">{memDict.tabCards}</div>
               <div className="mem-kpi-value">{memories.length}</div>
             </div>
             <div className="mem-card">
-              <div className="mem-kpi-label">Pinned (Auto-Inject)</div>
+              <div className="mem-kpi-label">{memDict.tabInjection}</div>
               <div className="mem-kpi-value is-accent">{pinnedCount}</div>
             </div>
             <div className="mem-card">
-              <div className="mem-kpi-label">Drifted Anchors</div>
+              <div className="mem-kpi-label">{memDict.stale}</div>
               <div className={`mem-kpi-value ${driftedCount ? 'is-warn' : 'is-good'}`}>
                 {driftedCount}
               </div>
             </div>
             <div className="mem-card">
-              <div className="mem-kpi-label">Graph Nodes</div>
+              <div className="mem-kpi-label">{memDict.tabGraph}</div>
               <div className="mem-kpi-value is-purple">{data.graph.nodes.length}</div>
             </div>
           </div>
@@ -453,7 +455,8 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
               <form className="mem-row" onSubmit={(e) => void handleServerSearch(e)}>
                 <input
                   className="mem-input mem-search-input"
-                  placeholder="Search memories, files, tags (EN / 中文) — Enter for BM25…"
+                  placeholder={memDict.searchPlaceholder}
+                  aria-label={memDict.searchPlaceholder}
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);
@@ -465,22 +468,22 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                   className="mem-btn is-primary"
                   disabled={searching || !query.trim()}
                 >
-                  {searching ? 'Searching…' : 'BM25 Search'}
+                  {searching ? dict.common.loading : dict.common.run}
                 </button>
                 {searchHits !== null && (
                   <button type="button" className="mem-btn" onClick={handleClearSearch}>
-                    Clear ({searchHits.length})
+                    {dict.common.clear} ({searchHits.length})
                   </button>
                 )}
                 <select
                   className="mem-select mem-filter-select"
-                  aria-label="Filter memory kind"
+                  aria-label={memDict.tabCards}
                   value={filterKind}
                   onChange={(e) => setFilterKind(e.target.value)}
                 >
-                  <option value="all">All Types</option>
+                  <option value="all">{dict.categoryAll}</option>
                   <option value="pinned">Pinned Only</option>
-                  <option value="drifted">Drifted Only</option>
+                  <option value="drifted">{memDict.stale}</option>
                   <option value="architecture">Architecture</option>
                   <option value="decision">Decision</option>
                   <option value="pitfall">Pitfall</option>
@@ -490,9 +493,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
               </form>
 
               {filtered.length === 0 ? (
-                <div className="mem-card mem-muted">
-                  No memory cards match the current filter.
-                </div>
+                <div className="mem-card mem-muted">{memDict.emptyMemories}</div>
               ) : (
                 filtered.map((m) => (
                   <div key={m.id} className={`mem-item-card ${m.drifted ? 'is-drifted' : ''}`}>
@@ -509,7 +510,11 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                           <span className="mem-badge is-good">BM25 {m.score.toFixed(2)}</span>
                         )}
                         {m.pinned && <span className="mem-badge is-info">★ PINNED</span>}
-                        {m.drifted && <span className="mem-badge is-warn">⚠ FILE DRIFTED</span>}
+                        {m.drifted ? (
+                          <span className="mem-badge is-warn">⚠ {memDict.stale}</span>
+                        ) : (
+                          <span className="mem-badge is-good">✓ {memDict.fresh}</span>
+                        )}
                       </div>
                       <div className="mem-row">
                         <button
@@ -517,7 +522,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                           className="mem-btn is-primary"
                           onClick={() => void handleInjectContext(m.title, m.content)}
                         >
-                          + Context
+                          {memDict.injectContext}
                         </button>
                         <button
                           type="button"
@@ -538,10 +543,10 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                         <button
                           type="button"
                           className="mem-btn"
-                          aria-label={`Delete memory ${m.title}`}
+                          aria-label={`${memDict.forget}: ${m.title}`}
                           onClick={() => void handleDeleteMemory(m.id)}
                         >
-                          ×
+                          {memDict.forget}
                         </button>
                       </div>
                     </div>
@@ -578,8 +583,8 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
           {tab === 'graph' && (
             <div className="mem-card">
               <div className="mem-row is-between" style={{ marginBottom: 8 }}>
-                <strong>Code-Anchored Memory Knowledge Graph</strong>
-                <span className="mem-badge">Click any node to inspect</span>
+                <strong>{memDict.tabGraph}</strong>
+                <span className="mem-badge">{memDict.title}</span>
               </div>
               <svg viewBox="0 0 680 400" className="mem-graph-svg">
                 {data.graph.edges.map((e, idx) => {
@@ -655,7 +660,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                       className="mem-btn"
                       onClick={() => setSelectedNodeId(null)}
                     >
-                      Close
+                      {dict.common.clear}
                     </button>
                   </div>
                   {selectedMemoryForNode && (
@@ -672,7 +677,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                             )
                           }
                         >
-                          + Context
+                          {memDict.injectContext}
                         </button>
                         {selectedMemoryForNode.anchors.map((a) => (
                           <button
@@ -695,7 +700,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                         className="mem-btn is-primary"
                         onClick={() => void handleOpenAnchor(selectedAnchorForNode)}
                       >
-                        Open File
+                        {dict.panels.canvas.openFile}
                       </button>
                     </div>
                   )}
@@ -706,7 +711,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
 
           {tab === 'add' && (
             <form className="mem-card mem-stack" onSubmit={(e) => void handleAdd(e)}>
-              <strong>Teach Permanent Workspace Memory</strong>
+              <strong>{memDict.tabAdd}</strong>
               <select
                 className="mem-select"
                 value={newKind}
@@ -749,10 +754,10 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                   checked={newPinned}
                   onChange={(e) => setNewPinned(e.target.checked)}
                 />
-                Pin for automatic SessionStart recall
+                {memDict.tabInjection}
               </label>
               <button type="submit" className="mem-btn is-primary">
-                Save Memory Card
+                {memDict.addMemory}
               </button>
             </form>
           )}
@@ -760,7 +765,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
           {tab === 'injection' && (
             <div className="mem-card mem-stack">
               <div className="mem-row is-between">
-                <strong>Exact SessionStart System Message Preview (Glass-Box Transparency)</strong>
+                <strong>{memDict.tabInjection}</strong>
                 {data.injectionPreview && (
                   <button
                     type="button"
@@ -769,12 +774,12 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                       void handleInjectContext('SessionStart Injection', data.injectionPreview)
                     }
                   >
-                    + Context
+                    {memDict.injectContext}
                   </button>
                 )}
               </div>
               <div className="mem-prebox">
-                {data.injectionPreview || '(No active non-drifted memories to inject yet)'}
+                {data.injectionPreview || memDict.emptyMemories}
               </div>
             </div>
           )}

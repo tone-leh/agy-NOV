@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { HostCapabilitiesSummary, NovBridge } from '../../bridge.js';
+import { useNovI18n } from '../../i18n/index.js';
 import { DiffViewer } from './DiffViewer';
 import { FileTree } from './FileTree';
 import { HeaderBar } from './HeaderBar';
@@ -43,6 +44,9 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
   onNotify,
   incomingEvent,
 }) => {
+  const { dict } = useNovI18n();
+  const r = dict.panels.review;
+
   const rootRef = useRef<HTMLDivElement>(null);
   const loadedOnceRef = useRef(false);
   const requestSeqRef = useRef(0);
@@ -514,12 +518,35 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
     return session.files.filter((f) => viewedSet.has(f.path)).length;
   }, [session, viewedSet]);
 
+  const openAnnotationsCount = useMemo(() => {
+    if (!session) return 0;
+    return session.annotations.filter((a) => !a.resolved).length;
+  }, [session]);
+
+  const handleQuickCopyPrompt = async () => {
+    if (openAnnotationsCount === 0) return;
+    const md = await handleRefreshPreview();
+    try {
+      await navigator.clipboard?.writeText(md);
+      onNotify?.(dict.common.copied);
+    } catch {
+      onNotify?.(r.copyPrompt);
+    }
+  };
+
+  const handleQuickSendFixes = async () => {
+    if (openAnnotationsCount === 0) return;
+    const md = await handleRefreshPreview();
+    await bridge.sendMessage(md);
+    onNotify?.(r.sendFixes);
+  };
+
   const canToggleAuxPane = caps.isWorkbench || caps.message || caps.updateModelContext;
 
   return (
     <div ref={rootRef} className="mod-review" data-theme={theme}>
       <HeaderBar
-        repoName={session?.repoName ?? 'Agy Review'}
+        repoName={session?.repoName ?? r.title}
         branch={session?.branch ?? '…'}
         isDemo={Boolean(session?.isDemo)}
         scope={scope}
@@ -547,7 +574,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
         <div className="rv-banner rv-banner-error">
           <span>{error}</span>
           <button type="button" className="rv-link-btn" onClick={handleRefresh}>
-            Retry
+            {dict.retry}
           </button>
         </div>
       )}
@@ -556,7 +583,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
         <div className="rv-banner rv-banner-info">
           <span>{hostNotice}</span>
           <button type="button" className="rv-link-btn" onClick={() => setHostNotice(null)}>
-            Dismiss
+            {dict.common.clear}
           </button>
         </div>
       )}
@@ -570,7 +597,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
               className="rv-btn rv-btn-subtle"
               onClick={() => void loadDiff({ demo: true, scope: 'working' })}
             >
-              Try Built-in Demo
+              {dict.demoFixture}
             </button>
           )}
         </div>
@@ -582,6 +609,32 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
             Large changeset truncated to keep review responsive. Filter individual files or switch scope to inspect
             specific commits.
           </span>
+        </div>
+      )}
+
+      {openAnnotationsCount > 0 && (
+        <div className="rv-banner rv-banner-info">
+          <span>
+            {r.annotations}: <strong>{openAnnotationsCount}</strong>
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              type="button"
+              className="rv-btn rv-btn-subtle"
+              onClick={() => void handleQuickCopyPrompt()}
+            >
+              {r.copyPrompt}
+            </button>
+            {(caps.message || caps.isWorkbench) && (
+              <button
+                type="button"
+                className="rv-btn rv-btn-primary"
+                onClick={() => void handleQuickSendFixes()}
+              >
+                {r.sendFixes}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -604,7 +657,18 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
           <section className="rv-diff-pane rv-diff-empty">
             <div className="rv-empty-state">
               <div className="rv-loader-ring" />
-              <p>Scanning Git changes…</p>
+              <p>{dict.common.loading}</p>
+            </div>
+          </section>
+        ) : session && session.files.length === 0 ? (
+          <section className="rv-diff-pane rv-diff-empty">
+            <div className="rv-empty-state">
+              <div className="rv-empty-icon">✓</div>
+              <h3>{r.title}</h3>
+              <p>{r.noChanges}</p>
+              <button type="button" className="rv-btn rv-btn-subtle" onClick={handleRefresh}>
+                {r.refresh}
+              </button>
             </div>
           </section>
         ) : (

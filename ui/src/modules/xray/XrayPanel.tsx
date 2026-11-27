@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { HostCapabilitiesSummary, NovBridge } from '../../bridge.js';
+import { useNovI18n } from '../../i18n/index.js';
 import { ContextCharts } from './ContextCharts';
 import { FileTreePanel } from './FileTreePanel';
 import { TimeMachinePanel } from './TimeMachinePanel';
@@ -54,6 +55,9 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
   onNotify,
   incomingEvent,
 }) => {
+  const { dict } = useNovI18n();
+  const x = dict.panels.xray;
+
   const loadedOnceRef = useRef(false);
   const lastEventRef = useRef<typeof incomingEvent>(null);
   const toastTimerRef = useRef<number | null>(null);
@@ -65,6 +69,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [hits, setHits] = useState<SearchHit[]>([]);
+  const [quickQuery, setQuickQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -304,17 +309,35 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
       <header className="xr-header">
         <div className="xr-brand">
           <span className="xr-logo-dot">XR</span>
-          <span>Agy X-Ray</span>
+          <span>{x.title}</span>
           <span className="xr-badge xr-sev-info">
             {caps.isWorkbench ? 'Workbench' : 'MCP App'}
           </span>
         </div>
 
         <div className="xr-controls">
+          <form
+            className="xr-controls"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!quickQuery.trim()) return;
+              setTab('timemachine');
+              void handleSearch(quickQuery);
+            }}
+          >
+            <input
+              type="search"
+              className="xr-input"
+              placeholder={x.searchPlaceholder}
+              aria-label={x.searchPlaceholder}
+              value={quickQuery}
+              onChange={(e) => setQuickQuery(e.target.value)}
+            />
+          </form>
           {sessions.length > 0 && (
             <select
               className="xr-select"
-              aria-label="Select session"
+              aria-label={x.title}
               value={detail?.summary.id ?? ''}
               onChange={(e) => void handleSelectSession(e.target.value)}
             >
@@ -326,7 +349,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
             </select>
           )}
           <button type="button" className="xr-btn" onClick={handleRefresh} disabled={loading}>
-            {loading ? 'Refreshing…' : 'Refresh'}
+            {loading ? dict.common.loading : x.refresh}
           </button>
           <button
             type="button"
@@ -334,12 +357,12 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
             onClick={() => void handleExportBrief()}
             disabled={!detail}
           >
-            Export Brief
+            {x.exportBrief}
           </button>
         </div>
       </header>
 
-      <nav className="xr-tabs" role="tablist" aria-label="X-Ray sections">
+      <nav className="xr-tabs" role="tablist" aria-label={x.title}>
         <button
           type="button"
           role="tab"
@@ -347,7 +370,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
           className={`xr-tab ${tab === 'overview' ? 'is-active' : ''}`}
           onClick={() => setTab('overview')}
         >
-          Context X-Ray
+          {x.tabOverview}
         </button>
         <button
           type="button"
@@ -356,7 +379,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
           className={`xr-tab ${tab === 'files' ? 'is-active' : ''}`}
           onClick={() => setTab('files')}
         >
-          Workspace Files
+          {x.tabFiles}
           {detail && <span className="xr-badge">{detail.fileActivity.length}</span>}
         </button>
         <button
@@ -366,7 +389,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
           className={`xr-tab ${tab === 'timemachine' ? 'is-active' : ''}`}
           onClick={() => setTab('timemachine')}
         >
-          Time Machine
+          {x.tabTimeMachine}
         </button>
         <button
           type="button"
@@ -375,7 +398,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
           className={`xr-tab ${tab === 'steps' ? 'is-active' : ''}`}
           onClick={() => setTab('steps')}
         >
-          Turns &amp; Tools
+          {x.tabSteps}
           {detail && <span className="xr-badge">{detail.recentSteps.length}</span>}
         </button>
       </nav>
@@ -384,22 +407,46 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
         <div className="xr-card xr-error-banner">
           <span>{loadError}</span>
           <button type="button" className="xr-btn" onClick={handleRefresh}>
-            Retry
+            {dict.retry}
           </button>
         </div>
       )}
 
       {loading && !detail ? (
-        <div className="xr-card xr-empty-state">Scanning local Antigravity transcripts…</div>
+        <div className="xr-card xr-empty-state">{dict.common.loading}</div>
       ) : !detail ? (
         <div className="xr-card xr-empty-state">
-          <strong>No local Antigravity transcripts detected yet.</strong>
-          <div className="xr-empty-sub">
-            Start a conversation in Antigravity 2.0 and click <strong>Refresh</strong>.
-          </div>
+          <strong>{dict.common.empty}</strong>
+          <div className="xr-empty-sub">{x.refresh}</div>
         </div>
       ) : (
         <main className="xr-main">
+          <section className="xr-kpi-grid" aria-label={x.title}>
+            <div className="xr-card">
+              <div className="xr-kpi-label">{x.totalTokens}</div>
+              <div className="xr-kpi-value">
+                {fmtTokens(detail.summary.totalInputTokens + detail.summary.totalOutputTokens)}
+              </div>
+            </div>
+            <div className="xr-card">
+              <div className="xr-kpi-label">{x.cacheHitRate}</div>
+              <div className="xr-kpi-value">
+                {(detail.summary.cacheHitRate * 100).toFixed(1)}%
+              </div>
+            </div>
+            <div className="xr-card">
+              <div className="xr-kpi-label">{x.cachedTokens}</div>
+              <div className="xr-kpi-value">
+                {fmtTokens(detail.summary.totalCacheReadTokens)}
+              </div>
+            </div>
+            <div className="xr-card">
+              <div className="xr-kpi-label">{x.freshTokens}</div>
+              <div className="xr-kpi-value">
+                {fmtTokens(detail.summary.totalFreshInputTokens)}
+              </div>
+            </div>
+          </section>
           {tab === 'overview' && <ContextCharts detail={detail} />}
           {tab === 'files' && (
             <FileTreePanel
@@ -426,8 +473,8 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
           {tab === 'steps' && (
             <div className="xr-card">
               <div className="xr-section-title">
-                <span>Recent Trajectory Steps (Newest First)</span>
-                <span className="xr-kpi-sub">Showing latest {detail.recentSteps.length} steps</span>
+                <span>{x.tabSteps}</span>
+                <span className="xr-kpi-sub">{detail.recentSteps.length}</span>
               </div>
               <div className="xr-list">
                 {detail.recentSteps.map((st) => (
