@@ -12,6 +12,7 @@ import { handleRadarHook } from '../modules/radar/hook.js';
 import { handleRemotePreToolHook, handleRemoteStopHook } from '../modules/remote/hook.js';
 import { handleReviewHook } from '../modules/review/hook.js';
 import { handleTurboSessionStartHook } from '../modules/turbo/hook.js';
+import { handleVerifyPostToolHook, handleVerifyStopHook } from '../modules/verify/hook.js';
 import { handleXrayHook } from '../modules/xray/hook.js';
 
 export interface UnifiedHookResult {
@@ -142,6 +143,13 @@ export async function dispatchNovHook(
         // isolate module error
       }
     }
+    if (modules.verify) {
+      try {
+        handleVerifyPostToolHook(payload, rootDataDir);
+      } catch {
+        // isolate module error
+      }
+    }
     return {};
   }
 
@@ -158,6 +166,21 @@ export async function dispatchNovHook(
         handleXrayHook(payload, rootDataDir);
       } catch {
         // isolate
+      }
+    }
+    if (modules.verify) {
+      try {
+        const verifyRes = await handleVerifyStopHook(payload, rootDataDir);
+        if (verifyRes.decision === 'deny') {
+          return {
+            decision: 'deny',
+            reason:
+              verifyRes.reason ||
+              '[agy-NOV Verify Gate] Verification checks failed before stopping.',
+          };
+        }
+      } catch {
+        // fail-open on unexpected hook error
       }
     }
     if (modules.radar) {

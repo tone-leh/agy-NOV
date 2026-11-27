@@ -111,6 +111,27 @@ export function normalizeHookPayload(
     (typeof raw.conversationId === 'string' && raw.conversationId) ||
     (typeof raw.conversation_id === 'string' && raw.conversation_id) ||
     undefined;
+  const parentConversationId =
+    (typeof raw.parentConversationId === 'string' && raw.parentConversationId) ||
+    (typeof raw.parent_conversation_id === 'string' && raw.parent_conversation_id) ||
+    (typeof raw.rootConversationId === 'string' && raw.rootConversationId) ||
+    (typeof raw.root_conversation_id === 'string' && raw.root_conversation_id) ||
+    (typeof process.env.ANTIGRAVITY_PARENT_CONVERSATION_ID === 'string' &&
+    process.env.ANTIGRAVITY_PARENT_CONVERSATION_ID.trim()
+      ? process.env.ANTIGRAVITY_PARENT_CONVERSATION_ID.trim()
+      : undefined);
+  const agentRole =
+    (typeof raw.agentRole === 'string' && raw.agentRole) ||
+    (typeof raw.agent_role === 'string' && raw.agent_role) ||
+    (typeof raw.subagentRole === 'string' && raw.subagentRole) ||
+    (typeof raw.subagent_role === 'string' && raw.subagent_role) ||
+    undefined;
+  const continuationActive =
+    typeof raw.continuationActive === 'boolean'
+      ? raw.continuationActive
+      : typeof raw.continuation_active === 'boolean'
+        ? raw.continuation_active
+        : undefined;
   const transcriptPath =
     (typeof raw.transcriptPath === 'string' && raw.transcriptPath) ||
     (typeof raw.transcript_path === 'string' && raw.transcript_path) ||
@@ -141,6 +162,9 @@ export function normalizeHookPayload(
   return {
     event,
     conversationId,
+    parentConversationId,
+    agentRole,
+    continuationActive,
     workspacePaths,
     workspaceRoot: singleWorkspace,
     cwd: typeof raw.cwd === 'string' ? raw.cwd : singleWorkspace,

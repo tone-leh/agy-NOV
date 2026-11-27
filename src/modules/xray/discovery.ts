@@ -134,14 +134,22 @@ export function loadSessionDetail(
         sessionId: match.id,
         source: match.source,
         brainDir: match.brainDir,
+        siblingBrainRoot: path.dirname(match.brainDir),
       });
     }
   }
 
   if (!sessionId && hookState.activeTranscriptPath && fs.existsSync(hookState.activeTranscriptPath)) {
+    const parentDir = path.dirname(hookState.activeTranscriptPath);
+    const activeBrainDir =
+      path.basename(parentDir) === 'logs' && path.basename(path.dirname(parentDir)) === '.system_generated'
+        ? path.resolve(parentDir, '..', '..')
+        : parentDir;
     return parseTranscriptFile(hookState.activeTranscriptPath, {
-      sessionId: hookState.activeConversationId ?? 'active',
+      sessionId: hookState.activeConversationId ?? path.basename(activeBrainDir) ?? 'active',
       source: 'desktop',
+      brainDir: activeBrainDir,
+      siblingBrainRoot: path.dirname(activeBrainDir),
     });
   }
 
@@ -151,5 +159,6 @@ export function loadSessionDetail(
     sessionId: latest.id,
     source: latest.source,
     brainDir: latest.brainDir,
+    siblingBrainRoot: path.dirname(latest.brainDir),
   });
 }

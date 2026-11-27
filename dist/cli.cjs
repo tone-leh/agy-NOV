@@ -21,8 +21,11 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // src/server/cli.ts
+var cli_exports = {};
+module.exports = __toCommonJS(cli_exports);
 var import_node_fs2 = __toESM(require("node:fs"), 1);
 var import_node_path2 = __toESM(require("node:path"), 1);
 
@@ -38,6 +41,8 @@ var MODULE_IDS = [
   "xray",
   "turbo",
   "radar",
+  "verify",
+  "worktree",
   "canvas",
   "mem",
   "ops",
@@ -156,8 +161,8 @@ var MODULE_CATALOG = {
     category: "observability",
     name: "Session Radar & Chime",
     shortLabel: "Radar",
-    tagline: "Multi-session attention board, stall detector & completion alerts",
-    description: "Track parallel conversations across Running, Awaiting Approval, Completed, and Stalled states via lifecycle hooks, with configurable desktop chime notifications.",
+    tagline: "Multi-session attention board, Swarm subagent monitor & completion alerts",
+    description: "Track parallel conversations and Swarm subagents across Running, Awaiting Approval, Completed, and Stalled states via lifecycle hooks, with orphan alerts and optional chime.",
     isolationTier: "offline",
     networkAccess: "offline",
     uiMode: "scroll",
@@ -165,6 +170,46 @@ var MODULE_CATALOG = {
     defaultEnabled: false,
     hooks: ["PreToolUse", "PostToolUse", "Stop"],
     modelToolNames: ["radar_get_board", "radar_ack_session"]
+  },
+  verify: {
+    id: "verify",
+    category: "safety",
+    name: "Verify Gate",
+    shortLabel: "Verify",
+    tagline: 'Stop-hook verification gate blocking unverified "done" claims',
+    description: "Enforce real test/typecheck/lint exit codes and non-empty file checks on Stop hooks (respecting continuation_active and loop guardrails), storing a redacted evidence chain per turn.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: ["PostToolUse", "Stop"],
+    modelToolNames: [
+      "verify_get_policy",
+      "verify_set_policy",
+      "verify_run_checks",
+      "verify_get_evidence"
+    ]
+  },
+  worktree: {
+    id: "worktree",
+    category: "core-dev",
+    name: "Worktree Orchestrator",
+    shortLabel: "Worktree",
+    tagline: "Safe parallel Git worktrees, branch diff previews & orphan cleanup",
+    description: "Create isolated Git worktrees with optional uncommitted-change carry-over, inspect branch diff summaries, flag extensions.worktreeConfig hazards, and safely prune merged or orphaned worktrees.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: [],
+    modelToolNames: [
+      "worktree_list",
+      "worktree_create",
+      "worktree_diff_summary",
+      "worktree_cleanup"
+    ]
   },
   canvas: {
     id: "canvas",
@@ -258,22 +303,53 @@ var PRESET_DEFINITIONS = {
   },
   power: {
     id: "power",
-    label: "Power Dev (6 Offline)",
-    description: "Core + Turbo + Radar + Ops \u2014 daily high-velocity offline suite with zero network usage (20 model tools).",
-    enabledModules: ["review", "guard", "xray", "turbo", "radar", "ops"],
-    modules: makeModulesMap(["review", "guard", "xray", "turbo", "radar", "ops"])
+    label: "Power Dev (8 Offline)",
+    description: "Core + Turbo + Radar + Verify + Worktree + Ops \u2014 high-velocity engineering suite with strong verification gates and zero network usage (28 model tools).",
+    enabledModules: ["review", "guard", "xray", "turbo", "radar", "verify", "worktree", "ops"],
+    modules: makeModulesMap([
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "ops"
+    ])
   },
   "local-all": {
     id: "local-all",
-    label: "Local All (8 Offline)",
-    description: "All 8 native offline modules enabled; Remote stays strictly off with zero ports (27 model tools).",
-    enabledModules: ["review", "guard", "xray", "turbo", "radar", "canvas", "mem", "ops"],
-    modules: makeModulesMap(["review", "guard", "xray", "turbo", "radar", "canvas", "mem", "ops"])
+    label: "Local All (10 Offline)",
+    description: "All 10 native offline modules enabled; Remote stays strictly off with zero ports (35 model tools).",
+    enabledModules: [
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "canvas",
+      "mem",
+      "ops"
+    ],
+    modules: makeModulesMap([
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "canvas",
+      "mem",
+      "ops"
+    ])
   },
   full: {
     id: "full",
-    label: "Full Suite (All 9)",
-    description: "All 9 native modules including the opt-in Mobile PWA & IM remote approval hub (31 model tools).",
+    label: "Full Suite (All 11)",
+    description: "All 11 native modules including the opt-in Mobile PWA & IM remote approval hub (39 model tools).",
     enabledModules: [...MODULE_IDS],
     modules: makeModulesMap(MODULE_IDS)
   },
@@ -314,6 +390,9 @@ function sanitizeDataDirCandidate(candidate) {
 }
 function resolveNovDataDir(cliDataDir) {
   return sanitizeDataDirCandidate(cliDataDir) ?? sanitizeDataDirCandidate(process.env.AGY_NOV_DATA_DIR) ?? sanitizeDataDirCandidate(process.env.PLUGIN_DATA) ?? import_node_path.default.join(import_node_os.default.homedir(), ".agy-nov-data");
+}
+function getModuleDataDir(rootDataDir, moduleId) {
+  return import_node_path.default.join(rootDataDir, "modules", moduleId);
 }
 function getConfigPath(rootDataDir) {
   return import_node_path.default.join(rootDataDir, "config.json");
@@ -448,25 +527,143 @@ function parseCliFlag(argv, flag) {
   }
   return void 0;
 }
+function hasCliFlag(argv, flag) {
+  return argv.includes(flag);
+}
 
 // src/server/cli.ts
+var CLI_VERSION = "0.3.0";
 function printHelp() {
-  console.log(`agy-NOV CLI (v0.2.0) \u2014 The 100% Native Modular Super-Workbench for Antigravity 2.0
+  console.log(`agy-NOV CLI (v${CLI_VERSION}) \u2014 The 100% Native Modular Super-Workbench for Antigravity 2.0
 
 Usage:
-  agy-nov status [--data-dir=<dir>]                 Show enabled modules, preset, UI language & token footprint
-  agy-nov enable <module> [--data-dir=<dir>]        Enable a module (${MODULE_IDS.join(" | ")})
-  agy-nov disable <module> [--data-dir=<dir>]       Disable a module
-  agy-nov preset <name> [--data-dir=<dir>]          Apply preset (${PRESET_IDS.join(" | ")})
-  agy-nov locale <lang> [--data-dir=<dir>]          Set UI language (${LOCALE_IDS.join(" | ")})
-  agy-nov doctor [--data-dir=<dir>]                 Verify plugin bundle, manifests & config health (read-only)
+  agy-nov status [--data-dir=<dir>]                             Show enabled modules, preset, UI language & token footprint
+  agy-nov enable <module> [--data-dir=<dir>]                    Enable a module (${MODULE_IDS.join(" | ")})
+  agy-nov disable <module> [--data-dir=<dir>]                   Disable a module
+  agy-nov preset <name> [--data-dir=<dir>]                      Apply preset (${PRESET_IDS.join(" | ")})
+  agy-nov locale <lang> [--data-dir=<dir>]                      Set UI language (${LOCALE_IDS.join(" | ")})
+  agy-nov statusline [--json] [--compact] [--data-dir=<dir>]    Zero-token read-only status line for Antigravity CLI
+  agy-nov doctor [--data-dir=<dir>]                             Verify plugin bundle, manifests & config health (read-only)
 `);
+}
+function readJsonSilent(filePath) {
+  try {
+    if (!import_node_fs2.default.existsSync(filePath)) return null;
+    const raw = JSON.parse(import_node_fs2.default.readFileSync(filePath, "utf8"));
+    return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+function buildStatusLine(dataDir, compact) {
+  const cfg = loadNovConfigReadOnly(dataDir);
+  const enabledCount = MODULE_IDS.filter((id) => cfg.modules[id]).length;
+  const modelTools = countEnabledModelTools(cfg.modules);
+  const network = cfg.modules.remote ? "opt-in-remote" : "offline";
+  let verifySummary;
+  if (cfg.modules.verify) {
+    const verifyState = readJsonSilent(import_node_path2.default.join(getModuleDataDir(dataDir, "verify"), "state.json"));
+    const rawEvidence = Array.isArray(verifyState?.evidence) ? verifyState.evidence : [];
+    const validEvidence = rawEvidence.filter(
+      (e) => Boolean(e) && typeof e === "object" && !Array.isArray(e)
+    );
+    const latest = validEvidence[0];
+    let lastStatus = "idle";
+    if (latest) {
+      const outcome = typeof latest.outcome === "string" ? latest.outcome : "";
+      if (outcome === "blocked" || latest.blocked === true) lastStatus = "blocked";
+      else if (outcome === "pass" || outcome === "guardrail-allow" || latest.passed === true) {
+        lastStatus = "pass";
+      } else {
+        lastStatus = "fail";
+      }
+    }
+    const storedBlockedStops = typeof verifyState?.blockedStops === "number" && Number.isFinite(verifyState.blockedStops) ? Math.max(0, Math.floor(verifyState.blockedStops)) : 0;
+    const countedBlocked = validEvidence.filter(
+      (e) => e.outcome === "blocked" || e.blocked === true
+    ).length;
+    const blockedStops = Math.max(storedBlockedStops, countedBlocked);
+    verifySummary = { enabled: true, lastStatus, blockedStops };
+  }
+  let radarSummary;
+  if (cfg.modules.radar) {
+    const radarDir = getModuleDataDir(dataDir, "radar");
+    const capsule = readJsonSilent(import_node_path2.default.join(radarDir, "status-capsule.json"));
+    const counts = capsule && capsule.counts && typeof capsule.counts === "object" ? capsule.counts : null;
+    if (counts) {
+      radarSummary = {
+        enabled: true,
+        running: Number(counts.running ?? 0) || 0,
+        awaitingApproval: Number(counts.awaiting_approval ?? 0) || 0,
+        stalled: Number(counts.stalled ?? 0) || 0,
+        error: Number(counts.error ?? 0) || 0,
+        orphanSubagents: Number(counts.orphanSubagents ?? 0) || 0,
+        unread: Number(counts.unread ?? 0) || 0
+      };
+    } else {
+      const board = readJsonSilent(import_node_path2.default.join(radarDir, "board.json"));
+      const sessionsObj = board && board.sessions && typeof board.sessions === "object" ? board.sessions : {};
+      const list = Object.values(sessionsObj);
+      radarSummary = {
+        enabled: true,
+        running: list.filter((s) => s.status === "running").length,
+        awaitingApproval: list.filter((s) => s.status === "awaiting_approval").length,
+        stalled: 0,
+        error: list.filter((s) => s.status === "error").length,
+        orphanSubagents: 0,
+        unread: list.filter((s) => s.unread === true).length
+      };
+    }
+  }
+  let xraySummary;
+  if (cfg.modules.xray) {
+    const live = readJsonSilent(import_node_path2.default.join(getModuleDataDir(dataDir, "xray"), "live-state.json"));
+    xraySummary = {
+      enabled: true,
+      activeConversationId: typeof live?.activeConversationId === "string" ? live.activeConversationId : void 0,
+      lastToolName: typeof live?.lastToolName === "string" ? live.lastToolName : void 0
+    };
+  }
+  const parts = compact ? [`NOV ${enabledCount}/${MODULE_IDS.length} (${modelTools}t)`] : [
+    `agy-NOV ${cfg.preset}`,
+    `${enabledCount}/${MODULE_IDS.length} (${modelTools}t)`,
+    network === "offline" ? "offline" : "remote:ON"
+  ];
+  if (verifySummary) {
+    const tag = verifySummary.lastStatus === "pass" ? "PASS" : verifySummary.lastStatus === "blocked" ? "BLOCKED" : verifySummary.lastStatus === "fail" ? "FAIL" : "IDLE";
+    parts.push(`Verify:${tag}`);
+  }
+  if (radarSummary) {
+    const radarBits = [];
+    if (radarSummary.running > 0) radarBits.push(`${radarSummary.running}run`);
+    if (radarSummary.awaitingApproval > 0) radarBits.push(`${radarSummary.awaitingApproval}wait`);
+    if (radarSummary.stalled > 0) radarBits.push(`${radarSummary.stalled}stall`);
+    if (radarSummary.orphanSubagents > 0) radarBits.push(`${radarSummary.orphanSubagents}orphan`);
+    if (radarSummary.error > 0) radarBits.push(`${radarSummary.error}err`);
+    if (radarBits.length > 0) {
+      parts.push(`Radar:${radarBits.join("/")}`);
+    }
+  }
+  const line = parts.join(" \xB7 ");
+  return {
+    version: CLI_VERSION,
+    preset: cfg.preset,
+    enabledCount,
+    totalModules: MODULE_IDS.length,
+    modelTools,
+    locale: cfg.locale,
+    network,
+    verify: verifySummary,
+    radar: radarSummary,
+    xray: xraySummary,
+    line
+  };
 }
 function printStatus(dataDir) {
   const cfg = loadNovConfigReadOnly(dataDir);
   const enabledCount = MODULE_IDS.filter((id) => cfg.modules[id]).length;
   const modelTools = countEnabledModelTools(cfg.modules);
-  console.log(`agy-NOV v0.2.0 Status`);
+  console.log(`agy-NOV v${CLI_VERSION} Status`);
   console.log(`  Architecture:   100% Native MCP Apps & Hooks (Zero ASAR / Zero CDP)`);
   console.log(`  Data Dir:       ${dataDir}`);
   console.log(`  Config File:    ${getConfigPath(dataDir)} (${import_node_fs2.default.existsSync(getConfigPath(dataDir)) ? "persisted" : "defaults"})`);
@@ -502,7 +699,7 @@ function runDoctor(dataDir) {
     "dist/ui/app.html"
   ];
   let ok = true;
-  console.log("agy-NOV Doctor (v0.2.0 \xB7 Zero ASAR / Zero CDP)");
+  console.log(`agy-NOV Doctor (v${CLI_VERSION} \xB7 Zero ASAR / Zero CDP)`);
   for (const rel of requiredFiles) {
     const abs = import_node_path2.default.join(rootDir, rel);
     const exists = import_node_fs2.default.existsSync(abs);
@@ -594,6 +791,13 @@ function main() {
     }
     const next = setNovLocale(dataDir, target);
     console.log(`Updated agy-NOV UI locale to "${next.locale}".`);
+    return;
+  }
+  if (cmd === "statusline") {
+    const asJson = hasCliFlag(argv, "--json");
+    const compact = hasCliFlag(argv, "--compact");
+    const snap = buildStatusLine(dataDir, compact);
+    console.log(asJson ? JSON.stringify(snap) : snap.line);
     return;
   }
   if (cmd === "doctor") {

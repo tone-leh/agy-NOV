@@ -65,6 +65,20 @@ export function registerXrayModule(
         .slice(0, 5)
         .map((t) => `${t.toolName}: ${(t.totalOutputBytes / 1024).toFixed(1)} KB (${t.sharePercent}%)`)
         .join(', ');
+      const swarmAndModelParts: string[] = [];
+      if (detail.swarmLineage.totalSubagents > 0) {
+        const sl = detail.swarmLineage;
+        swarmAndModelParts.push(
+          `Swarm: ${sl.totalSubagents} subagents (${sl.linkedTranscripts} linked, ${sl.orphanSuspects} orphan suspect, +${formatCompactTokens(sl.totalSubagentInputTokens)} in / +${formatCompactTokens(sl.totalSubagentOutputTokens)} out)`,
+        );
+      }
+      if (detail.modelBreakdown.length > 1) {
+        swarmAndModelParts.push(
+          `Models: ${detail.modelBreakdown
+            .map((m) => `${m.model} ${m.sharePercent}%${m.retrySignals > 0 ? ` (${m.retrySignals} retry)` : ''}`)
+            .join(', ')}`,
+        );
+      }
       return {
         content: [
           {
@@ -74,6 +88,9 @@ export function registerXrayModule(
               `• Peak Window: ${formatCompactTokens(s.peakContextTokens)} | Total Input: ${formatCompactTokens(s.totalInputTokens)} | Output: ${formatCompactTokens(s.totalOutputTokens)}`,
               `• Prefix Cache Hit: ${(s.cacheHitRate * 100).toFixed(1)}% (${formatCompactTokens(s.totalCacheReadTokens)} cached)`,
               `• Top Tool Consumers: ${topTools || 'none'}`,
+              ...(swarmAndModelParts.length > 0
+                ? [`• Swarm & Models: ${swarmAndModelParts.join(' | ')}`]
+                : []),
               ...detail.diagnostics.map((d) => `• [${d.severity.toUpperCase()}] ${d.title}: ${d.detail}`),
             ].join('\n'),
           },

@@ -68,6 +68,57 @@ export interface XrayPanelI18n {
   cacheHitRate: string;
   freshTokens: string;
   cachedTokens: string;
+  swarmTitle: string;
+  subagents: string;
+  orphanSuspects: string;
+  modelBreakdown: string;
+}
+
+export interface VerifyPanelI18n {
+  title: string;
+  subtitle: string;
+  tabGate: string;
+  tabEvidence: string;
+  enforceOnStop: string;
+  autoRunOnStop: string;
+  blockEmptyWrites: string;
+  maxBlocks: string;
+  commandsTitle: string;
+  addCommand: string;
+  runChecks: string;
+  clearHistory: string;
+  savePolicy: string;
+  passed: string;
+  failed: string;
+  blocked: string;
+  emptyEvidence: string;
+  dirtyFiles: string;
+  executablePlaceholder: string;
+  argsPlaceholder: string;
+  labelPlaceholder: string;
+}
+
+export interface WorktreePanelI18n {
+  title: string;
+  subtitle: string;
+  createTitle: string;
+  branchPlaceholder: string;
+  baseRefPlaceholder: string;
+  carryUncommitted: string;
+  createBtn: string;
+  pruneBtn: string;
+  diffBtn: string;
+  removeBtn: string;
+  forceRemoveBtn: string;
+  mainBadge: string;
+  dirtyBadge: string;
+  mergedBadge: string;
+  prunableBadge: string;
+  configWarning: string;
+  notGitRepo: string;
+  emptyWorktrees: string;
+  diffTitle: string;
+  aheadBehind: string;
 }
 
 export interface CanvasPanelI18n {
@@ -116,6 +167,8 @@ export interface PanelsI18n {
   review: ReviewPanelI18n;
   guard: GuardPanelI18n;
   xray: XrayPanelI18n;
+  verify: VerifyPanelI18n;
+  worktree: WorktreePanelI18n;
   canvas: CanvasPanelI18n;
   mem: MemPanelI18n;
   remote: RemotePanelI18n;
@@ -215,6 +268,8 @@ export interface UiDictionary {
     emptyBoard: string;
     lastTool: string;
     steps: string;
+    subagents: string;
+    orphanSubagents: string;
   };
   ops: {
     title: string;

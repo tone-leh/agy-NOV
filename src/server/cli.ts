@@ -4,6 +4,7 @@ import {
   applyPresetConfig,
   countEnabledModelTools,
   getConfigPath,
+  getModuleDataDir,
   isModuleId,
   isNovLocale,
   isPresetId,
@@ -19,26 +20,202 @@ import {
   setModuleEnabled,
   setNovLocale,
 } from '../core/config.js';
-import { parseCliFlag } from '../core/utils.js';
+import { hasCliFlag, parseCliFlag } from '../core/utils.js';
+
+const CLI_VERSION = '0.3.0';
 
 function printHelp(): void {
-  console.log(`agy-NOV CLI (v0.2.0) — The 100% Native Modular Super-Workbench for Antigravity 2.0
+  console.log(`agy-NOV CLI (v${CLI_VERSION}) — The 100% Native Modular Super-Workbench for Antigravity 2.0
 
 Usage:
-  agy-nov status [--data-dir=<dir>]                 Show enabled modules, preset, UI language & token footprint
-  agy-nov enable <module> [--data-dir=<dir>]        Enable a module (${MODULE_IDS.join(' | ')})
-  agy-nov disable <module> [--data-dir=<dir>]       Disable a module
-  agy-nov preset <name> [--data-dir=<dir>]          Apply preset (${PRESET_IDS.join(' | ')})
-  agy-nov locale <lang> [--data-dir=<dir>]          Set UI language (${LOCALE_IDS.join(' | ')})
-  agy-nov doctor [--data-dir=<dir>]                 Verify plugin bundle, manifests & config health (read-only)
+  agy-nov status [--data-dir=<dir>]                             Show enabled modules, preset, UI language & token footprint
+  agy-nov enable <module> [--data-dir=<dir>]                    Enable a module (${MODULE_IDS.join(' | ')})
+  agy-nov disable <module> [--data-dir=<dir>]                   Disable a module
+  agy-nov preset <name> [--data-dir=<dir>]                      Apply preset (${PRESET_IDS.join(' | ')})
+  agy-nov locale <lang> [--data-dir=<dir>]                      Set UI language (${LOCALE_IDS.join(' | ')})
+  agy-nov statusline [--json] [--compact] [--data-dir=<dir>]    Zero-token read-only status line for Antigravity CLI
+  agy-nov doctor [--data-dir=<dir>]                             Verify plugin bundle, manifests & config health (read-only)
 `);
+}
+
+function readJsonSilent(filePath: string): Record<string, unknown> | null {
+  try {
+    if (!fs.existsSync(filePath)) return null;
+    const raw = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return raw && typeof raw === 'object' && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface StatusLineSnapshot {
+  version: string;
+  preset: string;
+  enabledCount: number;
+  totalModules: number;
+  modelTools: number;
+  locale: string;
+  network: 'offline' | 'opt-in-remote';
+  verify?: {
+    enabled: boolean;
+    lastStatus: 'pass' | 'fail' | 'blocked' | 'idle';
+    blockedStops: number;
+  };
+  radar?: {
+    enabled: boolean;
+    running: number;
+    awaitingApproval: number;
+    stalled: number;
+    error: number;
+    orphanSubagents: number;
+    unread: number;
+  };
+  xray?: {
+    enabled: boolean;
+    activeConversationId?: string;
+    lastToolName?: string;
+  };
+  line: string;
+}
+
+function buildStatusLine(dataDir: string, compact: boolean): StatusLineSnapshot {
+  const cfg = loadNovConfigReadOnly(dataDir);
+  const enabledCount = MODULE_IDS.filter((id) => cfg.modules[id]).length;
+  const modelTools = countEnabledModelTools(cfg.modules);
+  const network: 'offline' | 'opt-in-remote' = cfg.modules.remote ? 'opt-in-remote' : 'offline';
+
+  let verifySummary: StatusLineSnapshot['verify'];
+  if (cfg.modules.verify) {
+    const verifyState = readJsonSilent(path.join(getModuleDataDir(dataDir, 'verify'), 'state.json'));
+    const rawEvidence = Array.isArray(verifyState?.evidence) ? verifyState.evidence : [];
+    const validEvidence = rawEvidence.filter(
+      (e): e is Record<string, unknown> => Boolean(e) && typeof e === 'object' && !Array.isArray(e),
+    );
+    const latest = validEvidence[0];
+    let lastStatus: 'pass' | 'fail' | 'blocked' | 'idle' = 'idle';
+    if (latest) {
+      const outcome = typeof latest.outcome === 'string' ? latest.outcome : '';
+      if (outcome === 'blocked' || latest.blocked === true) lastStatus = 'blocked';
+      else if (outcome === 'pass' || outcome === 'guardrail-allow' || latest.passed === true) {
+        lastStatus = 'pass';
+      } else {
+        lastStatus = 'fail';
+      }
+    }
+    const storedBlockedStops =
+      typeof verifyState?.blockedStops === 'number' && Number.isFinite(verifyState.blockedStops)
+        ? Math.max(0, Math.floor(verifyState.blockedStops))
+        : 0;
+    const countedBlocked = validEvidence.filter(
+      (e) => e.outcome === 'blocked' || e.blocked === true,
+    ).length;
+    const blockedStops = Math.max(storedBlockedStops, countedBlocked);
+    verifySummary = { enabled: true, lastStatus, blockedStops };
+  }
+
+  let radarSummary: StatusLineSnapshot['radar'];
+  if (cfg.modules.radar) {
+    const radarDir = getModuleDataDir(dataDir, 'radar');
+    const capsule = readJsonSilent(path.join(radarDir, 'status-capsule.json'));
+    const counts =
+      capsule && capsule.counts && typeof capsule.counts === 'object'
+        ? (capsule.counts as Record<string, unknown>)
+        : null;
+    if (counts) {
+      radarSummary = {
+        enabled: true,
+        running: Number(counts.running ?? 0) || 0,
+        awaitingApproval: Number(counts.awaiting_approval ?? 0) || 0,
+        stalled: Number(counts.stalled ?? 0) || 0,
+        error: Number(counts.error ?? 0) || 0,
+        orphanSubagents: Number(counts.orphanSubagents ?? 0) || 0,
+        unread: Number(counts.unread ?? 0) || 0,
+      };
+    } else {
+      const board = readJsonSilent(path.join(radarDir, 'board.json'));
+      const sessionsObj =
+        board && board.sessions && typeof board.sessions === 'object'
+          ? (board.sessions as Record<string, Record<string, unknown>>)
+          : {};
+      const list = Object.values(sessionsObj);
+      radarSummary = {
+        enabled: true,
+        running: list.filter((s) => s.status === 'running').length,
+        awaitingApproval: list.filter((s) => s.status === 'awaiting_approval').length,
+        stalled: 0,
+        error: list.filter((s) => s.status === 'error').length,
+        orphanSubagents: 0,
+        unread: list.filter((s) => s.unread === true).length,
+      };
+    }
+  }
+
+  let xraySummary: StatusLineSnapshot['xray'];
+  if (cfg.modules.xray) {
+    const live = readJsonSilent(path.join(getModuleDataDir(dataDir, 'xray'), 'live-state.json'));
+    xraySummary = {
+      enabled: true,
+      activeConversationId:
+        typeof live?.activeConversationId === 'string' ? live.activeConversationId : undefined,
+      lastToolName: typeof live?.lastToolName === 'string' ? live.lastToolName : undefined,
+    };
+  }
+
+  const parts: string[] = compact
+    ? [`NOV ${enabledCount}/${MODULE_IDS.length} (${modelTools}t)`]
+    : [
+        `agy-NOV ${cfg.preset}`,
+        `${enabledCount}/${MODULE_IDS.length} (${modelTools}t)`,
+        network === 'offline' ? 'offline' : 'remote:ON',
+      ];
+
+  if (verifySummary) {
+    const tag =
+      verifySummary.lastStatus === 'pass'
+        ? 'PASS'
+        : verifySummary.lastStatus === 'blocked'
+          ? 'BLOCKED'
+          : verifySummary.lastStatus === 'fail'
+            ? 'FAIL'
+            : 'IDLE';
+    parts.push(`Verify:${tag}`);
+  }
+
+  if (radarSummary) {
+    const radarBits: string[] = [];
+    if (radarSummary.running > 0) radarBits.push(`${radarSummary.running}run`);
+    if (radarSummary.awaitingApproval > 0) radarBits.push(`${radarSummary.awaitingApproval}wait`);
+    if (radarSummary.stalled > 0) radarBits.push(`${radarSummary.stalled}stall`);
+    if (radarSummary.orphanSubagents > 0) radarBits.push(`${radarSummary.orphanSubagents}orphan`);
+    if (radarSummary.error > 0) radarBits.push(`${radarSummary.error}err`);
+    if (radarBits.length > 0) {
+      parts.push(`Radar:${radarBits.join('/')}`);
+    }
+  }
+
+  const line = parts.join(' · ');
+  return {
+    version: CLI_VERSION,
+    preset: cfg.preset,
+    enabledCount,
+    totalModules: MODULE_IDS.length,
+    modelTools,
+    locale: cfg.locale,
+    network,
+    verify: verifySummary,
+    radar: radarSummary,
+    xray: xraySummary,
+    line,
+  };
 }
 
 function printStatus(dataDir: string): void {
   const cfg = loadNovConfigReadOnly(dataDir);
   const enabledCount = MODULE_IDS.filter((id) => cfg.modules[id]).length;
   const modelTools = countEnabledModelTools(cfg.modules);
-  console.log(`agy-NOV v0.2.0 Status`);
+  console.log(`agy-NOV v${CLI_VERSION} Status`);
   console.log(`  Architecture:   100% Native MCP Apps & Hooks (Zero ASAR / Zero CDP)`);
   console.log(`  Data Dir:       ${dataDir}`);
   console.log(`  Config File:    ${getConfigPath(dataDir)} (${fs.existsSync(getConfigPath(dataDir)) ? 'persisted' : 'defaults'})`);
@@ -77,7 +254,7 @@ function runDoctor(dataDir: string): number {
   ];
 
   let ok = true;
-  console.log('agy-NOV Doctor (v0.2.0 · Zero ASAR / Zero CDP)');
+  console.log(`agy-NOV Doctor (v${CLI_VERSION} · Zero ASAR / Zero CDP)`);
   for (const rel of requiredFiles) {
     const abs = path.join(rootDir, rel);
     const exists = fs.existsSync(abs);
@@ -180,6 +357,14 @@ function main(): void {
     }
     const next = setNovLocale(dataDir, target);
     console.log(`Updated agy-NOV UI locale to "${next.locale}".`);
+    return;
+  }
+
+  if (cmd === 'statusline') {
+    const asJson = hasCliFlag(argv, '--json');
+    const compact = hasCliFlag(argv, '--compact');
+    const snap = buildStatusLine(dataDir, compact);
+    console.log(asJson ? JSON.stringify(snap) : snap.line);
     return;
   }
 

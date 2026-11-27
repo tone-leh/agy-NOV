@@ -41,10 +41,11 @@ await Promise.all([
   }),
 ]);
 
+const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
 const uiSizeKb = (fs.statSync(uiApp).size / 1024).toFixed(1);
 const serverSizeKb = (fs.statSync('dist/server.cjs').size / 1024).toFixed(1);
 const hookSizeKb = (fs.statSync('dist/hook.cjs').size / 1024).toFixed(1);
 const cliSizeKb = (fs.statSync('dist/cli.cjs').size / 1024).toFixed(1);
 console.log(
-  `Bundled agy-NOV v0.2.0: server.cjs (${serverSizeKb} KB), hook.cjs (${hookSizeKb} KB), cli.cjs (${cliSizeKb} KB), ui/app.html (${uiSizeKb} KB)`,
+  `Bundled agy-NOV v${pkg.version}: server.cjs (${serverSizeKb} KB), hook.cjs (${hookSizeKb} KB), cli.cjs (${cliSizeKb} KB), ui/app.html (${uiSizeKb} KB)`,
 );

@@ -24,6 +24,8 @@ interface RadarBoard {
     stalled: number;
     error: number;
     unread: number;
+    subagents?: number;
+    orphanSubagents?: number;
   };
   sessions: Array<{
     conversationId: string;
@@ -33,6 +35,10 @@ interface RadarBoard {
     stepCount: number;
     idleMinutes: number;
     unread: boolean;
+    parentConversationId?: string;
+    agentRole?: string;
+    isSubagent?: boolean;
+    isOrphanSubagent?: boolean;
   }>;
 }
 
@@ -167,6 +173,21 @@ export const RadarPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
               {board?.counts.completed ?? 0}
             </div>
           </div>
+          <div className="nov-p-stat">
+            <div className="nov-p-stat-label">{dict.radar.subagents}</div>
+            <div className="nov-p-stat-val">{board?.counts.subagents ?? 0}</div>
+          </div>
+          <div className="nov-p-stat">
+            <div className="nov-p-stat-label">{dict.radar.orphanSubagents}</div>
+            <div
+              className="nov-p-stat-val"
+              style={{
+                color: (board?.counts.orphanSubagents ?? 0) > 0 ? 'var(--nov-danger)' : undefined,
+              }}
+            >
+              {board?.counts.orphanSubagents ?? 0}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -178,12 +199,21 @@ export const RadarPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNo
             {board.sessions.map((s) => (
               <div key={s.conversationId} className="nov-p-item">
                 <div className="nov-p-row">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span className={statusBadgeClass(s.status)}>{statusLabel(s.status)}</span>
                     <strong>{s.workspaceName}</strong>
                     <span style={{ fontSize: '11.5px', color: 'var(--nov-text-2)' }}>
                       {s.conversationId}
                     </span>
+                    {s.isSubagent && (
+                      <span className="nov-badge is-accent">
+                        {dict.radar.subagents}
+                        {s.agentRole ? `: ${s.agentRole}` : ''}
+                      </span>
+                    )}
+                    {s.isOrphanSubagent && (
+                      <span className="nov-badge is-network">{dict.radar.orphanSubagents}</span>
+                    )}
                     {s.unread && <span className="nov-badge is-network">{dict.radar.unread}</span>}
                   </div>
                   {s.unread && (

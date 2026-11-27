@@ -67,7 +67,7 @@ export function registerOpsModule(
           tags: ['release', 'checklist', 'demo'],
           body: '请核对 {{version}} 发布前的门禁清单：确认 UI 包体积小于 {{max_mb}} MiB，全部单元测试通过，并检查 {{module_scope}} 的默认关闭边界。',
           variables: [
-            { name: 'version', defaultValue: 'v0.2.0' },
+            { name: 'version', defaultValue: 'v0.3.0' },
             { name: 'max_mb', defaultValue: '10' },
             { name: 'module_scope', defaultValue: 'opt-in remote' },
           ],

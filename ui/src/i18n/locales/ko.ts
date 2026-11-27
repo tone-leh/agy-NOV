@@ -64,19 +64,19 @@ export const KO_DICT: UiDictionary = {
       description: 'Review + Guard + X-Ray — 100% 오프라인 핵심 3종 세트 (모델 도구 12개).',
     },
     power: {
-      label: '파워 개발 (오프라인 6)',
+      label: '파워 개발 (오프라인 8)',
       description:
-        '코어 + Turbo + Radar + Ops — 네트워크 사용 없이 빠르게 작업하는 일상 세트 (모델 도구 20개).',
+        '코어 + Turbo + Radar + Verify + Worktree + Ops — 강력한 검증 게이트를 갖춘 무네트워크 고속 개발 세트 (모델 도구 28개).',
     },
     'local-all': {
-      label: '로컬 전체 (오프라인 8)',
+      label: '로컬 전체 (오프라인 10)',
       description:
-        '로컬 전용 네이티브 모듈 8개 모두 활성화. Remote는 완전 비활성·포트 미개방 유지 (모델 도구 27개).',
+        '로컬 전용 네이티브 모듈 10개 모두 활성화. Remote는 완전 비활성·포트 미개방 유지 (모델 도구 35개).',
     },
     full: {
-      label: '전체 스위트 (총 9개)',
+      label: '전체 스위트 (총 11개)',
       description:
-        '선택적 모바일 PWA 및 IM 원격 승인 허브를 포함한 9개 네이티브 모듈 전체 활성화 (모델 도구 31개).',
+        '선택적 모바일 PWA 및 IM 원격 승인 허브를 포함한 11개 네이티브 모듈 전체 활성화 (모델 도구 39개).',
     },
     minimal: {
       label: '최소 방패',
@@ -116,9 +116,23 @@ export const KO_DICT: UiDictionary = {
     radar: {
       name: '세션 레이더 및 알림음',
       shortLabel: 'Radar',
-      tagline: '다중 세션 상태 보드, 정지 감지 및 완료 알림',
+      tagline: '다중 세션 상태 보드, Swarm 서브에이전트 감시 및 완료 알림',
       description:
-        '가벼운 라이프사이클 Hook으로 병렬 대화의 실행 중, 승인 대기, 완료, 정지 상태를 추적하고 선택형 데스크톱 알림과 차임음을 제공합니다.',
+        '가벼운 라이프사이클 Hook으로 병렬 대화와 Swarm 서브에이전트의 실행 중·승인 대기·완료·정지 상태를 추적하고 고아 알림과 차임음을 제공합니다.',
+    },
+    verify: {
+      name: '검증 게이트',
+      shortLabel: 'Verify',
+      tagline: '검증 없는 완료 선언을 차단하는 Stop Hook 품질 게이트',
+      description:
+        'Stop Hook에서 허용 목록 테스트·타입검사·린트의 실제 종료 코드와 빈 파일 쓰기를 검증하며(continuation_active 및 루프 제한 준수) 마스킹된 증적 체인을 기록합니다.',
+    },
+    worktree: {
+      name: 'Worktree 오케스트레이터',
+      shortLabel: 'Worktree',
+      tagline: '안전한 병렬 Git Worktree, 브랜치 Diff 미리보기 및 고아 정리',
+      description:
+        '미커밋 변경 사항 이전을 포함한 격리 Git Worktree를 생성하고 브랜치 Diff 요약을 확인하며 extensions.worktreeConfig 경고를 감지하고 병합·고아 트리를 안전하게 정리합니다.',
     },
     canvas: {
       name: '비주얼 캔버스',
@@ -207,6 +221,8 @@ export const KO_DICT: UiDictionary = {
       '추적된 활성 또는 최근 세션이 없습니다. Hook 이벤트가 발생하면 자동으로 표시됩니다.',
     lastTool: '최근 도구',
     steps: '단계',
+    subagents: '서브에이전트',
+    orphanSubagents: '고아 의심 서브에이전트',
   },
   ops: {
     title: '프롬프트 보관함 및 워크스페이스 진단',
@@ -277,6 +293,59 @@ export const KO_DICT: UiDictionary = {
       cacheHitRate: '캐시 적중률',
       freshTokens: '신규 토큰',
       cachedTokens: '캐시된 토큰',
+      swarmTitle: 'Swarm 서브에이전트 및 모델 분포',
+      subagents: '서브에이전트',
+      orphanSuspects: '고아 의심',
+      modelBreakdown: '모델별 사용량',
+    },
+    verify: {
+      title: '검증 게이트',
+      subtitle:
+        '에이전트 종료 전에 허용 목록 검증 명령과 빈 파일 보호를 강제하고 마스킹된 증적 체인을 남깁니다.',
+      tabGate: '게이트 정책 및 명령',
+      tabEvidence: '증적 체인',
+      enforceOnStop: '미검증 워크스페이스 변경 사항이 있으면 Stop Hook 차단',
+      autoRunOnStop: 'Stop Hook 시 활성화된 검증 명령 자동 실행',
+      blockEmptyWrites: '수정되거나 새로 생성된 파일이 비어 있으면 종료 차단',
+      maxBlocks: '연속 종료 차단 상한 (무한 루프 방지 가드)',
+      commandsTitle: '허용 목록 검증 명령',
+      addCommand: '명령 추가',
+      runChecks: '검증 실행',
+      clearHistory: '기록 비우기',
+      savePolicy: '정책 저장',
+      passed: '통과',
+      failed: '실패',
+      blocked: '차단된 종료',
+      emptyEvidence:
+        '기록된 검증 증적이 아직 없습니다. 위 버튼으로 실행하거나 Stop Hook 평가를 기다려 주세요.',
+      dirtyFiles: '미검증 변경 파일',
+      executablePlaceholder: '실행 파일 (예: npm, pnpm, node)',
+      argsPlaceholder: '공백으로 구분된 인자 (예: run typecheck)',
+      labelPlaceholder: '명령 라벨 (예: 타입 검사)',
+    },
+    worktree: {
+      title: 'Worktree 오케스트레이터',
+      subtitle:
+        '격리된 병렬 Git Worktree를 생성하고 브랜치 Diff 요약 확인 및 불필요한 트리를 안전하게 정리합니다.',
+      createTitle: '격리 Worktree 생성',
+      branchPlaceholder: '브랜치 이름 (예: feat/verify-gate)',
+      baseRefPlaceholder: '기준 Ref (선택, 예: main 또는 HEAD)',
+      carryUncommitted: '현재 미커밋 변경 사항을 새 Worktree로 함께 이전',
+      createBtn: 'Worktree 생성',
+      pruneBtn: '고아 항목 정리',
+      diffBtn: 'Diff 요약 보기',
+      removeBtn: '제거',
+      forceRemoveBtn: '강제 제거 (미커밋 변경 폐기)',
+      mainBadge: '메인',
+      dirtyBadge: '미커밋 있음',
+      mergedBadge: '병합됨',
+      prunableBadge: '정리 가능',
+      configWarning:
+        '경고: 이 저장소에 extensions.worktreeConfig가 활성화되어 있습니다. Worktree를 공유하기 전에 공용 Hook과 자격 증명 설정을 확인하세요.',
+      notGitRepo: '현재 워크스페이스는 Git 저장소가 아닙니다. Worktree 관리에는 Git이 필요합니다.',
+      emptyWorktrees: '이 워크스페이스에서 Git Worktree를 찾지 못했습니다.',
+      diffTitle: '브랜치 Diff 요약',
+      aheadBehind: '+{ahead} 앞섬 / -{behind} 뒤처짐',
     },
     canvas: {
       title: '비주얼 캔버스',

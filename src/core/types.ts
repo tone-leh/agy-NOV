@@ -9,6 +9,9 @@ export type HookEventName = 'SessionStart' | 'PreToolUse' | 'PostToolUse' | 'Sto
 export interface NormalizedHookPayload {
   event: HookEventName;
   conversationId?: string;
+  parentConversationId?: string;
+  agentRole?: string;
+  continuationActive?: boolean;
   workspacePaths: string[];
   workspaceRoot?: string;
   cwd?: string;

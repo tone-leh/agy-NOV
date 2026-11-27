@@ -3259,8 +3259,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path25) {
-      let input2 = path25;
+    function removeDotSegments(path28) {
+      let input2 = path28;
       const output2 = [];
       let nextSlash = -1;
       let len = 0;
@@ -3334,11 +3334,11 @@ var require_utils = __commonJS({
       }
       return output2.join("");
     }
-    function removeDotSegmentsRelative(path25) {
-      if (path25 === "" || path25[0] === "/") {
-        return removeDotSegments(path25);
+    function removeDotSegmentsRelative(path28) {
+      if (path28 === "" || path28[0] === "/") {
+        return removeDotSegments(path28);
       }
-      const segments = path25.split("/");
+      const segments = path28.split("/");
       const last = segments.length - 1;
       const output2 = [];
       let trailingDirectory = false;
@@ -3701,8 +3701,8 @@ var require_schemes = __commonJS({
       }
       if (wsComponent.resourceName) {
         const queryIndex = wsComponent.resourceName.indexOf("?");
-        const path25 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
-        wsComponent.path = path25 && path25 !== "/" ? path25 : void 0;
+        const path28 = queryIndex === -1 ? wsComponent.resourceName : wsComponent.resourceName.slice(0, queryIndex);
+        wsComponent.path = path28 && path28 !== "/" ? path28 : void 0;
         wsComponent.query = queryIndex === -1 ? void 0 : wsComponent.resourceName.slice(queryIndex + 1);
         wsComponent.resourceName = void 0;
       }
@@ -7239,12 +7239,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs19, exportName) {
+    function addFormats(ajv, list, fs21, exportName) {
       var _a3;
       var _b;
       (_a3 = (_b = ajv.opts.code).formats) !== null && _a3 !== void 0 ? _a3 : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs19[f]);
+        ajv.addFormat(f, fs21[f]);
     }
     module2.exports = exports2 = formatsPlugin;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -7261,8 +7261,8 @@ __export(index_exports, {
   createNovServer: () => createNovServer
 });
 module.exports = __toCommonJS(index_exports);
-var import_node_fs18 = __toESM(require("node:fs"), 1);
-var import_node_path24 = __toESM(require("node:path"), 1);
+var import_node_fs20 = __toESM(require("node:fs"), 1);
+var import_node_path27 = __toESM(require("node:path"), 1);
 
 // node_modules/zod/v3/helpers/util.js
 var util;
@@ -7638,8 +7638,8 @@ function getErrorMap() {
 
 // node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path25, errorMaps, issueData } = params;
-  const fullPath = [...path25, ...issueData.path || []];
+  const { data, path: path28, errorMaps, issueData } = params;
+  const fullPath = [...path28, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -7754,11 +7754,11 @@ var errorUtil;
 
 // node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path25, key) {
+  constructor(parent, value, path28, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path25;
+    this._path = path28;
     this._key = key;
   }
   get path() {
@@ -11714,10 +11714,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path25) {
-  if (!path25)
+function getElementAtPath(obj, path28) {
+  if (!path28)
     return obj;
-  return path25.reduce((acc, key) => acc?.[key], obj);
+  return path28.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -12057,11 +12057,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path25, issues) {
+function prefixIssues(path28, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path25);
+    iss.path.unshift(path28);
     return iss;
   });
 }
@@ -12523,16 +12523,16 @@ function flattenError(error62, mapper = (issue2) => issue2.message) {
 }
 function formatError(error62, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error63, path25 = []) => {
+  const processError = (error63, path28 = []) => {
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path25, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path28, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path25, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path28, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path25, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path28, ...issue2.path]);
       } else {
-        const fullpath = [...path25, ...issue2.path];
+        const fullpath = [...path28, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -12571,17 +12571,17 @@ function formatError(error62, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error62, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error63, path25 = []) => {
+  const processError = (error63, path28 = []) => {
     var _a3;
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path25, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path28, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path25, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path28, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path25, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path28, ...issue2.path]);
       } else {
-        const fullpath = [...path25, ...issue2.path];
+        const fullpath = [...path28, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -12620,8 +12620,8 @@ function treeifyError(error62, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path25 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path25) {
+  const path28 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path28) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -28172,11 +28172,11 @@ function normalizeObjectSchema(schema) {
   }
   return void 0;
 }
-function getDotPath(path25) {
-  if (path25.length === 0) {
+function getDotPath(path28) {
+  if (path28.length === 0) {
     return "object root";
   }
-  return path25.reduce((acc, seg, index) => {
+  return path28.reduce((acc, seg, index) => {
     if (index === 0) {
       return String(seg);
     }
@@ -30403,13 +30403,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path25 = ref.slice(1).split("/").filter(Boolean);
-  if (path25.length === 0) {
+  const path28 = ref.slice(1).split("/").filter(Boolean);
+  if (path28.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path25[0] === defsKey) {
-    const key = path25[1] === void 0 ? void 0 : decodeJSONPointerSegment(path25[1]);
+  if (path28[0] === defsKey) {
+    const key = path28[1] === void 0 ? void 0 : decodeJSONPointerSegment(path28[1]);
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -36676,6 +36676,8 @@ var MODULE_IDS = [
   "xray",
   "turbo",
   "radar",
+  "verify",
+  "worktree",
   "canvas",
   "mem",
   "ops",
@@ -36760,8 +36762,8 @@ var MODULE_CATALOG = {
     category: "observability",
     name: "Session Radar & Chime",
     shortLabel: "Radar",
-    tagline: "Multi-session attention board, stall detector & completion alerts",
-    description: "Track parallel conversations across Running, Awaiting Approval, Completed, and Stalled states via lifecycle hooks, with configurable desktop chime notifications.",
+    tagline: "Multi-session attention board, Swarm subagent monitor & completion alerts",
+    description: "Track parallel conversations and Swarm subagents across Running, Awaiting Approval, Completed, and Stalled states via lifecycle hooks, with orphan alerts and optional chime.",
     isolationTier: "offline",
     networkAccess: "offline",
     uiMode: "scroll",
@@ -36769,6 +36771,46 @@ var MODULE_CATALOG = {
     defaultEnabled: false,
     hooks: ["PreToolUse", "PostToolUse", "Stop"],
     modelToolNames: ["radar_get_board", "radar_ack_session"]
+  },
+  verify: {
+    id: "verify",
+    category: "safety",
+    name: "Verify Gate",
+    shortLabel: "Verify",
+    tagline: 'Stop-hook verification gate blocking unverified "done" claims',
+    description: "Enforce real test/typecheck/lint exit codes and non-empty file checks on Stop hooks (respecting continuation_active and loop guardrails), storing a redacted evidence chain per turn.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: ["PostToolUse", "Stop"],
+    modelToolNames: [
+      "verify_get_policy",
+      "verify_set_policy",
+      "verify_run_checks",
+      "verify_get_evidence"
+    ]
+  },
+  worktree: {
+    id: "worktree",
+    category: "core-dev",
+    name: "Worktree Orchestrator",
+    shortLabel: "Worktree",
+    tagline: "Safe parallel Git worktrees, branch diff previews & orphan cleanup",
+    description: "Create isolated Git worktrees with optional uncommitted-change carry-over, inspect branch diff summaries, flag extensions.worktreeConfig hazards, and safely prune merged or orphaned worktrees.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: [],
+    modelToolNames: [
+      "worktree_list",
+      "worktree_create",
+      "worktree_diff_summary",
+      "worktree_cleanup"
+    ]
   },
   canvas: {
     id: "canvas",
@@ -36862,22 +36904,53 @@ var PRESET_DEFINITIONS = {
   },
   power: {
     id: "power",
-    label: "Power Dev (6 Offline)",
-    description: "Core + Turbo + Radar + Ops \u2014 daily high-velocity offline suite with zero network usage (20 model tools).",
-    enabledModules: ["review", "guard", "xray", "turbo", "radar", "ops"],
-    modules: makeModulesMap(["review", "guard", "xray", "turbo", "radar", "ops"])
+    label: "Power Dev (8 Offline)",
+    description: "Core + Turbo + Radar + Verify + Worktree + Ops \u2014 high-velocity engineering suite with strong verification gates and zero network usage (28 model tools).",
+    enabledModules: ["review", "guard", "xray", "turbo", "radar", "verify", "worktree", "ops"],
+    modules: makeModulesMap([
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "ops"
+    ])
   },
   "local-all": {
     id: "local-all",
-    label: "Local All (8 Offline)",
-    description: "All 8 native offline modules enabled; Remote stays strictly off with zero ports (27 model tools).",
-    enabledModules: ["review", "guard", "xray", "turbo", "radar", "canvas", "mem", "ops"],
-    modules: makeModulesMap(["review", "guard", "xray", "turbo", "radar", "canvas", "mem", "ops"])
+    label: "Local All (10 Offline)",
+    description: "All 10 native offline modules enabled; Remote stays strictly off with zero ports (35 model tools).",
+    enabledModules: [
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "canvas",
+      "mem",
+      "ops"
+    ],
+    modules: makeModulesMap([
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "canvas",
+      "mem",
+      "ops"
+    ])
   },
   full: {
     id: "full",
-    label: "Full Suite (All 9)",
-    description: "All 9 native modules including the opt-in Mobile PWA & IM remote approval hub (31 model tools).",
+    label: "Full Suite (All 11)",
+    description: "All 11 native modules including the opt-in Mobile PWA & IM remote approval hub (39 model tools).",
     enabledModules: [...MODULE_IDS],
     modules: makeModulesMap(MODULE_IDS)
   },
@@ -41624,7 +41697,7 @@ function registerOpsModule(server, options, uiResourceUri) {
       tags: ["release", "checklist", "demo"],
       body: "\u8BF7\u6838\u5BF9 {{version}} \u53D1\u5E03\u524D\u7684\u95E8\u7981\u6E05\u5355\uFF1A\u786E\u8BA4 UI \u5305\u4F53\u79EF\u5C0F\u4E8E {{max_mb}} MiB\uFF0C\u5168\u90E8\u5355\u5143\u6D4B\u8BD5\u901A\u8FC7\uFF0C\u5E76\u68C0\u67E5 {{module_scope}} \u7684\u9ED8\u8BA4\u5173\u95ED\u8FB9\u754C\u3002",
       variables: [
-        { name: "version", defaultValue: "v0.2.0" },
+        { name: "version", defaultValue: "v0.3.0" },
         { name: "max_mb", defaultValue: "10" },
         { name: "module_scope", defaultValue: "opt-in remote" }
       ]
@@ -41913,6 +41986,26 @@ var STATUS_PRIORITY = {
 function getRadarBoardPath(moduleDataDir) {
   return import_node_path12.default.join(moduleDataDir, "board.json");
 }
+function getRadarStatusCapsulePath(moduleDataDir) {
+  return import_node_path12.default.join(moduleDataDir, "status-capsule.json");
+}
+function buildRadarStatusCapsule(view) {
+  const attention = view.sessions.find((s) => s.status === "awaiting_approval") ?? view.sessions.find((s) => s.status === "error") ?? view.sessions.find((s) => s.isOrphanSubagent) ?? view.sessions.find((s) => s.status === "stalled") ?? view.sessions.find((s) => s.unread);
+  const capsule = {
+    schemaVersion: 1,
+    updatedAt: view.updatedAt,
+    counts: { ...view.counts }
+  };
+  if (attention) {
+    capsule.latestAttention = {
+      conversationId: attention.conversationId,
+      status: attention.status,
+      workspaceName: attention.workspaceName,
+      ...attention.lastToolName ? { lastToolName: attention.lastToolName } : {}
+    };
+  }
+  return capsule;
+}
 function normalizeRadarPrefs(raw) {
   if (!raw || typeof raw !== "object") {
     return { ...DEFAULT_RADAR_PREFS };
@@ -41942,8 +42035,16 @@ function normalizeSessionRecord(id, raw) {
   const nowIso = (/* @__PURE__ */ new Date()).toISOString();
   const status = isStoredStatus(obj.status) ? obj.status : "running";
   const lastEvent = obj.lastEvent === "PreToolUse" || obj.lastEvent === "PostToolUse" || obj.lastEvent === "Stop" || obj.lastEvent === "manual" ? obj.lastEvent : "manual";
+  const conversationId = typeof obj.conversationId === "string" && obj.conversationId ? obj.conversationId : id;
+  const rawParentId = typeof obj.parentConversationId === "string" && obj.parentConversationId.trim() ? obj.parentConversationId.trim().slice(0, 120) : void 0;
+  const parentConversationId = rawParentId && rawParentId !== conversationId ? rawParentId : void 0;
+  const agentRole = typeof obj.agentRole === "string" ? cleanBriefText(obj.agentRole, 64) : void 0;
+  const isSubagent = typeof obj.isSubagent === "boolean" ? obj.isSubagent : parentConversationId ? true : void 0;
   return {
-    conversationId: typeof obj.conversationId === "string" && obj.conversationId ? obj.conversationId : id,
+    conversationId,
+    ...parentConversationId ? { parentConversationId } : {},
+    ...agentRole ? { agentRole } : {},
+    ...isSubagent !== void 0 ? { isSubagent } : {},
     status,
     workspaceName: typeof obj.workspaceName === "string" && obj.workspaceName ? obj.workspaceName : "workspace",
     workspaceRoot: typeof obj.workspaceRoot === "string" ? obj.workspaceRoot : void 0,
@@ -42000,6 +42101,8 @@ function saveRadarBoard(moduleDataDir, board) {
     updatedAt: (/* @__PURE__ */ new Date()).toISOString()
   };
   atomicWriteJson(getRadarBoardPath(moduleDataDir), next);
+  const capsule = buildRadarStatusCapsule(computeRadarBoardView(next, { mode: "live" }));
+  atomicWriteJson(getRadarStatusCapsulePath(moduleDataDir), capsule);
   return next;
 }
 function computeRadarBoardView(board, opts = {}) {
@@ -42012,21 +42115,37 @@ function computeRadarBoardView(board, opts = {}) {
     completed: 0,
     stalled: 0,
     error: 0,
-    unread: 0
+    unread: 0,
+    subagents: 0,
+    orphanSubagents: 0
   };
-  const allViews = Object.values(board.sessions).map((rec) => {
+  const sessionRecords = Object.values(board.sessions);
+  const effectiveStatusById = /* @__PURE__ */ new Map();
+  const idleMinutesById = /* @__PURE__ */ new Map();
+  for (const rec of sessionRecords) {
     const activeMs = Date.parse(rec.lastActiveAt);
     const idleMs = Number.isFinite(activeMs) ? Math.max(0, nowMs - activeMs) : 0;
     const idleMinutes = Number((idleMs / 6e4).toFixed(1));
     const effectiveStatus = rec.status === "running" && idleMs >= stallThresholdMs ? "stalled" : rec.status;
+    effectiveStatusById.set(rec.conversationId, effectiveStatus);
+    idleMinutesById.set(rec.conversationId, idleMinutes);
+  }
+  const allViews = sessionRecords.map((rec) => {
+    const effectiveStatus = effectiveStatusById.get(rec.conversationId) ?? rec.status;
+    const idleMinutes = idleMinutesById.get(rec.conversationId) ?? 0;
+    const parentStatus = rec.parentConversationId ? effectiveStatusById.get(rec.parentConversationId) : void 0;
+    const isOrphanSubagent = rec.isSubagent === true && (parentStatus === "completed" || parentStatus === "error") && (effectiveStatus === "running" || effectiveStatus === "stalled");
     counts.total += 1;
     counts[effectiveStatus] += 1;
     if (rec.unread) counts.unread += 1;
+    if (rec.isSubagent === true) counts.subagents += 1;
+    if (isOrphanSubagent) counts.orphanSubagents += 1;
     return {
       ...rec,
       status: effectiveStatus,
       rawStatus: rec.status,
-      idleMinutes
+      idleMinutes,
+      isOrphanSubagent
     };
   });
   allViews.sort((a, b) => {
@@ -42047,6 +42166,12 @@ function computeRadarBoardView(board, opts = {}) {
     sessions: filtered,
     updatedAt: board.updatedAt
   };
+}
+function cleanBriefText(raw, maxLen = 160) {
+  if (!raw) return void 0;
+  const cleaned = raw.replace(/[\r\n\t\x00-\x1f]+/g, " ").trim();
+  if (!cleaned) return void 0;
+  return cleaned.length > maxLen ? `${cleaned.slice(0, maxLen - 1)}\u2026` : cleaned;
 }
 function ackRadarSessionsInBoard(board, conversationId) {
   let acknowledgedCount = 0;
@@ -42151,13 +42276,16 @@ function createDemoRadarBoard(nowMs = Date.now()) {
       },
       "conv-dep-upgrade": {
         conversationId: "conv-dep-upgrade",
+        parentConversationId: "conv-unit-tests",
+        agentRole: "Scout",
+        isSubagent: true,
         status: "running",
         workspaceName: "docs-site",
         lastToolName: "run_command",
         lastEvent: "PreToolUse",
         stepCount: 5,
         unread: false,
-        summary: "Long-running build step appears unresponsive (>5 min idle)",
+        summary: "Background Scout subagent appears unresponsive (>5 min idle) after parent completed",
         startedAt: isoAgo(20),
         lastActiveAt: isoAgo(11.5)
       }
@@ -42206,11 +42334,18 @@ function registerRadarModule(server, options, uiResourceUri) {
     },
     async ({ statusFilter, onlyUnread }) => {
       const view = getBoardView({ statusFilter, onlyUnread });
+      const subagentSummary = view.counts.subagents > 0 || view.counts.orphanSubagents > 0 ? `, subagents=${view.counts.subagents}, orphan_subagents=${view.counts.orphanSubagents}` : "";
       const lines = [
-        `Session Radar (${view.mode}): total=${view.counts.total}, running=${view.counts.running}, awaiting_approval=${view.counts.awaiting_approval}, stalled=${view.counts.stalled}, completed=${view.counts.completed}, error=${view.counts.error}, unread=${view.counts.unread}`,
-        ...view.sessions.slice(0, 15).map(
-          (s) => `- [${s.status.toUpperCase()}${s.unread ? " \xB7 UNREAD" : ""}] ${s.conversationId} (${s.workspaceName}, tool=${s.lastToolName ?? "n/a"}, idle=${s.idleMinutes}m, steps=${s.stepCount})`
-        )
+        `Session Radar (${view.mode}): total=${view.counts.total}, running=${view.counts.running}, awaiting_approval=${view.counts.awaiting_approval}, stalled=${view.counts.stalled}, completed=${view.counts.completed}, error=${view.counts.error}, unread=${view.counts.unread}${subagentSummary}`,
+        ...view.sessions.slice(0, 15).map((s) => {
+          const badges = [
+            s.status.toUpperCase(),
+            ...s.unread ? ["UNREAD"] : [],
+            ...s.isSubagent ? [s.agentRole ? `SUBAGENT:${s.agentRole}` : "SUBAGENT"] : [],
+            ...s.isOrphanSubagent ? ["ORPHAN"] : []
+          ].join(" \xB7 ");
+          return `- [${badges}] ${s.conversationId} (${s.workspaceName}, tool=${s.lastToolName ?? "n/a"}, idle=${s.idleMinutes}m, steps=${s.stepCount})`;
+        })
       ];
       return {
         content: [{ type: "text", text: lines.join("\n") }],
@@ -47971,13 +48106,3202 @@ ${m.snippet}`).join("\n---\n")}` : `Chunk ${chunkId} not found in memory LRU.`
   };
 }
 
+// src/modules/verify/core.ts
+var import_node_child_process2 = require("node:child_process");
+var import_node_crypto12 = __toESM(require("node:crypto"), 1);
+var import_node_fs15 = __toESM(require("node:fs"), 1);
+var import_node_path20 = __toESM(require("node:path"), 1);
+var ALLOWED_VERIFY_EXECUTABLES = /* @__PURE__ */ new Set([
+  "npm",
+  "pnpm",
+  "yarn",
+  "bun",
+  "node",
+  "tsc",
+  "vitest",
+  "jest",
+  "pytest",
+  "python3",
+  "cargo",
+  "go",
+  "ruff",
+  "eslint",
+  "git"
+]);
+var ALLOWED_GIT_SUBCOMMANDS = /* @__PURE__ */ new Set([
+  "diff",
+  "status",
+  "rev-parse",
+  "check-ignore"
+]);
+var ALLOWED_PYTHON_MODULES = /* @__PURE__ */ new Set([
+  "pytest",
+  "unittest",
+  "mypy",
+  "ruff",
+  "compileall",
+  "py_compile"
+]);
+var ALLOWED_GO_SUBCOMMANDS = /* @__PURE__ */ new Set([
+  "test",
+  "vet",
+  "build",
+  "version"
+]);
+var ALLOWED_CARGO_SUBCOMMANDS = /* @__PURE__ */ new Set([
+  "test",
+  "check",
+  "clippy",
+  "fmt",
+  "--version",
+  "-V"
+]);
+var PACKAGE_MANAGER_EXECUTABLES = /* @__PURE__ */ new Set([
+  "npm",
+  "pnpm",
+  "yarn",
+  "bun"
+]);
+var LINTER_TESTER_EXECUTABLES = /* @__PURE__ */ new Set([
+  "tsc",
+  "vitest",
+  "jest",
+  "pytest",
+  "ruff",
+  "eslint"
+]);
+var SAFE_SCRIPT_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/;
+var FORBIDDEN_SCRIPT_NAMES = /* @__PURE__ */ new Set([
+  "exec",
+  "x",
+  "dlx",
+  "eval"
+]);
+var FORBIDDEN_PM_ARG_TOKENS = /* @__PURE__ */ new Set([
+  "exec",
+  "x",
+  "dlx",
+  "eval",
+  "install",
+  "i",
+  "add",
+  "config",
+  "publish",
+  "set"
+]);
+var FORBIDDEN_NODE_LONG_FLAGS = [
+  "--eval",
+  "--print",
+  "--require",
+  "--loader",
+  "--experimental-loader",
+  "--env-file",
+  "--env-file-if-exists",
+  "--inspect",
+  "--inspect-brk",
+  "--inspect-wait",
+  "--inspect-port",
+  "--debug-port",
+  "--interactive",
+  "--input-type",
+  "--experimental-config-file",
+  "--experimental-default-config-file",
+  "--openssl-config",
+  "--test-global-setup"
+];
+var ALLOWED_PM_PRE_DASH_FLAGS = /* @__PURE__ */ new Set([
+  "--silent",
+  "-s",
+  "--if-present",
+  "--no-color",
+  "--color",
+  "--quiet",
+  "-q"
+]);
+var FORBIDDEN_PM_LONG_FLAGS = /* @__PURE__ */ new Set([
+  "--call",
+  "--shell",
+  "--script-shell",
+  "--onload-script",
+  "--preload",
+  "--userconfig",
+  "--globalconfig",
+  "--node-options",
+  "--node-gyp",
+  "--init-module",
+  "--editor",
+  "--browser",
+  "--require",
+  "--import",
+  "--loader",
+  "--experimental-loader"
+]);
+var FORBIDDEN_NODE_SHORT_FLAGS = /* @__PURE__ */ new Set([
+  "-e",
+  "-p",
+  "-c",
+  "-r",
+  "-i"
+]);
+var MAX_VERIFY_COMMANDS = 20;
+var MAX_VERIFY_ARGS = 20;
+var MAX_VERIFY_ARG_LENGTH = 256;
+var MIN_COMMAND_TIMEOUT_MS = 1e3;
+var MAX_COMMAND_TIMEOUT_MS = 6e4;
+var DEFAULT_COMMAND_TIMEOUT_MS = 15e3;
+var MAX_CAPTURE_BYTES = 64 * 1024;
+var MAX_STORED_OUTPUT_TAIL_CHARS = 4096;
+var MAX_STORED_SESSIONS2 = 100;
+var MAX_STORED_EVIDENCE = 60;
+var DEFAULT_MAX_CONSECUTIVE_BLOCKS = 3;
+var MIN_CONSECUTIVE_BLOCKS = 1;
+var MAX_CONSECUTIVE_BLOCKS = 10;
+var COMMAND_ID_RE = /^[a-zA-Z0-9._-]{1,64}$/;
+var MAX_SYMLINK_DEPTH2 = 20;
+var DEFAULT_VERIFY_POLICY = {
+  enforceOnStop: true,
+  autoRunOnStop: true,
+  blockEmptyWrites: true,
+  maxConsecutiveBlocks: DEFAULT_MAX_CONSECUTIVE_BLOCKS,
+  commands: [
+    {
+      id: "typecheck",
+      label: "TypeScript Typecheck",
+      executable: "npm",
+      args: ["run", "typecheck"],
+      timeoutMs: 15e3,
+      enabled: false
+    },
+    {
+      id: "unit-tests",
+      label: "Unit Tests",
+      executable: "npm",
+      args: ["test"],
+      timeoutMs: 3e4,
+      enabled: false
+    }
+  ]
+};
+var SECRET_REDACTION_PATTERNS = [
+  // Full PEM / OpenSSH private key blocks
+  {
+    pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/g,
+    replacement: "[REDACTED_PRIVATE_KEY]"
+  },
+  // Truncated private key block starting with BEGIN PRIVATE KEY
+  {
+    pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*/g,
+    replacement: "[REDACTED_PRIVATE_KEY]"
+  },
+  // Bearer & JWT tokens
+  {
+    pattern: /\bBearer\s+[A-Za-z0-9\-._~+/]+=*/gi,
+    replacement: "Bearer [REDACTED]"
+  },
+  {
+    pattern: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g,
+    replacement: "[REDACTED_JWT]"
+  },
+  // Provider API keys & personal access tokens
+  {
+    pattern: /\b(?:sk-ant-[A-Za-z0-9_-]{12,}|sk-proj-[A-Za-z0-9_-]{12,}|sk_live_[A-Za-z0-9]{12,}|sk-[A-Za-z0-9_-]{12,}|ghp_[A-Za-z0-9]{16,}|gho_[A-Za-z0-9]{16,}|ghu_[A-Za-z0-9]{16,}|ghs_[A-Za-z0-9]{16,}|github_pat_[A-Za-z0-9_]{16,}|AIza[0-9A-Za-z_-]{24,}|xox[baprs]-[A-Za-z0-9-]{10,}|(?:AKIA|ASIA)[0-9A-Z]{16})\b/g,
+    replacement: "[REDACTED_KEY]"
+  },
+  // Generic secret/token/password assignments
+  {
+    pattern: /(["']?(?:api[_-]?key|secret[_-]?key|access[_-]?token|private[_-]?token|auth[_-]?token|secret|password|passwd|authorization)["']?\s*[:=]\s*["']?)([^\s"',;}{]{8,})(["']?)/gi,
+    replacement: "$1[REDACTED]$3"
+  }
+];
+function redactVerifyOutput(input2) {
+  if (!input2) return "";
+  let out = input2;
+  for (const { pattern, replacement } of SECRET_REDACTION_PATTERNS) {
+    out = out.replace(pattern, replacement);
+  }
+  return out;
+}
+function getVerifyStatePath(moduleDataDir) {
+  return import_node_path20.default.join(moduleDataDir, "state.json");
+}
+function clampCommandTimeout(raw) {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) {
+    return DEFAULT_COMMAND_TIMEOUT_MS;
+  }
+  return Math.max(MIN_COMMAND_TIMEOUT_MS, Math.min(MAX_COMMAND_TIMEOUT_MS, Math.round(raw)));
+}
+function clampMaxConsecutiveBlocks(raw) {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) {
+    return DEFAULT_MAX_CONSECUTIVE_BLOCKS;
+  }
+  return Math.max(MIN_CONSECUTIVE_BLOCKS, Math.min(MAX_CONSECUTIVE_BLOCKS, Math.round(raw)));
+}
+function isForbiddenInterpreterArg(arg) {
+  const lower = arg.toLowerCase();
+  if (arg === "-e" || lower === "--eval" || lower.startsWith("--eval=") || arg === "-c" || arg === "-p" || lower === "--print" || lower.startsWith("--print=")) {
+    return true;
+  }
+  if (arg.startsWith("-") && !arg.startsWith("--") && arg.length > 1) {
+    if (/^-[ecp]/.test(arg)) {
+      return true;
+    }
+    if (/^-[A-Za-z]+$/.test(arg) && /[ecp]/.test(arg.slice(1))) {
+      return true;
+    }
+  }
+  return false;
+}
+function hasAbsolutePathPrefix(value, includeTilde = false) {
+  if (!value) return false;
+  if (value.startsWith("/") || value.startsWith("\\") || /^[A-Za-z]:/.test(value)) {
+    return true;
+  }
+  if (includeTilde && value.startsWith("~")) {
+    return true;
+  }
+  return false;
+}
+function hasParentTraversalSegment(value) {
+  if (!value) return false;
+  return value.split(/[/\\]/).some((seg) => seg === "..");
+}
+function hasPathTraversalOrAbsolute(arg, includeTilde = true) {
+  if (hasAbsolutePathPrefix(arg, includeTilde) || hasParentTraversalSegment(arg)) {
+    return true;
+  }
+  const eqIdx = arg.indexOf("=");
+  if (eqIdx > 0) {
+    const rhs = arg.slice(eqIdx + 1);
+    if (hasAbsolutePathPrefix(rhs, includeTilde) || hasParentTraversalSegment(rhs)) {
+      return true;
+    }
+  }
+  return false;
+}
+function validatePackageManagerArgs(id, executable, args) {
+  if (args.length === 0) {
+    return `Command "${id}" ${executable} requires an allowed subcommand (test, run <script>, --version, or -v).`;
+  }
+  if (executable === "bun") {
+    for (const arg of args) {
+      if (isForbiddenInterpreterArg(arg)) {
+        return `Command "${id}" uses forbidden bun inline-execution flag "${arg}".`;
+      }
+    }
+  }
+  const sub = args[0];
+  let restArgs;
+  if (sub === "--version" || sub === "-v") {
+    if (args.length !== 1) {
+      return `Command "${id}" ${executable} ${sub} does not accept additional arguments.`;
+    }
+    return null;
+  } else if (sub === "test") {
+    restArgs = args.slice(1);
+  } else if (sub === "run") {
+    const scriptName = args[1];
+    if (!scriptName || !SAFE_SCRIPT_NAME_RE.test(scriptName)) {
+      return `Command "${id}" ${executable} run requires a safe script name matching ${SAFE_SCRIPT_NAME_RE.source}.`;
+    }
+    if (FORBIDDEN_SCRIPT_NAMES.has(scriptName.toLowerCase())) {
+      return `Command "${id}" ${executable} run script name "${scriptName}" is forbidden.`;
+    }
+    restArgs = args.slice(2);
+  } else {
+    return `Command "${id}" ${executable} subcommand "${sub}" is not allowed (permitted: test, run <script>, --version, -v).`;
+  }
+  let afterDoubleDash = false;
+  for (const arg of restArgs) {
+    if (arg === "--") {
+      afterDoubleDash = true;
+      continue;
+    }
+    const lower = arg.toLowerCase();
+    const eqIdx = arg.indexOf("=");
+    const normalizedFlag = (eqIdx >= 0 ? lower.slice(0, eqIdx) : lower).replace(/_/g, "-");
+    const rhsLower = eqIdx >= 0 ? lower.slice(eqIdx + 1) : "";
+    if (FORBIDDEN_PM_ARG_TOKENS.has(lower)) {
+      return `Command "${id}" uses forbidden ${executable} argument "${arg}".`;
+    }
+    if (isForbiddenInterpreterArg(arg)) {
+      return `Command "${id}" uses forbidden ${executable} flag "${arg}".`;
+    }
+    if (lower.includes("data:") || lower.includes("file:") || rhsLower.startsWith("data:") || rhsLower.startsWith("file:")) {
+      return `Command "${id}" uses disallowed URL scheme in ${executable} argument "${arg}".`;
+    }
+    if (FORBIDDEN_PM_LONG_FLAGS.has(normalizedFlag) || executable === "bun" && arg === "-r") {
+      return `Command "${id}" uses disallowed ${executable} option "${arg}".`;
+    }
+    if (!afterDoubleDash && arg.startsWith("-") && !ALLOWED_PM_PRE_DASH_FLAGS.has(normalizedFlag)) {
+      return `Command "${id}" uses disallowed ${executable} option "${arg}" before "--".`;
+    }
+    if (hasPathTraversalOrAbsolute(arg, true)) {
+      return `Command "${id}" ${executable} argument "${arg}" contains a disallowed absolute or parent-traversal path.`;
+    }
+  }
+  return null;
+}
+function validateNodeArgs(id, args) {
+  if (args.length === 0) {
+    return `Command "${id}" node requires explicit arguments (interactive REPL is disallowed).`;
+  }
+  if (args[0]?.toLowerCase() === "inspect") {
+    return `Command "${id}" node inspect subcommand is disallowed.`;
+  }
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    const lower = arg.toLowerCase();
+    if (arg === "-") {
+      return `Command "${id}" node stdin execution "-" is disallowed.`;
+    }
+    if (isForbiddenInterpreterArg(arg)) {
+      return `Command "${id}" uses forbidden node inline-execution flag "${arg}".`;
+    }
+    if (lower === "--import") {
+      const nextArg = args[i + 1];
+      if (arg !== "--import" || nextArg !== "tsx") {
+        return `Command "${id}" node --import is restricted strictly to "--import tsx" or "--import=tsx".`;
+      }
+      i += 1;
+      continue;
+    }
+    if (lower.startsWith("--import=")) {
+      if (arg !== "--import=tsx") {
+        return `Command "${id}" node --import is restricted strictly to "--import tsx" or "--import=tsx".`;
+      }
+      continue;
+    }
+    if (arg.startsWith("--")) {
+      const eqIdx = arg.indexOf("=");
+      const rawFlag = (eqIdx >= 0 ? lower.slice(0, eqIdx) : lower).replace(/_/g, "-");
+      if (FORBIDDEN_NODE_LONG_FLAGS.includes(rawFlag)) {
+        return `Command "${id}" uses forbidden node option "${arg}".`;
+      }
+      if (eqIdx > 0) {
+        const rhs = arg.slice(eqIdx + 1);
+        const rhsLower = rhs.toLowerCase();
+        if (rhsLower.startsWith("data:") || rhsLower.startsWith("file:") || hasAbsolutePathPrefix(rhs, true) || hasParentTraversalSegment(rhs)) {
+          return `Command "${id}" node option "${arg}" contains a disallowed URL, absolute path, or parent traversal.`;
+        }
+      }
+      continue;
+    }
+    if (arg.startsWith("-") && !arg.startsWith("--") && arg.length > 1) {
+      if (arg.length > 2) {
+        return `Command "${id}" uses disallowed bundled or compact node short flag "${arg}".`;
+      }
+      if (FORBIDDEN_NODE_SHORT_FLAGS.has(arg)) {
+        return `Command "${id}" uses forbidden node short flag "${arg}".`;
+      }
+      continue;
+    }
+    if (lower.startsWith("data:") || lower.startsWith("file:") || hasAbsolutePathPrefix(arg, true) || hasParentTraversalSegment(arg)) {
+      return `Command "${id}" node positional argument "${arg}" must be a relative path inside the workspace without ".." segments.`;
+    }
+  }
+  return null;
+}
+function validatePythonArgs(id, args) {
+  if (args.length === 0) {
+    return `Command "${id}" python3 requires explicit arguments (--version, -V, or -m <allowed_module>).`;
+  }
+  const first = args[0];
+  if (first === "--version" || first === "-V") {
+    if (args.length !== 1) {
+      return `Command "${id}" python3 ${first} does not accept additional arguments.`;
+    }
+    return null;
+  }
+  if (first !== "-m") {
+    return `Command "${id}" python3 only permits "--version", "-V", or "-m <module>" (disallowed leading arg "${first}").`;
+  }
+  const modName = args[1];
+  if (!modName || !ALLOWED_PYTHON_MODULES.has(modName)) {
+    return `Command "${id}" python3 module "${modName ?? ""}" is not in the allowlist (${[...ALLOWED_PYTHON_MODULES].join(", ")}).`;
+  }
+  for (const arg of args.slice(2)) {
+    const lower = arg.toLowerCase();
+    if (arg === "-" || arg === "-i" || isForbiddenInterpreterArg(arg)) {
+      return `Command "${id}" uses forbidden python3 argument "${arg}".`;
+    }
+    if (lower === "--eval" || lower.startsWith("--eval=")) {
+      return `Command "${id}" uses forbidden python3 option "${arg}".`;
+    }
+    if (hasPathTraversalOrAbsolute(arg, true)) {
+      return `Command "${id}" python3 argument "${arg}" contains a disallowed absolute or parent-traversal path.`;
+    }
+  }
+  return null;
+}
+function validateGoArgs(id, args) {
+  const sub = args[0];
+  if (!sub || !ALLOWED_GO_SUBCOMMANDS.has(sub)) {
+    return `Command "${id}" go subcommand "${sub ?? ""}" is not allowed (permitted: ${[...ALLOWED_GO_SUBCOMMANDS].join(", ")}).`;
+  }
+  for (const arg of args.slice(1)) {
+    const lower = arg.toLowerCase();
+    if (lower === "-exec" || lower.startsWith("-exec=") || lower === "--exec" || lower.startsWith("--exec=") || lower === "-toolexec" || lower.startsWith("-toolexec=") || lower === "--toolexec" || lower.startsWith("--toolexec=") || lower === "-vettool" || lower.startsWith("-vettool=") || lower === "--vettool" || lower.startsWith("--vettool=")) {
+      return `Command "${id}" uses forbidden go option "${arg}".`;
+    }
+    if (hasPathTraversalOrAbsolute(arg, true)) {
+      return `Command "${id}" go argument "${arg}" contains a disallowed absolute or parent-traversal path.`;
+    }
+  }
+  return null;
+}
+function validateCargoArgs(id, args) {
+  const sub = args[0];
+  if (!sub || !ALLOWED_CARGO_SUBCOMMANDS.has(sub)) {
+    return `Command "${id}" cargo subcommand "${sub ?? ""}" is not allowed (permitted: ${[...ALLOWED_CARGO_SUBCOMMANDS].join(", ")}).`;
+  }
+  if ((sub === "--version" || sub === "-V") && args.length !== 1) {
+    return `Command "${id}" cargo ${sub} does not accept additional arguments.`;
+  }
+  for (const arg of args.slice(1)) {
+    const lower = arg.toLowerCase();
+    if (lower === "--config" || lower.startsWith("--config=")) {
+      return `Command "${id}" uses forbidden cargo option "${arg}".`;
+    }
+    if (hasPathTraversalOrAbsolute(arg, true)) {
+      return `Command "${id}" cargo argument "${arg}" contains a disallowed absolute or parent-traversal path.`;
+    }
+  }
+  return null;
+}
+function validateGitArgs(id, args) {
+  const subcommand = args[0];
+  if (!subcommand || !ALLOWED_GIT_SUBCOMMANDS.has(subcommand)) {
+    return `Command "${id}" git subcommand "${subcommand ?? ""}" is not allowed (permitted read-only subcommands: ${[...ALLOWED_GIT_SUBCOMMANDS].join(", ")}).`;
+  }
+  for (const arg of args.slice(1)) {
+    const lower = arg.toLowerCase();
+    if (lower === "--output" || lower.startsWith("--output=") || lower === "--ext-diff" || lower === "--no-index" || lower === "--textconv" || lower === "--git-dir" || lower.startsWith("--git-dir=") || lower === "--work-tree" || lower.startsWith("--work-tree=")) {
+      return `Command "${id}" uses disallowed git option "${arg}".`;
+    }
+    if (arg.includes("..")) {
+      return `Command "${id}" git argument "${arg}" contains forbidden ".." sequence.`;
+    }
+    if (hasAbsolutePathPrefix(arg, true) || arg.includes(":/") || arg.includes(":\\") || /^:\([^)]*\)[/\\~]/.test(arg)) {
+      return `Command "${id}" git argument "${arg}" contains a disallowed absolute or home path.`;
+    }
+    const eqIdx = arg.indexOf("=");
+    if (eqIdx > 0) {
+      const rhs = arg.slice(eqIdx + 1);
+      if (hasAbsolutePathPrefix(rhs, true)) {
+        return `Command "${id}" git option "${arg}" contains a disallowed absolute or home path.`;
+      }
+    }
+  }
+  return null;
+}
+function validateLinterOrTesterArgs(id, executable, args) {
+  for (const arg of args) {
+    const lower = arg.toLowerCase();
+    if (lower === "--eval" || lower.startsWith("--eval=") || arg === "-c" || lower.startsWith("-c=")) {
+      return `Command "${id}" uses disallowed ${executable} option "${arg}".`;
+    }
+    if (hasPathTraversalOrAbsolute(arg, true)) {
+      return `Command "${id}" ${executable} argument "${arg}" contains a disallowed absolute or parent-traversal path.`;
+    }
+  }
+  return null;
+}
+function validateVerifyCommand(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { valid: false, error: "Command specification must be an object." };
+  }
+  const obj = raw;
+  if (typeof obj.id !== "string" || !COMMAND_ID_RE.test(obj.id.trim())) {
+    return {
+      valid: false,
+      error: "Command id must be 1..64 characters of [a-zA-Z0-9._-]."
+    };
+  }
+  const id = obj.id.trim();
+  if (typeof obj.label !== "string" || !obj.label.trim()) {
+    return { valid: false, error: `Command "${id}" must have a non-empty label.` };
+  }
+  const label = obj.label.replace(/[\x00-\x1f\x7f]+/g, " ").trim().slice(0, 120);
+  if (typeof obj.executable !== "string" || obj.executable.length === 0) {
+    return { valid: false, error: `Command "${id}" must specify an executable name.` };
+  }
+  const executable = obj.executable;
+  if (executable.includes("/") || executable.includes("\\") || executable.includes("..") || /[\s\x00-\x1f\x7f]/.test(executable)) {
+    return {
+      valid: false,
+      error: `Command "${id}" executable "${executable}" must be a bare command name without paths, whitespace, or control characters.`
+    };
+  }
+  if (!ALLOWED_VERIFY_EXECUTABLES.has(executable)) {
+    return {
+      valid: false,
+      error: `Command "${id}" executable "${executable}" is not in the verify allowlist.`
+    };
+  }
+  if (!Array.isArray(obj.args)) {
+    return { valid: false, error: `Command "${id}" args must be an array of strings.` };
+  }
+  if (obj.args.length > MAX_VERIFY_ARGS) {
+    return {
+      valid: false,
+      error: `Command "${id}" exceeds maximum argument count (${MAX_VERIFY_ARGS}).`
+    };
+  }
+  const args = [];
+  for (let i = 0; i < obj.args.length; i += 1) {
+    const arg = obj.args[i];
+    if (typeof arg !== "string") {
+      return { valid: false, error: `Command "${id}" arg[${i}] must be a string.` };
+    }
+    if (arg.length > MAX_VERIFY_ARG_LENGTH) {
+      return {
+        valid: false,
+        error: `Command "${id}" arg[${i}] exceeds maximum length (${MAX_VERIFY_ARG_LENGTH}).`
+      };
+    }
+    if (arg.includes("\0")) {
+      return {
+        valid: false,
+        error: `Command "${id}" arg[${i}] contains a forbidden NUL byte.`
+      };
+    }
+    args.push(arg);
+  }
+  let toolError = null;
+  if (PACKAGE_MANAGER_EXECUTABLES.has(executable)) {
+    toolError = validatePackageManagerArgs(id, executable, args);
+  } else if (executable === "node") {
+    toolError = validateNodeArgs(id, args);
+  } else if (executable === "python3") {
+    toolError = validatePythonArgs(id, args);
+  } else if (executable === "go") {
+    toolError = validateGoArgs(id, args);
+  } else if (executable === "cargo") {
+    toolError = validateCargoArgs(id, args);
+  } else if (executable === "git") {
+    toolError = validateGitArgs(id, args);
+  } else if (LINTER_TESTER_EXECUTABLES.has(executable)) {
+    toolError = validateLinterOrTesterArgs(id, executable, args);
+  } else {
+    toolError = `Command "${id}" executable "${executable}" has no registered argument validator.`;
+  }
+  if (toolError) {
+    return { valid: false, error: toolError };
+  }
+  const timeoutMs = clampCommandTimeout(obj.timeoutMs);
+  const enabled = typeof obj.enabled === "boolean" ? obj.enabled : true;
+  return {
+    valid: true,
+    command: {
+      id,
+      label,
+      executable,
+      args,
+      timeoutMs,
+      enabled
+    }
+  };
+}
+function validateAndBuildPolicy(current, patch) {
+  let nextCommands = current.commands.map((c) => ({ ...c, args: [...c.args] }));
+  if (patch.commands !== void 0) {
+    if (!Array.isArray(patch.commands)) {
+      return { valid: false, error: "Policy commands must be an array." };
+    }
+    if (patch.commands.length > MAX_VERIFY_COMMANDS) {
+      return {
+        valid: false,
+        error: `Policy exceeds maximum command count (${MAX_VERIFY_COMMANDS}).`
+      };
+    }
+    const seenIds = /* @__PURE__ */ new Set();
+    const validated = [];
+    for (const rawCmd of patch.commands) {
+      const check2 = validateVerifyCommand(rawCmd);
+      if (!check2.valid || !check2.command) {
+        return { valid: false, error: check2.error ?? "Invalid verify command." };
+      }
+      if (seenIds.has(check2.command.id)) {
+        return { valid: false, error: `Duplicate verify command id: "${check2.command.id}".` };
+      }
+      seenIds.add(check2.command.id);
+      validated.push(check2.command);
+    }
+    nextCommands = validated;
+  }
+  return {
+    valid: true,
+    policy: {
+      enforceOnStop: typeof patch.enforceOnStop === "boolean" ? patch.enforceOnStop : current.enforceOnStop,
+      autoRunOnStop: typeof patch.autoRunOnStop === "boolean" ? patch.autoRunOnStop : current.autoRunOnStop,
+      blockEmptyWrites: typeof patch.blockEmptyWrites === "boolean" ? patch.blockEmptyWrites : current.blockEmptyWrites,
+      maxConsecutiveBlocks: patch.maxConsecutiveBlocks !== void 0 ? clampMaxConsecutiveBlocks(patch.maxConsecutiveBlocks) : current.maxConsecutiveBlocks,
+      commands: nextCommands
+    }
+  };
+}
+function cloneDefaultPolicy() {
+  return {
+    ...DEFAULT_VERIFY_POLICY,
+    commands: DEFAULT_VERIFY_POLICY.commands.map((c) => ({ ...c, args: [...c.args] }))
+  };
+}
+function createDefaultVerifyState(nowIso = (/* @__PURE__ */ new Date()).toISOString()) {
+  return {
+    schemaVersion: 1,
+    policy: cloneDefaultPolicy(),
+    sessions: {},
+    evidence: [],
+    blockedStops: 0,
+    updatedAt: nowIso
+  };
+}
+function normalizePolicyFromDisk(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return cloneDefaultPolicy();
+  }
+  const obj = raw;
+  const commands = [];
+  if (Array.isArray(obj.commands)) {
+    const seen = /* @__PURE__ */ new Set();
+    for (const item of obj.commands.slice(0, MAX_VERIFY_COMMANDS)) {
+      const check2 = validateVerifyCommand(item);
+      if (check2.valid && check2.command && !seen.has(check2.command.id)) {
+        seen.add(check2.command.id);
+        commands.push(check2.command);
+      }
+    }
+  } else {
+    commands.push(...cloneDefaultPolicy().commands);
+  }
+  return {
+    enforceOnStop: typeof obj.enforceOnStop === "boolean" ? obj.enforceOnStop : DEFAULT_VERIFY_POLICY.enforceOnStop,
+    autoRunOnStop: typeof obj.autoRunOnStop === "boolean" ? obj.autoRunOnStop : DEFAULT_VERIFY_POLICY.autoRunOnStop,
+    blockEmptyWrites: typeof obj.blockEmptyWrites === "boolean" ? obj.blockEmptyWrites : DEFAULT_VERIFY_POLICY.blockEmptyWrites,
+    maxConsecutiveBlocks: clampMaxConsecutiveBlocks(obj.maxConsecutiveBlocks),
+    commands
+  };
+}
+function normalizeStringArray(raw, maxLen = 200) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const item of raw) {
+    if (typeof item === "string" && item.trim() && !seen.has(item)) {
+      seen.add(item);
+      out.push(item);
+      if (out.length >= maxLen) break;
+    }
+  }
+  return out;
+}
+function normalizeSessionFromDisk(id, raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw;
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const convId = typeof obj.conversationId === "string" && obj.conversationId.trim() ? obj.conversationId.trim().slice(0, 120) : id;
+  return {
+    conversationId: convId,
+    workspaceRoot: typeof obj.workspaceRoot === "string" ? obj.workspaceRoot : void 0,
+    dirtyFiles: normalizeStringArray(obj.dirtyFiles, 200),
+    emptyFiles: normalizeStringArray(obj.emptyFiles, 200),
+    lastEditAt: typeof obj.lastEditAt === "string" ? obj.lastEditAt : void 0,
+    lastVerifiedAt: typeof obj.lastVerifiedAt === "string" ? obj.lastVerifiedAt : void 0,
+    lastVerifiedPassed: typeof obj.lastVerifiedPassed === "boolean" ? obj.lastVerifiedPassed : void 0,
+    consecutiveBlocks: typeof obj.consecutiveBlocks === "number" && Number.isFinite(obj.consecutiveBlocks) ? Math.max(0, Math.floor(obj.consecutiveBlocks)) : 0,
+    totalBlocks: typeof obj.totalBlocks === "number" && Number.isFinite(obj.totalBlocks) ? Math.max(0, Math.floor(obj.totalBlocks)) : 0,
+    lastGuardrailReleaseAt: typeof obj.lastGuardrailReleaseAt === "string" ? obj.lastGuardrailReleaseAt : void 0,
+    updatedAt: typeof obj.updatedAt === "string" ? obj.updatedAt : nowIso
+  };
+}
+function normalizeCommandRunResultFromDisk(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw;
+  if (typeof obj.commandId !== "string" || typeof obj.executable !== "string") return null;
+  return {
+    commandId: obj.commandId,
+    label: typeof obj.label === "string" ? obj.label : obj.commandId,
+    executable: obj.executable,
+    args: Array.isArray(obj.args) ? obj.args.filter((a) => typeof a === "string") : [],
+    passed: Boolean(obj.passed),
+    exitCode: typeof obj.exitCode === "number" && Number.isFinite(obj.exitCode) ? obj.exitCode : null,
+    timedOut: Boolean(obj.timedOut),
+    durationMs: typeof obj.durationMs === "number" && Number.isFinite(obj.durationMs) ? Math.max(0, Math.round(obj.durationMs)) : 0,
+    outputTail: typeof obj.outputTail === "string" ? redactVerifyOutput(obj.outputTail) : "",
+    outputTruncated: Boolean(obj.outputTruncated),
+    error: typeof obj.error === "string" ? redactVerifyOutput(obj.error) : void 0
+  };
+}
+function normalizeEvidenceFromDisk(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw;
+  if (typeof obj.id !== "string" || typeof obj.timestamp !== "string") return null;
+  const trigger = obj.trigger === "manual" || obj.trigger === "stop-hook" || obj.trigger === "app-ui" ? obj.trigger : "manual";
+  const outcome = obj.outcome === "pass" || obj.outcome === "fail" || obj.outcome === "blocked" || obj.outcome === "guardrail-allow" ? obj.outcome : obj.passed ? "pass" : "fail";
+  const results = [];
+  if (Array.isArray(obj.results)) {
+    for (const r of obj.results) {
+      const norm = normalizeCommandRunResultFromDisk(r);
+      if (norm) results.push(norm);
+    }
+  }
+  return {
+    id: obj.id,
+    conversationId: typeof obj.conversationId === "string" ? obj.conversationId : "default-session",
+    trigger,
+    outcome,
+    passed: Boolean(obj.passed),
+    timestamp: obj.timestamp,
+    durationMs: typeof obj.durationMs === "number" && Number.isFinite(obj.durationMs) ? Math.max(0, Math.round(obj.durationMs)) : 0,
+    dirtyFiles: normalizeStringArray(obj.dirtyFiles, 200),
+    emptyFiles: normalizeStringArray(obj.emptyFiles, 200),
+    results,
+    summary: typeof obj.summary === "string" ? redactVerifyOutput(obj.summary) : "",
+    reason: typeof obj.reason === "string" ? redactVerifyOutput(obj.reason) : void 0
+  };
+}
+function loadVerifyStateReadOnly(moduleDataDir) {
+  const statePath = getVerifyStatePath(moduleDataDir);
+  if (!import_node_fs15.default.existsSync(statePath)) {
+    return createDefaultVerifyState();
+  }
+  try {
+    const raw = JSON.parse(import_node_fs15.default.readFileSync(statePath, "utf8"));
+    const policy = normalizePolicyFromDisk(raw.policy);
+    const sessions = {};
+    if (raw.sessions && typeof raw.sessions === "object" && !Array.isArray(raw.sessions)) {
+      for (const [id, rec] of Object.entries(raw.sessions)) {
+        const norm = normalizeSessionFromDisk(id, rec);
+        if (norm) sessions[norm.conversationId] = norm;
+      }
+    }
+    const evidence = [];
+    if (Array.isArray(raw.evidence)) {
+      for (const item of raw.evidence.slice(0, MAX_STORED_EVIDENCE)) {
+        const norm = normalizeEvidenceFromDisk(item);
+        if (norm) evidence.push(norm);
+      }
+    }
+    const blockedStops = typeof raw.blockedStops === "number" && Number.isFinite(raw.blockedStops) ? Math.max(0, Math.floor(raw.blockedStops)) : evidence.filter((e) => e.outcome === "blocked").length;
+    return {
+      schemaVersion: 1,
+      policy,
+      sessions,
+      evidence,
+      blockedStops,
+      updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : (/* @__PURE__ */ new Date()).toISOString()
+    };
+  } catch {
+    return createDefaultVerifyState();
+  }
+}
+function saveVerifyState(moduleDataDir, state) {
+  const sortedSessions = Object.values(state.sessions).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)).slice(0, MAX_STORED_SESSIONS2);
+  const prunedSessions = {};
+  for (const s of sortedSessions) {
+    prunedSessions[s.conversationId] = s;
+  }
+  const next = {
+    schemaVersion: 1,
+    policy: normalizePolicyFromDisk(state.policy),
+    sessions: prunedSessions,
+    evidence: state.evidence.slice(0, MAX_STORED_EVIDENCE),
+    blockedStops: Math.max(0, Math.floor(state.blockedStops)),
+    updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  atomicWriteJson(getVerifyStatePath(moduleDataDir), next);
+  return next;
+}
+function computeVerifyStats(state) {
+  let passedRuns = 0;
+  let failedRuns = 0;
+  let blockedInEvidence = 0;
+  for (const rec of state.evidence) {
+    if (rec.passed) passedRuns += 1;
+    else failedRuns += 1;
+    if (rec.outcome === "blocked") blockedInEvidence += 1;
+  }
+  return {
+    totalRuns: state.evidence.length,
+    passedRuns,
+    failedRuns,
+    blockedStops: Math.max(state.blockedStops, blockedInEvidence)
+  };
+}
+function buildVerifyStateView(state, mode = "live") {
+  const sessions = Object.values(state.sessions).map((s) => ({
+    ...s,
+    dirtyFiles: [...s.dirtyFiles],
+    emptyFiles: [...s.emptyFiles]
+  })).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+  return {
+    mode,
+    policy: {
+      ...state.policy,
+      commands: state.policy.commands.map((c) => ({ ...c, args: [...c.args] }))
+    },
+    sessions,
+    evidence: state.evidence.map((e) => ({
+      ...e,
+      dirtyFiles: [...e.dirtyFiles],
+      emptyFiles: [...e.emptyFiles],
+      results: e.results.map((r) => ({ ...r, args: [...r.args] }))
+    })),
+    stats: computeVerifyStats(state),
+    updatedAt: state.updatedAt
+  };
+}
+function resolveRealPathWithMissingTail2(inputPath, depth = 0) {
+  if (depth > MAX_SYMLINK_DEPTH2) {
+    throw new Error(`Too many levels of symbolic links: ${inputPath}`);
+  }
+  const resolved = import_node_path20.default.resolve(inputPath);
+  const missingSegments = [];
+  let current = resolved;
+  while (true) {
+    try {
+      const realBase = import_node_fs15.default.realpathSync(current);
+      return missingSegments.length > 0 ? import_node_path20.default.join(realBase, ...missingSegments.reverse()) : realBase;
+    } catch (err) {
+      const code = err?.code;
+      if (code !== "ENOENT" && code !== "ENOTDIR") {
+        throw err;
+      }
+      try {
+        const lstat = import_node_fs15.default.lstatSync(current);
+        if (lstat.isSymbolicLink()) {
+          const linkTarget = import_node_fs15.default.readlinkSync(current);
+          const resolvedLink = import_node_path20.default.resolve(import_node_path20.default.dirname(current), linkTarget);
+          const nextTarget = missingSegments.length > 0 ? import_node_path20.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
+          return resolveRealPathWithMissingTail2(nextTarget, depth + 1);
+        }
+      } catch {
+      }
+      const parent = import_node_path20.default.dirname(current);
+      if (parent === current) {
+        return resolved;
+      }
+      missingSegments.push(import_node_path20.default.basename(current));
+      current = parent;
+    }
+  }
+}
+function inspectWorkspaceFile(workspaceRoot, targetPath) {
+  if (!workspaceRoot || workspaceRoot.includes("\0") || !targetPath || targetPath.includes("\0")) {
+    return { inside: false };
+  }
+  try {
+    const realRoot = resolveRealPathWithMissingTail2(workspaceRoot);
+    const candidate = import_node_path20.default.isAbsolute(targetPath) ? targetPath : import_node_path20.default.resolve(workspaceRoot, targetPath);
+    const realTarget = resolveRealPathWithMissingTail2(candidate);
+    const rootPrefix = realRoot.endsWith(import_node_path20.default.sep) ? realRoot : `${realRoot}${import_node_path20.default.sep}`;
+    if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
+      return { inside: false };
+    }
+    if (realTarget === realRoot) {
+      return { inside: false };
+    }
+    const relPath = import_node_path20.default.relative(realRoot, realTarget).split(import_node_path20.default.sep).join("/");
+    if (!relPath || relPath === "." || relPath.startsWith("../")) {
+      return { inside: false };
+    }
+    let exists = false;
+    let isFile = false;
+    let isEmpty = false;
+    try {
+      const stat = import_node_fs15.default.statSync(realTarget);
+      exists = true;
+      isFile = stat.isFile();
+      isEmpty = isFile && stat.size === 0;
+    } catch {
+      exists = false;
+    }
+    return {
+      inside: true,
+      realRoot,
+      realTarget,
+      relPath,
+      exists,
+      isFile,
+      isEmpty
+    };
+  } catch {
+    return { inside: false };
+  }
+}
+function scanEmptyWorkspaceFiles(workspaceRoot, filePaths) {
+  if (!workspaceRoot) return [];
+  const empty = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const rel of filePaths) {
+    if (!rel || seen.has(rel)) continue;
+    seen.add(rel);
+    const check2 = inspectWorkspaceFile(workspaceRoot, rel);
+    if (check2.inside && check2.exists && check2.isFile && check2.isEmpty && check2.relPath) {
+      empty.push(check2.relPath);
+    }
+  }
+  return empty;
+}
+function truncateTailBytes(text, maxBytes) {
+  const buf = Buffer.from(text, "utf8");
+  if (buf.length <= maxBytes) {
+    return { text, truncated: false };
+  }
+  const sliced = buf.subarray(buf.length - maxBytes);
+  return { text: sliced.toString("utf8"), truncated: true };
+}
+function extractTailOutput(combinedRaw, alreadyTruncated = false) {
+  const capped = truncateTailBytes(combinedRaw, MAX_CAPTURE_BYTES);
+  const redacted = redactVerifyOutput(capped.text);
+  let outputTail = redacted;
+  let outputTruncated = alreadyTruncated || capped.truncated;
+  if (outputTail.length > MAX_STORED_OUTPUT_TAIL_CHARS) {
+    outputTail = outputTail.slice(outputTail.length - MAX_STORED_OUTPUT_TAIL_CHARS);
+    outputTruncated = true;
+  }
+  outputTail = redactVerifyOutput(outputTail).trim();
+  return { outputTail, outputTruncated };
+}
+function executeVerifyCommand(command, workspaceRoot, options = {}) {
+  const validation = validateVerifyCommand(command);
+  const startedAt = Date.now();
+  if (!validation.valid || !validation.command) {
+    return Promise.resolve({
+      commandId: command.id,
+      label: command.label,
+      executable: command.executable,
+      args: [...command.args],
+      passed: false,
+      exitCode: null,
+      timedOut: false,
+      durationMs: 0,
+      outputTail: "",
+      outputTruncated: false,
+      error: validation.error ?? "Command rejected by verify allowlist."
+    });
+  }
+  const safeCmd = validation.command;
+  const effectiveTimeoutMs = Math.max(
+    MIN_COMMAND_TIMEOUT_MS,
+    Math.min(
+      safeCmd.timeoutMs,
+      options.timeoutCapMs !== void 0 ? Math.max(MIN_COMMAND_TIMEOUT_MS, Math.floor(options.timeoutCapMs)) : MAX_COMMAND_TIMEOUT_MS
+    )
+  );
+  let resolvedCwd;
+  try {
+    resolvedCwd = import_node_fs15.default.realpathSync(import_node_path20.default.resolve(workspaceRoot));
+    if (!import_node_fs15.default.statSync(resolvedCwd).isDirectory()) {
+      throw new Error("Workspace root is not a directory.");
+    }
+  } catch (err) {
+    return Promise.resolve({
+      commandId: safeCmd.id,
+      label: safeCmd.label,
+      executable: safeCmd.executable,
+      args: [...safeCmd.args],
+      passed: false,
+      exitCode: null,
+      timedOut: false,
+      durationMs: Date.now() - startedAt,
+      outputTail: "",
+      outputTruncated: false,
+      error: redactVerifyOutput(err instanceof Error ? err.message : String(err))
+    });
+  }
+  return new Promise((resolve) => {
+    const isPosix = process.platform !== "win32";
+    let settled = false;
+    let timedOut = false;
+    let streamTruncated = false;
+    let bufferedBytes = 0;
+    const chunks = [];
+    let killTimer = null;
+    let hardKillTimer = null;
+    const cleanupTimers = () => {
+      if (killTimer) {
+        clearTimeout(killTimer);
+        killTimer = null;
+      }
+      if (hardKillTimer) {
+        clearTimeout(hardKillTimer);
+        hardKillTimer = null;
+      }
+    };
+    const pushChunk = (data) => {
+      const buf = Buffer.isBuffer(data) ? data : Buffer.from(data, "utf8");
+      if (buf.length === 0) return;
+      if (buf.length >= MAX_CAPTURE_BYTES) {
+        const tailCopy = Buffer.from(buf.subarray(buf.length - MAX_CAPTURE_BYTES));
+        chunks.length = 0;
+        chunks.push(tailCopy);
+        bufferedBytes = tailCopy.length;
+        streamTruncated = true;
+        return;
+      }
+      chunks.push(buf);
+      bufferedBytes += buf.length;
+      if (bufferedBytes > MAX_CAPTURE_BYTES * 2) {
+        const merged = Buffer.concat(chunks, bufferedBytes);
+        const tailCopy = Buffer.from(merged.subarray(merged.length - MAX_CAPTURE_BYTES));
+        chunks.length = 0;
+        chunks.push(tailCopy);
+        bufferedBytes = tailCopy.length;
+        streamTruncated = true;
+      }
+    };
+    const buildOutput = () => {
+      const merged = chunks.length > 0 ? Buffer.concat(chunks, bufferedBytes) : Buffer.alloc(0);
+      return extractTailOutput(merged.toString("utf8"), streamTruncated);
+    };
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      cleanupTimers();
+      resolve(result);
+    };
+    let child;
+    try {
+      child = (0, import_node_child_process2.spawn)(safeCmd.executable, safeCmd.args, {
+        cwd: resolvedCwd,
+        shell: false,
+        windowsHide: true,
+        stdio: ["ignore", "pipe", "pipe"],
+        detached: isPosix
+      });
+    } catch (err) {
+      finish({
+        commandId: safeCmd.id,
+        label: safeCmd.label,
+        executable: safeCmd.executable,
+        args: [...safeCmd.args],
+        passed: false,
+        exitCode: null,
+        timedOut: false,
+        durationMs: Date.now() - startedAt,
+        outputTail: "",
+        outputTruncated: false,
+        error: redactVerifyOutput(err instanceof Error ? err.message : String(err))
+      });
+      return;
+    }
+    const killProcessTree = (signal) => {
+      if (isPosix && typeof child.pid === "number" && child.pid > 0) {
+        try {
+          process.kill(-child.pid, signal);
+          return;
+        } catch {
+        }
+      }
+      try {
+        child.kill(signal);
+      } catch {
+      }
+    };
+    const destroyPipes = () => {
+      try {
+        child.stdout?.destroy();
+      } catch {
+      }
+      try {
+        child.stderr?.destroy();
+      } catch {
+      }
+    };
+    child.stdout?.on("data", pushChunk);
+    child.stderr?.on("data", pushChunk);
+    child.stdout?.on("error", () => {
+    });
+    child.stderr?.on("error", () => {
+    });
+    child.on("error", (err) => {
+      const durationMs = Date.now() - startedAt;
+      const { outputTail, outputTruncated } = buildOutput();
+      finish({
+        commandId: safeCmd.id,
+        label: safeCmd.label,
+        executable: safeCmd.executable,
+        args: [...safeCmd.args],
+        passed: false,
+        exitCode: null,
+        timedOut,
+        durationMs,
+        outputTail,
+        outputTruncated,
+        error: redactVerifyOutput(err instanceof Error ? err.message : String(err))
+      });
+    });
+    child.on("close", (code, signal) => {
+      const durationMs = Date.now() - startedAt;
+      const { outputTail, outputTruncated } = buildOutput();
+      const exitCode = typeof code === "number" ? code : null;
+      if (!timedOut && exitCode === 0) {
+        finish({
+          commandId: safeCmd.id,
+          label: safeCmd.label,
+          executable: safeCmd.executable,
+          args: [...safeCmd.args],
+          passed: true,
+          exitCode: 0,
+          timedOut: false,
+          durationMs,
+          outputTail,
+          outputTruncated
+        });
+        return;
+      }
+      const errMessage = timedOut ? `Command timed out after ${effectiveTimeoutMs}ms` : signal ? `Command terminated by signal ${signal}` : `Command exited with code ${exitCode ?? "unknown"}`;
+      finish({
+        commandId: safeCmd.id,
+        label: safeCmd.label,
+        executable: safeCmd.executable,
+        args: [...safeCmd.args],
+        passed: false,
+        exitCode,
+        timedOut,
+        durationMs,
+        outputTail,
+        outputTruncated,
+        error: errMessage
+      });
+    });
+    killTimer = setTimeout(() => {
+      if (settled) return;
+      timedOut = true;
+      killProcessTree("SIGTERM");
+      hardKillTimer = setTimeout(() => {
+        if (settled) return;
+        killProcessTree("SIGKILL");
+        destroyPipes();
+        try {
+          child.unref();
+        } catch {
+        }
+        const durationMs = Date.now() - startedAt;
+        const { outputTail, outputTruncated } = buildOutput();
+        finish({
+          commandId: safeCmd.id,
+          label: safeCmd.label,
+          executable: safeCmd.executable,
+          args: [...safeCmd.args],
+          passed: false,
+          exitCode: null,
+          timedOut: true,
+          durationMs,
+          outputTail,
+          outputTruncated,
+          error: `Command timed out after ${effectiveTimeoutMs}ms`
+        });
+      }, 300);
+      hardKillTimer.unref?.();
+    }, effectiveTimeoutMs);
+    killTimer.unref?.();
+  });
+}
+async function runVerifyCommands(commands, workspaceRoot, options = {}) {
+  const startedAt = Date.now();
+  const results = [];
+  const totalBudgetMs = options.totalBudgetMs;
+  for (const cmd of commands) {
+    let timeoutCapMs = options.singleTimeoutCapMs;
+    if (totalBudgetMs !== void 0) {
+      const elapsed = Date.now() - startedAt;
+      const remaining = totalBudgetMs - elapsed;
+      if (remaining < MIN_COMMAND_TIMEOUT_MS) {
+        results.push({
+          commandId: cmd.id,
+          label: cmd.label,
+          executable: cmd.executable,
+          args: [...cmd.args],
+          passed: false,
+          exitCode: null,
+          timedOut: true,
+          durationMs: 0,
+          outputTail: "",
+          outputTruncated: false,
+          error: `Skipped: total verification time budget (${totalBudgetMs}ms) exhausted.`
+        });
+        continue;
+      }
+      timeoutCapMs = timeoutCapMs !== void 0 ? Math.min(timeoutCapMs, remaining) : remaining;
+    }
+    const res = await executeVerifyCommand(cmd, workspaceRoot, { timeoutCapMs });
+    results.push(res);
+  }
+  return {
+    passed: results.every((r) => r.passed),
+    results,
+    durationMs: Date.now() - startedAt
+  };
+}
+function createEvidenceId(prefix = "ver") {
+  return `${prefix}-${Date.now().toString(36)}-${import_node_crypto12.default.randomBytes(3).toString("hex")}`;
+}
+function appendEvidenceToState(state, record2) {
+  state.evidence.unshift(record2);
+  if (state.evidence.length > MAX_STORED_EVIDENCE) {
+    state.evidence = state.evidence.slice(0, MAX_STORED_EVIDENCE);
+  }
+  state.updatedAt = record2.timestamp;
+}
+function updateVerifyPolicy(moduleDataDir, patch) {
+  const state = loadVerifyStateReadOnly(moduleDataDir);
+  const validated = validateAndBuildPolicy(state.policy, patch);
+  if (!validated.valid) {
+    return validated;
+  }
+  state.policy = validated.policy;
+  const saved = saveVerifyState(moduleDataDir, state);
+  return { valid: true, policy: saved.policy, state: saved };
+}
+function clearVerifyHistoryInState(state) {
+  const cleared = state.evidence.length + Object.keys(state.sessions).length;
+  state.evidence = [];
+  state.sessions = {};
+  state.blockedStops = 0;
+  state.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+  return cleared;
+}
+function clearVerifyHistory(moduleDataDir) {
+  const statePath = getVerifyStatePath(moduleDataDir);
+  const state = loadVerifyStateReadOnly(moduleDataDir);
+  const cleared = clearVerifyHistoryInState(state);
+  if (cleared === 0 && !import_node_fs15.default.existsSync(statePath)) {
+    return { cleared: 0, state };
+  }
+  const saved = saveVerifyState(moduleDataDir, state);
+  return { cleared, state: saved };
+}
+async function runVerifyChecksLive(moduleDataDir, workspaceRoot, options = {}) {
+  const initialState = loadVerifyStateReadOnly(moduleDataDir);
+  let targetCommands;
+  if (options.commandId) {
+    const match = initialState.policy.commands.find((c) => c.id === options.commandId);
+    if (!match) {
+      return { ok: false, error: `Verify command not found: "${options.commandId}".` };
+    }
+    targetCommands = [match];
+  } else {
+    targetCommands = initialState.policy.commands.filter((c) => c.enabled);
+  }
+  const initialLastEditAt = /* @__PURE__ */ new Map();
+  for (const [id, sess] of Object.entries(initialState.sessions)) {
+    initialLastEditAt.set(id, sess.lastEditAt);
+  }
+  const runOut = await runVerifyCommands(targetCommands, workspaceRoot);
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const convId = options.conversationId?.trim() || "manual";
+  const state = loadVerifyStateReadOnly(moduleDataDir);
+  let realWorkspace;
+  try {
+    realWorkspace = resolveRealPathWithMissingTail2(workspaceRoot);
+  } catch {
+    realWorkspace = void 0;
+  }
+  const targetSessions = [];
+  if (options.conversationId && state.sessions[convId]) {
+    targetSessions.push(state.sessions[convId]);
+  } else if (!options.commandId) {
+    for (const s of Object.values(state.sessions)) {
+      if (s.dirtyFiles.length === 0 && s.emptyFiles.length === 0) continue;
+      if (!s.workspaceRoot || !realWorkspace) {
+        targetSessions.push(s);
+      } else {
+        try {
+          if (resolveRealPathWithMissingTail2(s.workspaceRoot) === realWorkspace) {
+            targetSessions.push(s);
+          }
+        } catch {
+        }
+      }
+    }
+  }
+  const dirtyFilesSet = /* @__PURE__ */ new Set();
+  const emptyFilesSet = /* @__PURE__ */ new Set();
+  for (const s of targetSessions) {
+    const curEmpty = scanEmptyWorkspaceFiles(s.workspaceRoot ?? workspaceRoot, [
+      ...s.dirtyFiles,
+      ...s.emptyFiles
+    ]);
+    s.emptyFiles = curEmpty;
+    for (const f of s.dirtyFiles) dirtyFilesSet.add(f);
+    for (const f of curEmpty) emptyFilesSet.add(f);
+    const editedDuringRun = !initialLastEditAt.has(s.conversationId) || initialLastEditAt.get(s.conversationId) !== s.lastEditAt;
+    if (!options.commandId && !editedDuringRun) {
+      const lastEditMs = s.lastEditAt ? Date.parse(s.lastEditAt) : Number.NaN;
+      const verifiedTs = Number.isFinite(lastEditMs) && Date.parse(nowIso) <= lastEditMs ? new Date(lastEditMs + 1).toISOString() : nowIso;
+      s.lastVerifiedAt = verifiedTs;
+      s.lastVerifiedPassed = runOut.passed && curEmpty.length === 0;
+      if (s.lastVerifiedPassed) {
+        s.consecutiveBlocks = 0;
+      }
+      s.updatedAt = verifiedTs;
+    }
+  }
+  const passedCount = runOut.results.filter((r) => r.passed).length;
+  const summary = runOut.results.length === 0 ? "No enabled verification commands configured; check passed." : runOut.passed ? `All ${runOut.results.length} verification command(s) passed in ${runOut.durationMs}ms.` : `${runOut.results.length - passedCount}/${runOut.results.length} verification command(s) failed.`;
+  const record2 = {
+    id: createEvidenceId("ver"),
+    conversationId: convId,
+    trigger: options.trigger ?? "manual",
+    outcome: runOut.passed ? "pass" : "fail",
+    passed: runOut.passed,
+    timestamp: nowIso,
+    durationMs: runOut.durationMs,
+    dirtyFiles: [...dirtyFilesSet],
+    emptyFiles: [...emptyFilesSet],
+    results: runOut.results,
+    summary
+  };
+  appendEvidenceToState(state, record2);
+  const saved = saveVerifyState(moduleDataDir, state);
+  return { ok: true, run: record2, state: saved };
+}
+function createDemoVerifyState(nowMs = Date.now()) {
+  const isoAgo = (minutesAgo) => new Date(nowMs - minutesAgo * 6e4).toISOString();
+  return {
+    schemaVersion: 1,
+    policy: {
+      enforceOnStop: true,
+      autoRunOnStop: true,
+      blockEmptyWrites: true,
+      maxConsecutiveBlocks: 3,
+      commands: [
+        {
+          id: "typecheck",
+          label: "TypeScript Typecheck",
+          executable: "npm",
+          args: ["run", "typecheck"],
+          timeoutMs: 15e3,
+          enabled: true
+        },
+        {
+          id: "unit-tests",
+          label: "Offline Unit Tests",
+          executable: "npm",
+          args: ["test"],
+          timeoutMs: 3e4,
+          enabled: true
+        },
+        {
+          id: "git-status",
+          label: "Git Working Tree Check",
+          executable: "git",
+          args: ["status", "--short"],
+          timeoutMs: 5e3,
+          enabled: true
+        }
+      ]
+    },
+    sessions: {
+      "conv-verify-demo-1": {
+        conversationId: "conv-verify-demo-1",
+        workspaceRoot: "/demo/agy-NOV",
+        dirtyFiles: [],
+        emptyFiles: [],
+        lastEditAt: isoAgo(5),
+        lastVerifiedAt: isoAgo(2),
+        lastVerifiedPassed: true,
+        consecutiveBlocks: 0,
+        totalBlocks: 1,
+        updatedAt: isoAgo(2)
+      }
+    },
+    evidence: [
+      {
+        id: "ver-demo-3",
+        conversationId: "conv-verify-demo-1",
+        trigger: "stop-hook",
+        outcome: "pass",
+        passed: true,
+        timestamp: isoAgo(2),
+        durationMs: 1840,
+        dirtyFiles: ["src/modules/verify/core.ts", "src/modules/verify/hook.ts"],
+        emptyFiles: [],
+        results: [
+          {
+            commandId: "typecheck",
+            label: "TypeScript Typecheck",
+            executable: "npm",
+            args: ["run", "typecheck"],
+            passed: true,
+            exitCode: 0,
+            timedOut: false,
+            durationMs: 920,
+            outputTail: "tsc --noEmit completed with 0 errors.",
+            outputTruncated: false
+          },
+          {
+            commandId: "unit-tests",
+            label: "Offline Unit Tests",
+            executable: "npm",
+            args: ["test"],
+            passed: true,
+            exitCode: 0,
+            timedOut: false,
+            durationMs: 920,
+            outputTail: "pass 12 | fail 0 | duration 880ms",
+            outputTruncated: false
+          }
+        ],
+        summary: "All 2 verification command(s) passed after fix; stop allowed."
+      },
+      {
+        id: "ver-demo-2",
+        conversationId: "conv-verify-demo-1",
+        trigger: "stop-hook",
+        outcome: "blocked",
+        passed: false,
+        timestamp: isoAgo(6),
+        durationMs: 1120,
+        dirtyFiles: ["src/modules/verify/hook.ts"],
+        emptyFiles: [],
+        results: [
+          {
+            commandId: "typecheck",
+            label: "TypeScript Typecheck",
+            executable: "npm",
+            args: ["run", "typecheck"],
+            passed: false,
+            exitCode: 2,
+            timedOut: false,
+            durationMs: 1120,
+            outputTail: "src/modules/verify/hook.ts(42,14): error TS2322: Type 'string' is not assignable to type 'number'.",
+            outputTruncated: false,
+            error: "Command exited with code 2"
+          }
+        ],
+        summary: "1/1 verification command(s) failed; Stop blocked pending fix.",
+        reason: "[agy-NOV Verify Gate] Blocked stop: TypeScript Typecheck exited with code 2 (TS2322)."
+      },
+      {
+        id: "ver-demo-1",
+        conversationId: "conv-verify-demo-1",
+        trigger: "manual",
+        outcome: "pass",
+        passed: true,
+        timestamp: isoAgo(18),
+        durationMs: 760,
+        dirtyFiles: ["src/core/catalog.ts"],
+        emptyFiles: [],
+        results: [
+          {
+            commandId: "typecheck",
+            label: "TypeScript Typecheck",
+            executable: "npm",
+            args: ["run", "typecheck"],
+            passed: true,
+            exitCode: 0,
+            timedOut: false,
+            durationMs: 760,
+            outputTail: "tsc --noEmit completed cleanly.",
+            outputTruncated: false
+          }
+        ],
+        summary: "Baseline typecheck passed cleanly."
+      }
+    ],
+    blockedStops: 1,
+    updatedAt: new Date(nowMs).toISOString()
+  };
+}
+
+// src/modules/verify/register.ts
+function toHandle7(name, tool) {
+  return {
+    name,
+    enable: () => tool.enable(),
+    disable: () => tool.disable()
+  };
+}
+var VERIFY_COMMAND_INPUT_SCHEMA = external_exports.object({
+  id: external_exports.string().min(1).max(64),
+  label: external_exports.string().min(1).max(120),
+  executable: external_exports.string().min(1).max(64),
+  args: external_exports.array(external_exports.string()),
+  timeoutMs: external_exports.number().int().min(1e3).max(6e4).optional(),
+  enabled: external_exports.boolean().optional()
+});
+var POLICY_PATCH_INPUT_SCHEMA = {
+  enforceOnStop: external_exports.boolean().optional().describe("Enforce Verify Gate checks on Stop hooks"),
+  autoRunOnStop: external_exports.boolean().optional().describe("Automatically execute enabled verification commands during Stop hooks"),
+  blockEmptyWrites: external_exports.boolean().optional().describe("Block Stop when modified workspace files are 0 bytes"),
+  maxConsecutiveBlocks: external_exports.number().int().min(1).max(10).optional().describe("Anti-loop guardrail: max consecutive Stop blocks before safely allowing stop (1..10)"),
+  commands: external_exports.array(VERIFY_COMMAND_INPUT_SCHEMA).optional().describe(
+    `Ordered list of allowlisted verification commands (allowed executables: ${[...ALLOWED_VERIFY_EXECUTABLES].join(", ")})`
+  )
+};
+function runDemoChecksInMemory(demoState, opts) {
+  const targetCommands = opts.commandId ? demoState.policy.commands.filter((c) => c.id === opts.commandId) : demoState.policy.commands.filter((c) => c.enabled);
+  if (opts.commandId && targetCommands.length === 0) {
+    return { ok: false, error: `Verify command not found: "${opts.commandId}".` };
+  }
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const results = targetCommands.map((cmd, idx) => ({
+    commandId: cmd.id,
+    label: cmd.label,
+    executable: cmd.executable,
+    args: [...cmd.args],
+    passed: true,
+    exitCode: 0,
+    timedOut: false,
+    durationMs: 240 + idx * 110,
+    outputTail: `[demo] ${cmd.executable} ${cmd.args.join(" ")} exited with code 0`,
+    outputTruncated: false
+  }));
+  const durationMs = results.reduce((sum, item) => sum + item.durationMs, 0);
+  const run = {
+    id: createEvidenceId("ver-demo"),
+    conversationId: opts.conversationId?.trim() || "conv-verify-demo-1",
+    trigger: opts.trigger,
+    outcome: "pass",
+    passed: true,
+    timestamp: nowIso,
+    durationMs,
+    dirtyFiles: [],
+    emptyFiles: [],
+    results,
+    summary: results.length > 0 ? `[demo] All ${results.length} verification command(s) passed in ${durationMs}ms.` : "[demo] No enabled verification commands configured; check passed."
+  };
+  appendEvidenceToState(demoState, run);
+  return { ok: true, run };
+}
+function registerVerifyModule(server, options, uiResourceUri) {
+  const rootDataDir = resolveNovDataDir(options.dataDir);
+  const moduleDataDir = getModuleDataDir(rootDataDir, "verify");
+  const workspaceRoot = options.workspaceRoot;
+  const isDemo = options.demoMode === true;
+  const demoState = isDemo ? createDemoVerifyState() : null;
+  const APP_ONLY_META2 = {
+    ui: {
+      resourceUri: uiResourceUri,
+      visibility: ["app"]
+    }
+  };
+  const getCurrentStateFile = () => isDemo && demoState ? demoState : loadVerifyStateReadOnly(moduleDataDir);
+  const getStateView = () => buildVerifyStateView(getCurrentStateFile(), isDemo ? "demo" : "live");
+  const applyPolicyPatch = (patch) => {
+    if (isDemo && demoState) {
+      const checked = validateAndBuildPolicy(demoState.policy, patch);
+      if (!checked.valid) return checked;
+      demoState.policy = checked.policy;
+      demoState.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+      const view2 = getStateView();
+      return { valid: true, policy: view2.policy, state: view2 };
+    }
+    const updated = updateVerifyPolicy(moduleDataDir, patch);
+    if (!updated.valid) return updated;
+    const view = buildVerifyStateView(updated.state, "live");
+    return { valid: true, policy: view.policy, state: view };
+  };
+  const executeChecks = async (opts) => {
+    if (isDemo && demoState) {
+      const demoRes = runDemoChecksInMemory(demoState, opts);
+      if (!demoRes.ok) return demoRes;
+      return { ok: true, run: demoRes.run, state: getStateView() };
+    }
+    const liveRes = await runVerifyChecksLive(moduleDataDir, workspaceRoot, opts);
+    if (!liveRes.ok) return liveRes;
+    return {
+      ok: true,
+      run: liveRes.run,
+      state: buildVerifyStateView(liveRes.state, "live")
+    };
+  };
+  const modelTools = [];
+  const getPolicyTool = server.registerTool(
+    "verify_get_policy",
+    {
+      title: "Get Verify Gate Policy",
+      description: "Read the current Verify Gate stop-hook policy, allowlisted verification commands, loop guardrail limit, and summary stats.",
+      inputSchema: {}
+    },
+    async () => {
+      const view = getStateView();
+      const enabledCount = view.policy.commands.filter((c) => c.enabled).length;
+      const lines = [
+        `Verify Gate Policy (${view.mode}): enforceOnStop=${view.policy.enforceOnStop}, autoRunOnStop=${view.policy.autoRunOnStop}, blockEmptyWrites=${view.policy.blockEmptyWrites}, maxConsecutiveBlocks=${view.policy.maxConsecutiveBlocks}`,
+        `Commands (${enabledCount}/${view.policy.commands.length} enabled):`,
+        ...view.policy.commands.map(
+          (c) => `- [${c.enabled ? "ON" : "OFF"}] ${c.id} (${c.label}): ${c.executable} ${c.args.join(" ")} (timeout=${c.timeoutMs}ms)`
+        ),
+        `Stats: totalRuns=${view.stats.totalRuns}, passed=${view.stats.passedRuns}, failed=${view.stats.failedRuns}, blockedStops=${view.stats.blockedStops}`
+      ];
+      return {
+        content: [{ type: "text", text: lines.join("\n") }],
+        structuredContent: {
+          mode: view.mode,
+          policy: view.policy,
+          stats: view.stats,
+          allowedExecutables: [...ALLOWED_VERIFY_EXECUTABLES]
+        }
+      };
+    }
+  );
+  modelTools.push(toHandle7("verify_get_policy", getPolicyTool));
+  const setPolicyTool = server.registerTool(
+    "verify_set_policy",
+    {
+      title: "Update Verify Gate Policy",
+      description: "Update Verify Gate stop-hook enforcement settings and allowlisted verification commands (shell: false only; rejects non-allowlisted executables and inline eval flags).",
+      inputSchema: POLICY_PATCH_INPUT_SCHEMA
+    },
+    async (patch) => {
+      const res = applyPolicyPatch(patch);
+      if (!res.valid) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: `Invalid verify policy: ${res.error}` }]
+        };
+      }
+      const enabledCount = res.policy.commands.filter((c) => c.enabled).length;
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Updated Verify Gate policy: enforceOnStop=${res.policy.enforceOnStop}, autoRunOnStop=${res.policy.autoRunOnStop}, blockEmptyWrites=${res.policy.blockEmptyWrites}, maxConsecutiveBlocks=${res.policy.maxConsecutiveBlocks}, enabledCommands=${enabledCount}/${res.policy.commands.length}.`
+          }
+        ],
+        structuredContent: {
+          policy: res.policy,
+          state: res.state
+        }
+      };
+    }
+  );
+  modelTools.push(toHandle7("verify_set_policy", setPolicyTool));
+  const runChecksTool = server.registerTool(
+    "verify_run_checks",
+    {
+      title: "Run Verify Gate Checks",
+      description: "Execute configured allowlisted verification commands via execFile (shell: false), redact secrets from outputs, record evidence, and update session verification state.",
+      inputSchema: {
+        commandId: external_exports.string().min(1).optional().describe("Optional single command ID to execute; runs all enabled commands when omitted"),
+        conversationId: external_exports.string().min(1).optional().describe("Optional conversation ID whose dirty-file verification state should be updated")
+      }
+    },
+    async ({ commandId, conversationId }) => {
+      const res = await executeChecks({ commandId, conversationId, trigger: "manual" });
+      if (!res.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      const { run } = res;
+      const lines = [
+        `Verify Run ${run.id} [${run.outcome.toUpperCase()}]: ${run.summary}`,
+        ...run.results.map(
+          (r) => `- [${r.passed ? "PASS" : "FAIL"}] ${r.commandId} (${r.executable} ${r.args.join(" ")}) exit=${r.exitCode ?? (r.timedOut ? "TIMEOUT" : "ERR")} (${r.durationMs}ms)${r.outputTail ? `
+  ${r.outputTail.slice(0, 240)}` : ""}`
+        )
+      ];
+      return {
+        content: [{ type: "text", text: lines.join("\n") }],
+        structuredContent: {
+          run,
+          state: res.state
+        }
+      };
+    }
+  );
+  modelTools.push(toHandle7("verify_run_checks", runChecksTool));
+  const getEvidenceTool = server.registerTool(
+    "verify_get_evidence",
+    {
+      title: "Get Verification Evidence Chain",
+      description: "Read the redacted verification evidence history (PASS / FAIL / BLOCKED / GUARDRAIL-ALLOW) and active session verification status.",
+      inputSchema: {
+        conversationId: external_exports.string().min(1).optional().describe("Optional conversation ID filter"),
+        limit: external_exports.number().int().min(1).max(50).optional().describe("Maximum number of recent evidence entries to return (default 10)")
+      }
+    },
+    async ({ conversationId, limit }) => {
+      const view = getStateView();
+      const maxItems = limit ?? 10;
+      const filtered = conversationId ? view.evidence.filter((e) => e.conversationId === conversationId) : view.evidence;
+      const items = filtered.slice(0, maxItems);
+      const lines = [
+        `Verify Evidence (${view.mode}): showing ${items.length}/${filtered.length} record(s); blockedStops=${view.stats.blockedStops}`,
+        ...items.map(
+          (e) => `- [${e.outcome.toUpperCase()}] ${e.id} (${e.timestamp}, conv=${e.conversationId}, trigger=${e.trigger}, ${e.durationMs}ms): ${e.summary}`
+        )
+      ];
+      return {
+        content: [{ type: "text", text: lines.join("\n") }],
+        structuredContent: {
+          mode: view.mode,
+          total: filtered.length,
+          evidence: items,
+          stats: view.stats
+        }
+      };
+    }
+  );
+  modelTools.push(toHandle7("verify_get_evidence", getEvidenceTool));
+  server.registerTool(
+    "app_verify_get_state",
+    {
+      title: "Get Verify Gate State (App Only)",
+      description: "Fetch Verify Gate policy, tracked sessions, redacted evidence, and summary stats for the UI.",
+      inputSchema: {},
+      _meta: APP_ONLY_META2
+    },
+    async () => {
+      const view = getStateView();
+      return {
+        content: [{ type: "text", text: "ok" }],
+        structuredContent: {
+          mode: view.mode,
+          policy: view.policy,
+          sessions: view.sessions,
+          evidence: view.evidence,
+          stats: view.stats,
+          updatedAt: view.updatedAt
+        }
+      };
+    }
+  );
+  server.registerTool(
+    "app_verify_save_policy",
+    {
+      title: "Save Verify Gate Policy (App Only)",
+      description: "Validate and save Verify Gate policy and commands from the UI.",
+      inputSchema: POLICY_PATCH_INPUT_SCHEMA,
+      _meta: APP_ONLY_META2
+    },
+    async (patch) => {
+      const res = applyPolicyPatch(patch);
+      if (!res.valid) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      return {
+        content: [{ type: "text", text: "saved" }],
+        structuredContent: {
+          policy: res.policy,
+          state: res.state
+        }
+      };
+    }
+  );
+  server.registerTool(
+    "app_verify_run_checks",
+    {
+      title: "Run Verify Gate Checks (App Only)",
+      description: "Trigger verification checks from the Verify Gate UI.",
+      inputSchema: {
+        commandId: external_exports.string().min(1).optional(),
+        conversationId: external_exports.string().min(1).optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ commandId, conversationId }) => {
+      const res = await executeChecks({ commandId, conversationId, trigger: "app-ui" });
+      if (!res.ok) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: res.error }]
+        };
+      }
+      return {
+        content: [{ type: "text", text: res.run.passed ? "passed" : "failed" }],
+        structuredContent: {
+          run: res.run,
+          state: res.state
+        }
+      };
+    }
+  );
+  server.registerTool(
+    "app_verify_clear_history",
+    {
+      title: "Clear Verify Gate History (App Only)",
+      description: "Clear stored verification evidence and tracked session history from the Verify Gate UI.",
+      inputSchema: {},
+      _meta: APP_ONLY_META2
+    },
+    async () => {
+      let cleared = 0;
+      let state;
+      if (isDemo && demoState) {
+        cleared = clearVerifyHistoryInState(demoState);
+        state = getStateView();
+      } else {
+        const res = clearVerifyHistory(moduleDataDir);
+        cleared = res.cleared;
+        state = buildVerifyStateView(res.state, "live");
+      }
+      return {
+        content: [{ type: "text", text: "cleared" }],
+        structuredContent: {
+          cleared,
+          state
+        }
+      };
+    }
+  );
+  return {
+    moduleId: "verify",
+    modelTools,
+    exemptReadOnlyAppTools: ["app_verify_get_state"]
+  };
+}
+
+// src/modules/worktree/register.ts
+var import_node_path22 = __toESM(require("node:path"), 1);
+
+// src/modules/worktree/core.ts
+var import_node_child_process3 = require("node:child_process");
+var import_node_fs16 = __toESM(require("node:fs"), 1);
+var import_node_path21 = __toESM(require("node:path"), 1);
+var WORKTREE_MANAGED_DIR = ".agy-worktrees";
+var GIT_TIMEOUT_MS = 1e4;
+var GIT_MAX_BUFFER_BYTES = 2 * 1024 * 1024;
+var GIT_REF_REGEX = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,119}$/;
+var DIR_NAME_REGEX = /^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/;
+var ZERO_SHA_REGEX = /^0+$/;
+function validateGitRef(ref) {
+  if (typeof ref !== "string" || ref.length === 0) {
+    throw new Error("Invalid Git ref: must be a non-empty string.");
+  }
+  if (ref.length > 120) {
+    throw new Error("Invalid Git ref: exceeds maximum length of 120 characters.");
+  }
+  if (ref.startsWith("-")) {
+    throw new Error(`Invalid Git ref "${ref}": leading hyphen is disallowed.`);
+  }
+  if (/[\s\0\\]/.test(ref)) {
+    throw new Error(`Invalid Git ref "${ref}": whitespace, NUL, and backslashes are disallowed.`);
+  }
+  if (ref.includes("..") || ref.includes("@{") || ref.includes("//")) {
+    throw new Error(`Invalid Git ref "${ref}": sequences "..", "@{", and "//" are disallowed.`);
+  }
+  if (ref.endsWith("/") || ref.endsWith(".") || ref.endsWith(".lock")) {
+    throw new Error(`Invalid Git ref "${ref}": cannot end with "/", ".", or ".lock".`);
+  }
+  if (!GIT_REF_REGEX.test(ref)) {
+    throw new Error(
+      `Invalid Git ref "${ref}": must match /^[A-Za-z0-9][A-Za-z0-9._/-]{0,119}$/.`
+    );
+  }
+  const segments = ref.split("/");
+  for (const seg of segments) {
+    if (!seg || seg === "." || seg === ".." || seg.startsWith(".") || seg.endsWith(".lock")) {
+      throw new Error(`Invalid Git ref "${ref}": contains disallowed ref path segment "${seg}".`);
+    }
+  }
+  return ref;
+}
+function validateWorktreeDirName(dirName) {
+  if (typeof dirName !== "string" || dirName.length === 0) {
+    throw new Error("Invalid worktree dirName: must be a non-empty directory name.");
+  }
+  if (dirName === "." || dirName === ".." || dirName.includes("..") || dirName.includes("/") || dirName.includes("\\") || /[\s\0]/.test(dirName)) {
+    throw new Error(
+      `Invalid worktree dirName "${dirName}": path traversal, separators, and whitespace are disallowed.`
+    );
+  }
+  if (dirName.startsWith("-") || dirName.startsWith(".") || dirName.endsWith(".")) {
+    throw new Error(
+      `Invalid worktree dirName "${dirName}": cannot start with "-" or "." or end with ".".`
+    );
+  }
+  if (!DIR_NAME_REGEX.test(dirName)) {
+    throw new Error(
+      `Invalid worktree dirName "${dirName}": must match /^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.`
+    );
+  }
+  return dirName;
+}
+function deriveSafeWorktreeSlug(branch) {
+  const safeBranch = validateGitRef(branch);
+  let slug = safeBranch.replace(/\//g, "-").replace(/[^A-Za-z0-9._-]/g, "-").replace(/\.{2,}/g, "-").replace(/-{2,}/g, "-").replace(/^[.-]+|[.-]+$/g, "");
+  if (!slug || !/^[A-Za-z0-9]/.test(slug)) {
+    slug = `wt-${slug || "branch"}`;
+  }
+  slug = slug.slice(0, 80).replace(/[.-]+$/, "");
+  if (!slug) {
+    slug = "wt-branch";
+  }
+  return validateWorktreeDirName(slug);
+}
+function isPathInside(parentReal, childReal) {
+  const rel = import_node_path21.default.relative(parentReal, childReal);
+  return rel !== "" && !rel.startsWith("..") && !import_node_path21.default.isAbsolute(rel);
+}
+function canonicalizePath(inputPath) {
+  if (typeof inputPath !== "string" || inputPath.length === 0 || inputPath.includes("\0")) {
+    throw new Error("Invalid path: must be a non-empty string without NUL bytes.");
+  }
+  const resolved = import_node_path21.default.resolve(inputPath);
+  try {
+    return import_node_fs16.default.realpathSync(resolved);
+  } catch {
+    const missingSegments = [];
+    let cursor = resolved;
+    while (true) {
+      const parent = import_node_path21.default.dirname(cursor);
+      if (parent === cursor) {
+        return resolved;
+      }
+      missingSegments.unshift(import_node_path21.default.basename(cursor));
+      cursor = parent;
+      try {
+        const realAncestor = import_node_fs16.default.realpathSync(cursor);
+        return import_node_path21.default.join(realAncestor, ...missingSegments);
+      } catch {
+      }
+    }
+  }
+}
+function runGit2(cwd, args, stdinText) {
+  return new Promise((resolve) => {
+    const child = (0, import_node_child_process3.execFile)(
+      "git",
+      ["-c", "core.quotepath=false", ...args],
+      {
+        cwd,
+        shell: false,
+        timeout: GIT_TIMEOUT_MS,
+        maxBuffer: GIT_MAX_BUFFER_BYTES,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          GIT_TERMINAL_PROMPT: "0"
+        }
+      },
+      (error62, stdout, stderr) => {
+        if (!error62) {
+          resolve({
+            ok: true,
+            stdout: stdout ?? "",
+            stderr: stderr ?? "",
+            exitCode: 0
+          });
+          return;
+        }
+        const err = error62;
+        const exitCode = typeof err.code === "number" ? err.code : null;
+        resolve({
+          ok: false,
+          stdout: stdout ?? "",
+          stderr: (stderr ?? "") || error62.message || "git command failed",
+          exitCode
+        });
+      }
+    );
+    if (child.stdin) {
+      if (stdinText !== void 0) {
+        child.stdin.end(stdinText, "utf8");
+      } else {
+        child.stdin.end();
+      }
+    }
+  });
+}
+function parseWorktreeListPorcelain(output2) {
+  const entries = [];
+  const lines = output2.split(/\r?\n/);
+  let current = null;
+  const flush = () => {
+    if (!current || !current.rawPath) return;
+    const isUnborn = !current.fullHead || ZERO_SHA_REGEX.test(current.fullHead);
+    entries.push({
+      rawPath: current.rawPath,
+      path: canonicalizePath(current.rawPath),
+      fullHead: isUnborn ? "" : current.fullHead,
+      head: isUnborn ? "" : current.fullHead.slice(0, 7),
+      branch: current.branch,
+      isMain: entries.length === 0,
+      detached: current.detached,
+      bare: current.bare,
+      locked: current.locked,
+      ...current.lockReason ? { lockReason: current.lockReason } : {},
+      prunable: current.prunable,
+      ...current.pruneReason ? { pruneReason: current.pruneReason } : {}
+    });
+    current = null;
+  };
+  for (const line of lines) {
+    if (line.trim() === "") {
+      flush();
+      continue;
+    }
+    if (line.startsWith("worktree ")) {
+      flush();
+      current = {
+        rawPath: line.slice("worktree ".length),
+        fullHead: "",
+        branch: null,
+        detached: false,
+        bare: false,
+        locked: false,
+        prunable: false
+      };
+      continue;
+    }
+    if (!current) continue;
+    if (line.startsWith("HEAD ")) {
+      current.fullHead = line.slice("HEAD ".length).trim();
+    } else if (line.startsWith("branch ")) {
+      const refName = line.slice("branch ".length).trim();
+      current.branch = refName.replace(/^refs\/heads\//, "");
+    } else if (line === "detached") {
+      current.detached = true;
+      current.branch = null;
+    } else if (line === "bare") {
+      current.bare = true;
+    } else if (line === "locked") {
+      current.locked = true;
+    } else if (line.startsWith("locked ")) {
+      current.locked = true;
+      const reason = line.slice("locked ".length).trim();
+      if (reason) current.lockReason = reason;
+    } else if (line === "prunable") {
+      current.prunable = true;
+    } else if (line.startsWith("prunable ")) {
+      current.prunable = true;
+      const reason = line.slice("prunable ".length).trim();
+      if (reason) current.pruneReason = reason;
+    }
+  }
+  flush();
+  return entries;
+}
+function parsePorcelainStatusEntries(stdout) {
+  const files = [];
+  const lines = stdout.split(/\r?\n/);
+  for (const rawLine of lines) {
+    if (!rawLine || rawLine.length < 4) continue;
+    const xy = rawLine.slice(0, 2);
+    const relPath = rawLine.slice(3);
+    if (xy === "??" && (relPath === WORKTREE_MANAGED_DIR || relPath.startsWith(`${WORKTREE_MANAGED_DIR}/`))) {
+      continue;
+    }
+    const status = xy === "??" ? "??" : xy.trim() || "M";
+    files.push({ status, path: relPath });
+  }
+  return files;
+}
+function parseNameStatusOutput(stdout) {
+  const files = [];
+  const lines = stdout.split(/\r?\n/);
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const parts = line.split("	");
+    if (parts.length < 2) continue;
+    const rawStatus = parts[0].trim();
+    const status = rawStatus.charAt(0) || "M";
+    if ((status === "R" || status === "C") && parts.length >= 3) {
+      files.push({ status, path: `${parts[1]} -> ${parts[2]}` });
+    } else {
+      files.push({ status, path: parts[1] });
+    }
+  }
+  return files;
+}
+function parseAheadBehind(stdout) {
+  const trimmed = stdout.trim();
+  if (!trimmed) return { behind: 0, ahead: 0 };
+  const parts = trimmed.split(/\s+/);
+  const behind = Number.parseInt(parts[0] ?? "0", 10);
+  const ahead = Number.parseInt(parts[1] ?? "0", 10);
+  return {
+    behind: Number.isFinite(behind) && behind >= 0 ? behind : 0,
+    ahead: Number.isFinite(ahead) && ahead >= 0 ? ahead : 0
+  };
+}
+function computeCounts(worktrees) {
+  return {
+    total: worktrees.length,
+    dirty: worktrees.filter((w) => w.isDirty).length,
+    merged: worktrees.filter((w) => !w.isMain && w.isMerged).length,
+    prunable: worktrees.filter((w) => w.prunable).length
+  };
+}
+async function resolveGitContext(workspaceRoot) {
+  if (!workspaceRoot || !import_node_fs16.default.existsSync(workspaceRoot)) {
+    return {
+      isGitRepo: false,
+      toplevelReal: workspaceRoot,
+      mainRootReal: workspaceRoot,
+      rawEntries: []
+    };
+  }
+  let stat;
+  try {
+    stat = import_node_fs16.default.statSync(workspaceRoot);
+  } catch {
+    return {
+      isGitRepo: false,
+      toplevelReal: workspaceRoot,
+      mainRootReal: workspaceRoot,
+      rawEntries: []
+    };
+  }
+  if (!stat.isDirectory()) {
+    return {
+      isGitRepo: false,
+      toplevelReal: workspaceRoot,
+      mainRootReal: workspaceRoot,
+      rawEntries: []
+    };
+  }
+  const topRes = await runGit2(workspaceRoot, ["rev-parse", "--show-toplevel"]);
+  if (!topRes.ok || !topRes.stdout.trim()) {
+    return {
+      isGitRepo: false,
+      toplevelReal: workspaceRoot,
+      mainRootReal: workspaceRoot,
+      rawEntries: []
+    };
+  }
+  const toplevelReal = canonicalizePath(topRes.stdout.trim());
+  const listRes = await runGit2(toplevelReal, ["worktree", "list", "--porcelain"]);
+  if (!listRes.ok) {
+    return {
+      isGitRepo: false,
+      toplevelReal: workspaceRoot,
+      mainRootReal: workspaceRoot,
+      rawEntries: []
+    };
+  }
+  const rawEntries = parseWorktreeListPorcelain(listRes.stdout);
+  const mainRootReal = rawEntries[0]?.path ?? toplevelReal;
+  return {
+    isGitRepo: true,
+    toplevelReal,
+    mainRootReal,
+    rawEntries
+  };
+}
+async function commitExists(cwd, ref) {
+  const res = await runGit2(cwd, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
+  return res.ok && res.stdout.trim().length > 0;
+}
+async function resolveDefaultBaseBranch(repoRoot, mainEntry) {
+  const candidates = [];
+  if (mainEntry?.branch) {
+    candidates.push(mainEntry.branch);
+  }
+  if (!candidates.includes("main")) candidates.push("main");
+  if (!candidates.includes("master")) candidates.push("master");
+  for (const candidate of candidates) {
+    try {
+      validateGitRef(candidate);
+    } catch {
+      continue;
+    }
+    if (await commitExists(repoRoot, candidate)) {
+      return candidate;
+    }
+  }
+  return void 0;
+}
+async function ensureWorktreeDirExcludedInGitInfo(repoRoot) {
+  try {
+    const commonRes = await runGit2(repoRoot, ["rev-parse", "--git-common-dir"]);
+    if (!commonRes.ok || !commonRes.stdout.trim()) return;
+    const rawCommonDir = commonRes.stdout.trim();
+    const commonDir = import_node_path21.default.isAbsolute(rawCommonDir) ? rawCommonDir : import_node_path21.default.resolve(repoRoot, rawCommonDir);
+    const commonStat = import_node_fs16.default.lstatSync(commonDir);
+    if (commonStat.isSymbolicLink() || !commonStat.isDirectory()) return;
+    const realCommonDir = import_node_fs16.default.realpathSync(commonDir);
+    if (!import_node_fs16.default.statSync(realCommonDir).isDirectory()) return;
+    const infoDir = import_node_path21.default.join(realCommonDir, "info");
+    if (!isPathInside(realCommonDir, infoDir)) return;
+    let infoExists = false;
+    try {
+      const infoStat = import_node_fs16.default.lstatSync(infoDir);
+      if (infoStat.isSymbolicLink() || !infoStat.isDirectory()) return;
+      infoExists = true;
+    } catch (err) {
+      if (err?.code !== "ENOENT") return;
+    }
+    if (!infoExists) {
+      import_node_fs16.default.mkdirSync(infoDir);
+      const createdInfoStat = import_node_fs16.default.lstatSync(infoDir);
+      if (createdInfoStat.isSymbolicLink() || !createdInfoStat.isDirectory()) return;
+    }
+    const realInfoDir = import_node_fs16.default.realpathSync(infoDir);
+    if (!isPathInside(realCommonDir, realInfoDir)) return;
+    const excludeFile = import_node_path21.default.join(realInfoDir, "exclude");
+    if (!isPathInside(realCommonDir, excludeFile) || !isPathInside(realInfoDir, excludeFile)) {
+      return;
+    }
+    let excludeExists = false;
+    let realExcludeFile = excludeFile;
+    try {
+      const excludeStat = import_node_fs16.default.lstatSync(excludeFile);
+      if (excludeStat.isSymbolicLink() || !excludeStat.isFile()) return;
+      realExcludeFile = import_node_fs16.default.realpathSync(excludeFile);
+      if (!isPathInside(realCommonDir, realExcludeFile) || !isPathInside(realInfoDir, realExcludeFile)) {
+        return;
+      }
+      excludeExists = true;
+    } catch (err) {
+      if (err?.code !== "ENOENT") return;
+    }
+    let existing = "";
+    if (excludeExists) {
+      existing = import_node_fs16.default.readFileSync(realExcludeFile, "utf8");
+    }
+    const pattern = `/${WORKTREE_MANAGED_DIR}/`;
+    const hasEntry = existing.split(/\r?\n/).some((line) => {
+      const trimmed = line.trim();
+      return trimmed === WORKTREE_MANAGED_DIR || trimmed === `${WORKTREE_MANAGED_DIR}/` || trimmed === pattern;
+    });
+    if (hasEntry) return;
+    const prefix = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
+    const lineToWrite = `${prefix}${pattern}
+`;
+    const noFollow = import_node_fs16.default.constants.O_NOFOLLOW ?? 0;
+    if (excludeExists) {
+      const reStat = import_node_fs16.default.lstatSync(realExcludeFile);
+      if (reStat.isSymbolicLink() || !reStat.isFile()) return;
+      const fd = import_node_fs16.default.openSync(
+        realExcludeFile,
+        import_node_fs16.default.constants.O_WRONLY | import_node_fs16.default.constants.O_APPEND | noFollow
+      );
+      try {
+        import_node_fs16.default.writeSync(fd, lineToWrite, void 0, "utf8");
+      } finally {
+        import_node_fs16.default.closeSync(fd);
+      }
+    } else {
+      const fd = import_node_fs16.default.openSync(
+        excludeFile,
+        import_node_fs16.default.constants.O_WRONLY | import_node_fs16.default.constants.O_CREAT | import_node_fs16.default.constants.O_EXCL | noFollow,
+        420
+      );
+      try {
+        import_node_fs16.default.writeSync(fd, lineToWrite, void 0, "utf8");
+      } finally {
+        import_node_fs16.default.closeSync(fd);
+      }
+    }
+  } catch {
+  }
+}
+async function inspectWorktrees(workspaceRoot) {
+  const ctx = await resolveGitContext(workspaceRoot);
+  if (!ctx.isGitRepo) {
+    return {
+      mode: "live",
+      isGitRepo: false,
+      repoRoot: workspaceRoot,
+      worktreeConfigWarning: false,
+      worktrees: [],
+      counts: { total: 0, dirty: 0, merged: 0, prunable: 0 }
+    };
+  }
+  const repoRoot = ctx.mainRootReal;
+  const mainEntry = ctx.rawEntries[0];
+  const currentEntry = ctx.rawEntries.find((e) => e.path === ctx.toplevelReal) ?? mainEntry;
+  const [configRes, baseBranch] = await Promise.all([
+    runGit2(repoRoot, ["config", "--get", "extensions.worktreeConfig"]),
+    resolveDefaultBaseBranch(repoRoot, mainEntry)
+  ]);
+  const worktreeConfigWarning = configRes.ok && configRes.stdout.trim().toLowerCase() === "true";
+  const mergedBranches = /* @__PURE__ */ new Set();
+  if (baseBranch) {
+    const mergedRes = await runGit2(repoRoot, ["branch", "--merged", baseBranch]);
+    if (mergedRes.ok) {
+      for (const line of mergedRes.stdout.split(/\r?\n/)) {
+        const cleaned = line.replace(/^[*+\s]+/, "").trim();
+        if (cleaned && !cleaned.startsWith("(")) {
+          mergedBranches.add(cleaned);
+        }
+      }
+    }
+  }
+  const worktrees = await Promise.all(
+    ctx.rawEntries.map(async (raw) => {
+      const exists = import_node_fs16.default.existsSync(raw.path);
+      let isDirty2 = false;
+      let changedFilesCount = 0;
+      if (exists && !raw.bare) {
+        const statusRes = await runGit2(raw.path, ["status", "--porcelain"]);
+        if (statusRes.ok) {
+          const statusEntries = parsePorcelainStatusEntries(statusRes.stdout);
+          changedFilesCount = statusEntries.length;
+          isDirty2 = changedFilesCount > 0;
+        }
+      }
+      let ahead = 0;
+      let behind = 0;
+      let isMerged = false;
+      if (baseBranch && raw.fullHead) {
+        const isSameAsBase = raw.branch === baseBranch;
+        if (!isSameAsBase) {
+          let targetRef = null;
+          if (raw.branch) {
+            try {
+              targetRef = validateGitRef(raw.branch);
+            } catch {
+              targetRef = raw.fullHead;
+            }
+          } else if (/^[0-9a-f]{7,40}$/i.test(raw.fullHead)) {
+            targetRef = raw.fullHead;
+          }
+          if (targetRef) {
+            const revRes = await runGit2(repoRoot, [
+              "rev-list",
+              "--left-right",
+              "--count",
+              `${baseBranch}...${targetRef}`
+            ]);
+            if (revRes.ok) {
+              const counts = parseAheadBehind(revRes.stdout);
+              ahead = counts.ahead;
+              behind = counts.behind;
+            }
+          }
+        }
+        if (!raw.isMain) {
+          if (raw.branch) {
+            isMerged = mergedBranches.has(raw.branch);
+          } else if (/^[0-9a-f]{7,40}$/i.test(raw.fullHead)) {
+            const ancRes = await runGit2(repoRoot, [
+              "merge-base",
+              "--is-ancestor",
+              raw.fullHead,
+              baseBranch
+            ]);
+            isMerged = ancRes.ok;
+          }
+        }
+      }
+      return {
+        path: raw.path,
+        branch: raw.branch,
+        head: raw.head,
+        isMain: raw.isMain,
+        detached: raw.detached,
+        ...raw.bare ? { bare: true } : {},
+        locked: raw.locked,
+        ...raw.lockReason ? { lockReason: raw.lockReason } : {},
+        prunable: raw.prunable,
+        ...raw.pruneReason ? { pruneReason: raw.pruneReason } : {},
+        exists,
+        isDirty: isDirty2,
+        changedFilesCount,
+        ahead,
+        behind,
+        isMerged
+      };
+    })
+  );
+  return {
+    mode: "live",
+    isGitRepo: true,
+    repoRoot,
+    ...currentEntry?.branch ? { currentBranch: currentEntry.branch } : {},
+    ...baseBranch ? { baseBranch } : {},
+    worktreeConfigWarning,
+    worktrees,
+    counts: computeCounts(worktrees)
+  };
+}
+async function createWorktree(workspaceRoot, opts) {
+  const ctx = await resolveGitContext(workspaceRoot);
+  if (!ctx.isGitRepo) {
+    throw new Error(`Not a Git repository: ${workspaceRoot}`);
+  }
+  const branch = validateGitRef(opts.branch);
+  const baseRef = opts.baseRef !== void 0 && opts.baseRef !== "" ? validateGitRef(opts.baseRef) : void 0;
+  const safeSlug = opts.dirName !== void 0 && opts.dirName !== "" ? validateWorktreeDirName(opts.dirName) : deriveSafeWorktreeSlug(branch);
+  const repoRealRoot = import_node_fs16.default.realpathSync(ctx.mainRootReal);
+  const alreadyCheckedOut = ctx.rawEntries.find((w) => w.branch === branch);
+  if (alreadyCheckedOut) {
+    throw new Error(
+      `Branch "${branch}" is already checked out in worktree: ${alreadyCheckedOut.path}`
+    );
+  }
+  const managedRootCandidate = import_node_path21.default.join(repoRealRoot, WORKTREE_MANAGED_DIR);
+  if (!isPathInside(repoRealRoot, managedRootCandidate)) {
+    throw new Error("Controlled worktree root escapes repository boundary.");
+  }
+  if (import_node_fs16.default.existsSync(managedRootCandidate)) {
+    const lstat = import_node_fs16.default.lstatSync(managedRootCandidate);
+    if (lstat.isSymbolicLink() || !lstat.isDirectory()) {
+      throw new Error(
+        `Controlled worktree root "${managedRootCandidate}" must be a real directory (not a symlink or file).`
+      );
+    }
+    const realManaged = import_node_fs16.default.realpathSync(managedRootCandidate);
+    if (!isPathInside(repoRealRoot, realManaged)) {
+      throw new Error("Controlled worktree root symlink escapes repository boundary.");
+    }
+  }
+  const preTargetPath = import_node_path21.default.join(managedRootCandidate, safeSlug);
+  if (!isPathInside(managedRootCandidate, preTargetPath)) {
+    throw new Error(`Target worktree path escapes controlled directory "${WORKTREE_MANAGED_DIR}".`);
+  }
+  try {
+    import_node_fs16.default.lstatSync(preTargetPath);
+    throw new Error(
+      `Target worktree directory already exists (refusing to overwrite): ${preTargetPath}`
+    );
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      throw err;
+    }
+  }
+  if (baseRef) {
+    const validBase = await commitExists(repoRealRoot, baseRef);
+    if (!validBase) {
+      throw new Error(`Base ref "${baseRef}" does not resolve to a valid commit.`);
+    }
+  }
+  const branchRefRes = await runGit2(repoRealRoot, [
+    "show-ref",
+    "--verify",
+    "--quiet",
+    `refs/heads/${branch}`
+  ]);
+  const branchExists = branchRefRes.ok;
+  import_node_fs16.default.mkdirSync(managedRootCandidate, { recursive: true });
+  const realManagedRoot = import_node_fs16.default.realpathSync(managedRootCandidate);
+  if (!isPathInside(repoRealRoot, realManagedRoot)) {
+    throw new Error("Controlled worktree root escapes repository boundary after creation.");
+  }
+  const targetPath = import_node_path21.default.join(realManagedRoot, safeSlug);
+  if (import_node_path21.default.dirname(targetPath) !== realManagedRoot || !isPathInside(realManagedRoot, targetPath)) {
+    throw new Error("Resolved target worktree path escapes controlled worktree root.");
+  }
+  await ensureWorktreeDirExcludedInGitInfo(repoRealRoot);
+  const addArgs = branchExists ? ["worktree", "add", "--", targetPath, branch] : baseRef ? ["worktree", "add", "-b", branch, "--", targetPath, baseRef] : ["worktree", "add", "-b", branch, "--", targetPath];
+  const addRes = await runGit2(repoRealRoot, addArgs);
+  if (!addRes.ok) {
+    throw new Error(`Failed to create worktree for branch "${branch}": ${addRes.stderr.trim()}`);
+  }
+  let carriedUncommitted = false;
+  let warning;
+  if (opts.carryUncommitted === true) {
+    const sourceRoot = ctx.toplevelReal;
+    const diffRes = await runGit2(sourceRoot, ["diff", "--binary", "HEAD"]);
+    if (!diffRes.ok) {
+      warning = `Worktree created, but could not extract uncommitted diff from source worktree: ${diffRes.stderr.trim()}`;
+    } else if (diffRes.stdout.length > 0) {
+      const rollbackFailedCarry = async () => {
+        const resetRes = await runGit2(targetPath, ["reset", "--hard", "HEAD"]);
+        const cleanRes = await runGit2(targetPath, ["clean", "-fd"]);
+        const rollbackErrors = [];
+        if (!resetRes.ok) {
+          rollbackErrors.push(`git reset --hard HEAD failed: ${resetRes.stderr.trim()}`);
+        }
+        if (!cleanRes.ok) {
+          rollbackErrors.push(`git clean -fd failed: ${cleanRes.stderr.trim()}`);
+        }
+        return rollbackErrors.length > 0 ? ` Rollback warning: ${rollbackErrors.join("; ")}.` : "";
+      };
+      const checkPlain = await runGit2(targetPath, ["apply", "--check", "-"], diffRes.stdout);
+      if (checkPlain.ok) {
+        const applyPlain = await runGit2(targetPath, ["apply", "-"], diffRes.stdout);
+        if (applyPlain.ok) {
+          carriedUncommitted = true;
+        } else {
+          const rollbackNote = await rollbackFailedCarry();
+          warning = `Worktree created, but applying uncommitted changes failed (target worktree rolled back to clean HEAD; main worktree untouched): ${applyPlain.stderr.trim()}${rollbackNote}`;
+        }
+      } else {
+        const apply3Way = await runGit2(targetPath, ["apply", "--3way", "-"], diffRes.stdout);
+        if (apply3Way.ok) {
+          carriedUncommitted = true;
+        } else {
+          const rollbackNote = await rollbackFailedCarry();
+          warning = `Worktree created, but applying uncommitted changes encountered conflicts or errors (target worktree rolled back to clean HEAD; main worktree untouched): ${apply3Way.stderr.trim() || checkPlain.stderr.trim()}${rollbackNote}`;
+        }
+      }
+    }
+  }
+  const state = await inspectWorktrees(workspaceRoot);
+  const canonicalTarget = canonicalizePath(targetPath);
+  const created = state.worktrees.find((w) => w.path === canonicalTarget);
+  if (!created) {
+    throw new Error(`Worktree was added at ${canonicalTarget} but could not be verified in worktree list.`);
+  }
+  return {
+    created,
+    carriedUncommitted,
+    ...warning ? { warning } : {},
+    state
+  };
+}
+async function getWorktreeDiffSummary(workspaceRoot, worktreePath, baseRef) {
+  const ctx = await resolveGitContext(workspaceRoot);
+  if (!ctx.isGitRepo) {
+    throw new Error(`Not a Git repository: ${workspaceRoot}`);
+  }
+  if (typeof worktreePath !== "string" || !worktreePath.trim() || worktreePath.includes("\0")) {
+    throw new Error("Invalid worktreePath: must be a non-empty filesystem path.");
+  }
+  let normalizedInput;
+  try {
+    normalizedInput = import_node_fs16.default.realpathSync(import_node_path21.default.resolve(worktreePath));
+  } catch {
+    throw new Error(`Worktree path does not exist or is not accessible: ${worktreePath}`);
+  }
+  const matched = ctx.rawEntries.find((w) => w.path === normalizedInput);
+  if (!matched) {
+    throw new Error(
+      `Refused: "${worktreePath}" is not in the active git worktree list for this repository.`
+    );
+  }
+  if (matched.bare) {
+    throw new Error(`Cannot compute diff summary for bare worktree: ${matched.path}`);
+  }
+  const repoRoot = ctx.mainRootReal;
+  const mainEntry = ctx.rawEntries[0];
+  let resolvedBaseRef;
+  if (baseRef !== void 0 && baseRef !== "") {
+    resolvedBaseRef = validateGitRef(baseRef);
+    const exists = await commitExists(repoRoot, resolvedBaseRef);
+    if (!exists) {
+      throw new Error(`Base ref "${resolvedBaseRef}" does not resolve to a valid commit.`);
+    }
+  } else {
+    resolvedBaseRef = await resolveDefaultBaseBranch(repoRoot, mainEntry) ?? "HEAD";
+  }
+  const [revRes, committedStatRes, committedFilesRes, dirtyStatRes, dirtyStatusRes] = await Promise.all([
+    runGit2(matched.path, [
+      "rev-list",
+      "--left-right",
+      "--count",
+      `${resolvedBaseRef}...HEAD`
+    ]),
+    runGit2(matched.path, ["diff", "--stat", `${resolvedBaseRef}...HEAD`]),
+    runGit2(matched.path, ["diff", "--name-status", `${resolvedBaseRef}...HEAD`]),
+    runGit2(matched.path, ["diff", "--stat", "HEAD"]),
+    runGit2(matched.path, ["status", "--porcelain"])
+  ]);
+  const { ahead, behind } = revRes.ok ? parseAheadBehind(revRes.stdout) : { ahead: 0, behind: 0 };
+  const fileMap = /* @__PURE__ */ new Map();
+  if (committedFilesRes.ok) {
+    for (const f of parseNameStatusOutput(committedFilesRes.stdout)) {
+      fileMap.set(f.path, f);
+    }
+  }
+  const dirtyEntries = dirtyStatusRes.ok ? parsePorcelainStatusEntries(dirtyStatusRes.stdout) : [];
+  for (const f of dirtyEntries) {
+    fileMap.set(f.path, f);
+  }
+  const statSections = [];
+  const committedStat = committedStatRes.ok ? committedStatRes.stdout.trim() : "";
+  if (committedStat) {
+    statSections.push(`Committed (${resolvedBaseRef}...HEAD):
+${committedStat}`);
+  }
+  const dirtyStat = dirtyStatRes.ok ? dirtyStatRes.stdout.trim() : "";
+  const untrackedLines = dirtyEntries.filter((f) => f.status === "??").map((f) => ` ?? ${f.path}`);
+  if (dirtyStat || untrackedLines.length > 0) {
+    const parts = [];
+    if (dirtyStat) parts.push(dirtyStat);
+    if (untrackedLines.length > 0) {
+      parts.push(`Untracked files:
+${untrackedLines.join("\n")}`);
+    }
+    statSections.push(`Uncommitted working tree changes:
+${parts.join("\n")}`);
+  }
+  const statText = statSections.length > 0 ? statSections.join("\n\n") : `No committed or uncommitted changes relative to ${resolvedBaseRef}.`;
+  return {
+    worktreePath: matched.path,
+    branch: matched.branch,
+    baseRef: resolvedBaseRef,
+    statText,
+    files: Array.from(fileMap.values()),
+    ahead,
+    behind
+  };
+}
+async function cleanupWorktree(workspaceRoot, opts) {
+  const ctx = await resolveGitContext(workspaceRoot);
+  if (!ctx.isGitRepo) {
+    throw new Error(`Not a Git repository: ${workspaceRoot}`);
+  }
+  const repoRoot = ctx.mainRootReal;
+  if (opts.pruneOnly === true) {
+    const pruneRes2 = await runGit2(repoRoot, ["worktree", "prune"]);
+    if (!pruneRes2.ok) {
+      throw new Error(`Failed to prune worktrees: ${pruneRes2.stderr.trim()}`);
+    }
+    const state2 = await inspectWorktrees(workspaceRoot);
+    return {
+      pruned: true,
+      message: "Pruned stale git worktree metadata.",
+      state: state2
+    };
+  }
+  if (!opts.worktreePath || !opts.worktreePath.trim()) {
+    throw new Error("Either worktreePath or pruneOnly: true must be provided.");
+  }
+  const currentState = await inspectWorktrees(workspaceRoot);
+  const normalizedTarget = canonicalizePath(opts.worktreePath);
+  const target = currentState.worktrees.find((w) => w.path === normalizedTarget);
+  if (!target) {
+    throw new Error(
+      `Refused: "${opts.worktreePath}" is not in the active git worktree list for this repository.`
+    );
+  }
+  if (target.isMain) {
+    throw new Error(
+      `Refused: cannot remove the main worktree (${target.path}).`
+    );
+  }
+  if (target.locked) {
+    const reasonSuffix = target.lockReason ? ` Reason: ${target.lockReason}` : "";
+    throw new Error(
+      `Worktree is locked; unlock it with "git worktree unlock" before removing.${reasonSuffix}`
+    );
+  }
+  if (target.isDirty && opts.force !== true) {
+    throw new Error(
+      `Refused: worktree "${target.path}" has ${target.changedFilesCount} uncommitted change(s). Pass force: true to force removal.`
+    );
+  }
+  if (target.exists) {
+    const removeArgs = opts.force ? ["worktree", "remove", "--force", "--", target.path] : ["worktree", "remove", "--", target.path];
+    const removeRes = await runGit2(repoRoot, removeArgs);
+    if (!removeRes.ok) {
+      throw new Error(`Failed to remove worktree "${target.path}": ${removeRes.stderr.trim()}`);
+    }
+  }
+  const pruneRes = await runGit2(repoRoot, ["worktree", "prune"]);
+  if (!pruneRes.ok) {
+    throw new Error(
+      `Worktree removed but git worktree prune failed: ${pruneRes.stderr.trim()}`
+    );
+  }
+  const state = await inspectWorktrees(workspaceRoot);
+  return {
+    removedPath: target.path,
+    pruned: true,
+    message: `Removed worktree ${target.path} and pruned stale metadata.`,
+    state
+  };
+}
+function createDemoWorktreeStore(workspaceRoot) {
+  const repoRoot = import_node_path21.default.resolve(workspaceRoot);
+  const managedRoot = import_node_path21.default.join(repoRoot, WORKTREE_MANAGED_DIR);
+  const featPath = import_node_path21.default.join(managedRoot, "feat-verify-gate");
+  const fixPath = import_node_path21.default.join(managedRoot, "fix-cache-leak");
+  let seq = 1;
+  const entries = [
+    {
+      path: repoRoot,
+      branch: "main",
+      head: "a1b2c3d",
+      isMain: true,
+      detached: false,
+      locked: false,
+      prunable: false,
+      exists: true,
+      isDirty: false,
+      changedFilesCount: 0,
+      ahead: 0,
+      behind: 0,
+      isMerged: false
+    },
+    {
+      path: featPath,
+      branch: "feat/verify-gate",
+      head: "d4e5f6a",
+      isMain: false,
+      detached: false,
+      locked: false,
+      prunable: false,
+      exists: true,
+      isDirty: true,
+      changedFilesCount: 3,
+      ahead: 4,
+      behind: 1,
+      isMerged: false
+    },
+    {
+      path: fixPath,
+      branch: "fix/cache-leak",
+      head: "9c8b7a6",
+      isMain: false,
+      detached: false,
+      locked: false,
+      prunable: false,
+      exists: true,
+      isDirty: false,
+      changedFilesCount: 0,
+      ahead: 0,
+      behind: 2,
+      isMerged: true
+    }
+  ];
+  const diffMap = /* @__PURE__ */ new Map([
+    [
+      repoRoot,
+      {
+        statText: "No committed or uncommitted changes relative to main.",
+        files: []
+      }
+    ],
+    [
+      featPath,
+      {
+        statText: [
+          "Committed (main...HEAD):",
+          " src/modules/verify/core.ts      | 118 ++++++++++++++++++++++++",
+          " src/modules/verify/hook.ts      |  42 +++++++++",
+          " test/verify-module.test.ts      |  96 ++++++++++++++++++++",
+          " 3 files changed, 256 insertions(+)",
+          "",
+          "Uncommitted working tree changes:",
+          " src/modules/verify/core.ts | 14 ++++++++++++--",
+          " 1 file changed, 12 insertions(+), 2 deletions(-)"
+        ].join("\n"),
+        files: [
+          { status: "M", path: "src/modules/verify/core.ts" },
+          { status: "A", path: "src/modules/verify/hook.ts" },
+          { status: "A", path: "test/verify-module.test.ts" }
+        ]
+      }
+    ],
+    [
+      fixPath,
+      {
+        statText: "No committed or uncommitted changes relative to main (branch already merged).",
+        files: []
+      }
+    ]
+  ]);
+  const buildState = () => ({
+    mode: "demo",
+    isGitRepo: true,
+    repoRoot,
+    currentBranch: "main",
+    baseBranch: "main",
+    worktreeConfigWarning: false,
+    worktrees: entries.map((e) => ({ ...e })),
+    counts: computeCounts(entries)
+  });
+  return {
+    list: () => buildState(),
+    create: (opts) => {
+      const branch = validateGitRef(opts.branch);
+      if (opts.baseRef !== void 0 && opts.baseRef !== "") {
+        validateGitRef(opts.baseRef);
+      }
+      const safeSlug = opts.dirName !== void 0 && opts.dirName !== "" ? validateWorktreeDirName(opts.dirName) : deriveSafeWorktreeSlug(branch);
+      const targetPath = import_node_path21.default.join(managedRoot, safeSlug);
+      if (!isPathInside(managedRoot, targetPath)) {
+        throw new Error("Target worktree path escapes controlled worktree root.");
+      }
+      if (entries.some((e) => e.branch === branch)) {
+        throw new Error(`Branch "${branch}" is already checked out in a demo worktree.`);
+      }
+      if (entries.some((e) => e.path === targetPath)) {
+        throw new Error(`Target worktree directory already exists: ${targetPath}`);
+      }
+      const carried = opts.carryUncommitted === true;
+      const syntheticHead = `de${String(seq++).padStart(5, "0")}`;
+      const created = {
+        path: targetPath,
+        branch,
+        head: syntheticHead,
+        isMain: false,
+        detached: false,
+        locked: false,
+        prunable: false,
+        exists: true,
+        isDirty: carried,
+        changedFilesCount: carried ? 1 : 0,
+        ahead: 0,
+        behind: 0,
+        isMerged: false
+      };
+      entries.push(created);
+      diffMap.set(targetPath, {
+        statText: carried ? "Uncommitted working tree changes:\n src/demo-carried.ts | 8 ++++++++\n 1 file changed, 8 insertions(+)" : `No committed or uncommitted changes relative to ${opts.baseRef || "main"}.`,
+        files: carried ? [{ status: "M", path: "src/demo-carried.ts" }] : []
+      });
+      return {
+        created: { ...created },
+        carriedUncommitted: carried,
+        state: buildState()
+      };
+    },
+    diffSummary: (worktreePath, baseRef) => {
+      if (typeof worktreePath !== "string" || !worktreePath.trim() || worktreePath.includes("\0")) {
+        throw new Error("Invalid worktreePath: must be a non-empty filesystem path.");
+      }
+      const resolvedBaseRef = baseRef !== void 0 && baseRef !== "" ? validateGitRef(baseRef) : "main";
+      const normalized = import_node_path21.default.resolve(worktreePath);
+      const entry = entries.find((e) => e.path === normalized);
+      if (!entry) {
+        throw new Error(
+          `Refused: "${worktreePath}" is not in the active demo worktree list.`
+        );
+      }
+      const record2 = diffMap.get(entry.path) ?? {
+        statText: `No committed or uncommitted changes relative to ${resolvedBaseRef}.`,
+        files: []
+      };
+      return {
+        worktreePath: entry.path,
+        branch: entry.branch,
+        baseRef: resolvedBaseRef,
+        statText: record2.statText,
+        files: record2.files.map((f) => ({ ...f })),
+        ahead: entry.ahead,
+        behind: entry.behind
+      };
+    },
+    cleanup: (opts) => {
+      if (opts.pruneOnly === true) {
+        for (let i = entries.length - 1; i >= 0; i -= 1) {
+          if (!entries[i].isMain && entries[i].prunable) {
+            diffMap.delete(entries[i].path);
+            entries.splice(i, 1);
+          }
+        }
+        return {
+          pruned: true,
+          message: "Pruned stale demo worktree metadata.",
+          state: buildState()
+        };
+      }
+      if (!opts.worktreePath || !opts.worktreePath.trim()) {
+        throw new Error("Either worktreePath or pruneOnly: true must be provided.");
+      }
+      const normalized = import_node_path21.default.resolve(opts.worktreePath);
+      const idx = entries.findIndex((e) => e.path === normalized);
+      if (idx < 0) {
+        throw new Error(
+          `Refused: "${opts.worktreePath}" is not in the active demo worktree list.`
+        );
+      }
+      const target = entries[idx];
+      if (target.isMain) {
+        throw new Error(`Refused: cannot remove the main worktree (${target.path}).`);
+      }
+      if (target.locked) {
+        const reasonSuffix = target.lockReason ? ` Reason: ${target.lockReason}` : "";
+        throw new Error(
+          `Worktree is locked; unlock it with "git worktree unlock" before removing.${reasonSuffix}`
+        );
+      }
+      if (target.isDirty && opts.force !== true) {
+        throw new Error(
+          `Refused: worktree "${target.path}" has ${target.changedFilesCount} uncommitted change(s). Pass force: true to force removal.`
+        );
+      }
+      entries.splice(idx, 1);
+      diffMap.delete(target.path);
+      return {
+        removedPath: target.path,
+        pruned: true,
+        message: `Removed demo worktree ${target.path} and pruned stale metadata.`,
+        state: buildState()
+      };
+    }
+  };
+}
+
+// src/modules/worktree/register.ts
+function toHandle8(name, tool) {
+  return {
+    name,
+    enable: () => tool.enable(),
+    disable: () => tool.disable()
+  };
+}
+function formatErrorMessage(err) {
+  return err instanceof Error ? err.message : String(err);
+}
+function formatListSummary(state) {
+  if (!state.isGitRepo) {
+    return `Not a Git repository: ${state.repoRoot} (0 worktrees).`;
+  }
+  const lines = [
+    `Git Worktrees (${state.mode}) \u2014 repo=${state.repoRoot}, total=${state.counts.total}, dirty=${state.counts.dirty}, merged=${state.counts.merged}, prunable=${state.counts.prunable}`
+  ];
+  if (state.worktreeConfigWarning) {
+    lines.push(
+      "WARNING: extensions.worktreeConfig=true is enabled in this repository and may cause unexpected worktree config behavior."
+    );
+  }
+  for (const wt of state.worktrees) {
+    const flags = [];
+    if (wt.isMain) flags.push("MAIN");
+    if (wt.detached) flags.push("DETACHED");
+    if (wt.isDirty) flags.push(`DIRTY:${wt.changedFilesCount}`);
+    if (wt.isMerged && !wt.isMain) flags.push("MERGED");
+    if (wt.locked) flags.push("LOCKED");
+    if (wt.prunable) flags.push("PRUNABLE");
+    const aheadBehind = wt.ahead || wt.behind ? ` (+${wt.ahead}/-${wt.behind})` : "";
+    lines.push(
+      `- [${flags.join(", ") || "CLEAN"}] ${wt.branch ?? "(detached)"} @ ${wt.head || "unborn"}${aheadBehind} -> ${wt.path}`
+    );
+  }
+  return lines.join("\n");
+}
+function formatDiffSummary(diff) {
+  const lines = [
+    `Worktree Diff Summary: ${diff.branch ?? "(detached)"} vs ${diff.baseRef} (+${diff.ahead}/-${diff.behind})`,
+    `Path: ${diff.worktreePath}`,
+    `Files (${diff.files.length}):`,
+    ...diff.files.length > 0 ? diff.files.slice(0, 40).map((f) => `  ${f.status.padEnd(2, " ")} ${f.path}`) : ["  (none)"],
+    "",
+    diff.statText
+  ];
+  return lines.join("\n");
+}
+function registerWorktreeModule(server, options, uiResourceUri) {
+  const workspaceRoot = import_node_path22.default.resolve(options.workspaceRoot);
+  const isDemo = options.demoMode === true;
+  const demoStore = isDemo ? createDemoWorktreeStore(workspaceRoot) : null;
+  const APP_ONLY_META2 = {
+    ui: {
+      resourceUri: uiResourceUri,
+      visibility: ["app"]
+    }
+  };
+  const runList = async () => isDemo && demoStore ? demoStore.list() : inspectWorktrees(workspaceRoot);
+  const runCreate = async (opts) => isDemo && demoStore ? demoStore.create(opts) : createWorktree(workspaceRoot, opts);
+  const runDiffSummary = async (worktreePath, baseRef) => isDemo && demoStore ? demoStore.diffSummary(worktreePath, baseRef) : getWorktreeDiffSummary(workspaceRoot, worktreePath, baseRef);
+  const runCleanup = async (opts) => isDemo && demoStore ? demoStore.cleanup(opts) : cleanupWorktree(workspaceRoot, opts);
+  const modelTools = [];
+  const listTool = server.registerTool(
+    "worktree_list",
+    {
+      title: "List Git Worktrees",
+      description: "Inspect all active Git worktrees for this repository, including dirty state, ahead/behind counts, merged status, prunable entries, and extensions.worktreeConfig hazard detection.",
+      inputSchema: {}
+    },
+    async () => {
+      try {
+        const state = await runList();
+        return {
+          content: [{ type: "text", text: formatListSummary(state) }],
+          structuredContent: { ...state }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  modelTools.push(toHandle8("worktree_list", listTool));
+  const createTool = server.registerTool(
+    "worktree_create",
+    {
+      title: "Create Git Worktree",
+      description: "Create an isolated Git worktree inside `<repo>/.agy-worktrees/<slug>` for a new or existing branch, optionally carrying uncommitted changes from the current worktree without mutating it.",
+      inputSchema: {
+        branch: external_exports.string().min(1).describe('Target branch name (validated against Git ref rules; no leading "-", "..", or whitespace)'),
+        baseRef: external_exports.string().min(1).optional().describe("Optional base commit/branch ref when creating a new branch"),
+        dirName: external_exports.string().min(1).optional().describe("Optional single-level directory slug inside .agy-worktrees/"),
+        carryUncommitted: external_exports.boolean().optional().describe("When true, extract git diff HEAD from the current worktree and apply it cleanly to the new worktree")
+      }
+    },
+    async ({ branch, baseRef, dirName, carryUncommitted }) => {
+      try {
+        const result = await runCreate({ branch, baseRef, dirName, carryUncommitted });
+        const lines = [
+          `Created worktree for branch "${result.created.branch ?? branch}" at ${result.created.path}.`,
+          `Carried uncommitted changes: ${result.carriedUncommitted ? "yes" : "no"}.`
+        ];
+        if (result.warning) {
+          lines.push(`Warning: ${result.warning}`);
+        }
+        return {
+          content: [{ type: "text", text: lines.join("\n") }],
+          structuredContent: { ...result }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  modelTools.push(toHandle8("worktree_create", createTool));
+  const diffSummaryTool = server.registerTool(
+    "worktree_diff_summary",
+    {
+      title: "Worktree Diff Summary",
+      description: "Return committed diff statistics, uncommitted changes, changed file list, and ahead/behind counts for an active Git worktree path.",
+      inputSchema: {
+        worktreePath: external_exports.string().min(1).describe("Absolute path to an active worktree from worktree_list"),
+        baseRef: external_exports.string().min(1).optional().describe("Optional base branch/ref to compare against (defaults to main worktree branch)")
+      }
+    },
+    async ({ worktreePath, baseRef }) => {
+      try {
+        const summary = await runDiffSummary(worktreePath, baseRef);
+        return {
+          content: [{ type: "text", text: formatDiffSummary(summary) }],
+          structuredContent: { ...summary }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  modelTools.push(toHandle8("worktree_diff_summary", diffSummaryTool));
+  const cleanupTool = server.registerTool(
+    "worktree_cleanup",
+    {
+      title: "Cleanup or Prune Git Worktrees",
+      description: "Safely remove a non-main active Git worktree (refusing dirty worktrees unless force=true) and prune stale metadata, or prune orphaned metadata only.",
+      inputSchema: {
+        worktreePath: external_exports.string().min(1).optional().describe("Absolute path to a non-main active worktree to remove"),
+        pruneOnly: external_exports.boolean().optional().describe("When true, only run git worktree prune without removing any worktree"),
+        force: external_exports.boolean().optional().describe("Required to remove a worktree that still has uncommitted changes (never allows removing the main worktree)")
+      }
+    },
+    async ({ worktreePath, pruneOnly, force }) => {
+      try {
+        const result = await runCleanup({ worktreePath, pruneOnly, force });
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: { ...result }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  modelTools.push(toHandle8("worktree_cleanup", cleanupTool));
+  server.registerTool(
+    "app_worktree_list",
+    {
+      title: "List Git Worktrees (App Only)",
+      description: "Fetch full Git worktree orchestrator state for the Worktree UI tab.",
+      inputSchema: {},
+      _meta: APP_ONLY_META2
+    },
+    async () => {
+      try {
+        const state = await runList();
+        return {
+          content: [{ type: "text", text: "ok" }],
+          structuredContent: { ...state }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  server.registerTool(
+    "app_worktree_create",
+    {
+      title: "Create Git Worktree (App Only)",
+      description: "Create a controlled Git worktree from the Worktree UI tab.",
+      inputSchema: {
+        branch: external_exports.string().min(1),
+        baseRef: external_exports.string().min(1).optional(),
+        dirName: external_exports.string().min(1).optional(),
+        carryUncommitted: external_exports.boolean().optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ branch, baseRef, dirName, carryUncommitted }) => {
+      try {
+        const result = await runCreate({ branch, baseRef, dirName, carryUncommitted });
+        return {
+          content: [{ type: "text", text: "created" }],
+          structuredContent: { ...result }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  server.registerTool(
+    "app_worktree_diff_summary",
+    {
+      title: "Worktree Diff Summary (App Only)",
+      description: "Fetch branch and working-tree diff summary for an active worktree from the Worktree UI.",
+      inputSchema: {
+        worktreePath: external_exports.string().min(1),
+        baseRef: external_exports.string().min(1).optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ worktreePath, baseRef }) => {
+      try {
+        const summary = await runDiffSummary(worktreePath, baseRef);
+        return {
+          content: [{ type: "text", text: "ok" }],
+          structuredContent: { ...summary }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  server.registerTool(
+    "app_worktree_cleanup",
+    {
+      title: "Cleanup Git Worktree (App Only)",
+      description: "Remove a non-main worktree or prune stale metadata from the Worktree UI.",
+      inputSchema: {
+        worktreePath: external_exports.string().min(1).optional(),
+        pruneOnly: external_exports.boolean().optional(),
+        force: external_exports.boolean().optional()
+      },
+      _meta: APP_ONLY_META2
+    },
+    async ({ worktreePath, pruneOnly, force }) => {
+      try {
+        const result = await runCleanup({ worktreePath, pruneOnly, force });
+        return {
+          content: [{ type: "text", text: result.message }],
+          structuredContent: { ...result }
+        };
+      } catch (err) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: formatErrorMessage(err) }]
+        };
+      }
+    }
+  );
+  return {
+    moduleId: "worktree",
+    modelTools,
+    exemptReadOnlyAppTools: ["app_worktree_list"]
+  };
+}
+
 // src/modules/xray/register.ts
-var import_node_path23 = __toESM(require("node:path"), 1);
+var import_node_path26 = __toESM(require("node:path"), 1);
 
 // src/modules/xray/discovery.ts
-var import_node_fs16 = __toESM(require("node:fs"), 1);
+var import_node_fs18 = __toESM(require("node:fs"), 1);
 var import_node_os4 = __toESM(require("node:os"), 1);
-var import_node_path21 = __toESM(require("node:path"), 1);
+var import_node_path24 = __toESM(require("node:path"), 1);
 
 // src/modules/xray/demo-data.ts
 function buildDemoSessions() {
@@ -48057,8 +51381,8 @@ function buildDemoSessions() {
     ],
     turns: [
       { turnIndex: 1, stepIndex: 1, timestamp: "2026-11-26T06:10:02Z", model: "gemini-4-neon-high", inputTokens: 18400, cacheReadTokens: 0, freshInputTokens: 18400, outputTokens: 1420, thinkingChars: 1850, toolCallsCount: 3, toolOutputBytes: 18200, cacheHitRate: 0, userPromptPreview: "Refactor our OAuth2 PKCE token refresh middleware..." },
-      { turnIndex: 2, stepIndex: 5, timestamp: "2026-11-26T06:14:18Z", model: "gemini-4-neon-high", inputTokens: 34200, cacheReadTokens: 17900, freshInputTokens: 16300, outputTokens: 2110, thinkingChars: 2400, toolCallsCount: 4, toolOutputBytes: 42100, cacheHitRate: 0.5234 },
-      { turnIndex: 3, stepIndex: 10, timestamp: "2026-11-26T06:19:45Z", model: "gemini-4-neon-high", inputTokens: 52600, cacheReadTokens: 33500, freshInputTokens: 19100, outputTokens: 3050, thinkingChars: 3120, toolCallsCount: 3, toolOutputBytes: 24800, cacheHitRate: 0.6369 },
+      { turnIndex: 2, stepIndex: 5, timestamp: "2026-11-26T06:14:18Z", model: "gemini-4-flash", inputTokens: 34200, cacheReadTokens: 17900, freshInputTokens: 16300, outputTokens: 2110, thinkingChars: 2400, toolCallsCount: 4, toolOutputBytes: 42100, cacheHitRate: 0.5234 },
+      { turnIndex: 3, stepIndex: 10, timestamp: "2026-11-26T06:19:45Z", model: "gemini-4-flash", inputTokens: 52600, cacheReadTokens: 33500, freshInputTokens: 19100, outputTokens: 3050, thinkingChars: 3120, toolCallsCount: 3, toolOutputBytes: 24800, cacheHitRate: 0.6369 },
       { turnIndex: 4, stepIndex: 14, timestamp: "2026-11-26T06:24:11Z", model: "gemini-4-neon-high", inputTokens: 64900, cacheReadTokens: 51400, freshInputTokens: 13500, outputTokens: 2890, thinkingChars: 2190, toolCallsCount: 4, toolOutputBytes: 31400, cacheHitRate: 0.792 },
       { turnIndex: 5, stepIndex: 19, timestamp: "2026-11-26T06:30:20Z", model: "gemini-4-neon-high", inputTokens: 71500, cacheReadTokens: 63800, freshInputTokens: 7700, outputTokens: 2640, thinkingChars: 1780, toolCallsCount: 2, toolOutputBytes: 6200, cacheHitRate: 0.8923 },
       { turnIndex: 6, stepIndex: 22, timestamp: "2026-11-26T06:36:05Z", model: "gemini-4-neon-high", inputTokens: 78900, cacheReadTokens: 69200, freshInputTokens: 9700, outputTokens: 3120, thinkingChars: 2650, toolCallsCount: 3, toolOutputBytes: 14300, cacheHitRate: 0.8771 },
@@ -48092,6 +51416,69 @@ function buildDemoSessions() {
       { severity: "good", title: "Healthy Prefix Cache (72.2%)", detail: "348.2K of 482.4K input tokens served from prompt cache across 8 turns." },
       { severity: "warn", title: "Top Token Vampire: run_command (44.5%)", detail: "7 shell invocations returned 68.4 KB (2 truncated). Filter verbose test logs with --reporter=dot or tail." },
       { severity: "info", title: "Cache Dip at Turn 7 (-24.4%)", detail: "Cache hit dropped from 87.7% to 63.3% after a large test output spike." }
+    ],
+    swarmLineage: {
+      totalSubagents: 2,
+      linkedTranscripts: 2,
+      orphanSuspects: 0,
+      totalSubagentInputTokens: 118600,
+      totalSubagentOutputTokens: 7950,
+      children: [
+        {
+          conversationId: "demo-sub-scout-01",
+          role: "Scout",
+          typeName: "scout",
+          model: "gemini-4-flash",
+          stepIndex: 5,
+          timestamp: "2026-11-26T06:14:22Z",
+          transcriptFound: true,
+          totalInputTokens: 46200,
+          totalCacheReadTokens: 29400,
+          totalOutputTokens: 3150,
+          cacheHitRate: 0.6364,
+          turns: 3,
+          statusHint: "completed"
+        },
+        {
+          conversationId: "demo-sub-auditor-02",
+          role: "Auditor",
+          typeName: "auditor",
+          model: "gemini-4-neon-high",
+          stepIndex: 26,
+          timestamp: "2026-11-26T06:43:02Z",
+          transcriptFound: true,
+          totalInputTokens: 72400,
+          totalCacheReadTokens: 54800,
+          totalOutputTokens: 4800,
+          cacheHitRate: 0.7569,
+          turns: 4,
+          statusHint: "completed"
+        }
+      ]
+    },
+    modelBreakdown: [
+      {
+        model: "gemini-4-neon-high",
+        turns: 6,
+        inputTokens: 395600,
+        cacheReadTokens: 296800,
+        freshInputTokens: 98800,
+        outputTokens: 14680,
+        cacheHitRate: 0.7503,
+        retrySignals: 0,
+        sharePercent: 81.7
+      },
+      {
+        model: "gemini-4-flash",
+        turns: 2,
+        inputTokens: 86800,
+        cacheReadTokens: 51400,
+        freshInputTokens: 35400,
+        outputTokens: 5160,
+        cacheHitRate: 0.5922,
+        retrySignals: 1,
+        sharePercent: 18.3
+      }
     ]
   };
   const s2Detail = {
@@ -48113,6 +51500,27 @@ function buildDemoSessions() {
     })),
     diagnostics: [
       { severity: "good", title: "High Cache Reuse (75.1%)", detail: "Stable prompt prefix kept p95 latency low across 5 turns." }
+    ],
+    swarmLineage: {
+      totalSubagents: 0,
+      linkedTranscripts: 0,
+      orphanSuspects: 0,
+      totalSubagentInputTokens: 0,
+      totalSubagentOutputTokens: 0,
+      children: []
+    },
+    modelBreakdown: [
+      {
+        model: "gemini-4-flash",
+        turns: 5,
+        inputTokens: 215900,
+        cacheReadTokens: 162100,
+        freshInputTokens: 53800,
+        outputTokens: 11420,
+        cacheHitRate: 0.7508,
+        retrySignals: 0,
+        sharePercent: 100
+      }
     ]
   };
   const s3Detail = {
@@ -48121,12 +51529,34 @@ function buildDemoSessions() {
     turns: s1Detail.turns.slice(0, 4).map((t, i) => ({
       ...t,
       turnIndex: i + 1,
+      model: "gemini-4-neon-high",
       inputTokens: Math.round(t.inputTokens * 0.52),
       cacheReadTokens: Math.round(t.cacheReadTokens * 0.48),
       freshInputTokens: Math.round(t.freshInputTokens * 0.6)
     })),
     diagnostics: [
       { severity: "info", title: "Moderate Cache Reuse (63.5%)", detail: "Consider batching Dockerfile & workflow edits in fewer turns." }
+    ],
+    swarmLineage: {
+      totalSubagents: 0,
+      linkedTranscripts: 0,
+      orphanSuspects: 0,
+      totalSubagentInputTokens: 0,
+      totalSubagentOutputTokens: 0,
+      children: []
+    },
+    modelBreakdown: [
+      {
+        model: "gemini-4-neon-high",
+        turns: 4,
+        inputTokens: 149300,
+        cacheReadTokens: 94800,
+        freshInputTokens: 54500,
+        outputTokens: 8210,
+        cacheHitRate: 0.635,
+        retrySignals: 0,
+        sharePercent: 100
+      }
     ]
   };
   return {
@@ -48179,8 +51609,8 @@ function searchDemoSessions(query) {
 }
 
 // src/modules/xray/transcript.ts
-var import_node_fs15 = __toESM(require("node:fs"), 1);
-var import_node_path20 = __toESM(require("node:path"), 1);
+var import_node_fs17 = __toESM(require("node:fs"), 1);
+var import_node_path23 = __toESM(require("node:path"), 1);
 var import_node_url3 = require("node:url");
 
 // src/modules/xray/sanitize.ts
@@ -48273,7 +51703,7 @@ function cleanUserRequest(raw) {
 function toSafeFileUri(filePath) {
   if (filePath.startsWith("file://")) return filePath;
   try {
-    return (0, import_node_url3.pathToFileURL)(import_node_path20.default.resolve(filePath)).href;
+    return (0, import_node_url3.pathToFileURL)(import_node_path23.default.resolve(filePath)).href;
   } catch {
     return `file://${filePath}`;
   }
@@ -48299,17 +51729,17 @@ function extractFilePathsFromArgs(args) {
   return results;
 }
 function listArtifactsInBrainDir(brainDir) {
-  if (!brainDir || !import_node_fs15.default.existsSync(brainDir)) return [];
+  if (!brainDir || !import_node_fs17.default.existsSync(brainDir)) return [];
   const artifacts = [];
   try {
-    for (const entry of import_node_fs15.default.readdirSync(brainDir, { withFileTypes: true })) {
+    for (const entry of import_node_fs17.default.readdirSync(brainDir, { withFileTypes: true })) {
       if (!entry.isFile()) continue;
       if (!/\.(md|txt|json|html|svg)$/i.test(entry.name)) continue;
       if (entry.name.startsWith(".")) continue;
-      const fullPath = import_node_path20.default.join(brainDir, entry.name);
+      const fullPath = import_node_path23.default.join(brainDir, entry.name);
       try {
-        const stat = import_node_fs15.default.statSync(fullPath);
-        const content = import_node_fs15.default.readFileSync(fullPath, "utf8").slice(0, 800);
+        const stat = import_node_fs17.default.statSync(fullPath);
+        const content = import_node_fs17.default.readFileSync(fullPath, "utf8").slice(0, 800);
         artifacts.push({
           name: entry.name,
           path: fullPath,
@@ -48325,13 +51755,275 @@ function listArtifactsInBrainDir(brainDir) {
   }
   return artifacts.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
+var MAX_LINKED_SUBAGENTS = 24;
+var CHILD_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{1,127}$/;
+var UUID_RE = /\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i;
+var LABELED_CONV_ID_RE = /["']?(?:child[_-]?conversation[_-]?id|subagent[_-]?conversation[_-]?id|conversation[_-]?id|session[_-]?id|subagent[_-]?id)["']?\s*[:=]\s*["'`]?([A-Za-z0-9][A-Za-z0-9._-]{1,127})["'`]?/i;
+var BRAIN_PATH_ID_RE = /brain[\\/]([A-Za-z0-9][A-Za-z0-9._-]{1,127})[\\/](?:\.system_generated[\\/]logs[\\/])?transcript\.jsonl/i;
+var RETRY_SIGNAL_RE = /\b(?:429|RESOURCE_EXHAUSTED|rate[\s_-]*limit(?:ed|ing)?|quota(?:\s+exceeded)?|too\s+many\s+requests|retry(?:ing|able)?|backoff)\b/i;
+var ACTIVE_STEP_STATUSES = /* @__PURE__ */ new Set([
+  "RUNNING",
+  "WAITING",
+  "PENDING",
+  "IN_PROGRESS",
+  "ACTIVE",
+  "AWAITING_APPROVAL",
+  "EXECUTING"
+]);
+var DONE_STEP_STATUSES = /* @__PURE__ */ new Set(["DONE", "COMPLETED", "FINISHED", "STOPPED"]);
+var DONE_STEP_TYPES = /* @__PURE__ */ new Set(["DONE", "STOP", "COMPLETED", "SESSION_END", "TASK_COMPLETE"]);
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function isSafeChildId(candidate, parentSessionId) {
+  if (!candidate) return false;
+  const trimmed = candidate.trim();
+  if (!trimmed || trimmed === parentSessionId) return false;
+  if (trimmed.includes("..") || trimmed.includes("/") || trimmed.includes("\\")) return false;
+  return CHILD_ID_RE.test(trimmed);
+}
+function pickFirstArgString(args, keys) {
+  if (!args) return "";
+  for (const key of keys) {
+    if (key in args && args[key] != null) {
+      const val = unwrapArgString(args[key]);
+      if (val) return val;
+    }
+  }
+  return "";
+}
+function isSubagentToolCall(toolName, args) {
+  const lower = toolName.toLowerCase();
+  if (lower === "invoke_subagent" || lower.endsWith(":invoke_subagent")) {
+    return true;
+  }
+  if (lower === "swarm" || lower.endsWith(":swarm")) {
+    const action = pickFirstArgString(args, ["action", "Action"]).toLowerCase();
+    return action === "add";
+  }
+  return false;
+}
+function listSiblingBrainDirs(siblingBrainRoot, parentSessionId) {
+  if (!siblingBrainRoot || !import_node_fs17.default.existsSync(siblingBrainRoot)) return [];
+  try {
+    const entries = import_node_fs17.default.readdirSync(siblingBrainRoot, { withFileTypes: true });
+    return entries.filter((entry) => entry.isDirectory() && isSafeChildId(entry.name, parentSessionId)).map((entry) => entry.name).sort((a, b) => b.length - a.length);
+  } catch {
+    return [];
+  }
+}
+function extractChildIdFromObject(obj, parentSessionId, allowGenericId) {
+  if (!obj) return void 0;
+  const keys = [
+    "childConversationId",
+    "child_conversation_id",
+    "subagentConversationId",
+    "subagent_conversation_id",
+    "conversationId",
+    "conversation_id",
+    "ConversationId",
+    "sessionId",
+    "session_id",
+    "SessionId",
+    "targetConversationId",
+    "target_conversation_id",
+    "subagentId",
+    "subagent_id",
+    ...allowGenericId ? ["id", "Id", "ID"] : []
+  ];
+  for (const key of keys) {
+    if (key in obj && obj[key] != null) {
+      const val = unwrapArgString(obj[key]);
+      if (isSafeChildId(val, parentSessionId)) {
+        return val;
+      }
+    }
+  }
+  return void 0;
+}
+function extractChildIdFromText(text, parentSessionId, siblingDirNames, usedIds) {
+  if (!text) return void 0;
+  const trimmed = text.trim();
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const fromJson = extractChildIdFromObject(
+          parsed,
+          parentSessionId,
+          true
+        );
+        if (fromJson && !usedIds.has(fromJson)) return fromJson;
+      }
+    } catch {
+    }
+  }
+  for (const re of [LABELED_CONV_ID_RE, BRAIN_PATH_ID_RE, UUID_RE]) {
+    const match = text.match(re);
+    if (match?.[1] && isSafeChildId(match[1], parentSessionId) && !usedIds.has(match[1])) {
+      return match[1];
+    }
+  }
+  for (const dirName of siblingDirNames) {
+    if (usedIds.has(dirName)) continue;
+    if (!text.includes(dirName)) continue;
+    const boundaryRe = new RegExp(`(?:^|[^A-Za-z0-9_-])${escapeRegExp(dirName)}(?:$|[^A-Za-z0-9_-])`);
+    if (boundaryRe.test(text)) {
+      return dirName;
+    }
+  }
+  return void 0;
+}
+function extractChildIdFromStep(step, parentSessionId, siblingDirNames, usedIds) {
+  const fromStepFields = extractChildIdFromObject(
+    {
+      childConversationId: step.childConversationId,
+      child_conversation_id: step.child_conversation_id,
+      conversationId: step.conversationId,
+      conversation_id: step.conversation_id
+    },
+    parentSessionId,
+    false
+  ) ?? extractChildIdFromObject(step.metadata, parentSessionId, true);
+  if (fromStepFields && !usedIds.has(fromStepFields)) {
+    return fromStepFields;
+  }
+  const content = typeof step.content === "string" ? step.content : "";
+  return extractChildIdFromText(content, parentSessionId, siblingDirNames, usedIds);
+}
+function resolveChildTranscriptPath(siblingBrainRoot, childId) {
+  if (!siblingBrainRoot || !import_node_fs17.default.existsSync(siblingBrainRoot)) return null;
+  let realRoot;
+  try {
+    realRoot = import_node_fs17.default.realpathSync(siblingBrainRoot);
+  } catch {
+    return null;
+  }
+  const candidates = [
+    import_node_path23.default.join(siblingBrainRoot, childId, ".system_generated", "logs", "transcript.jsonl"),
+    import_node_path23.default.join(siblingBrainRoot, childId, "transcript.jsonl")
+  ];
+  for (const candidate of candidates) {
+    if (!import_node_fs17.default.existsSync(candidate)) continue;
+    try {
+      const realCandidate = import_node_fs17.default.realpathSync(candidate);
+      if (realCandidate !== realRoot && !realCandidate.startsWith(`${realRoot}${import_node_path23.default.sep}`)) {
+        continue;
+      }
+      const stat = import_node_fs17.default.statSync(realCandidate);
+      if (!stat.isFile()) continue;
+      return realCandidate;
+    } catch {
+    }
+  }
+  return null;
+}
+function isStepCompletedTerminal(step) {
+  if (!step) return false;
+  const status = typeof step.status === "string" ? step.status.trim().toUpperCase() : "";
+  const type = typeof step.type === "string" ? step.type.trim().toUpperCase() : "";
+  const source = typeof step.source === "string" ? step.source.trim().toUpperCase() : "";
+  const hasPendingToolCalls = type === "PLANNER_RESPONSE" && Array.isArray(step.tool_calls) && step.tool_calls.length > 0;
+  if (hasPendingToolCalls) return false;
+  if (ACTIVE_STEP_STATUSES.has(status)) return false;
+  if (type === "USER_INPUT" || source === "TOOL" || type === "TOOL_RESULT" || type === "GENERIC") {
+    return false;
+  }
+  if (DONE_STEP_STATUSES.has(status)) return true;
+  if (DONE_STEP_TYPES.has(type)) return true;
+  return false;
+}
+function isParentSessionStopped(steps) {
+  if (steps.length === 0) return false;
+  const last = steps[steps.length - 1];
+  const status = typeof last.status === "string" ? last.status.trim().toUpperCase() : "";
+  const type = typeof last.type === "string" ? last.type.trim().toUpperCase() : "";
+  const hasPendingToolCalls = type === "PLANNER_RESPONSE" && Array.isArray(last.tool_calls) && last.tool_calls.length > 0;
+  if (ACTIVE_STEP_STATUSES.has(status)) return false;
+  if (hasPendingToolCalls || type === "USER_INPUT") return false;
+  if (DONE_STEP_STATUSES.has(status) || DONE_STEP_TYPES.has(type)) return true;
+  if (type === "PLANNER_RESPONSE") return true;
+  return false;
+}
+var MAX_CHILD_TRANSCRIPT_BYTES = 20 * 1024 * 1024;
+function readChildTranscriptStats(transcriptPath) {
+  let rawText;
+  try {
+    const st = import_node_fs17.default.statSync(transcriptPath);
+    if (!st.isFile() || st.size > MAX_CHILD_TRANSCRIPT_BYTES) {
+      return null;
+    }
+    rawText = import_node_fs17.default.readFileSync(transcriptPath, "utf8");
+  } catch {
+    return null;
+  }
+  let turns = 0;
+  let totalInputTokens = 0;
+  let totalCacheReadTokens = 0;
+  let totalOutputTokens = 0;
+  let lastModel;
+  let lastStep;
+  for (const line of rawText.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    let step;
+    try {
+      step = JSON.parse(trimmed);
+    } catch {
+      continue;
+    }
+    lastStep = step;
+    if (step.model) {
+      lastModel = step.model;
+    }
+    if (step.type === "PLANNER_RESPONSE") {
+      turns += 1;
+      const rawIn = Math.max(0, Number(step.input_tokens ?? 0));
+      const rawCache = Math.max(0, Number(step.cache_read_tokens ?? 0));
+      const rawOut = Math.max(0, Number(step.output_tokens ?? 0));
+      totalInputTokens += rawIn + rawCache;
+      totalCacheReadTokens += rawCache;
+      totalOutputTokens += rawOut;
+    }
+  }
+  const cacheHitRate = totalInputTokens > 0 ? totalCacheReadTokens / totalInputTokens : 0;
+  return {
+    turns,
+    totalInputTokens,
+    totalCacheReadTokens,
+    totalOutputTokens,
+    cacheHitRate,
+    lastModel,
+    completed: isStepCompletedTerminal(lastStep)
+  };
+}
+function formatStepErrorText(err) {
+  if (err == null) return "";
+  if (typeof err === "string") return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+function hasRetrySignalInStep(step) {
+  if (step.type === "USER_INPUT") return false;
+  const parts = [
+    typeof step.content === "string" ? step.content : "",
+    typeof step.thinking === "string" ? step.thinking : "",
+    typeof step.status === "string" ? step.status : "",
+    formatStepErrorText(step.error)
+  ];
+  return parts.some((part) => Boolean(part) && RETRY_SIGNAL_RE.test(part));
+}
 function parseTranscriptFile(transcriptPath, opts = {}) {
-  const rawText = import_node_fs15.default.readFileSync(transcriptPath, "utf8");
+  const rawText = import_node_fs17.default.readFileSync(transcriptPath, "utf8");
   return parseTranscriptLines(rawText.split(/\r?\n/), {
     transcriptPath,
-    brainDir: opts.brainDir ?? import_node_path20.default.resolve(import_node_path20.default.dirname(transcriptPath), "..", ".."),
-    sessionId: opts.sessionId ?? import_node_path20.default.basename(import_node_path20.default.resolve(import_node_path20.default.dirname(transcriptPath), "..", "..")),
-    source: opts.source ?? "desktop"
+    brainDir: opts.brainDir ?? import_node_path23.default.resolve(import_node_path23.default.dirname(transcriptPath), "..", ".."),
+    sessionId: opts.sessionId ?? import_node_path23.default.basename(import_node_path23.default.resolve(import_node_path23.default.dirname(transcriptPath), "..", "..")),
+    source: opts.source ?? "desktop",
+    siblingBrainRoot: opts.siblingBrainRoot
   });
 }
 function parseTranscriptLines(lines, meta3) {
@@ -48351,6 +52043,23 @@ function parseTranscriptLines(lines, meta3) {
   const turns = [];
   const toolStats = /* @__PURE__ */ new Map();
   const fileMap = /* @__PURE__ */ new Map();
+  const modelStats = /* @__PURE__ */ new Map();
+  const ensureModelStat = (modelName) => {
+    const key = modelName || "unknown";
+    let entry = modelStats.get(key);
+    if (!entry) {
+      entry = {
+        turns: 0,
+        inputTokens: 0,
+        cacheReadTokens: 0,
+        freshInputTokens: 0,
+        outputTokens: 0,
+        retrySignals: 0
+      };
+      modelStats.set(key, entry);
+    }
+    return entry;
+  };
   let totalInputTokens = 0;
   let totalCacheReadTokens = 0;
   let totalFreshInputTokens = 0;
@@ -48358,9 +52067,13 @@ function parseTranscriptLines(lines, meta3) {
   let peakContextTokens = 0;
   let totalToolCalls = 0;
   let totalThinkingChars = 0;
-  let pendingToolNames = [];
+  let earlyRetrySignals = 0;
+  let pendingTools = [];
   let pendingTurnIdx = -1;
   let latestUserPrompt = "";
+  const siblingDirNames = listSiblingBrainDirs(meta3.siblingBrainRoot, meta3.sessionId);
+  const subagentDrafts = [];
+  const usedChildIds = /* @__PURE__ */ new Set();
   const recentSteps = [];
   for (let i = 0; i < steps.length; i++) {
     const s = steps[i];
@@ -48378,7 +52091,7 @@ function parseTranscriptLines(lines, meta3) {
       const cleaned = cleanUserRequest(content);
       if (!firstPrompt && cleaned) firstPrompt = redactSecrets2(cleaned);
       if (cleaned) latestUserPrompt = cleaned;
-      pendingToolNames = [];
+      pendingTools = [];
       pendingTurnIdx = -1;
       recentSteps.push({
         stepIndex,
@@ -48406,16 +52119,74 @@ function parseTranscriptLines(lines, meta3) {
       totalFreshInputTokens += freshInput;
       totalOutputTokens += rawOut;
       if (effectiveInput > peakContextTokens) peakContextTokens = effectiveInput;
+      const mStat = ensureModelStat(model);
+      mStat.turns += 1;
+      mStat.inputTokens += effectiveInput;
+      mStat.cacheReadTokens += Math.max(0, rawCache);
+      mStat.freshInputTokens += freshInput;
+      mStat.outputTokens += Math.max(0, rawOut);
+      if (hasRetrySignalInStep(s)) {
+        mStat.retrySignals += 1;
+      }
       const thinkingChars = typeof s.thinking === "string" ? s.thinking.length : 0;
       totalThinkingChars += thinkingChars;
       const toolCalls = Array.isArray(s.tool_calls) ? s.tool_calls : [];
       const toolNames = [];
-      pendingToolNames = [];
+      pendingTools = [];
       for (const tc of toolCalls) {
         const name = tc.name ?? tc.tool_name ?? "unknown_tool";
         toolNames.push(name);
-        pendingToolNames.push(name);
         totalToolCalls += 1;
+        let subagentDraft;
+        if (isSubagentToolCall(name, tc.args)) {
+          const explicitRole = pickFirstArgString(tc.args, [
+            "Role",
+            "role",
+            "AgentRole",
+            "agentRole",
+            "agent_role",
+            "subagentRole",
+            "subagent_role"
+          ]);
+          const explicitType = pickFirstArgString(tc.args, [
+            "TypeName",
+            "typeName",
+            "type_name",
+            "Name",
+            "name",
+            "AgentName",
+            "agentName",
+            "AgentType",
+            "agentType"
+          ]);
+          const explicitModel = pickFirstArgString(tc.args, [
+            "Model",
+            "model",
+            "ModelName",
+            "modelName",
+            "model_name"
+          ]);
+          const childIdFromArgs = extractChildIdFromObject(
+            tc.args,
+            meta3.sessionId,
+            name.toLowerCase().endsWith("swarm")
+          );
+          if (childIdFromArgs) {
+            usedChildIds.add(childIdFromArgs);
+          }
+          subagentDraft = {
+            conversationId: childIdFromArgs,
+            role: explicitRole || explicitType || "subagent",
+            typeName: explicitType || explicitRole || name,
+            model: explicitModel || model || "unknown",
+            explicitModel: Boolean(explicitModel),
+            stepIndex,
+            timestamp,
+            plannerContent: content
+          };
+          subagentDrafts.push(subagentDraft);
+        }
+        pendingTools.push({ name, subagentDraft });
         const existing = toolStats.get(name) ?? {
           calls: 0,
           totalOutputBytes: 0,
@@ -48426,11 +52197,11 @@ function parseTranscriptLines(lines, meta3) {
         const op = classifyToolFileOp(name);
         if (op) {
           for (const fp of extractFilePathsFromArgs(tc.args)) {
-            const normalized = import_node_path20.default.resolve(fp);
+            const normalized = import_node_path23.default.resolve(fp);
             const cur = fileMap.get(normalized) ?? {
               path: normalized,
-              basename: import_node_path20.default.basename(normalized),
-              dir: import_node_path20.default.dirname(normalized),
+              basename: import_node_path23.default.basename(normalized),
+              dir: import_node_path23.default.dirname(normalized),
               uri: toSafeFileUri(normalized),
               ops: [],
               readCount: 0,
@@ -48485,8 +52256,24 @@ function parseTranscriptLines(lines, meta3) {
       });
       continue;
     }
+    if (hasRetrySignalInStep(s)) {
+      const targetModel = s.model ?? (pendingTurnIdx >= 0 ? turns[pendingTurnIdx]?.model : void 0) ?? (lastModel !== "unknown" ? lastModel : void 0);
+      if (targetModel) {
+        ensureModelStat(targetModel).retrySignals += 1;
+      } else {
+        earlyRetrySignals += 1;
+      }
+    }
     const bytes = Buffer.byteLength(content, "utf8");
-    const attributedTool = pendingToolNames.shift();
+    const pendingTool = pendingTools.shift();
+    const attributedTool = pendingTool?.name;
+    if (pendingTool?.subagentDraft && !pendingTool.subagentDraft.conversationId) {
+      const matchedId = extractChildIdFromStep(s, meta3.sessionId, siblingDirNames, usedChildIds);
+      if (matchedId) {
+        pendingTool.subagentDraft.conversationId = matchedId;
+        usedChildIds.add(matchedId);
+      }
+    }
     if (attributedTool) {
       const stat = toolStats.get(attributedTool);
       if (stat) {
@@ -48508,6 +52295,93 @@ function parseTranscriptLines(lines, meta3) {
       truncated
     });
   }
+  if (earlyRetrySignals > 0) {
+    const fallbackModel = turns[0]?.model ?? "unknown";
+    ensureModelStat(fallbackModel).retrySignals += earlyRetrySignals;
+  }
+  for (const draft of subagentDrafts) {
+    if (!draft.conversationId && draft.plannerContent) {
+      const fallbackId = extractChildIdFromText(
+        draft.plannerContent,
+        meta3.sessionId,
+        siblingDirNames,
+        usedChildIds
+      );
+      if (fallbackId) {
+        draft.conversationId = fallbackId;
+        usedChildIds.add(fallbackId);
+      }
+    }
+  }
+  const parentStopped = isParentSessionStopped(steps);
+  const childStatsCache = /* @__PURE__ */ new Map();
+  let parsedChildFiles = 0;
+  const swarmChildren = subagentDrafts.map((draft) => {
+    let stats = null;
+    if (draft.conversationId && meta3.siblingBrainRoot) {
+      if (childStatsCache.has(draft.conversationId)) {
+        stats = childStatsCache.get(draft.conversationId) ?? null;
+      } else if (parsedChildFiles < MAX_LINKED_SUBAGENTS) {
+        const childTranscriptPath = resolveChildTranscriptPath(
+          meta3.siblingBrainRoot,
+          draft.conversationId
+        );
+        if (childTranscriptPath) {
+          parsedChildFiles += 1;
+          stats = readChildTranscriptStats(childTranscriptPath);
+        }
+        childStatsCache.set(draft.conversationId, stats);
+      }
+    }
+    const transcriptFound = stats !== null;
+    const statusHint = stats === null ? "unknown" : stats.completed ? "completed" : parentStopped ? "orphan_suspect" : "active";
+    const resolvedModel = draft.explicitModel || !stats?.lastModel ? draft.model : stats.lastModel;
+    return {
+      conversationId: draft.conversationId,
+      role: draft.role,
+      typeName: draft.typeName,
+      model: resolvedModel,
+      stepIndex: draft.stepIndex,
+      timestamp: draft.timestamp,
+      transcriptFound,
+      totalInputTokens: stats?.totalInputTokens ?? 0,
+      totalCacheReadTokens: stats?.totalCacheReadTokens ?? 0,
+      totalOutputTokens: stats?.totalOutputTokens ?? 0,
+      cacheHitRate: stats?.cacheHitRate ?? 0,
+      turns: stats?.turns ?? 0,
+      statusHint
+    };
+  });
+  const swarmLineage = {
+    totalSubagents: swarmChildren.length,
+    linkedTranscripts: swarmChildren.filter((c) => c.transcriptFound).length,
+    orphanSuspects: swarmChildren.filter((c) => c.statusHint === "orphan_suspect").length,
+    totalSubagentInputTokens: swarmChildren.reduce((sum, c) => sum + c.totalInputTokens, 0),
+    totalSubagentOutputTokens: swarmChildren.reduce((sum, c) => sum + c.totalOutputTokens, 0),
+    children: swarmChildren
+  };
+  const totalModelCombinedTokens = Array.from(modelStats.values()).reduce(
+    (sum, m) => sum + m.inputTokens + m.outputTokens,
+    0
+  );
+  const totalModelTurns = Array.from(modelStats.values()).reduce((sum, m) => sum + m.turns, 0);
+  const modelBreakdown = Array.from(modelStats.entries()).map(([model, stat]) => {
+    const combined = stat.inputTokens + stat.outputTokens;
+    const sharePercent = totalModelCombinedTokens > 0 ? Number((combined / totalModelCombinedTokens * 100).toFixed(1)) : totalModelTurns > 0 ? Number((stat.turns / totalModelTurns * 100).toFixed(1)) : 0;
+    return {
+      model,
+      turns: stat.turns,
+      inputTokens: stat.inputTokens,
+      cacheReadTokens: stat.cacheReadTokens,
+      freshInputTokens: stat.freshInputTokens,
+      outputTokens: stat.outputTokens,
+      cacheHitRate: stat.inputTokens > 0 ? stat.cacheReadTokens / stat.inputTokens : 0,
+      retrySignals: stat.retrySignals,
+      sharePercent
+    };
+  }).sort(
+    (a, b) => b.inputTokens + b.outputTokens - (a.inputTokens + a.outputTokens) || b.turns - a.turns || a.model.localeCompare(b.model)
+  );
   const totalToolBytes = Array.from(toolStats.values()).reduce((sum, v) => sum + v.totalOutputBytes, 0);
   const toolHotspots = Array.from(toolStats.entries()).map(([toolName, stat]) => ({
     toolName,
@@ -48597,6 +52471,36 @@ function parseTranscriptLines(lines, meta3) {
       break;
     }
   }
+  const totalRetrySignals = modelBreakdown.reduce((sum, item) => sum + item.retrySignals, 0);
+  if (totalRetrySignals > 0) {
+    const retryModels = modelBreakdown.filter((item) => item.retrySignals > 0).map((item) => `${item.model} (${item.retrySignals})`);
+    diagnostics.push({
+      severity: "warn",
+      title: `Rate-Limit / Retry Signals Detected (${totalRetrySignals})`,
+      detail: `Observed ${totalRetrySignals} retry/quota signal(s) on ${retryModels.join(", ")}. Repeated 429 retries can amplify token consumption and break prompt cache continuity.`
+    });
+  }
+  const activeModels = modelBreakdown.filter((item) => item.turns > 0);
+  if (activeModels.length >= 2) {
+    let modelSwitches = 0;
+    for (let t = 1; t < turns.length; t++) {
+      if (turns[t].model !== turns[t - 1].model) {
+        modelSwitches += 1;
+      }
+    }
+    diagnostics.push({
+      severity: totalRetrySignals > 0 ? "warn" : "info",
+      title: totalRetrySignals > 0 ? `Mid-Session Model Fallback / Switch (${activeModels.length} models)` : `Multi-Model Session (${activeModels.length} models)`,
+      detail: `Session switched models ${modelSwitches} time(s) (${activeModels.map((m) => `${m.model}: ${m.sharePercent}%`).join(", ")}). Switching models mid-session resets prompt cache.`
+    });
+  }
+  if (swarmLineage.orphanSuspects > 0) {
+    diagnostics.push({
+      severity: "warn",
+      title: `Swarm Orphan Suspects (${swarmLineage.orphanSuspects}/${swarmLineage.totalSubagents})`,
+      detail: `${swarmLineage.orphanSuspects} subagent transcript(s) ended without a terminal DONE marker after parent activity stopped. Inspect lingering background subagents.`
+    });
+  }
   const title = firstPrompt ? firstPrompt.slice(0, 72) + (firstPrompt.length > 72 ? "\u2026" : "") : `Session ${meta3.sessionId.slice(0, 8)}`;
   const summary = {
     id: meta3.sessionId,
@@ -48628,7 +52532,9 @@ function parseTranscriptLines(lines, meta3) {
     fileActivity,
     artifacts,
     recentSteps: recentSteps.slice(-60).reverse(),
-    diagnostics
+    diagnostics,
+    swarmLineage,
+    modelBreakdown
   };
 }
 function formatCompactTokens(tokens) {
@@ -48647,7 +52553,35 @@ function renderRedactedBrief(detail) {
     `- **Output Tokens**: ${formatCompactTokens(s.totalOutputTokens)} | **Tool Calls**: ${s.toolCallsCount}`,
     "",
     "## Context Diagnostics",
-    ...detail.diagnostics.map((d) => `- **[${d.severity.toUpperCase()}] ${redactSecrets2(d.title)}** \u2014 ${redactSecrets2(d.detail)}`),
+    ...detail.diagnostics.map((d) => `- **[${d.severity.toUpperCase()}] ${redactSecrets2(d.title)}** \u2014 ${redactSecrets2(d.detail)}`)
+  ];
+  if (detail.swarmLineage && detail.swarmLineage.totalSubagents > 0) {
+    const sl = detail.swarmLineage;
+    lines.push(
+      "",
+      "## Swarm Lineage",
+      `- **Subagents**: ${sl.totalSubagents} (Linked Transcripts: ${sl.linkedTranscripts}, Orphan Suspects: ${sl.orphanSuspects})`,
+      `- **Subagent Tokens**: Input ${formatCompactTokens(sl.totalSubagentInputTokens)} | Output ${formatCompactTokens(sl.totalSubagentOutputTokens)}`,
+      "| Role | Type | Model | Turns | Input | Output | Status |",
+      "| :--- | :--- | :--- | ---: | ---: | ---: | :--- |",
+      ...sl.children.slice(0, 12).map(
+        (c) => `| ${redactSecrets2(c.role)} | \`${redactSecrets2(c.typeName)}\` | \`${c.model}\` | ${c.turns} | ${formatCompactTokens(c.totalInputTokens)} | ${formatCompactTokens(c.totalOutputTokens)} | ${c.statusHint} |`
+      )
+    );
+  }
+  const hasRetrySignals = detail.modelBreakdown?.some((m) => m.retrySignals > 0) ?? false;
+  if (detail.modelBreakdown && (detail.modelBreakdown.length > 1 || hasRetrySignals)) {
+    lines.push(
+      "",
+      "## Model Breakdown",
+      "| Model | Turns | Input | Cache Hit | Output | Retries | Share |",
+      "| :--- | ---: | ---: | ---: | ---: | ---: | ---: |",
+      ...detail.modelBreakdown.map(
+        (m) => `| \`${m.model}\` | ${m.turns} | ${formatCompactTokens(m.inputTokens)} | ${(m.cacheHitRate * 100).toFixed(1)}% | ${formatCompactTokens(m.outputTokens)} | ${m.retrySignals} | ${m.sharePercent}% |`
+      )
+    );
+  }
+  lines.push(
     "",
     "## Top Tool Output Consumers",
     "| Tool | Calls | Payload | Est. Tokens | Share |",
@@ -48663,7 +52597,7 @@ function renderRedactedBrief(detail) {
     "",
     "## Artifacts",
     ...detail.artifacts.length ? detail.artifacts.map((a) => `- \`${a.name}\` (${(a.sizeBytes / 1024).toFixed(1)} KB)`) : ["- No markdown artifacts in brain directory."]
-  ];
+  );
   return redactSecrets2(lines.join("\n"));
 }
 
@@ -48671,18 +52605,18 @@ function renderRedactedBrief(detail) {
 function getDefaultBrainDirs() {
   const home = import_node_os4.default.homedir();
   const candidates = [
-    { dir: import_node_path21.default.join(home, ".gemini", "antigravity", "brain"), source: "desktop" },
-    { dir: import_node_path21.default.join(home, ".gemini", "antigravity-cli", "brain"), source: "cli" },
-    { dir: import_node_path21.default.join(home, ".gemini", "antigravity-ide", "brain"), source: "ide" }
+    { dir: import_node_path24.default.join(home, ".gemini", "antigravity", "brain"), source: "desktop" },
+    { dir: import_node_path24.default.join(home, ".gemini", "antigravity-cli", "brain"), source: "cli" },
+    { dir: import_node_path24.default.join(home, ".gemini", "antigravity-ide", "brain"), source: "ide" }
   ];
-  return candidates.filter((c) => import_node_fs16.default.existsSync(c.dir));
+  return candidates.filter((c) => import_node_fs18.default.existsSync(c.dir));
 }
 function readLiveHookState(dataDir) {
   if (!dataDir) return { recentEvents: [] };
-  const statePath = import_node_path21.default.join(dataDir, "live-state.json");
-  if (!import_node_fs16.default.existsSync(statePath)) return { recentEvents: [] };
+  const statePath = import_node_path24.default.join(dataDir, "live-state.json");
+  if (!import_node_fs18.default.existsSync(statePath)) return { recentEvents: [] };
   try {
-    const parsed = JSON.parse(import_node_fs16.default.readFileSync(statePath, "utf8"));
+    const parsed = JSON.parse(import_node_fs18.default.readFileSync(statePath, "utf8"));
     return {
       ...parsed,
       recentEvents: Array.isArray(parsed.recentEvents) ? parsed.recentEvents : []
@@ -48696,26 +52630,26 @@ function discoverTranscriptEntries(opts = {}) {
   const entries = [];
   const seen = /* @__PURE__ */ new Set();
   for (const root of roots) {
-    if (!import_node_fs16.default.existsSync(root.dir)) continue;
+    if (!import_node_fs18.default.existsSync(root.dir)) continue;
     let children;
     try {
-      children = import_node_fs16.default.readdirSync(root.dir, { withFileTypes: true });
+      children = import_node_fs18.default.readdirSync(root.dir, { withFileTypes: true });
     } catch {
       continue;
     }
     for (const child of children) {
       if (!child.isDirectory()) continue;
-      const brainDir = import_node_path21.default.join(root.dir, child.name);
+      const brainDir = import_node_path24.default.join(root.dir, child.name);
       const candidates = [
-        import_node_path21.default.join(brainDir, ".system_generated", "logs", "transcript.jsonl"),
-        import_node_path21.default.join(brainDir, "transcript.jsonl")
+        import_node_path24.default.join(brainDir, ".system_generated", "logs", "transcript.jsonl"),
+        import_node_path24.default.join(brainDir, "transcript.jsonl")
       ];
       for (const transcriptPath of candidates) {
-        if (!import_node_fs16.default.existsSync(transcriptPath)) continue;
+        if (!import_node_fs18.default.existsSync(transcriptPath)) continue;
         if (seen.has(transcriptPath)) continue;
         seen.add(transcriptPath);
         try {
-          const stat = import_node_fs16.default.statSync(transcriptPath);
+          const stat = import_node_fs18.default.statSync(transcriptPath);
           if (stat.size === 0) continue;
           entries.push({
             id: child.name,
@@ -48767,14 +52701,19 @@ function loadSessionDetail(sessionId, opts = {}) {
       return parseTranscriptFile(match.transcriptPath, {
         sessionId: match.id,
         source: match.source,
-        brainDir: match.brainDir
+        brainDir: match.brainDir,
+        siblingBrainRoot: import_node_path24.default.dirname(match.brainDir)
       });
     }
   }
-  if (!sessionId && hookState.activeTranscriptPath && import_node_fs16.default.existsSync(hookState.activeTranscriptPath)) {
+  if (!sessionId && hookState.activeTranscriptPath && import_node_fs18.default.existsSync(hookState.activeTranscriptPath)) {
+    const parentDir = import_node_path24.default.dirname(hookState.activeTranscriptPath);
+    const activeBrainDir = import_node_path24.default.basename(parentDir) === "logs" && import_node_path24.default.basename(import_node_path24.default.dirname(parentDir)) === ".system_generated" ? import_node_path24.default.resolve(parentDir, "..", "..") : parentDir;
     return parseTranscriptFile(hookState.activeTranscriptPath, {
-      sessionId: hookState.activeConversationId ?? "active",
-      source: "desktop"
+      sessionId: hookState.activeConversationId ?? import_node_path24.default.basename(activeBrainDir) ?? "active",
+      source: "desktop",
+      brainDir: activeBrainDir,
+      siblingBrainRoot: import_node_path24.default.dirname(activeBrainDir)
     });
   }
   const latest = entries[0];
@@ -48782,13 +52721,14 @@ function loadSessionDetail(sessionId, opts = {}) {
   return parseTranscriptFile(latest.transcriptPath, {
     sessionId: latest.id,
     source: latest.source,
-    brainDir: latest.brainDir
+    brainDir: latest.brainDir,
+    siblingBrainRoot: import_node_path24.default.dirname(latest.brainDir)
   });
 }
 
 // src/modules/xray/search.ts
-var import_node_fs17 = __toESM(require("node:fs"), 1);
-var import_node_path22 = __toESM(require("node:path"), 1);
+var import_node_fs19 = __toESM(require("node:fs"), 1);
+var import_node_path25 = __toESM(require("node:path"), 1);
 var import_node_url4 = require("node:url");
 function tokenize2(text) {
   const lower = text.toLowerCase();
@@ -48833,7 +52773,7 @@ function collectDocuments(opts) {
     const updatedAt = new Date(entry.mtimeMs).toISOString();
     const transcriptChunks = [];
     try {
-      const lines = import_node_fs17.default.readFileSync(entry.transcriptPath, "utf8").split(/\r?\n/);
+      const lines = import_node_fs19.default.readFileSync(entry.transcriptPath, "utf8").split(/\r?\n/);
       for (const line of lines) {
         if (!line.trim()) continue;
         try {
@@ -48874,14 +52814,14 @@ function collectDocuments(opts) {
       });
     }
     try {
-      for (const dirent of import_node_fs17.default.readdirSync(entry.brainDir, { withFileTypes: true })) {
+      for (const dirent of import_node_fs19.default.readdirSync(entry.brainDir, { withFileTypes: true })) {
         if (!dirent.isFile() || !/\.md$/i.test(dirent.name) || dirent.name.startsWith(".")) continue;
-        const artPath = import_node_path22.default.join(entry.brainDir, dirent.name);
-        const content = import_node_fs17.default.readFileSync(artPath, "utf8").slice(0, 4e4);
+        const artPath = import_node_path25.default.join(entry.brainDir, dirent.name);
+        const content = import_node_fs19.default.readFileSync(artPath, "utf8").slice(0, 4e4);
         docs.push({
           sessionId: entry.id,
           sessionTitle,
-          updatedAt: import_node_fs17.default.statSync(artPath).mtime.toISOString(),
+          updatedAt: import_node_fs19.default.statSync(artPath).mtime.toISOString(),
           sourceKind: "artifact",
           sourceLabel: dirent.name,
           filePath: artPath,
@@ -48976,7 +52916,7 @@ function registerXrayModule(server, opts, uiResourceUri) {
   const moduleDataDir = getModuleDataDir(opts.dataDir, "xray");
   const discoveryOpts = {
     dataDir: moduleDataDir,
-    brainDirs: opts.brainDir ? [{ dir: import_node_path23.default.resolve(opts.brainDir), source: "custom" }] : void 0,
+    brainDirs: opts.brainDir ? [{ dir: import_node_path26.default.resolve(opts.brainDir), source: "custom" }] : void 0,
     demoMode: opts.demoMode
   };
   const INLINE_META = {
@@ -49004,6 +52944,18 @@ function registerXrayModule(server, opts, uiResourceUri) {
       }
       const s = detail.summary;
       const topTools = detail.toolHotspots.slice(0, 5).map((t) => `${t.toolName}: ${(t.totalOutputBytes / 1024).toFixed(1)} KB (${t.sharePercent}%)`).join(", ");
+      const swarmAndModelParts = [];
+      if (detail.swarmLineage.totalSubagents > 0) {
+        const sl = detail.swarmLineage;
+        swarmAndModelParts.push(
+          `Swarm: ${sl.totalSubagents} subagents (${sl.linkedTranscripts} linked, ${sl.orphanSuspects} orphan suspect, +${formatCompactTokens(sl.totalSubagentInputTokens)} in / +${formatCompactTokens(sl.totalSubagentOutputTokens)} out)`
+        );
+      }
+      if (detail.modelBreakdown.length > 1) {
+        swarmAndModelParts.push(
+          `Models: ${detail.modelBreakdown.map((m) => `${m.model} ${m.sharePercent}%${m.retrySignals > 0 ? ` (${m.retrySignals} retry)` : ""}`).join(", ")}`
+        );
+      }
       return {
         content: [
           {
@@ -49013,6 +52965,7 @@ function registerXrayModule(server, opts, uiResourceUri) {
               `\u2022 Peak Window: ${formatCompactTokens(s.peakContextTokens)} | Total Input: ${formatCompactTokens(s.totalInputTokens)} | Output: ${formatCompactTokens(s.totalOutputTokens)}`,
               `\u2022 Prefix Cache Hit: ${(s.cacheHitRate * 100).toFixed(1)}% (${formatCompactTokens(s.totalCacheReadTokens)} cached)`,
               `\u2022 Top Tool Consumers: ${topTools || "none"}`,
+              ...swarmAndModelParts.length > 0 ? [`\u2022 Swarm & Models: ${swarmAndModelParts.join(" | ")}`] : [],
               ...detail.diagnostics.map((d) => `\u2022 [${d.severity.toUpperCase()}] ${d.title}: ${d.detail}`)
             ].join("\n")
           }
@@ -49186,7 +53139,7 @@ function registerXrayModule(server, opts, uiResourceUri) {
 
 // src/server/index.ts
 var UI_RESOURCE_URI = "ui://agy-nov/app.html";
-var NOV_VERSION = "0.2.0";
+var NOV_VERSION = "0.3.0";
 var UI_ENTRYPOINT_META = {
   ui: { resourceUri: UI_RESOURCE_URI },
   "com.google.antigravity/ui": {
@@ -49205,14 +53158,14 @@ function resolveUiHtmlPath(override) {
   const candidates = [
     override,
     envOverride,
-    import_node_path24.default.resolve(process.cwd(), "dist/ui/app.html"),
-    import_node_path24.default.resolve(import_node_path24.default.dirname(process.argv[1] || process.cwd()), "ui/app.html"),
-    import_node_path24.default.resolve(import_node_path24.default.dirname(process.argv[1] || process.cwd()), "../dist/ui/app.html")
+    import_node_path27.default.resolve(process.cwd(), "dist/ui/app.html"),
+    import_node_path27.default.resolve(import_node_path27.default.dirname(process.argv[1] || process.cwd()), "ui/app.html"),
+    import_node_path27.default.resolve(import_node_path27.default.dirname(process.argv[1] || process.cwd()), "../dist/ui/app.html")
   ].filter((p) => Boolean(p));
   for (const candidate of candidates) {
-    if (import_node_fs18.default.existsSync(candidate)) return candidate;
+    if (import_node_fs20.default.existsSync(candidate)) return candidate;
   }
-  return candidates[0] ?? import_node_path24.default.resolve(process.cwd(), "dist/ui/app.html");
+  return candidates[0] ?? import_node_path27.default.resolve(process.cwd(), "dist/ui/app.html");
 }
 var DEFAULT_CONFIG_POLL_MS = 1500;
 function hasConfigChanged(prev, next) {
@@ -49225,7 +53178,7 @@ function readDiskConfigForSync(rootDataDir) {
   const cfgPath = getConfigPath(rootDataDir);
   let rawText;
   try {
-    rawText = import_node_fs18.default.readFileSync(cfgPath, "utf8");
+    rawText = import_node_fs20.default.readFileSync(cfgPath, "utf8");
   } catch (err) {
     if (err?.code === "ENOENT") {
       return { status: "missing", config: createDefaultConfig() };
@@ -49245,7 +53198,7 @@ function readDiskConfigForSync(rootDataDir) {
 function createNovServer(rawOpts = {}) {
   const options = {
     dataDir: resolveNovDataDir(rawOpts.dataDir),
-    workspaceRoot: import_node_path24.default.resolve(rawOpts.workspaceRoot ?? process.cwd()),
+    workspaceRoot: import_node_path27.default.resolve(rawOpts.workspaceRoot ?? process.cwd()),
     demoMode: Boolean(rawOpts.demoMode),
     brainDir: rawOpts.brainDir,
     uiHtmlPath: rawOpts.uiHtmlPath,
@@ -49271,7 +53224,7 @@ function createNovServer(rawOpts = {}) {
     },
     async () => {
       const htmlPath = resolveUiHtmlPath(options.uiHtmlPath);
-      const html = import_node_fs18.default.existsSync(htmlPath) ? import_node_fs18.default.readFileSync(htmlPath, "utf8") : "<!doctype html><html><body><p>agy-NOV UI bundle missing. Run npm run build.</p></body></html>";
+      const html = import_node_fs20.default.existsSync(htmlPath) ? import_node_fs20.default.readFileSync(htmlPath, "utf8") : "<!doctype html><html><body><p>agy-NOV UI bundle missing. Run npm run build.</p></body></html>";
       return {
         contents: [
           {
@@ -49464,6 +53417,8 @@ function createNovServer(rawOpts = {}) {
     registerWithAppTracking((s) => registerXrayModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerTurboModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerRadarModule(s, options, UI_RESOURCE_URI)),
+    registerWithAppTracking((s) => registerVerifyModule(s, options, UI_RESOURCE_URI)),
+    registerWithAppTracking((s) => registerWorktreeModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerCanvasModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerMemModule(s, options, UI_RESOURCE_URI)),
     registerWithAppTracking((s) => registerOpsModule(s, options, UI_RESOURCE_URI)),

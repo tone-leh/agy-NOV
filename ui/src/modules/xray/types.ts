@@ -81,6 +81,43 @@ export interface ContextCompositionBucket {
   sharePercent: number;
 }
 
+export interface SwarmChildMetrics {
+  conversationId?: string;
+  role: string;
+  typeName: string;
+  model: string;
+  stepIndex: number;
+  timestamp: string;
+  transcriptFound: boolean;
+  totalInputTokens: number;
+  totalCacheReadTokens: number;
+  totalOutputTokens: number;
+  cacheHitRate: number;
+  turns: number;
+  statusHint: 'completed' | 'active' | 'orphan_suspect' | 'unknown';
+}
+
+export interface SwarmLineageSummary {
+  totalSubagents: number;
+  linkedTranscripts: number;
+  orphanSuspects: number;
+  totalSubagentInputTokens: number;
+  totalSubagentOutputTokens: number;
+  children: SwarmChildMetrics[];
+}
+
+export interface ModelCostBreakdownItem {
+  model: string;
+  turns: number;
+  inputTokens: number;
+  cacheReadTokens: number;
+  freshInputTokens: number;
+  outputTokens: number;
+  cacheHitRate: number;
+  retrySignals: number;
+  sharePercent: number;
+}
+
 export interface SessionDetail {
   summary: SessionSummary;
   composition: ContextCompositionBucket[];
@@ -107,6 +144,8 @@ export interface SessionDetail {
     title: string;
     detail: string;
   }>;
+  swarmLineage?: SwarmLineageSummary;
+  modelBreakdown?: ModelCostBreakdownItem[];
 }
 
 export interface SearchHit {

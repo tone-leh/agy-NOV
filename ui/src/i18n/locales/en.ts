@@ -64,19 +64,19 @@ export const EN_DICT: UiDictionary = {
       description: 'Review + Guard + X-Ray — 100% offline local essentials (12 model tools).',
     },
     power: {
-      label: 'Power Dev (6 Offline)',
+      label: 'Power Dev (8 Offline)',
       description:
-        'Core + Turbo + Radar + Ops — daily high-velocity offline suite with zero network usage (20 model tools).',
+        'Core + Turbo + Radar + Verify + Worktree + Ops — high-velocity engineering suite with strong verification gates and zero network usage (28 model tools).',
     },
     'local-all': {
-      label: 'Local All (8 Offline)',
+      label: 'Local All (10 Offline)',
       description:
-        'All 8 native offline modules enabled; Remote stays strictly off with zero ports (27 model tools).',
+        'All 10 native offline modules enabled; Remote stays strictly off with zero ports (35 model tools).',
     },
     full: {
-      label: 'Full Suite (All 9)',
+      label: 'Full Suite (All 11)',
       description:
-        'All 9 native modules including the opt-in Mobile PWA & IM remote approval hub (31 model tools).',
+        'All 11 native modules including the opt-in Mobile PWA & IM remote approval hub (39 model tools).',
     },
     minimal: {
       label: 'Minimal Shield',
@@ -116,9 +116,23 @@ export const EN_DICT: UiDictionary = {
     radar: {
       name: 'Session Radar & Chime',
       shortLabel: 'Radar',
-      tagline: 'Multi-session attention board, stall detector & completion alerts',
+      tagline: 'Multi-session attention board, Swarm subagent monitor & completion alerts',
       description:
-        'Track parallel conversations across Running, Awaiting Approval, Completed, and Stalled states via lifecycle hooks, with configurable desktop chime notifications.',
+        'Track parallel conversations and Swarm subagents across Running, Awaiting Approval, Completed, and Stalled states via lifecycle hooks, with orphan alerts and optional chime.',
+    },
+    verify: {
+      name: 'Verify Gate',
+      shortLabel: 'Verify',
+      tagline: 'Stop-hook verification gate blocking unverified "done" claims',
+      description:
+        'Enforce real test/typecheck/lint exit codes and non-empty file checks on Stop hooks (respecting continuation_active and loop guardrails), storing a redacted evidence chain per turn.',
+    },
+    worktree: {
+      name: 'Worktree Orchestrator',
+      shortLabel: 'Worktree',
+      tagline: 'Safe parallel Git worktrees, branch diff previews & orphan cleanup',
+      description:
+        'Create isolated Git worktrees with optional uncommitted-change carry-over, inspect branch diff summaries, flag extensions.worktreeConfig hazards, and safely prune merged or orphaned worktrees.',
     },
     canvas: {
       name: 'Visual Canvas',
@@ -207,6 +221,8 @@ export const EN_DICT: UiDictionary = {
       'No active or recent sessions tracked yet. Hook events populate this board automatically.',
     lastTool: 'Last tool',
     steps: 'steps',
+    subagents: 'Subagents',
+    orphanSubagents: 'Orphan Subagents',
   },
   ops: {
     title: 'Prompt Vault & Workspace Doctor',
@@ -276,6 +292,59 @@ export const EN_DICT: UiDictionary = {
       cacheHitRate: 'Cache Hit Rate',
       freshTokens: 'Fresh Tokens',
       cachedTokens: 'Cached Tokens',
+      swarmTitle: 'Swarm Subagents & Models',
+      subagents: 'Subagents',
+      orphanSuspects: 'Orphan Suspects',
+      modelBreakdown: 'Model Breakdown',
+    },
+    verify: {
+      title: 'Verify Gate',
+      subtitle:
+        'Enforce whitelisted verification commands and non-empty file guards before an agent stops.',
+      tabGate: 'Gate Policy & Commands',
+      tabEvidence: 'Evidence Chain',
+      enforceOnStop: 'Block Stop hook when workspace changes remain unverified',
+      autoRunOnStop: 'Auto-run enabled checks during Stop hook',
+      blockEmptyWrites: 'Block Stop when modified or newly created files are empty',
+      maxBlocks: 'Max consecutive Stop blocks (loop guardrail)',
+      commandsTitle: 'Whitelisted Verification Commands',
+      addCommand: 'Add Command',
+      runChecks: 'Run Checks',
+      clearHistory: 'Clear History',
+      savePolicy: 'Save Policy',
+      passed: 'Passed',
+      failed: 'Failed',
+      blocked: 'Blocked Stops',
+      emptyEvidence:
+        'No verification evidence recorded yet. Run checks above or wait for a Stop hook evaluation.',
+      dirtyFiles: 'Unverified Dirty Files',
+      executablePlaceholder: 'Executable (e.g. npm, pnpm, node)',
+      argsPlaceholder: 'Args separated by spaces (e.g. run typecheck)',
+      labelPlaceholder: 'Command label (e.g. Typecheck)',
+    },
+    worktree: {
+      title: 'Worktree Orchestrator',
+      subtitle:
+        'Spin up isolated parallel Git worktrees, preview branch diffs, and prune stale trees safely.',
+      createTitle: 'Create Isolated Worktree',
+      branchPlaceholder: 'Branch name (e.g. feat/verify-gate)',
+      baseRefPlaceholder: 'Base ref (optional, e.g. main or HEAD)',
+      carryUncommitted: 'Carry uncommitted changes into the new worktree',
+      createBtn: 'Create Worktree',
+      pruneBtn: 'Prune Orphans',
+      diffBtn: 'Diff Summary',
+      removeBtn: 'Remove',
+      forceRemoveBtn: 'Force Remove (Discard Dirty)',
+      mainBadge: 'Main',
+      dirtyBadge: 'Dirty',
+      mergedBadge: 'Merged',
+      prunableBadge: 'Prunable',
+      configWarning:
+        'Warning: extensions.worktreeConfig is enabled in this repository. Verify shared hooks and credentials before sharing worktrees.',
+      notGitRepo: 'Current workspace is not a Git repository. Worktree orchestration requires Git.',
+      emptyWorktrees: 'No Git worktrees found for this workspace.',
+      diffTitle: 'Branch Diff Summary',
+      aheadBehind: '+{ahead} ahead / -{behind} behind',
     },
     canvas: {
       title: 'Visual Canvas',

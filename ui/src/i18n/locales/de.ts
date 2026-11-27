@@ -64,19 +64,19 @@ export const DE_DICT: UiDictionary = {
       description: 'Review + Guard + X-Ray — 100 % lokale Offline-Grundausstattung (12 Modell-Tools).',
     },
     power: {
-      label: 'Power Dev (6 Offline)',
+      label: 'Power Dev (8 Offline)',
       description:
-        'Basis + Turbo + Radar + Ops — schnelle tägliche Offline-Suite ohne Netzwerkverkehr (20 Modell-Tools).',
+        'Basis + Turbo + Radar + Verify + Worktree + Ops — schnelle Offline-Suite mit starken Prüfschranken und null Netzwerkverkehr (28 Modell-Tools).',
     },
     'local-all': {
-      label: 'Lokal Komplett (8 Offline)',
+      label: 'Lokal Komplett (10 Offline)',
       description:
-        'Alle 8 nativen Offline-Module aktiv; Remote bleibt komplett aus mit null offenen Ports (27 Modell-Tools).',
+        'Alle 10 nativen Offline-Module aktiv; Remote bleibt komplett aus mit null offenen Ports (35 Modell-Tools).',
     },
     full: {
-      label: 'Vollausstattung (Alle 9)',
+      label: 'Vollausstattung (Alle 11)',
       description:
-        'Alle 9 nativen Module einschließlich optionaler mobiler PWA und IM-Freigabezentrale (31 Modell-Tools).',
+        'Alle 11 nativen Module einschließlich optionaler mobiler PWA und IM-Freigabezentrale (39 Modell-Tools).',
     },
     minimal: {
       label: 'Minimalschutz',
@@ -116,9 +116,23 @@ export const DE_DICT: UiDictionary = {
     radar: {
       name: 'Sitzungs-Radar & Signal',
       shortLabel: 'Radar',
-      tagline: 'Paralleles Sitzungsboard, Stillstandserkennung & Abschlussmeldungen',
+      tagline: 'Paralleles Sitzungsboard, Swarm-Subagent-Monitor & Abschlussmeldungen',
       description:
-        'Verfolgen Sie parallele Sitzungen über die Zustände Läuft, Wartet auf Freigabe, Abgeschlossen und Stockend per Lifecycle-Hooks, optional mit Desktop-Hinweis und Signalton.',
+        'Verfolgen Sie parallele Sitzungen und Swarm-Subagenten (Läuft, Wartet, Abgeschlossen, Stockend) per Lifecycle-Hooks, mit Waisen-Warnungen und optionalem Signalton.',
+    },
+    verify: {
+      name: 'Verify-Gate',
+      shortLabel: 'Verify',
+      tagline: 'Stop-Hook-Prüfschranke gegen ungeprüfte Fertigmeldungen',
+      description:
+        'Erzwingt echte Exit-Codes von Tests, Typecheck und Lint sowie Prüfungen auf leere Dateien bei Stop-Hooks (unter Beachtung von continuation_active und Schleifenlimits) mit zensierter Nachweiskette.',
+    },
+    worktree: {
+      name: 'Worktree-Orchestrator',
+      shortLabel: 'Worktree',
+      tagline: 'Sichere parallele Git-Worktrees, Branch-Diff-Vorschau & Waisen-Bereinigung',
+      description:
+        'Erstellt isolierte Git-Worktrees mit optionaler Mitnahme uncommitteter Änderungen, zeigt Branch-Diff-Zusammenfassungen, warnt vor extensions.worktreeConfig und bereinigt gemergte oder verwaiste Worktrees sicher.',
     },
     canvas: {
       name: 'Visueller Canvas',
@@ -207,6 +221,8 @@ export const DE_DICT: UiDictionary = {
       'Noch keine aktiven oder kürzlichen Sitzungen erfasst. Hook-Ereignisse füllen dieses Board automatisch.',
     lastTool: 'Letztes Tool',
     steps: 'Schritte',
+    subagents: 'Subagenten',
+    orphanSubagents: 'Verwaiste Subagenten',
   },
   ops: {
     title: 'Prompt-Tresor & Arbeitsbereich-Diagnose',
@@ -278,6 +294,60 @@ export const DE_DICT: UiDictionary = {
       cacheHitRate: 'Cache-Trefferquote',
       freshTokens: 'Neue Tokens',
       cachedTokens: 'Gecachte Tokens',
+      swarmTitle: 'Swarm-Subagenten & Modelle',
+      subagents: 'Subagenten',
+      orphanSuspects: 'Verdacht auf Waisen',
+      modelBreakdown: 'Modellaufschlüsselung',
+    },
+    verify: {
+      title: 'Verify-Gate',
+      subtitle:
+        'Erzwingt freigegebene Prüfbefehle und Schutz gegen leere Dateien, bevor ein Agent beendet.',
+      tabGate: 'Gate-Richtlinie & Befehle',
+      tabEvidence: 'Nachweiskette',
+      enforceOnStop: 'Stop-Hook blockieren, solange ungeprüfte Änderungen vorliegen',
+      autoRunOnStop: 'Aktivierte Prüfbefehle im Stop-Hook automatisch ausführen',
+      blockEmptyWrites: 'Stopp blockieren, wenn geänderte oder neue Dateien leer sind',
+      maxBlocks: 'Maximale aufeinanderfolgende Stop-Blockaden (Schleifenschutz)',
+      commandsTitle: 'Freigegebene Prüfbefehle',
+      addCommand: 'Befehl hinzufügen',
+      runChecks: 'Prüfungen ausführen',
+      clearHistory: 'Verlauf leeren',
+      savePolicy: 'Richtlinie speichern',
+      passed: 'Bestanden',
+      failed: 'Fehlgeschlagen',
+      blocked: 'Blockierte Stopps',
+      emptyEvidence:
+        'Noch keine Prüfnachweise aufgezeichnet. Führen Sie oben Prüfungen aus oder warten Sie auf einen Stop-Hook.',
+      dirtyFiles: 'Ungeprüfte geänderte Dateien',
+      executablePlaceholder: 'Programm (z. B. npm, pnpm, node)',
+      argsPlaceholder: 'Argumente getrennt durch Leerzeichen (z. B. run typecheck)',
+      labelPlaceholder: 'Befehlsname (z. B. Typecheck)',
+    },
+    worktree: {
+      title: 'Worktree-Orchestrator',
+      subtitle:
+        'Isolierte parallele Git-Worktrees anlegen, Branch-Diffs prüfen und veraltete Bäume sicher bereinigen.',
+      createTitle: 'Isolierten Worktree erstellen',
+      branchPlaceholder: 'Branch-Name (z. B. feat/verify-gate)',
+      baseRefPlaceholder: 'Basis-Ref (optional, z. B. main oder HEAD)',
+      carryUncommitted: 'Uncommittete Änderungen in den neuen Worktree übernehmen',
+      createBtn: 'Worktree erstellen',
+      pruneBtn: 'Verwaiste bereinigen',
+      diffBtn: 'Diff-Zusammenfassung',
+      removeBtn: 'Entfernen',
+      forceRemoveBtn: 'Entfernen erzwingen (Änderungen verwerfen)',
+      mainBadge: 'Hauptbaum',
+      dirtyBadge: 'Geändert',
+      mergedBadge: 'Gemergt',
+      prunableBadge: 'Bereinigbar',
+      configWarning:
+        'Warnung: extensions.worktreeConfig ist in diesem Repository aktiviert. Prüfen Sie gemeinsame Hooks und Zugangsdaten vor der Weitergabe von Worktrees.',
+      notGitRepo:
+        'Der aktuelle Arbeitsbereich ist kein Git-Repository. Die Worktree-Verwaltung erfordert Git.',
+      emptyWorktrees: 'Für diesen Arbeitsbereich wurden keine Git-Worktrees gefunden.',
+      diffTitle: 'Branch-Diff-Zusammenfassung',
+      aheadBehind: '+{ahead} voraus / -{behind} zurück',
     },
     canvas: {
       title: 'Visueller Canvas',

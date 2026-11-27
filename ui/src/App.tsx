@@ -24,6 +24,8 @@ import { RadarPanel } from './modules/radar/RadarPanel.js';
 import { RemotePanel } from './modules/remote/RemotePanel.js';
 import { ReviewPanel } from './modules/review/ReviewPanel.js';
 import { TurboPanel } from './modules/turbo/TurboPanel.js';
+import { VerifyPanel } from './modules/verify/VerifyPanel.js';
+import { WorktreePanel } from './modules/worktree/WorktreePanel.js';
 import { XrayPanel } from './modules/xray/XrayPanel.js';
 import { ModulesPanel } from './panels/ModulesPanel.js';
 
@@ -42,6 +44,8 @@ const MODULE_PANEL_REGISTRY: Record<ModuleId, ModulePanelComponent> = {
   xray: XrayPanel,
   turbo: TurboPanel,
   radar: RadarPanel,
+  verify: VerifyPanel,
+  worktree: WorktreePanel,
   canvas: CanvasPanel,
   mem: MemPanel,
   ops: OpsPanel,

@@ -64,19 +64,19 @@ export const FR_DICT: UiDictionary = {
       description: 'Review + Guard + X-Ray — essentiels 100 % locaux hors ligne (12 outils de modèle).',
     },
     power: {
-      label: 'Power Dev (6 hors ligne)',
+      label: 'Power Dev (8 hors ligne)',
       description:
-        'Essentiel + Turbo + Radar + Ops — suite quotidienne rapide sans trafic réseau (20 outils de modèle).',
+        'Essentiel + Turbo + Radar + Verify + Worktree + Ops — suite rapide avec portes de vérification strictes et zéro trafic réseau (28 outils de modèle).',
     },
     'local-all': {
-      label: 'Tout Local (8 hors ligne)',
+      label: 'Tout Local (10 hors ligne)',
       description:
-        'Les 8 modules natifs hors ligne activés ; Remote reste éteint avec zéro port ouvert (27 outils de modèle).',
+        'Les 10 modules natifs hors ligne activés ; Remote reste éteint avec zéro port ouvert (35 outils de modèle).',
     },
     full: {
-      label: 'Suite Complète (Les 9)',
+      label: 'Suite Complète (Les 11)',
       description:
-        'Les 9 modules natifs activés, y compris le hub distant optionnel PWA mobile et IM (31 outils de modèle).',
+        'Les 11 modules natifs activés, y compris le hub distant optionnel PWA mobile et IM (39 outils de modèle).',
     },
     minimal: {
       label: 'Bouclier Minimal',
@@ -116,9 +116,23 @@ export const FR_DICT: UiDictionary = {
     radar: {
       name: 'Radar de Sessions',
       shortLabel: 'Radar',
-      tagline: 'Tableau multi-sessions, détection de blocage et alertes de fin',
+      tagline: 'Tableau multi-sessions, suivi des sous-agents Swarm et alertes de fin',
       description:
-        'Suivez vos conversations parallèles (En cours, En attente, Terminé, Bloqué) via des hooks légers, avec notifications bureau et carillon configurables.',
+        'Suivez conversations parallèles et sous-agents Swarm (En cours, En attente, Terminé, Bloqué) via des hooks légers, avec alertes orphelins et carillon optionnel.',
+    },
+    verify: {
+      name: 'Porte Verify',
+      shortLabel: 'Verify',
+      tagline: 'Porte de vérification Stop-hook empêchant les clôtures non testées',
+      description:
+        'Impose des codes de sortie réels de tests/typecheck/lint et vérifie l’absence de fichiers vides dans les hooks Stop (avec garde-fous continuation_active et anti-boucle), en consignant une chaîne de preuves expurgée.',
+    },
+    worktree: {
+      name: 'Orchestrateur Worktree',
+      shortLabel: 'Worktree',
+      tagline: 'Worktrees Git parallèles sûrs, aperçu des diffs et nettoyage d’orphelins',
+      description:
+        'Créez des worktrees Git isolés avec transfert optionnel des modifications non validées, inspectez les résumés de diffs, détectez les risques extensions.worktreeConfig et purgez les arbres fusionnés ou orphelins.',
     },
     canvas: {
       name: 'Canevas Visuel',
@@ -207,6 +221,8 @@ export const FR_DICT: UiDictionary = {
       'Aucune session active ou récente enregistrée. Les événements hook alimenteront ce tableau automatiquement.',
     lastTool: 'Dernier outil',
     steps: 'étapes',
+    subagents: 'Sous-agents',
+    orphanSubagents: 'Sous-agents orphelins',
   },
   ops: {
     title: 'Coffre de Prompts et Diagnostic',
@@ -278,6 +294,60 @@ export const FR_DICT: UiDictionary = {
       cacheHitRate: 'Taux de succès cache',
       freshTokens: 'Tokens frais',
       cachedTokens: 'Tokens en cache',
+      swarmTitle: 'Sous-agents Swarm et Modèles',
+      subagents: 'Sous-agents',
+      orphanSuspects: 'Orphelins suspects',
+      modelBreakdown: 'Répartition par modèle',
+    },
+    verify: {
+      title: 'Porte Verify',
+      subtitle:
+        'Impose des commandes de vérification autorisées et le contrôle des fichiers vides avant l’arrêt de l’agent.',
+      tabGate: 'Politique et Commandes',
+      tabEvidence: 'Chaîne de Preuves',
+      enforceOnStop: 'Bloquer le hook Stop si des modifications restent non vérifiées',
+      autoRunOnStop: 'Exécuter automatiquement les contrôles actifs lors du hook Stop',
+      blockEmptyWrites: 'Bloquer l’arrêt si des fichiers modifiés ou créés sont vides',
+      maxBlocks: 'Nombre maximal de blocages consécutifs (garde-fou anti-boucle)',
+      commandsTitle: 'Commandes de Vérification Autorisées',
+      addCommand: 'Ajouter une commande',
+      runChecks: 'Lancer les vérifications',
+      clearHistory: 'Effacer l’historique',
+      savePolicy: 'Enregistrer la politique',
+      passed: 'Réussi',
+      failed: 'Échoué',
+      blocked: 'Arrêts bloqués',
+      emptyEvidence:
+        'Aucune preuve de vérification enregistrée pour le moment. Lancez les contrôles ci-dessus ou attendez un hook Stop.',
+      dirtyFiles: 'Fichiers modifiés non vérifiés',
+      executablePlaceholder: 'Exécutable (ex. npm, pnpm, node)',
+      argsPlaceholder: 'Arguments séparés par des espaces (ex. run typecheck)',
+      labelPlaceholder: 'Libellé de commande (ex. Typecheck)',
+    },
+    worktree: {
+      title: 'Orchestrateur Worktree',
+      subtitle:
+        'Créez des worktrees Git parallèles isolés, consultez les diffs de branches et purgez les arbres obsolètes.',
+      createTitle: 'Créer un Worktree Isolé',
+      branchPlaceholder: 'Nom de branche (ex. feat/verify-gate)',
+      baseRefPlaceholder: 'Référence de base (optionnel, ex. main ou HEAD)',
+      carryUncommitted: 'Transférer les modifications non validées vers le nouveau worktree',
+      createBtn: 'Créer le Worktree',
+      pruneBtn: 'Purger les orphelins',
+      diffBtn: 'Résumé du Diff',
+      removeBtn: 'Supprimer',
+      forceRemoveBtn: 'Forcer la suppression (perdre les modifications)',
+      mainBadge: 'Principal',
+      dirtyBadge: 'Modifié',
+      mergedBadge: 'Fusionné',
+      prunableBadge: 'Purgeable',
+      configWarning:
+        'Avertissement : extensions.worktreeConfig est activé dans ce dépôt. Vérifiez les hooks partagés et les identifiants avant de partager des worktrees.',
+      notGitRepo:
+        'L’espace de travail actuel n’est pas un dépôt Git. L’orchestration des worktrees nécessite Git.',
+      emptyWorktrees: 'Aucun worktree Git trouvé pour cet espace de travail.',
+      diffTitle: 'Résumé du Diff de Branche',
+      aheadBehind: '+{ahead} en avance / -{behind} en retard',
     },
     canvas: {
       title: 'Canevas Visuel',

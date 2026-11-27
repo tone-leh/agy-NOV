@@ -33,7 +33,7 @@ __export(dispatcher_exports, {
   dispatchNovHook: () => dispatchNovHook
 });
 module.exports = __toCommonJS(dispatcher_exports);
-var import_node_fs12 = __toESM(require("node:fs"), 1);
+var import_node_fs13 = __toESM(require("node:fs"), 1);
 
 // src/core/config.ts
 var import_node_fs = __toESM(require("node:fs"), 1);
@@ -47,6 +47,8 @@ var MODULE_IDS = [
   "xray",
   "turbo",
   "radar",
+  "verify",
+  "worktree",
   "canvas",
   "mem",
   "ops",
@@ -131,8 +133,8 @@ var MODULE_CATALOG = {
     category: "observability",
     name: "Session Radar & Chime",
     shortLabel: "Radar",
-    tagline: "Multi-session attention board, stall detector & completion alerts",
-    description: "Track parallel conversations across Running, Awaiting Approval, Completed, and Stalled states via lifecycle hooks, with configurable desktop chime notifications.",
+    tagline: "Multi-session attention board, Swarm subagent monitor & completion alerts",
+    description: "Track parallel conversations and Swarm subagents across Running, Awaiting Approval, Completed, and Stalled states via lifecycle hooks, with orphan alerts and optional chime.",
     isolationTier: "offline",
     networkAccess: "offline",
     uiMode: "scroll",
@@ -140,6 +142,46 @@ var MODULE_CATALOG = {
     defaultEnabled: false,
     hooks: ["PreToolUse", "PostToolUse", "Stop"],
     modelToolNames: ["radar_get_board", "radar_ack_session"]
+  },
+  verify: {
+    id: "verify",
+    category: "safety",
+    name: "Verify Gate",
+    shortLabel: "Verify",
+    tagline: 'Stop-hook verification gate blocking unverified "done" claims',
+    description: "Enforce real test/typecheck/lint exit codes and non-empty file checks on Stop hooks (respecting continuation_active and loop guardrails), storing a redacted evidence chain per turn.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: ["PostToolUse", "Stop"],
+    modelToolNames: [
+      "verify_get_policy",
+      "verify_set_policy",
+      "verify_run_checks",
+      "verify_get_evidence"
+    ]
+  },
+  worktree: {
+    id: "worktree",
+    category: "core-dev",
+    name: "Worktree Orchestrator",
+    shortLabel: "Worktree",
+    tagline: "Safe parallel Git worktrees, branch diff previews & orphan cleanup",
+    description: "Create isolated Git worktrees with optional uncommitted-change carry-over, inspect branch diff summaries, flag extensions.worktreeConfig hazards, and safely prune merged or orphaned worktrees.",
+    isolationTier: "offline",
+    networkAccess: "offline",
+    uiMode: "scroll",
+    hasUiTab: true,
+    defaultEnabled: false,
+    hooks: [],
+    modelToolNames: [
+      "worktree_list",
+      "worktree_create",
+      "worktree_diff_summary",
+      "worktree_cleanup"
+    ]
   },
   canvas: {
     id: "canvas",
@@ -233,22 +275,53 @@ var PRESET_DEFINITIONS = {
   },
   power: {
     id: "power",
-    label: "Power Dev (6 Offline)",
-    description: "Core + Turbo + Radar + Ops \u2014 daily high-velocity offline suite with zero network usage (20 model tools).",
-    enabledModules: ["review", "guard", "xray", "turbo", "radar", "ops"],
-    modules: makeModulesMap(["review", "guard", "xray", "turbo", "radar", "ops"])
+    label: "Power Dev (8 Offline)",
+    description: "Core + Turbo + Radar + Verify + Worktree + Ops \u2014 high-velocity engineering suite with strong verification gates and zero network usage (28 model tools).",
+    enabledModules: ["review", "guard", "xray", "turbo", "radar", "verify", "worktree", "ops"],
+    modules: makeModulesMap([
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "ops"
+    ])
   },
   "local-all": {
     id: "local-all",
-    label: "Local All (8 Offline)",
-    description: "All 8 native offline modules enabled; Remote stays strictly off with zero ports (27 model tools).",
-    enabledModules: ["review", "guard", "xray", "turbo", "radar", "canvas", "mem", "ops"],
-    modules: makeModulesMap(["review", "guard", "xray", "turbo", "radar", "canvas", "mem", "ops"])
+    label: "Local All (10 Offline)",
+    description: "All 10 native offline modules enabled; Remote stays strictly off with zero ports (35 model tools).",
+    enabledModules: [
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "canvas",
+      "mem",
+      "ops"
+    ],
+    modules: makeModulesMap([
+      "review",
+      "guard",
+      "xray",
+      "turbo",
+      "radar",
+      "verify",
+      "worktree",
+      "canvas",
+      "mem",
+      "ops"
+    ])
   },
   full: {
     id: "full",
-    label: "Full Suite (All 9)",
-    description: "All 9 native modules including the opt-in Mobile PWA & IM remote approval hub (31 model tools).",
+    label: "Full Suite (All 11)",
+    description: "All 11 native modules including the opt-in Mobile PWA & IM remote approval hub (39 model tools).",
     enabledModules: [...MODULE_IDS],
     modules: makeModulesMap(MODULE_IDS)
   },
@@ -415,6 +488,9 @@ function normalizeHookPayload(rawInput, fallbackEvent) {
   }
   const event = normalizeHookEvent(raw.hookEventName ?? raw.hook_event_name ?? raw.event, fallbackEvent);
   const conversationId = typeof raw.conversationId === "string" && raw.conversationId || typeof raw.conversation_id === "string" && raw.conversation_id || void 0;
+  const parentConversationId = typeof raw.parentConversationId === "string" && raw.parentConversationId || typeof raw.parent_conversation_id === "string" && raw.parent_conversation_id || typeof raw.rootConversationId === "string" && raw.rootConversationId || typeof raw.root_conversation_id === "string" && raw.root_conversation_id || (typeof process.env.ANTIGRAVITY_PARENT_CONVERSATION_ID === "string" && process.env.ANTIGRAVITY_PARENT_CONVERSATION_ID.trim() ? process.env.ANTIGRAVITY_PARENT_CONVERSATION_ID.trim() : void 0);
+  const agentRole = typeof raw.agentRole === "string" && raw.agentRole || typeof raw.agent_role === "string" && raw.agent_role || typeof raw.subagentRole === "string" && raw.subagentRole || typeof raw.subagent_role === "string" && raw.subagent_role || void 0;
+  const continuationActive = typeof raw.continuationActive === "boolean" ? raw.continuationActive : typeof raw.continuation_active === "boolean" ? raw.continuation_active : void 0;
   const transcriptPath = typeof raw.transcriptPath === "string" && raw.transcriptPath || typeof raw.transcript_path === "string" && raw.transcript_path || void 0;
   const lastUserInput = typeof raw.lastUserInput === "string" && raw.lastUserInput || typeof raw.last_user_input === "string" && raw.last_user_input || void 0;
   const terminationReason = typeof raw.terminationReason === "string" && raw.terminationReason || typeof raw.termination_reason === "string" && raw.termination_reason || void 0;
@@ -424,6 +500,9 @@ function normalizeHookPayload(rawInput, fallbackEvent) {
   return {
     event,
     conversationId,
+    parentConversationId,
+    agentRole,
+    continuationActive,
     workspacePaths,
     workspaceRoot: singleWorkspace,
     cwd: typeof raw.cwd === "string" ? raw.cwd : singleWorkspace,
@@ -2166,8 +2245,35 @@ var DEFAULT_RADAR_PREFS = {
   stallMinutes: 5
 };
 var MAX_STORED_SESSIONS = 100;
+var STATUS_PRIORITY = {
+  awaiting_approval: 0,
+  error: 1,
+  stalled: 2,
+  completed: 3,
+  running: 4
+};
 function getRadarBoardPath(moduleDataDir) {
   return import_node_path8.default.join(moduleDataDir, "board.json");
+}
+function getRadarStatusCapsulePath(moduleDataDir) {
+  return import_node_path8.default.join(moduleDataDir, "status-capsule.json");
+}
+function buildRadarStatusCapsule(view) {
+  const attention = view.sessions.find((s) => s.status === "awaiting_approval") ?? view.sessions.find((s) => s.status === "error") ?? view.sessions.find((s) => s.isOrphanSubagent) ?? view.sessions.find((s) => s.status === "stalled") ?? view.sessions.find((s) => s.unread);
+  const capsule = {
+    schemaVersion: 1,
+    updatedAt: view.updatedAt,
+    counts: { ...view.counts }
+  };
+  if (attention) {
+    capsule.latestAttention = {
+      conversationId: attention.conversationId,
+      status: attention.status,
+      workspaceName: attention.workspaceName,
+      ...attention.lastToolName ? { lastToolName: attention.lastToolName } : {}
+    };
+  }
+  return capsule;
 }
 function normalizeRadarPrefs(raw) {
   if (!raw || typeof raw !== "object") {
@@ -2198,8 +2304,16 @@ function normalizeSessionRecord(id, raw) {
   const nowIso = (/* @__PURE__ */ new Date()).toISOString();
   const status = isStoredStatus(obj.status) ? obj.status : "running";
   const lastEvent = obj.lastEvent === "PreToolUse" || obj.lastEvent === "PostToolUse" || obj.lastEvent === "Stop" || obj.lastEvent === "manual" ? obj.lastEvent : "manual";
+  const conversationId = typeof obj.conversationId === "string" && obj.conversationId ? obj.conversationId : id;
+  const rawParentId = typeof obj.parentConversationId === "string" && obj.parentConversationId.trim() ? obj.parentConversationId.trim().slice(0, 120) : void 0;
+  const parentConversationId = rawParentId && rawParentId !== conversationId ? rawParentId : void 0;
+  const agentRole = typeof obj.agentRole === "string" ? cleanBriefText(obj.agentRole, 64) : void 0;
+  const isSubagent = typeof obj.isSubagent === "boolean" ? obj.isSubagent : parentConversationId ? true : void 0;
   return {
-    conversationId: typeof obj.conversationId === "string" && obj.conversationId ? obj.conversationId : id,
+    conversationId,
+    ...parentConversationId ? { parentConversationId } : {},
+    ...agentRole ? { agentRole } : {},
+    ...isSubagent !== void 0 ? { isSubagent } : {},
     status,
     workspaceName: typeof obj.workspaceName === "string" && obj.workspaceName ? obj.workspaceName : "workspace",
     workspaceRoot: typeof obj.workspaceRoot === "string" ? obj.workspaceRoot : void 0,
@@ -2256,7 +2370,71 @@ function saveRadarBoard(moduleDataDir, board) {
     updatedAt: (/* @__PURE__ */ new Date()).toISOString()
   };
   atomicWriteJson(getRadarBoardPath(moduleDataDir), next);
+  const capsule = buildRadarStatusCapsule(computeRadarBoardView(next, { mode: "live" }));
+  atomicWriteJson(getRadarStatusCapsulePath(moduleDataDir), capsule);
   return next;
+}
+function computeRadarBoardView(board, opts = {}) {
+  const nowMs = opts.nowMs ?? Date.now();
+  const stallThresholdMs = Math.max(1, board.prefs.stallMinutes) * 6e4;
+  const counts = {
+    total: 0,
+    running: 0,
+    awaiting_approval: 0,
+    completed: 0,
+    stalled: 0,
+    error: 0,
+    unread: 0,
+    subagents: 0,
+    orphanSubagents: 0
+  };
+  const sessionRecords = Object.values(board.sessions);
+  const effectiveStatusById = /* @__PURE__ */ new Map();
+  const idleMinutesById = /* @__PURE__ */ new Map();
+  for (const rec of sessionRecords) {
+    const activeMs = Date.parse(rec.lastActiveAt);
+    const idleMs = Number.isFinite(activeMs) ? Math.max(0, nowMs - activeMs) : 0;
+    const idleMinutes = Number((idleMs / 6e4).toFixed(1));
+    const effectiveStatus = rec.status === "running" && idleMs >= stallThresholdMs ? "stalled" : rec.status;
+    effectiveStatusById.set(rec.conversationId, effectiveStatus);
+    idleMinutesById.set(rec.conversationId, idleMinutes);
+  }
+  const allViews = sessionRecords.map((rec) => {
+    const effectiveStatus = effectiveStatusById.get(rec.conversationId) ?? rec.status;
+    const idleMinutes = idleMinutesById.get(rec.conversationId) ?? 0;
+    const parentStatus = rec.parentConversationId ? effectiveStatusById.get(rec.parentConversationId) : void 0;
+    const isOrphanSubagent = rec.isSubagent === true && (parentStatus === "completed" || parentStatus === "error") && (effectiveStatus === "running" || effectiveStatus === "stalled");
+    counts.total += 1;
+    counts[effectiveStatus] += 1;
+    if (rec.unread) counts.unread += 1;
+    if (rec.isSubagent === true) counts.subagents += 1;
+    if (isOrphanSubagent) counts.orphanSubagents += 1;
+    return {
+      ...rec,
+      status: effectiveStatus,
+      rawStatus: rec.status,
+      idleMinutes,
+      isOrphanSubagent
+    };
+  });
+  allViews.sort((a, b) => {
+    const aWeight = a.status === "completed" && !a.unread ? 5 : STATUS_PRIORITY[a.status];
+    const bWeight = b.status === "completed" && !b.unread ? 5 : STATUS_PRIORITY[b.status];
+    if (aWeight !== bWeight) return aWeight - bWeight;
+    return Date.parse(b.lastActiveAt) - Date.parse(a.lastActiveAt);
+  });
+  const filtered = allViews.filter((item) => {
+    if (opts.statusFilter && item.status !== opts.statusFilter) return false;
+    if (opts.onlyUnread && !item.unread) return false;
+    return true;
+  });
+  return {
+    mode: opts.mode ?? "live",
+    prefs: { ...board.prefs },
+    counts,
+    sessions: filtered,
+    updatedAt: board.updatedAt
+  };
 }
 function cleanBriefText(raw, maxLen = 160) {
   if (!raw) return void 0;
@@ -2270,6 +2448,10 @@ function recordRadarSessionEvent(moduleDataDir, input) {
   const convId = input.conversationId.trim().slice(0, 120) || "default-session";
   const existing = board.sessions[convId];
   const workspaceName = input.workspaceRoot ? import_node_path8.default.basename(import_node_path8.default.resolve(input.workspaceRoot)) || existing?.workspaceName || "workspace" : existing?.workspaceName ?? "workspace";
+  const rawParent = input.parentConversationId?.trim().slice(0, 120) || existing?.parentConversationId;
+  const parentConversationId = rawParent && rawParent !== convId ? rawParent : void 0;
+  const agentRole = cleanBriefText(input.agentRole, 64) ?? existing?.agentRole;
+  const isSubagent = input.isSubagent !== void 0 ? input.isSubagent : parentConversationId ? true : existing?.isSubagent;
   let nextStatus = existing?.status ?? "running";
   let nextUnread = existing?.unread ?? false;
   let completedAt = existing?.completedAt;
@@ -2303,6 +2485,9 @@ function recordRadarSessionEvent(moduleDataDir, input) {
   }
   const nextSession = {
     conversationId: convId,
+    ...parentConversationId ? { parentConversationId } : {},
+    ...agentRole ? { agentRole } : {},
+    ...isSubagent !== void 0 ? { isSubagent } : {},
     status: nextStatus,
     workspaceName,
     workspaceRoot: input.workspaceRoot ?? existing?.workspaceRoot,
@@ -2436,8 +2621,14 @@ function handleRadarHook(payload, rootDataDir) {
     const awaitingApproval = payload.event === "PreToolUse" ? detectAwaitingApproval(payload) : false;
     const errorMessage = payload.event === "Stop" ? formatErrorValue(payload.error) : void 0;
     const summary = cleanBriefText(payload.lastUserInput, 120) ?? (payload.terminationReason ? cleanBriefText(payload.terminationReason, 120) : void 0);
+    const parentConversationId = payload.parentConversationId?.trim() || void 0;
+    const agentRole = payload.agentRole?.trim() || void 0;
+    const isSubagent = parentConversationId ? true : void 0;
     const { board, session } = recordRadarSessionEvent(moduleDataDir, {
       conversationId,
+      parentConversationId,
+      agentRole,
+      isSubagent,
       event: payload.event,
       workspaceRoot,
       toolName: payload.toolName,
@@ -3315,10 +3506,1579 @@ ${snapshot.markdown}`
   }
 }
 
-// src/modules/xray/hook.ts
+// src/modules/verify/hook.ts
+var import_node_crypto8 = __toESM(require("node:crypto"), 1);
+
+// src/modules/verify/core.ts
+var import_node_child_process2 = require("node:child_process");
 var import_node_crypto7 = __toESM(require("node:crypto"), 1);
 var import_node_fs11 = __toESM(require("node:fs"), 1);
 var import_node_path13 = __toESM(require("node:path"), 1);
+var ALLOWED_VERIFY_EXECUTABLES = /* @__PURE__ */ new Set([
+  "npm",
+  "pnpm",
+  "yarn",
+  "bun",
+  "node",
+  "tsc",
+  "vitest",
+  "jest",
+  "pytest",
+  "python3",
+  "cargo",
+  "go",
+  "ruff",
+  "eslint",
+  "git"
+]);
+var ALLOWED_GIT_SUBCOMMANDS = /* @__PURE__ */ new Set([
+  "diff",
+  "status",
+  "rev-parse",
+  "check-ignore"
+]);
+var ALLOWED_PYTHON_MODULES = /* @__PURE__ */ new Set([
+  "pytest",
+  "unittest",
+  "mypy",
+  "ruff",
+  "compileall",
+  "py_compile"
+]);
+var ALLOWED_GO_SUBCOMMANDS = /* @__PURE__ */ new Set([
+  "test",
+  "vet",
+  "build",
+  "version"
+]);
+var ALLOWED_CARGO_SUBCOMMANDS = /* @__PURE__ */ new Set([
+  "test",
+  "check",
+  "clippy",
+  "fmt",
+  "--version",
+  "-V"
+]);
+var PACKAGE_MANAGER_EXECUTABLES = /* @__PURE__ */ new Set([
+  "npm",
+  "pnpm",
+  "yarn",
+  "bun"
+]);
+var LINTER_TESTER_EXECUTABLES = /* @__PURE__ */ new Set([
+  "tsc",
+  "vitest",
+  "jest",
+  "pytest",
+  "ruff",
+  "eslint"
+]);
+var SAFE_SCRIPT_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9:._-]{0,63}$/;
+var FORBIDDEN_SCRIPT_NAMES = /* @__PURE__ */ new Set([
+  "exec",
+  "x",
+  "dlx",
+  "eval"
+]);
+var FORBIDDEN_PM_ARG_TOKENS = /* @__PURE__ */ new Set([
+  "exec",
+  "x",
+  "dlx",
+  "eval",
+  "install",
+  "i",
+  "add",
+  "config",
+  "publish",
+  "set"
+]);
+var FORBIDDEN_NODE_LONG_FLAGS = [
+  "--eval",
+  "--print",
+  "--require",
+  "--loader",
+  "--experimental-loader",
+  "--env-file",
+  "--env-file-if-exists",
+  "--inspect",
+  "--inspect-brk",
+  "--inspect-wait",
+  "--inspect-port",
+  "--debug-port",
+  "--interactive",
+  "--input-type",
+  "--experimental-config-file",
+  "--experimental-default-config-file",
+  "--openssl-config",
+  "--test-global-setup"
+];
+var ALLOWED_PM_PRE_DASH_FLAGS = /* @__PURE__ */ new Set([
+  "--silent",
+  "-s",
+  "--if-present",
+  "--no-color",
+  "--color",
+  "--quiet",
+  "-q"
+]);
+var FORBIDDEN_PM_LONG_FLAGS = /* @__PURE__ */ new Set([
+  "--call",
+  "--shell",
+  "--script-shell",
+  "--onload-script",
+  "--preload",
+  "--userconfig",
+  "--globalconfig",
+  "--node-options",
+  "--node-gyp",
+  "--init-module",
+  "--editor",
+  "--browser",
+  "--require",
+  "--import",
+  "--loader",
+  "--experimental-loader"
+]);
+var FORBIDDEN_NODE_SHORT_FLAGS = /* @__PURE__ */ new Set([
+  "-e",
+  "-p",
+  "-c",
+  "-r",
+  "-i"
+]);
+var MAX_VERIFY_COMMANDS = 20;
+var MAX_VERIFY_ARGS = 20;
+var MAX_VERIFY_ARG_LENGTH = 256;
+var MIN_COMMAND_TIMEOUT_MS = 1e3;
+var MAX_COMMAND_TIMEOUT_MS = 6e4;
+var DEFAULT_COMMAND_TIMEOUT_MS = 15e3;
+var STOP_HOOK_SINGLE_TIMEOUT_MS = 8e3;
+var STOP_HOOK_TOTAL_BUDGET_MS = 14e3;
+var MAX_CAPTURE_BYTES = 64 * 1024;
+var MAX_STORED_OUTPUT_TAIL_CHARS = 4096;
+var MAX_STORED_SESSIONS2 = 100;
+var MAX_STORED_EVIDENCE = 60;
+var DEFAULT_MAX_CONSECUTIVE_BLOCKS = 3;
+var MIN_CONSECUTIVE_BLOCKS = 1;
+var MAX_CONSECUTIVE_BLOCKS = 10;
+var COMMAND_ID_RE = /^[a-zA-Z0-9._-]{1,64}$/;
+var MAX_SYMLINK_DEPTH2 = 20;
+var DEFAULT_VERIFY_POLICY = {
+  enforceOnStop: true,
+  autoRunOnStop: true,
+  blockEmptyWrites: true,
+  maxConsecutiveBlocks: DEFAULT_MAX_CONSECUTIVE_BLOCKS,
+  commands: [
+    {
+      id: "typecheck",
+      label: "TypeScript Typecheck",
+      executable: "npm",
+      args: ["run", "typecheck"],
+      timeoutMs: 15e3,
+      enabled: false
+    },
+    {
+      id: "unit-tests",
+      label: "Unit Tests",
+      executable: "npm",
+      args: ["test"],
+      timeoutMs: 3e4,
+      enabled: false
+    }
+  ]
+};
+var SECRET_REDACTION_PATTERNS = [
+  // Full PEM / OpenSSH private key blocks
+  {
+    pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/g,
+    replacement: "[REDACTED_PRIVATE_KEY]"
+  },
+  // Truncated private key block starting with BEGIN PRIVATE KEY
+  {
+    pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*/g,
+    replacement: "[REDACTED_PRIVATE_KEY]"
+  },
+  // Bearer & JWT tokens
+  {
+    pattern: /\bBearer\s+[A-Za-z0-9\-._~+/]+=*/gi,
+    replacement: "Bearer [REDACTED]"
+  },
+  {
+    pattern: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g,
+    replacement: "[REDACTED_JWT]"
+  },
+  // Provider API keys & personal access tokens
+  {
+    pattern: /\b(?:sk-ant-[A-Za-z0-9_-]{12,}|sk-proj-[A-Za-z0-9_-]{12,}|sk_live_[A-Za-z0-9]{12,}|sk-[A-Za-z0-9_-]{12,}|ghp_[A-Za-z0-9]{16,}|gho_[A-Za-z0-9]{16,}|ghu_[A-Za-z0-9]{16,}|ghs_[A-Za-z0-9]{16,}|github_pat_[A-Za-z0-9_]{16,}|AIza[0-9A-Za-z_-]{24,}|xox[baprs]-[A-Za-z0-9-]{10,}|(?:AKIA|ASIA)[0-9A-Z]{16})\b/g,
+    replacement: "[REDACTED_KEY]"
+  },
+  // Generic secret/token/password assignments
+  {
+    pattern: /(["']?(?:api[_-]?key|secret[_-]?key|access[_-]?token|private[_-]?token|auth[_-]?token|secret|password|passwd|authorization)["']?\s*[:=]\s*["']?)([^\s"',;}{]{8,})(["']?)/gi,
+    replacement: "$1[REDACTED]$3"
+  }
+];
+function redactVerifyOutput(input) {
+  if (!input) return "";
+  let out = input;
+  for (const { pattern, replacement } of SECRET_REDACTION_PATTERNS) {
+    out = out.replace(pattern, replacement);
+  }
+  return out;
+}
+function getVerifyStatePath(moduleDataDir) {
+  return import_node_path13.default.join(moduleDataDir, "state.json");
+}
+function clampCommandTimeout(raw) {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) {
+    return DEFAULT_COMMAND_TIMEOUT_MS;
+  }
+  return Math.max(MIN_COMMAND_TIMEOUT_MS, Math.min(MAX_COMMAND_TIMEOUT_MS, Math.round(raw)));
+}
+function clampMaxConsecutiveBlocks(raw) {
+  if (typeof raw !== "number" || !Number.isFinite(raw)) {
+    return DEFAULT_MAX_CONSECUTIVE_BLOCKS;
+  }
+  return Math.max(MIN_CONSECUTIVE_BLOCKS, Math.min(MAX_CONSECUTIVE_BLOCKS, Math.round(raw)));
+}
+function isForbiddenInterpreterArg(arg) {
+  const lower = arg.toLowerCase();
+  if (arg === "-e" || lower === "--eval" || lower.startsWith("--eval=") || arg === "-c" || arg === "-p" || lower === "--print" || lower.startsWith("--print=")) {
+    return true;
+  }
+  if (arg.startsWith("-") && !arg.startsWith("--") && arg.length > 1) {
+    if (/^-[ecp]/.test(arg)) {
+      return true;
+    }
+    if (/^-[A-Za-z]+$/.test(arg) && /[ecp]/.test(arg.slice(1))) {
+      return true;
+    }
+  }
+  return false;
+}
+function hasAbsolutePathPrefix(value, includeTilde = false) {
+  if (!value) return false;
+  if (value.startsWith("/") || value.startsWith("\\") || /^[A-Za-z]:/.test(value)) {
+    return true;
+  }
+  if (includeTilde && value.startsWith("~")) {
+    return true;
+  }
+  return false;
+}
+function hasParentTraversalSegment(value) {
+  if (!value) return false;
+  return value.split(/[/\\]/).some((seg) => seg === "..");
+}
+function hasPathTraversalOrAbsolute(arg, includeTilde = true) {
+  if (hasAbsolutePathPrefix(arg, includeTilde) || hasParentTraversalSegment(arg)) {
+    return true;
+  }
+  const eqIdx = arg.indexOf("=");
+  if (eqIdx > 0) {
+    const rhs = arg.slice(eqIdx + 1);
+    if (hasAbsolutePathPrefix(rhs, includeTilde) || hasParentTraversalSegment(rhs)) {
+      return true;
+    }
+  }
+  return false;
+}
+function validatePackageManagerArgs(id, executable, args) {
+  if (args.length === 0) {
+    return `Command "${id}" ${executable} requires an allowed subcommand (test, run <script>, --version, or -v).`;
+  }
+  if (executable === "bun") {
+    for (const arg of args) {
+      if (isForbiddenInterpreterArg(arg)) {
+        return `Command "${id}" uses forbidden bun inline-execution flag "${arg}".`;
+      }
+    }
+  }
+  const sub = args[0];
+  let restArgs;
+  if (sub === "--version" || sub === "-v") {
+    if (args.length !== 1) {
+      return `Command "${id}" ${executable} ${sub} does not accept additional arguments.`;
+    }
+    return null;
+  } else if (sub === "test") {
+    restArgs = args.slice(1);
+  } else if (sub === "run") {
+    const scriptName = args[1];
+    if (!scriptName || !SAFE_SCRIPT_NAME_RE.test(scriptName)) {
+      return `Command "${id}" ${executable} run requires a safe script name matching ${SAFE_SCRIPT_NAME_RE.source}.`;
+    }
+    if (FORBIDDEN_SCRIPT_NAMES.has(scriptName.toLowerCase())) {
+      return `Command "${id}" ${executable} run script name "${scriptName}" is forbidden.`;
+    }
+    restArgs = args.slice(2);
+  } else {
+    return `Command "${id}" ${executable} subcommand "${sub}" is not allowed (permitted: test, run <script>, --version, -v).`;
+  }
+  let afterDoubleDash = false;
+  for (const arg of restArgs) {
+    if (arg === "--") {
+      afterDoubleDash = true;
+      continue;
+    }
+    const lower = arg.toLowerCase();
+    const eqIdx = arg.indexOf("=");
+    const normalizedFlag = (eqIdx >= 0 ? lower.slice(0, eqIdx) : lower).replace(/_/g, "-");
+    const rhsLower = eqIdx >= 0 ? lower.slice(eqIdx + 1) : "";
+    if (FORBIDDEN_PM_ARG_TOKENS.has(lower)) {
+      return `Command "${id}" uses forbidden ${executable} argument "${arg}".`;
+    }
+    if (isForbiddenInterpreterArg(arg)) {
+      return `Command "${id}" uses forbidden ${executable} flag "${arg}".`;
+    }
+    if (lower.includes("data:") || lower.includes("file:") || rhsLower.startsWith("data:") || rhsLower.startsWith("file:")) {
+      return `Command "${id}" uses disallowed URL scheme in ${executable} argument "${arg}".`;
+    }
+    if (FORBIDDEN_PM_LONG_FLAGS.has(normalizedFlag) || executable === "bun" && arg === "-r") {
+      return `Command "${id}" uses disallowed ${executable} option "${arg}".`;
+    }
+    if (!afterDoubleDash && arg.startsWith("-") && !ALLOWED_PM_PRE_DASH_FLAGS.has(normalizedFlag)) {
+      return `Command "${id}" uses disallowed ${executable} option "${arg}" before "--".`;
+    }
+    if (hasPathTraversalOrAbsolute(arg, true)) {
+      return `Command "${id}" ${executable} argument "${arg}" contains a disallowed absolute or parent-traversal path.`;
+    }
+  }
+  return null;
+}
+function validateNodeArgs(id, args) {
+  if (args.length === 0) {
+    return `Command "${id}" node requires explicit arguments (interactive REPL is disallowed).`;
+  }
+  if (args[0]?.toLowerCase() === "inspect") {
+    return `Command "${id}" node inspect subcommand is disallowed.`;
+  }
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    const lower = arg.toLowerCase();
+    if (arg === "-") {
+      return `Command "${id}" node stdin execution "-" is disallowed.`;
+    }
+    if (isForbiddenInterpreterArg(arg)) {
+      return `Command "${id}" uses forbidden node inline-execution flag "${arg}".`;
+    }
+    if (lower === "--import") {
+      const nextArg = args[i + 1];
+      if (arg !== "--import" || nextArg !== "tsx") {
+        return `Command "${id}" node --import is restricted strictly to "--import tsx" or "--import=tsx".`;
+      }
+      i += 1;
+      continue;
+    }
+    if (lower.startsWith("--import=")) {
+      if (arg !== "--import=tsx") {
+        return `Command "${id}" node --import is restricted strictly to "--import tsx" or "--import=tsx".`;
+      }
+      continue;
+    }
+    if (arg.startsWith("--")) {
+      const eqIdx = arg.indexOf("=");
+      const rawFlag = (eqIdx >= 0 ? lower.slice(0, eqIdx) : lower).replace(/_/g, "-");
+      if (FORBIDDEN_NODE_LONG_FLAGS.includes(rawFlag)) {
+        return `Command "${id}" uses forbidden node option "${arg}".`;
+      }
+      if (eqIdx > 0) {
+        const rhs = arg.slice(eqIdx + 1);
+        const rhsLower = rhs.toLowerCase();
+        if (rhsLower.startsWith("data:") || rhsLower.startsWith("file:") || hasAbsolutePathPrefix(rhs, true) || hasParentTraversalSegment(rhs)) {
+          return `Command "${id}" node option "${arg}" contains a disallowed URL, absolute path, or parent traversal.`;
+        }
+      }
+      continue;
+    }
+    if (arg.startsWith("-") && !arg.startsWith("--") && arg.length > 1) {
+      if (arg.length > 2) {
+        return `Command "${id}" uses disallowed bundled or compact node short flag "${arg}".`;
+      }
+      if (FORBIDDEN_NODE_SHORT_FLAGS.has(arg)) {
+        return `Command "${id}" uses forbidden node short flag "${arg}".`;
+      }
+      continue;
+    }
+    if (lower.startsWith("data:") || lower.startsWith("file:") || hasAbsolutePathPrefix(arg, true) || hasParentTraversalSegment(arg)) {
+      return `Command "${id}" node positional argument "${arg}" must be a relative path inside the workspace without ".." segments.`;
+    }
+  }
+  return null;
+}
+function validatePythonArgs(id, args) {
+  if (args.length === 0) {
+    return `Command "${id}" python3 requires explicit arguments (--version, -V, or -m <allowed_module>).`;
+  }
+  const first = args[0];
+  if (first === "--version" || first === "-V") {
+    if (args.length !== 1) {
+      return `Command "${id}" python3 ${first} does not accept additional arguments.`;
+    }
+    return null;
+  }
+  if (first !== "-m") {
+    return `Command "${id}" python3 only permits "--version", "-V", or "-m <module>" (disallowed leading arg "${first}").`;
+  }
+  const modName = args[1];
+  if (!modName || !ALLOWED_PYTHON_MODULES.has(modName)) {
+    return `Command "${id}" python3 module "${modName ?? ""}" is not in the allowlist (${[...ALLOWED_PYTHON_MODULES].join(", ")}).`;
+  }
+  for (const arg of args.slice(2)) {
+    const lower = arg.toLowerCase();
+    if (arg === "-" || arg === "-i" || isForbiddenInterpreterArg(arg)) {
+      return `Command "${id}" uses forbidden python3 argument "${arg}".`;
+    }
+    if (lower === "--eval" || lower.startsWith("--eval=")) {
+      return `Command "${id}" uses forbidden python3 option "${arg}".`;
+    }
+    if (hasPathTraversalOrAbsolute(arg, true)) {
+      return `Command "${id}" python3 argument "${arg}" contains a disallowed absolute or parent-traversal path.`;
+    }
+  }
+  return null;
+}
+function validateGoArgs(id, args) {
+  const sub = args[0];
+  if (!sub || !ALLOWED_GO_SUBCOMMANDS.has(sub)) {
+    return `Command "${id}" go subcommand "${sub ?? ""}" is not allowed (permitted: ${[...ALLOWED_GO_SUBCOMMANDS].join(", ")}).`;
+  }
+  for (const arg of args.slice(1)) {
+    const lower = arg.toLowerCase();
+    if (lower === "-exec" || lower.startsWith("-exec=") || lower === "--exec" || lower.startsWith("--exec=") || lower === "-toolexec" || lower.startsWith("-toolexec=") || lower === "--toolexec" || lower.startsWith("--toolexec=") || lower === "-vettool" || lower.startsWith("-vettool=") || lower === "--vettool" || lower.startsWith("--vettool=")) {
+      return `Command "${id}" uses forbidden go option "${arg}".`;
+    }
+    if (hasPathTraversalOrAbsolute(arg, true)) {
+      return `Command "${id}" go argument "${arg}" contains a disallowed absolute or parent-traversal path.`;
+    }
+  }
+  return null;
+}
+function validateCargoArgs(id, args) {
+  const sub = args[0];
+  if (!sub || !ALLOWED_CARGO_SUBCOMMANDS.has(sub)) {
+    return `Command "${id}" cargo subcommand "${sub ?? ""}" is not allowed (permitted: ${[...ALLOWED_CARGO_SUBCOMMANDS].join(", ")}).`;
+  }
+  if ((sub === "--version" || sub === "-V") && args.length !== 1) {
+    return `Command "${id}" cargo ${sub} does not accept additional arguments.`;
+  }
+  for (const arg of args.slice(1)) {
+    const lower = arg.toLowerCase();
+    if (lower === "--config" || lower.startsWith("--config=")) {
+      return `Command "${id}" uses forbidden cargo option "${arg}".`;
+    }
+    if (hasPathTraversalOrAbsolute(arg, true)) {
+      return `Command "${id}" cargo argument "${arg}" contains a disallowed absolute or parent-traversal path.`;
+    }
+  }
+  return null;
+}
+function validateGitArgs(id, args) {
+  const subcommand = args[0];
+  if (!subcommand || !ALLOWED_GIT_SUBCOMMANDS.has(subcommand)) {
+    return `Command "${id}" git subcommand "${subcommand ?? ""}" is not allowed (permitted read-only subcommands: ${[...ALLOWED_GIT_SUBCOMMANDS].join(", ")}).`;
+  }
+  for (const arg of args.slice(1)) {
+    const lower = arg.toLowerCase();
+    if (lower === "--output" || lower.startsWith("--output=") || lower === "--ext-diff" || lower === "--no-index" || lower === "--textconv" || lower === "--git-dir" || lower.startsWith("--git-dir=") || lower === "--work-tree" || lower.startsWith("--work-tree=")) {
+      return `Command "${id}" uses disallowed git option "${arg}".`;
+    }
+    if (arg.includes("..")) {
+      return `Command "${id}" git argument "${arg}" contains forbidden ".." sequence.`;
+    }
+    if (hasAbsolutePathPrefix(arg, true) || arg.includes(":/") || arg.includes(":\\") || /^:\([^)]*\)[/\\~]/.test(arg)) {
+      return `Command "${id}" git argument "${arg}" contains a disallowed absolute or home path.`;
+    }
+    const eqIdx = arg.indexOf("=");
+    if (eqIdx > 0) {
+      const rhs = arg.slice(eqIdx + 1);
+      if (hasAbsolutePathPrefix(rhs, true)) {
+        return `Command "${id}" git option "${arg}" contains a disallowed absolute or home path.`;
+      }
+    }
+  }
+  return null;
+}
+function validateLinterOrTesterArgs(id, executable, args) {
+  for (const arg of args) {
+    const lower = arg.toLowerCase();
+    if (lower === "--eval" || lower.startsWith("--eval=") || arg === "-c" || lower.startsWith("-c=")) {
+      return `Command "${id}" uses disallowed ${executable} option "${arg}".`;
+    }
+    if (hasPathTraversalOrAbsolute(arg, true)) {
+      return `Command "${id}" ${executable} argument "${arg}" contains a disallowed absolute or parent-traversal path.`;
+    }
+  }
+  return null;
+}
+function validateVerifyCommand(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { valid: false, error: "Command specification must be an object." };
+  }
+  const obj = raw;
+  if (typeof obj.id !== "string" || !COMMAND_ID_RE.test(obj.id.trim())) {
+    return {
+      valid: false,
+      error: "Command id must be 1..64 characters of [a-zA-Z0-9._-]."
+    };
+  }
+  const id = obj.id.trim();
+  if (typeof obj.label !== "string" || !obj.label.trim()) {
+    return { valid: false, error: `Command "${id}" must have a non-empty label.` };
+  }
+  const label = obj.label.replace(/[\x00-\x1f\x7f]+/g, " ").trim().slice(0, 120);
+  if (typeof obj.executable !== "string" || obj.executable.length === 0) {
+    return { valid: false, error: `Command "${id}" must specify an executable name.` };
+  }
+  const executable = obj.executable;
+  if (executable.includes("/") || executable.includes("\\") || executable.includes("..") || /[\s\x00-\x1f\x7f]/.test(executable)) {
+    return {
+      valid: false,
+      error: `Command "${id}" executable "${executable}" must be a bare command name without paths, whitespace, or control characters.`
+    };
+  }
+  if (!ALLOWED_VERIFY_EXECUTABLES.has(executable)) {
+    return {
+      valid: false,
+      error: `Command "${id}" executable "${executable}" is not in the verify allowlist.`
+    };
+  }
+  if (!Array.isArray(obj.args)) {
+    return { valid: false, error: `Command "${id}" args must be an array of strings.` };
+  }
+  if (obj.args.length > MAX_VERIFY_ARGS) {
+    return {
+      valid: false,
+      error: `Command "${id}" exceeds maximum argument count (${MAX_VERIFY_ARGS}).`
+    };
+  }
+  const args = [];
+  for (let i = 0; i < obj.args.length; i += 1) {
+    const arg = obj.args[i];
+    if (typeof arg !== "string") {
+      return { valid: false, error: `Command "${id}" arg[${i}] must be a string.` };
+    }
+    if (arg.length > MAX_VERIFY_ARG_LENGTH) {
+      return {
+        valid: false,
+        error: `Command "${id}" arg[${i}] exceeds maximum length (${MAX_VERIFY_ARG_LENGTH}).`
+      };
+    }
+    if (arg.includes("\0")) {
+      return {
+        valid: false,
+        error: `Command "${id}" arg[${i}] contains a forbidden NUL byte.`
+      };
+    }
+    args.push(arg);
+  }
+  let toolError = null;
+  if (PACKAGE_MANAGER_EXECUTABLES.has(executable)) {
+    toolError = validatePackageManagerArgs(id, executable, args);
+  } else if (executable === "node") {
+    toolError = validateNodeArgs(id, args);
+  } else if (executable === "python3") {
+    toolError = validatePythonArgs(id, args);
+  } else if (executable === "go") {
+    toolError = validateGoArgs(id, args);
+  } else if (executable === "cargo") {
+    toolError = validateCargoArgs(id, args);
+  } else if (executable === "git") {
+    toolError = validateGitArgs(id, args);
+  } else if (LINTER_TESTER_EXECUTABLES.has(executable)) {
+    toolError = validateLinterOrTesterArgs(id, executable, args);
+  } else {
+    toolError = `Command "${id}" executable "${executable}" has no registered argument validator.`;
+  }
+  if (toolError) {
+    return { valid: false, error: toolError };
+  }
+  const timeoutMs = clampCommandTimeout(obj.timeoutMs);
+  const enabled = typeof obj.enabled === "boolean" ? obj.enabled : true;
+  return {
+    valid: true,
+    command: {
+      id,
+      label,
+      executable,
+      args,
+      timeoutMs,
+      enabled
+    }
+  };
+}
+function cloneDefaultPolicy() {
+  return {
+    ...DEFAULT_VERIFY_POLICY,
+    commands: DEFAULT_VERIFY_POLICY.commands.map((c) => ({ ...c, args: [...c.args] }))
+  };
+}
+function createDefaultVerifyState(nowIso = (/* @__PURE__ */ new Date()).toISOString()) {
+  return {
+    schemaVersion: 1,
+    policy: cloneDefaultPolicy(),
+    sessions: {},
+    evidence: [],
+    blockedStops: 0,
+    updatedAt: nowIso
+  };
+}
+function normalizePolicyFromDisk(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return cloneDefaultPolicy();
+  }
+  const obj = raw;
+  const commands = [];
+  if (Array.isArray(obj.commands)) {
+    const seen = /* @__PURE__ */ new Set();
+    for (const item of obj.commands.slice(0, MAX_VERIFY_COMMANDS)) {
+      const check = validateVerifyCommand(item);
+      if (check.valid && check.command && !seen.has(check.command.id)) {
+        seen.add(check.command.id);
+        commands.push(check.command);
+      }
+    }
+  } else {
+    commands.push(...cloneDefaultPolicy().commands);
+  }
+  return {
+    enforceOnStop: typeof obj.enforceOnStop === "boolean" ? obj.enforceOnStop : DEFAULT_VERIFY_POLICY.enforceOnStop,
+    autoRunOnStop: typeof obj.autoRunOnStop === "boolean" ? obj.autoRunOnStop : DEFAULT_VERIFY_POLICY.autoRunOnStop,
+    blockEmptyWrites: typeof obj.blockEmptyWrites === "boolean" ? obj.blockEmptyWrites : DEFAULT_VERIFY_POLICY.blockEmptyWrites,
+    maxConsecutiveBlocks: clampMaxConsecutiveBlocks(obj.maxConsecutiveBlocks),
+    commands
+  };
+}
+function normalizeStringArray(raw, maxLen = 200) {
+  if (!Array.isArray(raw)) return [];
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const item of raw) {
+    if (typeof item === "string" && item.trim() && !seen.has(item)) {
+      seen.add(item);
+      out.push(item);
+      if (out.length >= maxLen) break;
+    }
+  }
+  return out;
+}
+function normalizeSessionFromDisk(id, raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw;
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const convId = typeof obj.conversationId === "string" && obj.conversationId.trim() ? obj.conversationId.trim().slice(0, 120) : id;
+  return {
+    conversationId: convId,
+    workspaceRoot: typeof obj.workspaceRoot === "string" ? obj.workspaceRoot : void 0,
+    dirtyFiles: normalizeStringArray(obj.dirtyFiles, 200),
+    emptyFiles: normalizeStringArray(obj.emptyFiles, 200),
+    lastEditAt: typeof obj.lastEditAt === "string" ? obj.lastEditAt : void 0,
+    lastVerifiedAt: typeof obj.lastVerifiedAt === "string" ? obj.lastVerifiedAt : void 0,
+    lastVerifiedPassed: typeof obj.lastVerifiedPassed === "boolean" ? obj.lastVerifiedPassed : void 0,
+    consecutiveBlocks: typeof obj.consecutiveBlocks === "number" && Number.isFinite(obj.consecutiveBlocks) ? Math.max(0, Math.floor(obj.consecutiveBlocks)) : 0,
+    totalBlocks: typeof obj.totalBlocks === "number" && Number.isFinite(obj.totalBlocks) ? Math.max(0, Math.floor(obj.totalBlocks)) : 0,
+    lastGuardrailReleaseAt: typeof obj.lastGuardrailReleaseAt === "string" ? obj.lastGuardrailReleaseAt : void 0,
+    updatedAt: typeof obj.updatedAt === "string" ? obj.updatedAt : nowIso
+  };
+}
+function normalizeCommandRunResultFromDisk(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw;
+  if (typeof obj.commandId !== "string" || typeof obj.executable !== "string") return null;
+  return {
+    commandId: obj.commandId,
+    label: typeof obj.label === "string" ? obj.label : obj.commandId,
+    executable: obj.executable,
+    args: Array.isArray(obj.args) ? obj.args.filter((a) => typeof a === "string") : [],
+    passed: Boolean(obj.passed),
+    exitCode: typeof obj.exitCode === "number" && Number.isFinite(obj.exitCode) ? obj.exitCode : null,
+    timedOut: Boolean(obj.timedOut),
+    durationMs: typeof obj.durationMs === "number" && Number.isFinite(obj.durationMs) ? Math.max(0, Math.round(obj.durationMs)) : 0,
+    outputTail: typeof obj.outputTail === "string" ? redactVerifyOutput(obj.outputTail) : "",
+    outputTruncated: Boolean(obj.outputTruncated),
+    error: typeof obj.error === "string" ? redactVerifyOutput(obj.error) : void 0
+  };
+}
+function normalizeEvidenceFromDisk(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const obj = raw;
+  if (typeof obj.id !== "string" || typeof obj.timestamp !== "string") return null;
+  const trigger = obj.trigger === "manual" || obj.trigger === "stop-hook" || obj.trigger === "app-ui" ? obj.trigger : "manual";
+  const outcome = obj.outcome === "pass" || obj.outcome === "fail" || obj.outcome === "blocked" || obj.outcome === "guardrail-allow" ? obj.outcome : obj.passed ? "pass" : "fail";
+  const results = [];
+  if (Array.isArray(obj.results)) {
+    for (const r of obj.results) {
+      const norm = normalizeCommandRunResultFromDisk(r);
+      if (norm) results.push(norm);
+    }
+  }
+  return {
+    id: obj.id,
+    conversationId: typeof obj.conversationId === "string" ? obj.conversationId : "default-session",
+    trigger,
+    outcome,
+    passed: Boolean(obj.passed),
+    timestamp: obj.timestamp,
+    durationMs: typeof obj.durationMs === "number" && Number.isFinite(obj.durationMs) ? Math.max(0, Math.round(obj.durationMs)) : 0,
+    dirtyFiles: normalizeStringArray(obj.dirtyFiles, 200),
+    emptyFiles: normalizeStringArray(obj.emptyFiles, 200),
+    results,
+    summary: typeof obj.summary === "string" ? redactVerifyOutput(obj.summary) : "",
+    reason: typeof obj.reason === "string" ? redactVerifyOutput(obj.reason) : void 0
+  };
+}
+function loadVerifyStateReadOnly(moduleDataDir) {
+  const statePath = getVerifyStatePath(moduleDataDir);
+  if (!import_node_fs11.default.existsSync(statePath)) {
+    return createDefaultVerifyState();
+  }
+  try {
+    const raw = JSON.parse(import_node_fs11.default.readFileSync(statePath, "utf8"));
+    const policy = normalizePolicyFromDisk(raw.policy);
+    const sessions = {};
+    if (raw.sessions && typeof raw.sessions === "object" && !Array.isArray(raw.sessions)) {
+      for (const [id, rec] of Object.entries(raw.sessions)) {
+        const norm = normalizeSessionFromDisk(id, rec);
+        if (norm) sessions[norm.conversationId] = norm;
+      }
+    }
+    const evidence = [];
+    if (Array.isArray(raw.evidence)) {
+      for (const item of raw.evidence.slice(0, MAX_STORED_EVIDENCE)) {
+        const norm = normalizeEvidenceFromDisk(item);
+        if (norm) evidence.push(norm);
+      }
+    }
+    const blockedStops = typeof raw.blockedStops === "number" && Number.isFinite(raw.blockedStops) ? Math.max(0, Math.floor(raw.blockedStops)) : evidence.filter((e) => e.outcome === "blocked").length;
+    return {
+      schemaVersion: 1,
+      policy,
+      sessions,
+      evidence,
+      blockedStops,
+      updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : (/* @__PURE__ */ new Date()).toISOString()
+    };
+  } catch {
+    return createDefaultVerifyState();
+  }
+}
+function saveVerifyState(moduleDataDir, state) {
+  const sortedSessions = Object.values(state.sessions).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)).slice(0, MAX_STORED_SESSIONS2);
+  const prunedSessions = {};
+  for (const s of sortedSessions) {
+    prunedSessions[s.conversationId] = s;
+  }
+  const next = {
+    schemaVersion: 1,
+    policy: normalizePolicyFromDisk(state.policy),
+    sessions: prunedSessions,
+    evidence: state.evidence.slice(0, MAX_STORED_EVIDENCE),
+    blockedStops: Math.max(0, Math.floor(state.blockedStops)),
+    updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+  atomicWriteJson(getVerifyStatePath(moduleDataDir), next);
+  return next;
+}
+function resolveRealPathWithMissingTail2(inputPath, depth = 0) {
+  if (depth > MAX_SYMLINK_DEPTH2) {
+    throw new Error(`Too many levels of symbolic links: ${inputPath}`);
+  }
+  const resolved = import_node_path13.default.resolve(inputPath);
+  const missingSegments = [];
+  let current = resolved;
+  while (true) {
+    try {
+      const realBase = import_node_fs11.default.realpathSync(current);
+      return missingSegments.length > 0 ? import_node_path13.default.join(realBase, ...missingSegments.reverse()) : realBase;
+    } catch (err) {
+      const code = err?.code;
+      if (code !== "ENOENT" && code !== "ENOTDIR") {
+        throw err;
+      }
+      try {
+        const lstat = import_node_fs11.default.lstatSync(current);
+        if (lstat.isSymbolicLink()) {
+          const linkTarget = import_node_fs11.default.readlinkSync(current);
+          const resolvedLink = import_node_path13.default.resolve(import_node_path13.default.dirname(current), linkTarget);
+          const nextTarget = missingSegments.length > 0 ? import_node_path13.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
+          return resolveRealPathWithMissingTail2(nextTarget, depth + 1);
+        }
+      } catch {
+      }
+      const parent = import_node_path13.default.dirname(current);
+      if (parent === current) {
+        return resolved;
+      }
+      missingSegments.push(import_node_path13.default.basename(current));
+      current = parent;
+    }
+  }
+}
+function inspectWorkspaceFile(workspaceRoot, targetPath) {
+  if (!workspaceRoot || workspaceRoot.includes("\0") || !targetPath || targetPath.includes("\0")) {
+    return { inside: false };
+  }
+  try {
+    const realRoot = resolveRealPathWithMissingTail2(workspaceRoot);
+    const candidate = import_node_path13.default.isAbsolute(targetPath) ? targetPath : import_node_path13.default.resolve(workspaceRoot, targetPath);
+    const realTarget = resolveRealPathWithMissingTail2(candidate);
+    const rootPrefix = realRoot.endsWith(import_node_path13.default.sep) ? realRoot : `${realRoot}${import_node_path13.default.sep}`;
+    if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
+      return { inside: false };
+    }
+    if (realTarget === realRoot) {
+      return { inside: false };
+    }
+    const relPath = import_node_path13.default.relative(realRoot, realTarget).split(import_node_path13.default.sep).join("/");
+    if (!relPath || relPath === "." || relPath.startsWith("../")) {
+      return { inside: false };
+    }
+    let exists = false;
+    let isFile = false;
+    let isEmpty = false;
+    try {
+      const stat = import_node_fs11.default.statSync(realTarget);
+      exists = true;
+      isFile = stat.isFile();
+      isEmpty = isFile && stat.size === 0;
+    } catch {
+      exists = false;
+    }
+    return {
+      inside: true,
+      realRoot,
+      realTarget,
+      relPath,
+      exists,
+      isFile,
+      isEmpty
+    };
+  } catch {
+    return { inside: false };
+  }
+}
+function scanEmptyWorkspaceFiles(workspaceRoot, filePaths) {
+  if (!workspaceRoot) return [];
+  const empty = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const rel of filePaths) {
+    if (!rel || seen.has(rel)) continue;
+    seen.add(rel);
+    const check = inspectWorkspaceFile(workspaceRoot, rel);
+    if (check.inside && check.exists && check.isFile && check.isEmpty && check.relPath) {
+      empty.push(check.relPath);
+    }
+  }
+  return empty;
+}
+function truncateTailBytes(text, maxBytes) {
+  const buf = Buffer.from(text, "utf8");
+  if (buf.length <= maxBytes) {
+    return { text, truncated: false };
+  }
+  const sliced = buf.subarray(buf.length - maxBytes);
+  return { text: sliced.toString("utf8"), truncated: true };
+}
+function extractTailOutput(combinedRaw, alreadyTruncated = false) {
+  const capped = truncateTailBytes(combinedRaw, MAX_CAPTURE_BYTES);
+  const redacted = redactVerifyOutput(capped.text);
+  let outputTail = redacted;
+  let outputTruncated = alreadyTruncated || capped.truncated;
+  if (outputTail.length > MAX_STORED_OUTPUT_TAIL_CHARS) {
+    outputTail = outputTail.slice(outputTail.length - MAX_STORED_OUTPUT_TAIL_CHARS);
+    outputTruncated = true;
+  }
+  outputTail = redactVerifyOutput(outputTail).trim();
+  return { outputTail, outputTruncated };
+}
+function executeVerifyCommand(command, workspaceRoot, options = {}) {
+  const validation = validateVerifyCommand(command);
+  const startedAt = Date.now();
+  if (!validation.valid || !validation.command) {
+    return Promise.resolve({
+      commandId: command.id,
+      label: command.label,
+      executable: command.executable,
+      args: [...command.args],
+      passed: false,
+      exitCode: null,
+      timedOut: false,
+      durationMs: 0,
+      outputTail: "",
+      outputTruncated: false,
+      error: validation.error ?? "Command rejected by verify allowlist."
+    });
+  }
+  const safeCmd = validation.command;
+  const effectiveTimeoutMs = Math.max(
+    MIN_COMMAND_TIMEOUT_MS,
+    Math.min(
+      safeCmd.timeoutMs,
+      options.timeoutCapMs !== void 0 ? Math.max(MIN_COMMAND_TIMEOUT_MS, Math.floor(options.timeoutCapMs)) : MAX_COMMAND_TIMEOUT_MS
+    )
+  );
+  let resolvedCwd;
+  try {
+    resolvedCwd = import_node_fs11.default.realpathSync(import_node_path13.default.resolve(workspaceRoot));
+    if (!import_node_fs11.default.statSync(resolvedCwd).isDirectory()) {
+      throw new Error("Workspace root is not a directory.");
+    }
+  } catch (err) {
+    return Promise.resolve({
+      commandId: safeCmd.id,
+      label: safeCmd.label,
+      executable: safeCmd.executable,
+      args: [...safeCmd.args],
+      passed: false,
+      exitCode: null,
+      timedOut: false,
+      durationMs: Date.now() - startedAt,
+      outputTail: "",
+      outputTruncated: false,
+      error: redactVerifyOutput(err instanceof Error ? err.message : String(err))
+    });
+  }
+  return new Promise((resolve) => {
+    const isPosix = process.platform !== "win32";
+    let settled = false;
+    let timedOut = false;
+    let streamTruncated = false;
+    let bufferedBytes = 0;
+    const chunks = [];
+    let killTimer = null;
+    let hardKillTimer = null;
+    const cleanupTimers = () => {
+      if (killTimer) {
+        clearTimeout(killTimer);
+        killTimer = null;
+      }
+      if (hardKillTimer) {
+        clearTimeout(hardKillTimer);
+        hardKillTimer = null;
+      }
+    };
+    const pushChunk = (data) => {
+      const buf = Buffer.isBuffer(data) ? data : Buffer.from(data, "utf8");
+      if (buf.length === 0) return;
+      if (buf.length >= MAX_CAPTURE_BYTES) {
+        const tailCopy = Buffer.from(buf.subarray(buf.length - MAX_CAPTURE_BYTES));
+        chunks.length = 0;
+        chunks.push(tailCopy);
+        bufferedBytes = tailCopy.length;
+        streamTruncated = true;
+        return;
+      }
+      chunks.push(buf);
+      bufferedBytes += buf.length;
+      if (bufferedBytes > MAX_CAPTURE_BYTES * 2) {
+        const merged = Buffer.concat(chunks, bufferedBytes);
+        const tailCopy = Buffer.from(merged.subarray(merged.length - MAX_CAPTURE_BYTES));
+        chunks.length = 0;
+        chunks.push(tailCopy);
+        bufferedBytes = tailCopy.length;
+        streamTruncated = true;
+      }
+    };
+    const buildOutput = () => {
+      const merged = chunks.length > 0 ? Buffer.concat(chunks, bufferedBytes) : Buffer.alloc(0);
+      return extractTailOutput(merged.toString("utf8"), streamTruncated);
+    };
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      cleanupTimers();
+      resolve(result);
+    };
+    let child;
+    try {
+      child = (0, import_node_child_process2.spawn)(safeCmd.executable, safeCmd.args, {
+        cwd: resolvedCwd,
+        shell: false,
+        windowsHide: true,
+        stdio: ["ignore", "pipe", "pipe"],
+        detached: isPosix
+      });
+    } catch (err) {
+      finish({
+        commandId: safeCmd.id,
+        label: safeCmd.label,
+        executable: safeCmd.executable,
+        args: [...safeCmd.args],
+        passed: false,
+        exitCode: null,
+        timedOut: false,
+        durationMs: Date.now() - startedAt,
+        outputTail: "",
+        outputTruncated: false,
+        error: redactVerifyOutput(err instanceof Error ? err.message : String(err))
+      });
+      return;
+    }
+    const killProcessTree = (signal) => {
+      if (isPosix && typeof child.pid === "number" && child.pid > 0) {
+        try {
+          process.kill(-child.pid, signal);
+          return;
+        } catch {
+        }
+      }
+      try {
+        child.kill(signal);
+      } catch {
+      }
+    };
+    const destroyPipes = () => {
+      try {
+        child.stdout?.destroy();
+      } catch {
+      }
+      try {
+        child.stderr?.destroy();
+      } catch {
+      }
+    };
+    child.stdout?.on("data", pushChunk);
+    child.stderr?.on("data", pushChunk);
+    child.stdout?.on("error", () => {
+    });
+    child.stderr?.on("error", () => {
+    });
+    child.on("error", (err) => {
+      const durationMs = Date.now() - startedAt;
+      const { outputTail, outputTruncated } = buildOutput();
+      finish({
+        commandId: safeCmd.id,
+        label: safeCmd.label,
+        executable: safeCmd.executable,
+        args: [...safeCmd.args],
+        passed: false,
+        exitCode: null,
+        timedOut,
+        durationMs,
+        outputTail,
+        outputTruncated,
+        error: redactVerifyOutput(err instanceof Error ? err.message : String(err))
+      });
+    });
+    child.on("close", (code, signal) => {
+      const durationMs = Date.now() - startedAt;
+      const { outputTail, outputTruncated } = buildOutput();
+      const exitCode = typeof code === "number" ? code : null;
+      if (!timedOut && exitCode === 0) {
+        finish({
+          commandId: safeCmd.id,
+          label: safeCmd.label,
+          executable: safeCmd.executable,
+          args: [...safeCmd.args],
+          passed: true,
+          exitCode: 0,
+          timedOut: false,
+          durationMs,
+          outputTail,
+          outputTruncated
+        });
+        return;
+      }
+      const errMessage = timedOut ? `Command timed out after ${effectiveTimeoutMs}ms` : signal ? `Command terminated by signal ${signal}` : `Command exited with code ${exitCode ?? "unknown"}`;
+      finish({
+        commandId: safeCmd.id,
+        label: safeCmd.label,
+        executable: safeCmd.executable,
+        args: [...safeCmd.args],
+        passed: false,
+        exitCode,
+        timedOut,
+        durationMs,
+        outputTail,
+        outputTruncated,
+        error: errMessage
+      });
+    });
+    killTimer = setTimeout(() => {
+      if (settled) return;
+      timedOut = true;
+      killProcessTree("SIGTERM");
+      hardKillTimer = setTimeout(() => {
+        if (settled) return;
+        killProcessTree("SIGKILL");
+        destroyPipes();
+        try {
+          child.unref();
+        } catch {
+        }
+        const durationMs = Date.now() - startedAt;
+        const { outputTail, outputTruncated } = buildOutput();
+        finish({
+          commandId: safeCmd.id,
+          label: safeCmd.label,
+          executable: safeCmd.executable,
+          args: [...safeCmd.args],
+          passed: false,
+          exitCode: null,
+          timedOut: true,
+          durationMs,
+          outputTail,
+          outputTruncated,
+          error: `Command timed out after ${effectiveTimeoutMs}ms`
+        });
+      }, 300);
+      hardKillTimer.unref?.();
+    }, effectiveTimeoutMs);
+    killTimer.unref?.();
+  });
+}
+async function runVerifyCommands(commands, workspaceRoot, options = {}) {
+  const startedAt = Date.now();
+  const results = [];
+  const totalBudgetMs = options.totalBudgetMs;
+  for (const cmd of commands) {
+    let timeoutCapMs = options.singleTimeoutCapMs;
+    if (totalBudgetMs !== void 0) {
+      const elapsed = Date.now() - startedAt;
+      const remaining = totalBudgetMs - elapsed;
+      if (remaining < MIN_COMMAND_TIMEOUT_MS) {
+        results.push({
+          commandId: cmd.id,
+          label: cmd.label,
+          executable: cmd.executable,
+          args: [...cmd.args],
+          passed: false,
+          exitCode: null,
+          timedOut: true,
+          durationMs: 0,
+          outputTail: "",
+          outputTruncated: false,
+          error: `Skipped: total verification time budget (${totalBudgetMs}ms) exhausted.`
+        });
+        continue;
+      }
+      timeoutCapMs = timeoutCapMs !== void 0 ? Math.min(timeoutCapMs, remaining) : remaining;
+    }
+    const res = await executeVerifyCommand(cmd, workspaceRoot, { timeoutCapMs });
+    results.push(res);
+  }
+  return {
+    passed: results.every((r) => r.passed),
+    results,
+    durationMs: Date.now() - startedAt
+  };
+}
+function createEvidenceId(prefix = "ver") {
+  return `${prefix}-${Date.now().toString(36)}-${import_node_crypto7.default.randomBytes(3).toString("hex")}`;
+}
+function formatFailureTailSnippet(outputTail, maxLines = 4, maxChars = 280) {
+  const lines = redactVerifyOutput(outputTail).split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) return "";
+  const tail = lines.slice(-maxLines).join(" | ");
+  return tail.length > maxChars ? `\u2026${tail.slice(tail.length - (maxChars - 1))}` : tail;
+}
+function appendEvidenceToState(state, record) {
+  state.evidence.unshift(record);
+  if (state.evidence.length > MAX_STORED_EVIDENCE) {
+    state.evidence = state.evidence.slice(0, MAX_STORED_EVIDENCE);
+  }
+  state.updatedAt = record.timestamp;
+}
+
+// src/modules/verify/hook.ts
+var TRACKED_VERIFY_WRITE_TOOLS = /* @__PURE__ */ new Set([
+  "write_file",
+  "edit_file",
+  "write_to_file",
+  "create_file",
+  "apply_patch",
+  "patch_file",
+  "replace_file_content",
+  "multi_replace_file_content"
+]);
+var GUARDRAIL_ALLOW_REASON = "Reached maxConsecutiveBlocks guardrail; allowing stop.";
+var SINGLE_PATH_KEYS = [
+  "Path",
+  "path",
+  "TargetFile",
+  "targetFile",
+  "target_file",
+  "TargetPath",
+  "targetPath",
+  "target_path",
+  "AbsolutePath",
+  "absolutePath",
+  "absolute_path",
+  "filePath",
+  "file_path",
+  "FilePath"
+];
+var PATCH_TEXT_KEYS = ["patch", "Patch", "diff", "Diff", "input", "Input"];
+function normalizeToolName(rawName) {
+  if (!rawName) return "";
+  const trimmed = rawName.trim().toLowerCase();
+  const sepIdx = Math.max(trimmed.lastIndexOf(":"), trimmed.lastIndexOf("/"));
+  return sepIdx >= 0 ? trimmed.slice(sepIdx + 1) : trimmed;
+}
+function deriveVerifyConversationId(payload) {
+  if (payload.conversationId && payload.conversationId.trim()) {
+    return payload.conversationId.trim().slice(0, 120);
+  }
+  const seed = payload.workspaceRoot ?? payload.workspacePaths[0] ?? payload.cwd;
+  if (seed) {
+    const hash = import_node_crypto8.default.createHash("sha256").update(seed).digest("hex").slice(0, 10);
+    return `ws-${hash}`;
+  }
+  return "default-session";
+}
+function extractPatchPaths(patchText) {
+  const paths = [];
+  const lines = patchText.split(/\r?\n/);
+  for (const line of lines) {
+    const applyMatch = /^\*\*\*\s+(?:Add File|Update File|Move to):\s*(.+)$/.exec(line);
+    if (applyMatch?.[1]) {
+      const candidate = applyMatch[1].trim();
+      if (candidate) paths.push(candidate);
+      continue;
+    }
+    const diffMatch = /^\+\+\+\s+(?:b\/)?([^\t\r\n]+)/.exec(line);
+    if (diffMatch?.[1]) {
+      const candidate = diffMatch[1].trim();
+      if (candidate && candidate !== "/dev/null") {
+        paths.push(candidate);
+      }
+    }
+  }
+  return paths;
+}
+function extractVerifyTargetPaths(toolInput) {
+  if (!toolInput) return [];
+  const found = [];
+  const seen = /* @__PURE__ */ new Set();
+  const add = (val) => {
+    if (typeof val === "string") {
+      const trimmed = val.trim();
+      if (trimmed && !seen.has(trimmed)) {
+        seen.add(trimmed);
+        found.push(trimmed);
+      }
+    }
+  };
+  for (const key of SINGLE_PATH_KEYS) {
+    add(toolInput[key]);
+  }
+  for (const listKey of ["files", "paths", "Files", "Paths"]) {
+    const arr = toolInput[listKey];
+    if (Array.isArray(arr)) {
+      for (const item of arr) {
+        add(item);
+      }
+    }
+  }
+  if (found.length === 0) {
+    for (const patchKey of PATCH_TEXT_KEYS) {
+      const val = toolInput[patchKey];
+      if (typeof val === "string" && val.trim()) {
+        for (const p of extractPatchPaths(val)) {
+          add(p);
+        }
+      }
+    }
+  }
+  return found;
+}
+function handleVerifyPostToolHook(payload, rootDataDir) {
+  try {
+    if (payload.event !== "PostToolUse") {
+      return;
+    }
+    const toolName = normalizeToolName(payload.toolName);
+    if (!TRACKED_VERIFY_WRITE_TOOLS.has(toolName)) {
+      return;
+    }
+    const workspaceRoot = payload.workspaceRoot ?? payload.workspacePaths[0] ?? payload.cwd;
+    if (!workspaceRoot) {
+      return;
+    }
+    const rawPaths = extractVerifyTargetPaths(payload.toolInput);
+    if (rawPaths.length === 0) {
+      return;
+    }
+    const validChecks = rawPaths.map((p) => inspectWorkspaceFile(workspaceRoot, p)).filter((check) => check.inside && Boolean(check.relPath));
+    if (validChecks.length === 0) {
+      return;
+    }
+    const resolvedRoot = resolveNovDataDir(rootDataDir);
+    const moduleDataDir = getModuleDataDir(resolvedRoot, "verify");
+    const state = loadVerifyStateReadOnly(moduleDataDir);
+    const conversationId = deriveVerifyConversationId(payload);
+    const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+    const existing = state.sessions[conversationId];
+    const dirtySet = new Set(existing?.dirtyFiles ?? []);
+    const emptySet = new Set(existing?.emptyFiles ?? []);
+    let resolvedWorkspaceRoot = existing?.workspaceRoot;
+    for (const check of validChecks) {
+      if (!check.relPath) continue;
+      if (check.realRoot) resolvedWorkspaceRoot = check.realRoot;
+      dirtySet.add(check.relPath);
+      if (check.exists && check.isFile && check.isEmpty) {
+        emptySet.add(check.relPath);
+      } else {
+        emptySet.delete(check.relPath);
+      }
+    }
+    const lastVerifiedMs = existing?.lastVerifiedAt ? Date.parse(existing.lastVerifiedAt) : Number.NaN;
+    const editIso = Number.isFinite(lastVerifiedMs) && Date.parse(nowIso) <= lastVerifiedMs ? new Date(lastVerifiedMs + 1).toISOString() : nowIso;
+    const nextSession = {
+      conversationId,
+      workspaceRoot: resolvedWorkspaceRoot ?? workspaceRoot,
+      dirtyFiles: [...dirtySet],
+      emptyFiles: [...emptySet],
+      lastEditAt: editIso,
+      lastVerifiedAt: existing?.lastVerifiedAt,
+      lastVerifiedPassed: false,
+      consecutiveBlocks: existing?.consecutiveBlocks ?? 0,
+      totalBlocks: existing?.totalBlocks ?? 0,
+      lastGuardrailReleaseAt: existing?.lastGuardrailReleaseAt,
+      updatedAt: editIso
+    };
+    state.sessions[conversationId] = nextSession;
+    saveVerifyState(moduleDataDir, state);
+  } catch {
+  }
+}
+async function handleVerifyStopHook(payload, rootDataDir) {
+  try {
+    if (payload.event !== "Stop") {
+      return { decision: "allow" };
+    }
+    const resolvedRoot = resolveNovDataDir(rootDataDir);
+    const moduleDataDir = getModuleDataDir(resolvedRoot, "verify");
+    const state = loadVerifyStateReadOnly(moduleDataDir);
+    if (!state.policy.enforceOnStop) {
+      return { decision: "allow" };
+    }
+    const conversationId = deriveVerifyConversationId(payload);
+    const session = state.sessions[conversationId];
+    if (!session || session.dirtyFiles.length === 0 && session.emptyFiles.length === 0) {
+      return { decision: "allow" };
+    }
+    const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+    const workspaceRoot = payload.workspaceRoot ?? payload.workspacePaths[0] ?? payload.cwd ?? session.workspaceRoot;
+    if (session.consecutiveBlocks >= state.policy.maxConsecutiveBlocks) {
+      const snapshotDirty = [...session.dirtyFiles];
+      const snapshotEmpty = scanEmptyWorkspaceFiles(workspaceRoot, [
+        ...session.dirtyFiles,
+        ...session.emptyFiles
+      ]);
+      const continuationNote = payload.continuationActive === true ? " (continuationActive=true)" : "";
+      const record = {
+        id: createEvidenceId("ver"),
+        conversationId,
+        trigger: "stop-hook",
+        outcome: "guardrail-allow",
+        passed: false,
+        timestamp: nowIso,
+        durationMs: 0,
+        dirtyFiles: snapshotDirty,
+        emptyFiles: snapshotEmpty,
+        results: [],
+        summary: `${GUARDRAIL_ALLOW_REASON}${continuationNote} consecutiveBlocks=${session.consecutiveBlocks}/${state.policy.maxConsecutiveBlocks}.`,
+        reason: GUARDRAIL_ALLOW_REASON
+      };
+      session.dirtyFiles = [];
+      session.emptyFiles = [];
+      session.consecutiveBlocks = 0;
+      session.lastVerifiedPassed = false;
+      session.lastGuardrailReleaseAt = nowIso;
+      session.updatedAt = nowIso;
+      appendEvidenceToState(state, record);
+      saveVerifyState(moduleDataDir, state);
+      return {
+        decision: "allow",
+        reason: GUARDRAIL_ALLOW_REASON
+      };
+    }
+    const currentEmptyFiles = scanEmptyWorkspaceFiles(workspaceRoot, [
+      ...session.dirtyFiles,
+      ...session.emptyFiles
+    ]);
+    session.emptyFiles = currentEmptyFiles;
+    if (state.policy.blockEmptyWrites && currentEmptyFiles.length > 0) {
+      session.consecutiveBlocks += 1;
+      session.totalBlocks += 1;
+      session.lastVerifiedPassed = false;
+      session.updatedAt = nowIso;
+      state.blockedStops += 1;
+      const fileList = currentEmptyFiles.slice(0, 5).join(", ");
+      const extra = currentEmptyFiles.length > 5 ? ` (+${currentEmptyFiles.length - 5} more)` : "";
+      const reason = `[agy-NOV Verify Gate] Blocked stop: detected ${currentEmptyFiles.length} empty (0-byte) modified file(s): ${fileList}${extra}. Write valid content or remove empty files before finishing.`;
+      const record = {
+        id: createEvidenceId("ver"),
+        conversationId,
+        trigger: "stop-hook",
+        outcome: "blocked",
+        passed: false,
+        timestamp: nowIso,
+        durationMs: 0,
+        dirtyFiles: [...session.dirtyFiles],
+        emptyFiles: [...currentEmptyFiles],
+        results: [],
+        summary: `Blocked stop due to ${currentEmptyFiles.length} empty modified file(s).`,
+        reason
+      };
+      appendEvidenceToState(state, record);
+      saveVerifyState(moduleDataDir, state);
+      return { decision: "deny", reason };
+    }
+    const enabledCommands = state.policy.commands.filter((c) => c.enabled);
+    let commandResults = [];
+    let runDurationMs = 0;
+    let targetState = state;
+    let targetSession = session;
+    let effectiveNowIso = nowIso;
+    let concurrentEditOccurred = false;
+    const preRunDirtyFiles = [...session.dirtyFiles];
+    if (state.policy.autoRunOnStop && enabledCommands.length > 0) {
+      if (!workspaceRoot) {
+        return { decision: "allow" };
+      }
+      const preRunLastEditAt = session.lastEditAt;
+      const preRunWorkspaceRoot = session.workspaceRoot;
+      const preRunConsecutiveBlocks = session.consecutiveBlocks;
+      const preRunTotalBlocks = session.totalBlocks;
+      const preRunLastGuardrailReleaseAt = session.lastGuardrailReleaseAt;
+      const runOut = await runVerifyCommands(enabledCommands, workspaceRoot, {
+        singleTimeoutCapMs: STOP_HOOK_SINGLE_TIMEOUT_MS,
+        totalBudgetMs: STOP_HOOK_TOTAL_BUDGET_MS
+      });
+      commandResults = runOut.results;
+      runDurationMs = runOut.durationMs;
+      effectiveNowIso = (/* @__PURE__ */ new Date()).toISOString();
+      targetState = loadVerifyStateReadOnly(moduleDataDir);
+      targetSession = targetState.sessions[conversationId] ?? {
+        conversationId,
+        workspaceRoot: preRunWorkspaceRoot ?? workspaceRoot,
+        dirtyFiles: [...preRunDirtyFiles],
+        emptyFiles: [...currentEmptyFiles],
+        lastEditAt: preRunLastEditAt,
+        consecutiveBlocks: preRunConsecutiveBlocks,
+        totalBlocks: preRunTotalBlocks,
+        lastGuardrailReleaseAt: preRunLastGuardrailReleaseAt,
+        updatedAt: effectiveNowIso
+      };
+      targetState.sessions[conversationId] = targetSession;
+      concurrentEditOccurred = targetSession.lastEditAt !== preRunLastEditAt;
+      if (!runOut.passed) {
+        const failed = runOut.results.filter((r) => !r.passed);
+        const mergedDirtyFiles = [.../* @__PURE__ */ new Set([...preRunDirtyFiles, ...targetSession.dirtyFiles])];
+        const mergedEmptyFiles = scanEmptyWorkspaceFiles(workspaceRoot, [
+          ...mergedDirtyFiles,
+          ...targetSession.emptyFiles,
+          ...currentEmptyFiles
+        ]);
+        targetSession.dirtyFiles = mergedDirtyFiles;
+        targetSession.emptyFiles = mergedEmptyFiles;
+        targetSession.consecutiveBlocks += 1;
+        targetSession.totalBlocks += 1;
+        targetSession.lastVerifiedAt = effectiveNowIso;
+        targetSession.lastVerifiedPassed = false;
+        targetSession.updatedAt = effectiveNowIso;
+        targetState.blockedStops += 1;
+        const failureDetails = failed.slice(0, 3).map((item) => {
+          const statusText = item.timedOut ? "timed out" : `exit=${item.exitCode !== null ? item.exitCode : "error"}`;
+          const tail = formatFailureTailSnippet(
+            item.outputTail.trim() || item.error || "",
+            3,
+            220
+          );
+          return tail ? `${item.label} [${item.commandId}] (${statusText}): ${tail}` : `${item.label} [${item.commandId}] (${statusText})`;
+        }).join("; ");
+        const reason = redactVerifyOutput(
+          `[agy-NOV Verify Gate] Blocked stop: ${failed.length}/${runOut.results.length} check(s) failed \u2014 ${failureDetails}. Fix the failing check(s) before finishing.`
+        );
+        const record = {
+          id: createEvidenceId("ver"),
+          conversationId,
+          trigger: "stop-hook",
+          outcome: "blocked",
+          passed: false,
+          timestamp: effectiveNowIso,
+          durationMs: runDurationMs,
+          dirtyFiles: [...mergedDirtyFiles],
+          emptyFiles: [...mergedEmptyFiles],
+          results: commandResults,
+          summary: `Blocked stop: ${failed.length}/${runOut.results.length} verification check(s) failed.`,
+          reason
+        };
+        appendEvidenceToState(targetState, record);
+        saveVerifyState(moduleDataDir, targetState);
+        return { decision: "deny", reason };
+      }
+    } else if (!state.policy.autoRunOnStop && session.dirtyFiles.length > 0) {
+      const lastEditMs = session.lastEditAt ? Date.parse(session.lastEditAt) : Number.POSITIVE_INFINITY;
+      const lastVerifiedMs = session.lastVerifiedAt ? Date.parse(session.lastVerifiedAt) : Number.NEGATIVE_INFINITY;
+      const unverified = !session.lastVerifiedAt || !Number.isFinite(lastVerifiedMs) || Number.isFinite(lastEditMs) && lastVerifiedMs < lastEditMs || session.lastVerifiedPassed === false;
+      if (unverified) {
+        session.consecutiveBlocks += 1;
+        session.totalBlocks += 1;
+        session.updatedAt = nowIso;
+        state.blockedStops += 1;
+        const fileList = session.dirtyFiles.slice(0, 5).join(", ");
+        const extra = session.dirtyFiles.length > 5 ? ` (+${session.dirtyFiles.length - 5} more)` : "";
+        const reason = `[agy-NOV Verify Gate] Blocked stop: ${session.dirtyFiles.length} modified file(s) (${fileList}${extra}) have not been verified since the last edit. Run verify_run_checks and ensure checks pass before finishing.`;
+        const record = {
+          id: createEvidenceId("ver"),
+          conversationId,
+          trigger: "stop-hook",
+          outcome: "blocked",
+          passed: false,
+          timestamp: nowIso,
+          durationMs: 0,
+          dirtyFiles: [...session.dirtyFiles],
+          emptyFiles: [...currentEmptyFiles],
+          results: [],
+          summary: `Blocked stop: ${session.dirtyFiles.length} modified file(s) unverified (autoRunOnStop=false).`,
+          reason
+        };
+        appendEvidenceToState(state, record);
+        saveVerifyState(moduleDataDir, state);
+        return { decision: "deny", reason };
+      }
+    }
+    const verifiedDirtyFiles = [...preRunDirtyFiles];
+    if (concurrentEditOccurred) {
+      targetSession.consecutiveBlocks = 0;
+      targetSession.lastVerifiedPassed = false;
+    } else {
+      targetSession.dirtyFiles = [];
+      targetSession.emptyFiles = [];
+      targetSession.consecutiveBlocks = 0;
+      targetSession.lastVerifiedAt = effectiveNowIso;
+      targetSession.lastVerifiedPassed = true;
+      targetSession.updatedAt = effectiveNowIso;
+    }
+    const summary = commandResults.length > 0 ? `All ${commandResults.length} verification check(s) passed on Stop in ${runDurationMs}ms.` : `Verified ${verifiedDirtyFiles.length} modified file(s) with no empty writes; Stop allowed.`;
+    const passRecord = {
+      id: createEvidenceId("ver"),
+      conversationId,
+      trigger: "stop-hook",
+      outcome: "pass",
+      passed: true,
+      timestamp: effectiveNowIso,
+      durationMs: runDurationMs,
+      dirtyFiles: verifiedDirtyFiles,
+      emptyFiles: [],
+      results: commandResults,
+      summary
+    };
+    appendEvidenceToState(targetState, passRecord);
+    saveVerifyState(moduleDataDir, targetState);
+    return { decision: "allow" };
+  } catch {
+    return { decision: "allow" };
+  }
+}
+
+// src/modules/xray/hook.ts
+var import_node_crypto9 = __toESM(require("node:crypto"), 1);
+var import_node_fs12 = __toESM(require("node:fs"), 1);
+var import_node_path14 = __toESM(require("node:path"), 1);
 function formatErrorValue2(err) {
   if (err === void 0 || err === null || err === "") return void 0;
   if (typeof err === "string") return err;
@@ -3335,11 +5095,11 @@ function handleXrayHook(payload, rootDataDir) {
   const now = (/* @__PURE__ */ new Date()).toISOString();
   try {
     ensurePrivateDir(moduleDataDir);
-    const statePath = import_node_path13.default.join(moduleDataDir, "live-state.json");
+    const statePath = import_node_path14.default.join(moduleDataDir, "live-state.json");
     let state = { recentEvents: [] };
-    if (import_node_fs11.default.existsSync(statePath)) {
+    if (import_node_fs12.default.existsSync(statePath)) {
       try {
-        const parsed = JSON.parse(import_node_fs11.default.readFileSync(statePath, "utf8"));
+        const parsed = JSON.parse(import_node_fs12.default.readFileSync(statePath, "utf8"));
         state = {
           ...parsed,
           recentEvents: Array.isArray(parsed.recentEvents) ? parsed.recentEvents : []
@@ -3365,10 +5125,10 @@ function handleXrayHook(payload, rootDataDir) {
     if (state.recentEvents.length > 50) {
       state.recentEvents = state.recentEvents.slice(-50);
     }
-    const tmpPath = `${statePath}.${process.pid}.${import_node_crypto7.default.randomBytes(4).toString("hex")}.tmp`;
-    import_node_fs11.default.writeFileSync(tmpPath, `${JSON.stringify(state, null, 2)}
+    const tmpPath = `${statePath}.${process.pid}.${import_node_crypto9.default.randomBytes(4).toString("hex")}.tmp`;
+    import_node_fs12.default.writeFileSync(tmpPath, `${JSON.stringify(state, null, 2)}
 `, { encoding: "utf8", mode: 384 });
-    import_node_fs11.default.renameSync(tmpPath, statePath);
+    import_node_fs12.default.renameSync(tmpPath, statePath);
   } catch {
   }
 }
@@ -3471,6 +5231,12 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
       } catch {
       }
     }
+    if (modules.verify) {
+      try {
+        handleVerifyPostToolHook(payload, rootDataDir);
+      } catch {
+      }
+    }
     return {};
   }
   if (payload.event === "Stop") {
@@ -3483,6 +5249,18 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
     if (modules.xray) {
       try {
         handleXrayHook(payload, rootDataDir);
+      } catch {
+      }
+    }
+    if (modules.verify) {
+      try {
+        const verifyRes = await handleVerifyStopHook(payload, rootDataDir);
+        if (verifyRes.decision === "deny") {
+          return {
+            decision: "deny",
+            reason: verifyRes.reason || "[agy-NOV Verify Gate] Verification checks failed before stopping."
+          };
+        }
       } catch {
       }
     }
@@ -3510,7 +5288,7 @@ async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
 }
 function readStdinText() {
   try {
-    return import_node_fs12.default.readFileSync(0, "utf8");
+    return import_node_fs13.default.readFileSync(0, "utf8");
   } catch {
     return "";
   }

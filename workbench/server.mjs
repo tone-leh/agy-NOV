@@ -114,7 +114,7 @@ const hostShell = () => `<!doctype html>
 </head>
 <body>
   <div class="bar">
-    <div><strong>agy-NOV v0.2 Offline Workbench</strong> · Mode: <code>${useLocal ? 'Local Workspace' : 'Synthetic Demo'}</code> · Zero ASAR / Zero CDP · Daily Antigravity untouched</div>
+    <div><strong>agy-NOV v0.3 Offline Workbench</strong> · Mode: <code>${useLocal ? 'Local Workspace' : 'Synthetic Demo'}</code> · Zero ASAR / Zero CDP · Daily Antigravity untouched</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
       <button onclick="setWidth('480px')">Aux Pane (480px)</button>
       <button onclick="setWidth('1160px')">Global (1160px)</button>

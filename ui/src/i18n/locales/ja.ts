@@ -64,19 +64,19 @@ export const JA_DICT: UiDictionary = {
       description: 'Review + Guard + X-Ray — 100% オフラインの基本セット（モデルツール 12 件）。',
     },
     power: {
-      label: 'パワー開発（オフライン 6）',
+      label: 'パワー開発（オフライン 8）',
       description:
-        'コア + Turbo + Radar + Ops — ネットワーク通信ゼロで高速開発する日常セット（モデルツール 20 件）。',
+        'コア + Turbo + Radar + Verify + Worktree + Ops — 検証ゲート付きで通信ゼロの高速開発セット（モデルツール 28 件）。',
     },
     'local-all': {
-      label: 'ローカル全部（オフライン 8）',
+      label: 'ローカル全部（オフライン 10）',
       description:
-        '全 8 個のローカル専用ネイティブモジュールを有効化。Remote は完全停止・ポート開放ゼロ（モデルツール 27 件）。',
+        '全 10 個のローカル専用ネイティブモジュールを有効化。Remote は完全停止・ポート開放ゼロ（モデルツール 35 件）。',
     },
     full: {
-      label: 'フルスイート（全 9）',
+      label: 'フルスイート（全 11）',
       description:
-        '任意のスマホ PWA・IM リモート承認ハブを含む全 9 ネイティブモジュールを有効化（モデルツール 31 件）。',
+        '任意のスマホ PWA・IM リモート承認ハブを含む全 11 ネイティブモジュールを有効化（モデルツール 39 件）。',
     },
     minimal: {
       label: '最小シールド',
@@ -116,9 +116,23 @@ export const JA_DICT: UiDictionary = {
     radar: {
       name: 'セッションレーダー＆通知',
       shortLabel: 'Radar',
-      tagline: '並列セッション監視ボード、停滞検知、完了アラート',
+      tagline: '並列セッション監視ボード、Swarm サブエージェント監視、完了アラート',
       description:
-        '軽量なライフサイクル Hook で複数会話の実行中・承認待ち・完了・停滞状態を一元把握し、設定可能なデスクトップ通知やチャイムで知らせます。',
+        '軽量なライフサイクル Hook で複数会話と Swarm サブエージェントの実行中・承認待ち・完了・停滞状態を一元把握し、孤立アラートや任意のチャイムで知らせます。',
+    },
+    verify: {
+      name: '検証ゲート',
+      shortLabel: 'Verify',
+      tagline: '未検証の「完了」申告を遮断する Stop Hook 検証ゲート',
+      description:
+        'Stop Hook でテスト・型検査・Lint の実終了コードと空ファイル書き込みを検査（continuation_active とループ上限を遵守）し、マスク済み証跡チェーンを保存します。',
+    },
+    worktree: {
+      name: 'Worktree オーケストレーター',
+      shortLabel: 'Worktree',
+      tagline: '安全な並列 Git Worktree、ブランチ差分プレビュー、孤立ツリー整理',
+      description:
+        '未コミット変更の引き継ぎにも対応した隔離 Git Worktree を作成し、ブランチ差分要約の確認、extensions.worktreeConfig 警告検知、マージ済み／孤立ツリーの安全な削除を行います。',
     },
     canvas: {
       name: 'ビジュアルキャンバス',
@@ -207,6 +221,8 @@ export const JA_DICT: UiDictionary = {
       '追跡中のセッションはまだありません。Hook イベントが発生すると自動的に表示されます。',
     lastTool: '直前のツール',
     steps: 'ステップ',
+    subagents: 'サブエージェント',
+    orphanSubagents: '孤立疑いサブエージェント',
   },
   ops: {
     title: 'プロンプト保管庫＆ワークスペース診断',
@@ -278,6 +294,60 @@ export const JA_DICT: UiDictionary = {
       cacheHitRate: 'キャッシュヒット率',
       freshTokens: '新規トークン',
       cachedTokens: 'キャッシュ済みトークン',
+      swarmTitle: 'Swarm サブエージェント＆モデル内訳',
+      subagents: 'サブエージェント',
+      orphanSuspects: '孤立候補',
+      modelBreakdown: 'モデル別内訳',
+    },
+    verify: {
+      title: '検証ゲート',
+      subtitle:
+        'Agent の停止前に許可リスト登録済みの検証コマンドと空ファイル防止を強制し、証跡チェーンを記録します。',
+      tabGate: 'ゲート方針＆コマンド',
+      tabEvidence: '証跡チェーン',
+      enforceOnStop: '未検証の作業ツリー変更が残る場合に Stop Hook をブロック',
+      autoRunOnStop: 'Stop Hook 時に有効な検証コマンドを自動実行',
+      blockEmptyWrites: '変更または新規作成されたファイルが空の場合に停止をブロック',
+      maxBlocks: '連続停止ブロック上限（ループ防止ガード）',
+      commandsTitle: '許可リスト検証コマンド',
+      addCommand: 'コマンドを追加',
+      runChecks: '検証を実行',
+      clearHistory: '履歴をクリア',
+      savePolicy: 'ポリシーを保存',
+      passed: '合格',
+      failed: '失敗',
+      blocked: '停止ブロック',
+      emptyEvidence:
+        '検証証跡はまだ記録されていません。上のボタンから実行するか Stop Hook の評価を待ってください。',
+      dirtyFiles: '未検証の変更ファイル',
+      executablePlaceholder: '実行ファイル（例: npm, pnpm, node）',
+      argsPlaceholder: 'スペース区切りの引数（例: run typecheck）',
+      labelPlaceholder: 'コマンド名（例: 型チェック）',
+    },
+    worktree: {
+      title: 'Worktree オーケストレーター',
+      subtitle:
+        '隔離された並列 Git Worktree を作成し、ブランチ差分要約の確認と不要ツリーの安全な整理を行います。',
+      createTitle: '隔離 Worktree を作成',
+      branchPlaceholder: 'ブランチ名（例: feat/verify-gate）',
+      baseRefPlaceholder: 'ベース Ref（任意、例: main または HEAD）',
+      carryUncommitted: '未コミットの変更を新しい Worktree へ引き継ぐ',
+      createBtn: 'Worktree を作成',
+      pruneBtn: '孤立エントリを整理',
+      diffBtn: '差分要約を表示',
+      removeBtn: '削除',
+      forceRemoveBtn: '強制削除（未コミット変更を破棄）',
+      mainBadge: 'メイン',
+      dirtyBadge: '未コミットあり',
+      mergedBadge: 'マージ済み',
+      prunableBadge: '整理可能',
+      configWarning:
+        '警告: このリポジトリでは extensions.worktreeConfig が有効です。Worktree を共有する前に共通 Hook と認証設定を確認してください。',
+      notGitRepo:
+        '現在のワークスペースは Git リポジトリではありません。Worktree 管理には Git が必要です。',
+      emptyWorktrees: 'このワークスペースに Git Worktree は見つかりませんでした。',
+      diffTitle: 'ブランチ差分要約',
+      aheadBehind: '+{ahead} 先行 / -{behind} 遅れ',
     },
     canvas: {
       title: 'ビジュアルキャンバス',

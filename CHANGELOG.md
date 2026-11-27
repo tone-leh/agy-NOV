@@ -2,6 +2,33 @@
 
 All notable changes to **agy-NOV** will be documented in this file.
 
+## [0.3.0] - 2026-11-27
+
+### Added
+- **Expanded Modular Super-Workbench from 9 to 11 Toggleable Native Superpowers (10 Local Offline + 1 Opt-In Remote, 100% Zero ASAR / Zero CDP):**
+  - **`verify` (Verify Gate, `safety` category, default OFF, 4 model tools):** Stop-hook verification gate (`verify_get_policy`, `verify_set_policy`, `verify_run_checks`, `verify_get_evidence`; hooks: `PostToolUse`, `Stop`) that tracks edited workspace files, blocks 0-byte writes and unverified "done" claims on `Stop` hooks, executes shell-free allowlisted checks (`npm`, `npx`, `pnpm`, `yarn`, `bun`, `node`, `tsc`, `vitest`, `jest`, `pytest`, `python3`, `cargo`, `go`, `make`, `ruff`, `eslint`, plus read-only `git` subcommands), honors `continuation_active` and `maxConsecutiveBlocks` anti-loop guardrails, and stores a redacted evidence chain per turn.
+  - **`worktree` (Worktree Orchestrator, `core-dev` category, default OFF, 4 model tools):** Safe parallel Git worktree scheduler (`worktree_list`, `worktree_create`, `worktree_diff_summary`, `worktree_cleanup`; hooks: none) confined to `<repoRoot>/.agy-worktrees/` with optional `carryUncommitted` patch transfer, branch diff summaries, `extensions.worktreeConfig` hazard detection, and safe cleanup for merged or orphaned worktrees.
+- **Swarm & Multi-Agent Telemetry Upgrades across `xray` and `radar`:**
+  - **`xray` (Context X-Ray):** Added Swarm subagent lineage linking (`swarmLineage`), per-model token & cache cost breakdowns (`modelBreakdown`), and HTTP 429 / rate-limit retry signal detection (`retrySignals`).
+  - **`radar` (Session Radar & Chime):** Added parent/child Swarm subagent tracking (`parentConversationId`, `agentRole`, `isSubagent`), orphan subagent detection (`orphanSubagents`), and compact `status-capsule.json` export for zero-token companion consumers.
+- **7th CLI Command — Zero-Token `agy-nov statusline`:** Added `agy-nov statusline [--json] [--compact] [--data-dir=<dir>]` providing strictly read-only, zero-LLM-token, zero-disk-write status output (preset, active module/tool counts, offline/remote isolation mode, Verify Gate status, Radar active/waiting/stalled/orphan counts, and X-Ray active session snapshot) for Antigravity CLI native `statusLine` integration and `agy-Sag` consumption.
+- **Expanded 8-Language UI & Automated Test Coverage:** Added full 8-language UI panels for `verify` and `worktree` plus Swarm lineage/model breakdown views, refreshed dual-theme SVG hero/architecture visuals, and added `test/verify-module.test.ts`, `test/worktree-module.test.ts`, and `test/swarm-telemetry.test.ts` alongside expanded integration tests.
+
+### Changed
+- **Updated 5 Presets & Exact Model Tool Accounting (including `nov_open` + `nov_status`):**
+  - `minimal`: 1 module (`guard`) = **6** tools (100% offline)
+  - `core` *(default)*: 3 modules (`review`, `guard`, `xray`) = **12** tools (100% offline)
+  - `power`: 8 modules (`review`, `guard`, `xray`, `turbo`, `radar`, `verify`, `worktree`, `ops`) = **28** tools (100% offline)
+  - `local-all`: all 10 offline native modules = **35** tools (100% offline)
+  - `full`: all 11 native modules including opt-in `remote` = **39** tools (opt-in network)
+- **Unified Hook Dispatcher & Stop Hook Budget:** Increased `hooks.json` `Stop` timeout from `8s` to `20s` to accommodate `verify`'s bounded `8s` single-command / `14s` total Stop-hook budget while preserving O(1) read-only short-circuiting for disabled modules.
+- **CLI & Metadata Alignment:** Updated `src/core/catalog.ts`, `src/server/cli.ts`, `plugin.json`, `package.json`, `skills/agy-nov/SKILL.md`, `README.md`, `llms.txt`, and `docs/llms-install.md` to v0.3.0 specifications.
+
+### Security
+- **Verify Gate Hardening:** Enforced shell-free `execFile` allowlisting (17 executables + 4 read-only `git` subcommands), argument count/length caps, `realpath` workspace containment, secret redaction before storing command output tails, and anti-loop stop guardrails (`maxConsecutiveBlocks` default `3`, range `1`–`10`, plus `continuation_active` awareness).
+- **Worktree Containment & Ref Injection Defense:** Restricted managed worktrees to `.agy-worktrees/`, validated Git refs and directory names with strict regexes to block argument injection and path traversal, used shell-free Git `execFile` with explicit `--` separators, flagged `extensions.worktreeConfig` risks, and refused non-forced cleanup on dirty worktrees.
+- **Zero-Touch Invariants Preserved:** Maintained strict 100% Zero ASAR / Zero CDP boundaries, zero-port/zero-write OFF-state guarantees for `remote`, and strictly read-only zero-write execution for `agy-nov statusline` and `agy-nov doctor`.
+
 ## [0.2.0] - 2026-11-27
 
 ### Added
@@ -25,7 +52,7 @@ All notable changes to **agy-NOV** will be documented in this file.
 
 ### Security
 - Enforced a strict Zero ASAR & Zero CDP protocol boundary across the entire plugin with zero binary modification and zero host DOM injection.
-- Preserved strict OFF-state zero-touch isolation for `remote`: zero listening ports, zero background timers, zero disk writes, and zero outbound network requests while disabled.
+- Preserved strict OFF-state zero-touch isolation for `remote`: zero listening ports, zero background timers, zero disk writes, and zero outbound requests while disabled.
 - Enforced `realpath` canonical workspace containment and automatic `.env`, SSH key, `.git`, and `node_modules` exclusions across `turbo` and `ops` alongside `guard`, `canvas`, and `mem`.
 
 ## [0.1.0] - 2026-11-27

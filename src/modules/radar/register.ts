@@ -78,12 +78,21 @@ export function registerRadarModule(
     },
     async ({ statusFilter, onlyUnread }) => {
       const view = getBoardView({ statusFilter, onlyUnread });
+      const subagentSummary =
+        view.counts.subagents > 0 || view.counts.orphanSubagents > 0
+          ? `, subagents=${view.counts.subagents}, orphan_subagents=${view.counts.orphanSubagents}`
+          : '';
       const lines = [
-        `Session Radar (${view.mode}): total=${view.counts.total}, running=${view.counts.running}, awaiting_approval=${view.counts.awaiting_approval}, stalled=${view.counts.stalled}, completed=${view.counts.completed}, error=${view.counts.error}, unread=${view.counts.unread}`,
-        ...view.sessions.slice(0, 15).map(
-          (s) =>
-            `- [${s.status.toUpperCase()}${s.unread ? ' · UNREAD' : ''}] ${s.conversationId} (${s.workspaceName}, tool=${s.lastToolName ?? 'n/a'}, idle=${s.idleMinutes}m, steps=${s.stepCount})`,
-        ),
+        `Session Radar (${view.mode}): total=${view.counts.total}, running=${view.counts.running}, awaiting_approval=${view.counts.awaiting_approval}, stalled=${view.counts.stalled}, completed=${view.counts.completed}, error=${view.counts.error}, unread=${view.counts.unread}${subagentSummary}`,
+        ...view.sessions.slice(0, 15).map((s) => {
+          const badges = [
+            s.status.toUpperCase(),
+            ...(s.unread ? ['UNREAD'] : []),
+            ...(s.isSubagent ? [s.agentRole ? `SUBAGENT:${s.agentRole}` : 'SUBAGENT'] : []),
+            ...(s.isOrphanSubagent ? ['ORPHAN'] : []),
+          ].join(' · ');
+          return `- [${badges}] ${s.conversationId} (${s.workspaceName}, tool=${s.lastToolName ?? 'n/a'}, idle=${s.idleMinutes}m, steps=${s.stepCount})`;
+        }),
       ];
       return {
         content: [{ type: 'text', text: lines.join('\n') }],

@@ -64,19 +64,19 @@ export const ES_DICT: UiDictionary = {
       description: 'Review + Guard + X-Ray — esenciales 100% locales sin conexión (12 herramientas).',
     },
     power: {
-      label: 'Power Dev (6 sin conexión)',
+      label: 'Power Dev (8 sin conexión)',
       description:
-        'Esencial + Turbo + Radar + Ops — suite diaria rápida y sin tráfico de red (20 herramientas).',
+        'Esencial + Turbo + Radar + Verify + Worktree + Ops — suite rápida con compuertas de verificación y cero tráfico de red (28 herramientas).',
     },
     'local-all': {
-      label: 'Todo Local (8 sin conexión)',
+      label: 'Todo Local (10 sin conexión)',
       description:
-        'Activa los 8 módulos nativos sin conexión; Remote permanece apagado con cero puertos (27 herramientas).',
+        'Activa los 10 módulos nativos sin conexión; Remote permanece apagado con cero puertos (35 herramientas).',
     },
     full: {
-      label: 'Suite Completa (Los 9)',
+      label: 'Suite Completa (Los 11)',
       description:
-        'Activa los 9 módulos nativos, incluido el hub remoto opcional para PWA móvil e IM (31 herramientas).',
+        'Activa los 11 módulos nativos, incluido el hub remoto opcional para PWA móvil e IM (39 herramientas).',
     },
     minimal: {
       label: 'Escudo Mínimo',
@@ -116,9 +116,23 @@ export const ES_DICT: UiDictionary = {
     radar: {
       name: 'Radar de Sesiones',
       shortLabel: 'Radar',
-      tagline: 'Tablero multisesión, detector de bloqueos y alertas de finalización',
+      tagline: 'Tablero multisesión, monitor de subagentes Swarm y alertas de finalización',
       description:
-        'Supervisa conversaciones paralelas en estado En ejecución, Esperando aprobación, Completado o Estancado mediante hooks, con aviso sonoro y notificaciones opcionales.',
+        'Supervisa conversaciones paralelas y subagentes Swarm (En ejecución, Esperando, Completado, Estancado) mediante hooks, con avisos de huérfanos y sonido opcional.',
+    },
+    verify: {
+      name: 'Compuerta Verify',
+      shortLabel: 'Verify',
+      tagline: 'Compuerta Stop-hook que impide declarar tareas terminadas sin pruebas',
+      description:
+        'Exige códigos de salida reales de pruebas, typecheck y lint junto a comprobaciones de archivos no vacíos en hooks Stop (respetando continuation_active y límite de bucles), guardando evidencia redactada.',
+    },
+    worktree: {
+      name: 'Orquestador Worktree',
+      shortLabel: 'Worktree',
+      tagline: 'Worktrees Git paralelos seguros, resumen de diffs y limpieza de huérfanos',
+      description:
+        'Crea worktrees Git aislados con traslado opcional de cambios sin confirmar, revisa resúmenes de diffs por rama, detecta riesgos de extensions.worktreeConfig y limpia árboles fusionados o huérfanos.',
     },
     canvas: {
       name: 'Lienzo Visual',
@@ -207,6 +221,8 @@ export const ES_DICT: UiDictionary = {
       'Aún no hay sesiones activas o recientes. Los eventos de hooks poblarán este tablero automáticamente.',
     lastTool: 'Última herramienta',
     steps: 'pasos',
+    subagents: 'Subagentes',
+    orphanSubagents: 'Subagentes huérfanos',
   },
   ops: {
     title: 'Bóveda de Prompts y Doctor del Proyecto',
@@ -278,6 +294,60 @@ export const ES_DICT: UiDictionary = {
       cacheHitRate: 'Tasa de acierto de caché',
       freshTokens: 'Tokens frescos',
       cachedTokens: 'Tokens en caché',
+      swarmTitle: 'Subagentes Swarm y Modelos',
+      subagents: 'Subagentes',
+      orphanSuspects: 'Posibles huérfanos',
+      modelBreakdown: 'Desglose por modelo',
+    },
+    verify: {
+      title: 'Compuerta Verify',
+      subtitle:
+        'Exige comandos de verificación autorizados y control de archivos vacíos antes de finalizar un turno.',
+      tabGate: 'Política y Comandos',
+      tabEvidence: 'Cadena de Evidencia',
+      enforceOnStop: 'Bloquear el hook Stop si quedan cambios sin verificar',
+      autoRunOnStop: 'Ejecutar automáticamente las verificaciones activas en el hook Stop',
+      blockEmptyWrites: 'Bloquear Stop cuando existan archivos modificados o creados vacíos',
+      maxBlocks: 'Máximo de bloqueos consecutivos de Stop (límite antibucle)',
+      commandsTitle: 'Comandos de Verificación Autorizados',
+      addCommand: 'Añadir comando',
+      runChecks: 'Ejecutar verificaciones',
+      clearHistory: 'Limpiar historial',
+      savePolicy: 'Guardar política',
+      passed: 'Aprobado',
+      failed: 'Fallido',
+      blocked: 'Paradas bloqueadas',
+      emptyEvidence:
+        'Todavía no hay registros de evidencia. Ejecuta las verificaciones arriba o espera una evaluación del hook Stop.',
+      dirtyFiles: 'Archivos pendientes de verificar',
+      executablePlaceholder: 'Ejecutable (ej. npm, pnpm, node)',
+      argsPlaceholder: 'Argumentos separados por espacios (ej. run typecheck)',
+      labelPlaceholder: 'Etiqueta del comando (ej. Typecheck)',
+    },
+    worktree: {
+      title: 'Orquestador Worktree',
+      subtitle:
+        'Crea worktrees Git paralelos aislados, consulta diffs de rama y limpia árboles obsoletos con seguridad.',
+      createTitle: 'Crear Worktree Aislado',
+      branchPlaceholder: 'Nombre de rama (ej. feat/verify-gate)',
+      baseRefPlaceholder: 'Referencia base (opcional, ej. main o HEAD)',
+      carryUncommitted: 'Trasladar los cambios sin confirmar al nuevo worktree',
+      createBtn: 'Crear Worktree',
+      pruneBtn: 'Podar huérfanos',
+      diffBtn: 'Resumen de Diff',
+      removeBtn: 'Eliminar',
+      forceRemoveBtn: 'Forzar eliminación (descartar cambios)',
+      mainBadge: 'Principal',
+      dirtyBadge: 'Con cambios',
+      mergedBadge: 'Fusionado',
+      prunableBadge: 'Podable',
+      configWarning:
+        'Aviso: extensions.worktreeConfig está habilitado en este repositorio. Revisa hooks compartidos y credenciales antes de compartir worktrees.',
+      notGitRepo:
+        'El espacio de trabajo actual no es un repositorio Git. La gestión de worktrees requiere Git.',
+      emptyWorktrees: 'No se encontraron worktrees Git en este espacio de trabajo.',
+      diffTitle: 'Resumen de Diff de Rama',
+      aheadBehind: '+{ahead} adelante / -{behind} atrás',
     },
     canvas: {
       title: 'Lienzo Visual',

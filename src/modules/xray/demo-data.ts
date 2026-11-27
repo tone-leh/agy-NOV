@@ -87,8 +87,8 @@ export function buildDemoSessions(): { summaries: SessionSummary[]; details: Rec
     ],
     turns: [
       { turnIndex: 1, stepIndex: 1, timestamp: '2026-11-26T06:10:02Z', model: 'gemini-4-neon-high', inputTokens: 18_400, cacheReadTokens: 0, freshInputTokens: 18_400, outputTokens: 1_420, thinkingChars: 1_850, toolCallsCount: 3, toolOutputBytes: 18_200, cacheHitRate: 0, userPromptPreview: 'Refactor our OAuth2 PKCE token refresh middleware...' },
-      { turnIndex: 2, stepIndex: 5, timestamp: '2026-11-26T06:14:18Z', model: 'gemini-4-neon-high', inputTokens: 34_200, cacheReadTokens: 17_900, freshInputTokens: 16_300, outputTokens: 2_110, thinkingChars: 2_400, toolCallsCount: 4, toolOutputBytes: 42_100, cacheHitRate: 0.5234 },
-      { turnIndex: 3, stepIndex: 10, timestamp: '2026-11-26T06:19:45Z', model: 'gemini-4-neon-high', inputTokens: 52_600, cacheReadTokens: 33_500, freshInputTokens: 19_100, outputTokens: 3_050, thinkingChars: 3_120, toolCallsCount: 3, toolOutputBytes: 24_800, cacheHitRate: 0.6369 },
+      { turnIndex: 2, stepIndex: 5, timestamp: '2026-11-26T06:14:18Z', model: 'gemini-4-flash', inputTokens: 34_200, cacheReadTokens: 17_900, freshInputTokens: 16_300, outputTokens: 2_110, thinkingChars: 2_400, toolCallsCount: 4, toolOutputBytes: 42_100, cacheHitRate: 0.5234 },
+      { turnIndex: 3, stepIndex: 10, timestamp: '2026-11-26T06:19:45Z', model: 'gemini-4-flash', inputTokens: 52_600, cacheReadTokens: 33_500, freshInputTokens: 19_100, outputTokens: 3_050, thinkingChars: 3_120, toolCallsCount: 3, toolOutputBytes: 24_800, cacheHitRate: 0.6369 },
       { turnIndex: 4, stepIndex: 14, timestamp: '2026-11-26T06:24:11Z', model: 'gemini-4-neon-high', inputTokens: 64_900, cacheReadTokens: 51_400, freshInputTokens: 13_500, outputTokens: 2_890, thinkingChars: 2_190, toolCallsCount: 4, toolOutputBytes: 31_400, cacheHitRate: 0.792 },
       { turnIndex: 5, stepIndex: 19, timestamp: '2026-11-26T06:30:20Z', model: 'gemini-4-neon-high', inputTokens: 71_500, cacheReadTokens: 63_800, freshInputTokens: 7_700, outputTokens: 2_640, thinkingChars: 1_780, toolCallsCount: 2, toolOutputBytes: 6_200, cacheHitRate: 0.8923 },
       { turnIndex: 6, stepIndex: 22, timestamp: '2026-11-26T06:36:05Z', model: 'gemini-4-neon-high', inputTokens: 78_900, cacheReadTokens: 69_200, freshInputTokens: 9_700, outputTokens: 3_120, thinkingChars: 2_650, toolCallsCount: 3, toolOutputBytes: 14_300, cacheHitRate: 0.8771 },
@@ -123,6 +123,69 @@ export function buildDemoSessions(): { summaries: SessionSummary[]; details: Rec
       { severity: 'warn', title: 'Top Token Vampire: run_command (44.5%)', detail: '7 shell invocations returned 68.4 KB (2 truncated). Filter verbose test logs with --reporter=dot or tail.' },
       { severity: 'info', title: 'Cache Dip at Turn 7 (-24.4%)', detail: 'Cache hit dropped from 87.7% to 63.3% after a large test output spike.' },
     ],
+    swarmLineage: {
+      totalSubagents: 2,
+      linkedTranscripts: 2,
+      orphanSuspects: 0,
+      totalSubagentInputTokens: 118_600,
+      totalSubagentOutputTokens: 7_950,
+      children: [
+        {
+          conversationId: 'demo-sub-scout-01',
+          role: 'Scout',
+          typeName: 'scout',
+          model: 'gemini-4-flash',
+          stepIndex: 5,
+          timestamp: '2026-11-26T06:14:22Z',
+          transcriptFound: true,
+          totalInputTokens: 46_200,
+          totalCacheReadTokens: 29_400,
+          totalOutputTokens: 3_150,
+          cacheHitRate: 0.6364,
+          turns: 3,
+          statusHint: 'completed',
+        },
+        {
+          conversationId: 'demo-sub-auditor-02',
+          role: 'Auditor',
+          typeName: 'auditor',
+          model: 'gemini-4-neon-high',
+          stepIndex: 26,
+          timestamp: '2026-11-26T06:43:02Z',
+          transcriptFound: true,
+          totalInputTokens: 72_400,
+          totalCacheReadTokens: 54_800,
+          totalOutputTokens: 4_800,
+          cacheHitRate: 0.7569,
+          turns: 4,
+          statusHint: 'completed',
+        },
+      ],
+    },
+    modelBreakdown: [
+      {
+        model: 'gemini-4-neon-high',
+        turns: 6,
+        inputTokens: 395_600,
+        cacheReadTokens: 296_800,
+        freshInputTokens: 98_800,
+        outputTokens: 14_680,
+        cacheHitRate: 0.7503,
+        retrySignals: 0,
+        sharePercent: 81.7,
+      },
+      {
+        model: 'gemini-4-flash',
+        turns: 2,
+        inputTokens: 86_800,
+        cacheReadTokens: 51_400,
+        freshInputTokens: 35_400,
+        outputTokens: 5_160,
+        cacheHitRate: 0.5922,
+        retrySignals: 1,
+        sharePercent: 18.3,
+      },
+    ],
   };
 
   const s2Detail: SessionDetail = {
@@ -145,6 +208,27 @@ export function buildDemoSessions(): { summaries: SessionSummary[]; details: Rec
     diagnostics: [
       { severity: 'good', title: 'High Cache Reuse (75.1%)', detail: 'Stable prompt prefix kept p95 latency low across 5 turns.' },
     ],
+    swarmLineage: {
+      totalSubagents: 0,
+      linkedTranscripts: 0,
+      orphanSuspects: 0,
+      totalSubagentInputTokens: 0,
+      totalSubagentOutputTokens: 0,
+      children: [],
+    },
+    modelBreakdown: [
+      {
+        model: 'gemini-4-flash',
+        turns: 5,
+        inputTokens: 215_900,
+        cacheReadTokens: 162_100,
+        freshInputTokens: 53_800,
+        outputTokens: 11_420,
+        cacheHitRate: 0.7508,
+        retrySignals: 0,
+        sharePercent: 100,
+      },
+    ],
   };
 
   const s3Detail: SessionDetail = {
@@ -153,12 +237,34 @@ export function buildDemoSessions(): { summaries: SessionSummary[]; details: Rec
     turns: s1Detail.turns.slice(0, 4).map((t, i) => ({
       ...t,
       turnIndex: i + 1,
+      model: 'gemini-4-neon-high',
       inputTokens: Math.round(t.inputTokens * 0.52),
       cacheReadTokens: Math.round(t.cacheReadTokens * 0.48),
       freshInputTokens: Math.round(t.freshInputTokens * 0.6),
     })),
     diagnostics: [
       { severity: 'info', title: 'Moderate Cache Reuse (63.5%)', detail: 'Consider batching Dockerfile & workflow edits in fewer turns.' },
+    ],
+    swarmLineage: {
+      totalSubagents: 0,
+      linkedTranscripts: 0,
+      orphanSuspects: 0,
+      totalSubagentInputTokens: 0,
+      totalSubagentOutputTokens: 0,
+      children: [],
+    },
+    modelBreakdown: [
+      {
+        model: 'gemini-4-neon-high',
+        turns: 4,
+        inputTokens: 149_300,
+        cacheReadTokens: 94_800,
+        freshInputTokens: 54_500,
+        outputTokens: 8_210,
+        cacheHitRate: 0.635,
+        retrySignals: 0,
+        sharePercent: 100,
+      },
     ],
   };
 

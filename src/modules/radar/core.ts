@@ -20,6 +20,9 @@ export interface RadarPrefs {
 
 export interface RadarSessionRecord {
   conversationId: string;
+  parentConversationId?: string;
+  agentRole?: string;
+  isSubagent?: boolean;
   status: RadarStoredStatus;
   workspaceName: string;
   workspaceRoot?: string;
@@ -38,6 +41,7 @@ export interface RadarSessionView extends Omit<RadarSessionRecord, 'status'> {
   status: RadarSessionStatus;
   rawStatus: RadarStoredStatus;
   idleMinutes: number;
+  isOrphanSubagent: boolean;
 }
 
 export interface RadarBoardFile {
@@ -55,6 +59,8 @@ export interface RadarBoardCounts {
   stalled: number;
   error: number;
   unread: number;
+  subagents: number;
+  orphanSubagents: number;
 }
 
 export interface RadarBoardView {
@@ -63,6 +69,20 @@ export interface RadarBoardView {
   counts: RadarBoardCounts;
   sessions: RadarSessionView[];
   updatedAt: string;
+}
+
+export interface RadarStatusCapsuleAttention {
+  conversationId: string;
+  status: RadarSessionStatus;
+  workspaceName: string;
+  lastToolName?: string;
+}
+
+export interface RadarStatusCapsule {
+  schemaVersion: 1;
+  updatedAt: string;
+  counts: RadarBoardCounts;
+  latestAttention?: RadarStatusCapsuleAttention;
 }
 
 export interface SafeNotifyInvocation {
@@ -93,6 +113,34 @@ const STATUS_PRIORITY: Record<RadarSessionStatus, number> = {
 
 export function getRadarBoardPath(moduleDataDir: string): string {
   return path.join(moduleDataDir, 'board.json');
+}
+
+export function getRadarStatusCapsulePath(moduleDataDir: string): string {
+  return path.join(moduleDataDir, 'status-capsule.json');
+}
+
+export function buildRadarStatusCapsule(view: RadarBoardView): RadarStatusCapsule {
+  const attention =
+    view.sessions.find((s) => s.status === 'awaiting_approval') ??
+    view.sessions.find((s) => s.status === 'error') ??
+    view.sessions.find((s) => s.isOrphanSubagent) ??
+    view.sessions.find((s) => s.status === 'stalled') ??
+    view.sessions.find((s) => s.unread);
+
+  const capsule: RadarStatusCapsule = {
+    schemaVersion: 1,
+    updatedAt: view.updatedAt,
+    counts: { ...view.counts },
+  };
+  if (attention) {
+    capsule.latestAttention = {
+      conversationId: attention.conversationId,
+      status: attention.status,
+      workspaceName: attention.workspaceName,
+      ...(attention.lastToolName ? { lastToolName: attention.lastToolName } : {}),
+    };
+  }
+  return capsule;
 }
 
 export function normalizeRadarPrefs(raw: unknown): RadarPrefs {
@@ -142,8 +190,28 @@ function normalizeSessionRecord(id: string, raw: unknown): RadarSessionRecord | 
       ? obj.lastEvent
       : 'manual';
 
+  const conversationId =
+    typeof obj.conversationId === 'string' && obj.conversationId ? obj.conversationId : id;
+  const rawParentId =
+    typeof obj.parentConversationId === 'string' && obj.parentConversationId.trim()
+      ? obj.parentConversationId.trim().slice(0, 120)
+      : undefined;
+  const parentConversationId =
+    rawParentId && rawParentId !== conversationId ? rawParentId : undefined;
+  const agentRole =
+    typeof obj.agentRole === 'string' ? cleanBriefText(obj.agentRole, 64) : undefined;
+  const isSubagent =
+    typeof obj.isSubagent === 'boolean'
+      ? obj.isSubagent
+      : parentConversationId
+        ? true
+        : undefined;
+
   return {
-    conversationId: typeof obj.conversationId === 'string' && obj.conversationId ? obj.conversationId : id,
+    conversationId,
+    ...(parentConversationId ? { parentConversationId } : {}),
+    ...(agentRole ? { agentRole } : {}),
+    ...(isSubagent !== undefined ? { isSubagent } : {}),
     status,
     workspaceName: typeof obj.workspaceName === 'string' && obj.workspaceName ? obj.workspaceName : 'workspace',
     workspaceRoot: typeof obj.workspaceRoot === 'string' ? obj.workspaceRoot : undefined,
@@ -206,6 +274,8 @@ export function saveRadarBoard(moduleDataDir: string, board: RadarBoardFile): Ra
     updatedAt: new Date().toISOString(),
   };
   atomicWriteJson(getRadarBoardPath(moduleDataDir), next);
+  const capsule = buildRadarStatusCapsule(computeRadarBoardView(next, { mode: 'live' }));
+  atomicWriteJson(getRadarStatusCapsulePath(moduleDataDir), capsule);
   return next;
 }
 
@@ -229,24 +299,47 @@ export function computeRadarBoardView(
     stalled: 0,
     error: 0,
     unread: 0,
+    subagents: 0,
+    orphanSubagents: 0,
   };
 
-  const allViews: RadarSessionView[] = Object.values(board.sessions).map((rec) => {
+  const sessionRecords = Object.values(board.sessions);
+  const effectiveStatusById = new Map<string, RadarSessionStatus>();
+  const idleMinutesById = new Map<string, number>();
+
+  for (const rec of sessionRecords) {
     const activeMs = Date.parse(rec.lastActiveAt);
     const idleMs = Number.isFinite(activeMs) ? Math.max(0, nowMs - activeMs) : 0;
     const idleMinutes = Number((idleMs / 60_000).toFixed(1));
     const effectiveStatus: RadarSessionStatus =
       rec.status === 'running' && idleMs >= stallThresholdMs ? 'stalled' : rec.status;
+    effectiveStatusById.set(rec.conversationId, effectiveStatus);
+    idleMinutesById.set(rec.conversationId, idleMinutes);
+  }
+
+  const allViews: RadarSessionView[] = sessionRecords.map((rec) => {
+    const effectiveStatus = effectiveStatusById.get(rec.conversationId) ?? rec.status;
+    const idleMinutes = idleMinutesById.get(rec.conversationId) ?? 0;
+    const parentStatus = rec.parentConversationId
+      ? effectiveStatusById.get(rec.parentConversationId)
+      : undefined;
+    const isOrphanSubagent =
+      rec.isSubagent === true &&
+      (parentStatus === 'completed' || parentStatus === 'error') &&
+      (effectiveStatus === 'running' || effectiveStatus === 'stalled');
 
     counts.total += 1;
     counts[effectiveStatus] += 1;
     if (rec.unread) counts.unread += 1;
+    if (rec.isSubagent === true) counts.subagents += 1;
+    if (isOrphanSubagent) counts.orphanSubagents += 1;
 
     return {
       ...rec,
       status: effectiveStatus,
       rawStatus: rec.status,
       idleMinutes,
+      isOrphanSubagent,
     };
   });
 
@@ -277,6 +370,9 @@ export function computeRadarBoardView(
 
 export interface RadarEventUpdate {
   conversationId: string;
+  parentConversationId?: string;
+  agentRole?: string;
+  isSubagent?: boolean;
   event: 'PreToolUse' | 'PostToolUse' | 'Stop';
   workspaceRoot?: string;
   toolName?: string;
@@ -304,6 +400,16 @@ export function recordRadarSessionEvent(
   const workspaceName = input.workspaceRoot
     ? path.basename(path.resolve(input.workspaceRoot)) || existing?.workspaceName || 'workspace'
     : existing?.workspaceName ?? 'workspace';
+
+  const rawParent = input.parentConversationId?.trim().slice(0, 120) || existing?.parentConversationId;
+  const parentConversationId = rawParent && rawParent !== convId ? rawParent : undefined;
+  const agentRole = cleanBriefText(input.agentRole, 64) ?? existing?.agentRole;
+  const isSubagent =
+    input.isSubagent !== undefined
+      ? input.isSubagent
+      : parentConversationId
+        ? true
+        : existing?.isSubagent;
 
   let nextStatus: RadarStoredStatus = existing?.status ?? 'running';
   let nextUnread = existing?.unread ?? false;
@@ -340,6 +446,9 @@ export function recordRadarSessionEvent(
 
   const nextSession: RadarSessionRecord = {
     conversationId: convId,
+    ...(parentConversationId ? { parentConversationId } : {}),
+    ...(agentRole ? { agentRole } : {}),
+    ...(isSubagent !== undefined ? { isSubagent } : {}),
     status: nextStatus,
     workspaceName,
     workspaceRoot: input.workspaceRoot ?? existing?.workspaceRoot,
@@ -573,13 +682,16 @@ export function createDemoRadarBoard(nowMs = Date.now()): RadarBoardFile {
       },
       'conv-dep-upgrade': {
         conversationId: 'conv-dep-upgrade',
+        parentConversationId: 'conv-unit-tests',
+        agentRole: 'Scout',
+        isSubagent: true,
         status: 'running',
         workspaceName: 'docs-site',
         lastToolName: 'run_command',
         lastEvent: 'PreToolUse',
         stepCount: 5,
         unread: false,
-        summary: 'Long-running build step appears unresponsive (>5 min idle)',
+        summary: 'Background Scout subagent appears unresponsive (>5 min idle) after parent completed',
         startedAt: isoAgo(20),
         lastActiveAt: isoAgo(11.5),
       },

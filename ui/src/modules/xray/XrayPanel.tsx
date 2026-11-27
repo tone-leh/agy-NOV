@@ -447,7 +447,83 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
               </div>
             </div>
           </section>
-          {tab === 'overview' && <ContextCharts detail={detail} />}
+          {tab === 'overview' && (
+            <>
+              <ContextCharts detail={detail} />
+              {((detail.swarmLineage && detail.swarmLineage.totalSubagents > 0) ||
+                (detail.modelBreakdown && detail.modelBreakdown.length > 0)) && (
+                <section className="xr-card" style={{ marginTop: 12 }}>
+                  <div className="xr-section-title">
+                    <span>{x.swarmTitle}</span>
+                    {detail.swarmLineage && (
+                      <span className="xr-kpi-sub">
+                        {x.subagents}: {detail.swarmLineage.totalSubagents}
+                        {detail.swarmLineage.orphanSuspects > 0
+                          ? ` · ${x.orphanSuspects}: ${detail.swarmLineage.orphanSuspects}`
+                          : ''}
+                      </span>
+                    )}
+                  </div>
+                  {detail.modelBreakdown && detail.modelBreakdown.length > 0 && (
+                    <div style={{ marginTop: 8 }}>
+                      <div className="xr-kpi-label" style={{ marginBottom: 6 }}>
+                        {x.modelBreakdown}
+                      </div>
+                      <div className="xr-list">
+                        {detail.modelBreakdown.map((m) => (
+                          <div key={m.model} className="xr-file-row">
+                            <div className="xr-step-badges">
+                              <span className="xr-badge xr-sev-info xr-mono">{m.model}</span>
+                              <span className="xr-kpi-sub">
+                                {m.turns}T · in {fmtTokens(m.inputTokens)} · out{' '}
+                                {fmtTokens(m.outputTokens)} · {(m.cacheHitRate * 100).toFixed(0)}%{' '}
+                                ({m.sharePercent}%)
+                              </span>
+                              {m.retrySignals > 0 && (
+                                <span className="xr-badge xr-sev-warn">
+                                  429/retry ×{m.retrySignals}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {detail.swarmLineage && detail.swarmLineage.children.length > 0 && (
+                    <div style={{ marginTop: 10 }}>
+                      <div className="xr-kpi-label" style={{ marginBottom: 6 }}>
+                        {x.subagents} ({detail.swarmLineage.children.length})
+                      </div>
+                      <div className="xr-list">
+                        {detail.swarmLineage.children.map((ch, idx) => (
+                          <div
+                            key={`${ch.conversationId ?? ch.role}-${ch.stepIndex}-${idx}`}
+                            className="xr-file-row"
+                          >
+                            <div className="xr-step-badges">
+                              <span className="xr-badge xr-mono">{ch.typeName}</span>
+                              <strong>{ch.role}</strong>
+                              <span className="xr-kpi-sub xr-mono">{ch.model}</span>
+                              {ch.transcriptFound && (
+                                <span className="xr-kpi-sub xr-mono">
+                                  in {fmtTokens(ch.totalInputTokens)} · out{' '}
+                                  {fmtTokens(ch.totalOutputTokens)}
+                                </span>
+                              )}
+                              {ch.statusHint === 'orphan_suspect' && (
+                                <span className="xr-badge xr-sev-warn">{x.orphanSuspects}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
+            </>
+          )}
           {tab === 'files' && (
             <FileTreePanel
               files={detail.fileActivity}

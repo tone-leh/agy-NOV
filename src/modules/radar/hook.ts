@@ -99,8 +99,15 @@ export function handleRadarHook(
       cleanBriefText(payload.lastUserInput, 120) ??
       (payload.terminationReason ? cleanBriefText(payload.terminationReason, 120) : undefined);
 
+    const parentConversationId = payload.parentConversationId?.trim() || undefined;
+    const agentRole = payload.agentRole?.trim() || undefined;
+    const isSubagent = parentConversationId ? true : undefined;
+
     const { board, session } = recordRadarSessionEvent(moduleDataDir, {
       conversationId,
+      parentConversationId,
+      agentRole,
+      isSubagent,
       event: payload.event,
       workspaceRoot,
       toolName: payload.toolName,

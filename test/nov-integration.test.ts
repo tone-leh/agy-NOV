@@ -123,12 +123,14 @@ test('config defaults, placeholder filtering, 5 presets, 8-language locale persi
     const cfg = loadNovConfigReadOnly(tmp);
     assert.equal(cfg.preset, 'core');
     assert.equal(cfg.locale, 'auto');
-    assert.equal(MODULE_IDS.length, 9);
+    assert.equal(MODULE_IDS.length, 11);
     assert.equal(cfg.modules.review, true);
     assert.equal(cfg.modules.guard, true);
     assert.equal(cfg.modules.xray, true);
     assert.equal(cfg.modules.turbo, false);
     assert.equal(cfg.modules.radar, false);
+    assert.equal(cfg.modules.verify, false);
+    assert.equal(cfg.modules.worktree, false);
     assert.equal(cfg.modules.canvas, false);
     assert.equal(cfg.modules.mem, false);
     assert.equal(cfg.modules.ops, false);
@@ -154,21 +156,23 @@ test('config defaults, placeholder filtering, 5 presets, 8-language locale persi
 
     const power = applyPresetConfig(tmp, 'power');
     assert.equal(power.preset, 'power');
-    assert.equal(MODULE_IDS.filter((m) => power.modules[m]).length, 6);
+    assert.equal(MODULE_IDS.filter((m) => power.modules[m]).length, 8);
+    assert.equal(power.modules.verify, true);
+    assert.equal(power.modules.worktree, true);
     assert.equal(power.modules.remote, false);
-    assert.equal(countEnabledModelTools(power.modules), 20);
+    assert.equal(countEnabledModelTools(power.modules), 28);
 
     const localAll = applyPresetConfig(tmp, 'local-all');
     assert.equal(localAll.preset, 'local-all');
     assert.equal(localAll.modules.remote, false);
-    assert.equal(MODULE_IDS.filter((m) => localAll.modules[m]).length, 8);
-    assert.equal(countEnabledModelTools(localAll.modules), 27);
+    assert.equal(MODULE_IDS.filter((m) => localAll.modules[m]).length, 10);
+    assert.equal(countEnabledModelTools(localAll.modules), 35);
 
     const full = applyPresetConfig(tmp, 'full');
     assert.equal(full.preset, 'full');
     assert.equal(full.modules.remote, true);
-    assert.equal(MODULE_IDS.filter((m) => full.modules[m]).length, 9);
-    assert.equal(countEnabledModelTools(full.modules), 31);
+    assert.equal(MODULE_IDS.filter((m) => full.modules[m]).length, 11);
+    assert.equal(countEnabledModelTools(full.modules), 39);
 
     // 8-language locale persistence round-trip
     for (const loc of [...UI_LOCALE_IDS, 'auto'] as const) {
@@ -177,7 +181,7 @@ test('config defaults, placeholder filtering, 5 presets, 8-language locale persi
       assert.equal(loadNovConfigReadOnly(tmp).locale, loc);
     }
 
-    // Backward compatibility: v0.1 config.json missing locale and newly added v0.2 modules
+    // Backward compatibility: v0.1 config.json missing locale and newly added v0.2/v0.3 modules
     fs.writeFileSync(
       path.join(legacyTmp, 'config.json'),
       JSON.stringify({
@@ -201,6 +205,8 @@ test('config defaults, placeholder filtering, 5 presets, 8-language locale persi
     assert.equal(migrated.modules.canvas, true);
     assert.equal(migrated.modules.turbo, false);
     assert.equal(migrated.modules.radar, false);
+    assert.equal(migrated.modules.verify, false);
+    assert.equal(migrated.modules.worktree, false);
     assert.equal(migrated.modules.ops, false);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
@@ -269,7 +275,7 @@ test('unified hook dispatcher respects module switches, turbo SessionStart snaps
       tmp,
     );
     assert.deepEqual(stopOut, { decision: 'allow' });
-    for (const inert of ['turbo', 'radar', 'mem', 'remote'] as const) {
+    for (const inert of ['turbo', 'radar', 'verify', 'worktree', 'mem', 'remote'] as const) {
       assert.equal(
         fs.existsSync(path.join(tmp, 'modules', inert)),
         false,
@@ -383,8 +389,17 @@ test('bundled MCP stdio server (9 native modules, Zero-CDP): default core exposu
     assert.ok(!initialNames.includes('ops_list_prompts'));
     assert.ok(!initialNames.includes('remote_status'));
 
-    // 2. Lazy isolation invariant: all 6 default-OFF modules must create ZERO dirs/files on startup
-    const defaultOffModules = ['turbo', 'radar', 'canvas', 'mem', 'ops', 'remote'] as const;
+    // 2. Lazy isolation invariant: all 8 default-OFF modules must create ZERO dirs/files on startup
+    const defaultOffModules = [
+      'turbo',
+      'radar',
+      'verify',
+      'worktree',
+      'canvas',
+      'mem',
+      'ops',
+      'remote',
+    ] as const;
     for (const mod of defaultOffModules) {
       assert.equal(
         fs.existsSync(path.join(tmp, 'modules', mod)),
@@ -392,6 +407,8 @@ test('bundled MCP stdio server (9 native modules, Zero-CDP): default core exposu
         `Startup must not create modules/${mod} directory when module is OFF`,
       );
     }
+    assert.ok(!initialNames.includes('verify_run_checks'));
+    assert.ok(!initialNames.includes('worktree_list'));
 
     // 3. Dynamically enable turbo & ops -> model tools appear immediately in tools/list
     const turboOn = await client.request('tools/call', {
@@ -470,7 +487,7 @@ test('plugin.json contains only official Antigravity manifest keys', () => {
   }
   assert.equal(manifest.name, 'agy-nov');
   assert.equal(manifest.displayName, 'agy-NOV');
-  assert.equal(manifest.version, '0.2.0');
+  assert.equal(manifest.version, '0.3.0');
 });
 
 test('security regressions: Guard symlink blocking (H-1), snake_case target_file (M-1), and unexpanded ${PLUGIN_DATA} fallback (H-2)', async () => {
@@ -811,9 +828,11 @@ test('config.json external live hot-sync: zero dir/file creation when missing, a
     await waitForCondition(() => bundle.getConfig().preset === 'power');
     assert.equal(bundle.getConfig().modules.turbo, true);
     assert.equal(bundle.getConfig().modules.radar, true);
+    assert.equal(bundle.getConfig().modules.verify, true);
+    assert.equal(bundle.getConfig().modules.worktree, true);
     assert.equal(bundle.getConfig().modules.ops, true);
     assert.equal(bundle.getConfig().modules.canvas, false);
-    assert.equal(bundle.getSnapshot().exposedModelTools, 20);
+    assert.equal(bundle.getSnapshot().exposedModelTools, 28);
     assert.equal(snapshots[snapshots.length - 1]!.config.preset, 'power');
 
     // 5. Deleting config.json cleanly falls back to default core preset
@@ -887,16 +906,104 @@ test('bundled MCP stdio server live hot-syncs external config.json updates with 
       arguments: {},
     });
     assert.equal(statusAfterPower.structuredContent.config.preset, 'power');
-    assert.equal(statusAfterPower.structuredContent.exposedModelTools, 20);
+    assert.equal(statusAfterPower.structuredContent.exposedModelTools, 28);
 
     const afterPowerTools = await client.request('tools/list', {});
     const afterPowerNames: string[] = afterPowerTools.tools.map((t: any) => t.name);
     assert.ok(afterPowerNames.includes('turbo_batch_search'));
     assert.ok(afterPowerNames.includes('radar_get_board'));
+    assert.ok(afterPowerNames.includes('verify_run_checks'));
+    assert.ok(afterPowerNames.includes('worktree_list'));
     assert.ok(afterPowerNames.includes('ops_list_prompts'));
     assert.ok(!afterPowerNames.includes('canvas_publish_artifact'));
   } finally {
     await client.close();
+    fs.rmSync(parentTmp, { recursive: true, force: true });
+    fs.rmSync(ws, { recursive: true, force: true });
+  }
+});
+
+test('v0.3.0 verify Stop hook blocks empty writes via unified dispatcher and CLI statusline stays strictly read-only', async () => {
+  const parentTmp = createTempDir('agy-nov-v03-');
+  const dataDir = path.join(parentTmp, 'uncreated-data');
+  const ws = createTempDir('agy-nov-v03-ws-');
+  const cliPath = path.resolve(process.cwd(), 'dist/cli.cjs');
+
+  try {
+    // 1. CLI statusline on uncreated dataDir must return valid JSON & create ZERO dirs/files
+    const statuslineRes = await new Promise<{ code: number | null; stdout: string; stderr: string }>(
+      (resolve, reject) => {
+        const child = spawn(
+          process.execPath,
+          [cliPath, 'statusline', '--json', `--data-dir=${dataDir}`],
+          { stdio: ['ignore', 'pipe', 'pipe'] },
+        );
+        let stdout = '';
+        let stderr = '';
+        child.stdout.on('data', (c) => (stdout += c.toString('utf8')));
+        child.stderr.on('data', (c) => (stderr += c.toString('utf8')));
+        child.on('error', reject);
+        child.on('close', (code) => resolve({ code, stdout, stderr }));
+      },
+    );
+    assert.equal(statuslineRes.code, 0, statuslineRes.stderr);
+    assert.equal(fs.existsSync(dataDir), false, 'statusline must remain strictly read-only');
+    const parsed = JSON.parse(statuslineRes.stdout);
+    assert.equal(parsed.totalModules, 11);
+    assert.equal(parsed.preset, 'core');
+    assert.equal(parsed.modelTools, 12);
+    assert.match(parsed.line, /agy-NOV core/);
+
+    // 2. Enable verify -> write empty file -> Stop hook denies via unified dispatcher
+    setModuleEnabled(dataDir, 'verify', true);
+    const emptyFile = path.join(ws, 'stub.ts');
+    fs.writeFileSync(emptyFile, '', 'utf8');
+
+    await dispatchNovHook(
+      {
+        hookEventName: 'PostToolUse',
+        conversationId: 'conv-verify-int',
+        workspacePaths: [ws],
+        toolCall: { name: 'write_file', args: { Path: emptyFile } },
+      },
+      'PostToolUse',
+      dataDir,
+    );
+
+    const stopDenied = await dispatchNovHook(
+      {
+        hookEventName: 'Stop',
+        conversationId: 'conv-verify-int',
+        workspacePaths: [ws],
+      },
+      'Stop',
+      dataDir,
+    );
+    assert.equal(stopDenied.decision, 'deny');
+    assert.match(stopDenied.reason ?? '', /Verify Gate/i);
+
+    // 3. CLI statusline must accurately report Verify:BLOCKED and blockedStops >= 1
+    const blockedStatusRes = await new Promise<{ code: number | null; stdout: string; stderr: string }>(
+      (resolve, reject) => {
+        const child = spawn(
+          process.execPath,
+          [cliPath, 'statusline', '--json', `--data-dir=${dataDir}`],
+          { stdio: ['ignore', 'pipe', 'pipe'] },
+        );
+        let stdout = '';
+        let stderr = '';
+        child.stdout.on('data', (c) => (stdout += c.toString('utf8')));
+        child.stderr.on('data', (c) => (stderr += c.toString('utf8')));
+        child.on('error', reject);
+        child.on('close', (code) => resolve({ code, stdout, stderr }));
+      },
+    );
+    assert.equal(blockedStatusRes.code, 0, blockedStatusRes.stderr);
+    const blockedParsed = JSON.parse(blockedStatusRes.stdout);
+    assert.equal(blockedParsed.verify?.lastStatus, 'blocked');
+    assert.ok((blockedParsed.verify?.blockedStops ?? 0) >= 1);
+    assert.match(blockedParsed.line, /Verify:BLOCKED/);
+  } finally {
     fs.rmSync(parentTmp, { recursive: true, force: true });
     fs.rmSync(ws, { recursive: true, force: true });
   }
