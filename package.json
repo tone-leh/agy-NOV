@@ -1,0 +1,63 @@
+{
+  "name": "agy-nov",
+  "version": "0.1.0",
+  "description": "agy-NOV — All-in-one modular native MCP App workbench for Google Antigravity 2.0 (Diff Review, Pre-Edit Snapshot & Secret Shield, Context X-Ray, Visual Canvas, Memory Graph, and Opt-In Mobile/IM Remote Control)",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "bin": {
+    "agy-nov": "./bin/agy-nov-cli"
+  },
+  "scripts": {
+    "build": "npm run build:ui && npm run build:server",
+    "build:ui": "vite build --config ui/vite.config.ts",
+    "build:server": "node scripts/bundle-server.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --import tsx --test test/*.test.ts",
+    "workbench": "npm run build && node workbench/server.mjs",
+    "cli": "node dist/cli.cjs"
+  },
+  "keywords": [
+    "antigravity",
+    "antigravity-plugin",
+    "google-antigravity",
+    "mcp",
+    "mcp-app",
+    "ext-apps",
+    "sep-1865",
+    "code-review",
+    "guardrails",
+    "context-xray",
+    "agent-memory",
+    "visual-canvas",
+    "remote-control",
+    "ai-agents",
+    "developer-tools"
+  ],
+  "author": "tone-leh",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tone-leh/agy-NOV.git"
+  },
+  "homepage": "https://github.com/tone-leh/agy-NOV#readme",
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^2.0.4",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.1",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^4.7.0",
+    "esbuild": "^0.25.12",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.1",
+    "vite-plugin-singlefile": "^2.3.4"
+  }
+}

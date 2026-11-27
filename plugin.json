@@ -1,0 +1,18 @@
+{
+  "name": "agy-nov",
+  "displayName": "agy-NOV",
+  "version": "0.1.0",
+  "description": "All-in-one modular native MCP App workbench for Google Antigravity 2.0: PR-grade inline diff review, pre-edit file snapshots & secret shield, context X-Ray, visual artifact canvas, code-anchored memory graph, and opt-in mobile/IM remote control — toggle any module on or off anytime.",
+  "logo": "assets/logo.svg",
+  "author": {
+    "name": "tone-leh",
+    "url": "https://github.com/tone-leh"
+  },
+  "homepage": "https://github.com/tone-leh/agy-NOV",
+  "repository": "https://github.com/tone-leh/agy-NOV",
+  "suggestedPrompts": [
+    "Open agy-NOV to toggle modules, inspect session context, or review current Git diffs",
+    "Create a safety checkpoint and scan the workspace for accidentally hardcoded secrets with agy-NOV",
+    "Enable the Canvas or Memory module in agy-NOV and publish our latest prototype or architectural decision"
+  ]
+}

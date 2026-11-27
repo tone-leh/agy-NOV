@@ -1,0 +1,1313 @@
+/* agy-NOV Review Module — Strictly Scoped Under .mod-review */
+
+.mod-review {
+  --rv-hover: rgba(148, 163, 184, 0.08);
+  --rv-text-inverse: #08111c;
+  --rv-add-bg: rgba(34, 197, 94, 0.13);
+  --rv-add-gutter: rgba(34, 197, 94, 0.22);
+  --rv-add-text: #4ade80;
+  --rv-del-bg: rgba(248, 113, 113, 0.14);
+  --rv-del-gutter: rgba(248, 113, 113, 0.22);
+  --rv-del-text: #f87171;
+  --rv-select-bg: rgba(56, 189, 248, 0.2);
+  --rv-hunk-bg: rgba(56, 189, 248, 0.08);
+  --rv-hunk-text: #7dd3fc;
+  --rv-cat-security: #f43f5e;
+  --rv-cat-bug: #f59e0b;
+  --rv-cat-refactor: #818cf8;
+  --rv-cat-question: #38bdf8;
+  --rv-cat-nit: #94a3b8;
+
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--nov-bg-0);
+  color: var(--nov-text-0);
+  font-family: var(--nov-font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.mod-review[data-theme='light'] {
+  --rv-hover: rgba(15, 23, 42, 0.045);
+  --rv-text-inverse: #ffffff;
+  --rv-add-bg: #e6ffec;
+  --rv-add-gutter: #ccffd8;
+  --rv-add-text: #1a7f37;
+  --rv-del-bg: #ffebe9;
+  --rv-del-gutter: #ffd7d5;
+  --rv-del-text: #cf222e;
+  --rv-select-bg: rgba(2, 132, 199, 0.14);
+  --rv-hunk-bg: #ddf4ff;
+  --rv-hunk-text: #0284c7;
+  --rv-cat-security: #cf222e;
+  --rv-cat-bug: #b45309;
+  --rv-cat-refactor: #4f46e5;
+  --rv-cat-question: #0284c7;
+  --rv-cat-nit: #64748b;
+}
+
+/* Header */
+.mod-review .rv-header {
+  flex: 0 0 auto;
+  background: var(--nov-bg-1);
+  border-bottom: 1px solid var(--nov-border);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mod-review .rv-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mod-review .rv-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mod-review .rv-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nov-accent);
+  flex-shrink: 0;
+}
+
+.mod-review .rv-brand-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mod-review .rv-brand-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mod-review .rv-repo-name {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mod-review .rv-branch-pill {
+  font-family: var(--nov-font-mono);
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--nov-bg-2);
+  border: 1px solid var(--nov-border);
+  color: var(--nov-text-1);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mod-review .rv-demo-pill {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--nov-accent-soft);
+  color: var(--nov-accent);
+}
+
+.mod-review .rv-header-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--nov-text-1);
+  flex-wrap: wrap;
+}
+
+.mod-review .rv-stat-add,
+.mod-review .rv-delta-add {
+  color: var(--rv-add-text);
+  font-family: var(--nov-font-mono);
+  font-weight: 600;
+}
+
+.mod-review .rv-stat-del,
+.mod-review .rv-delta-del {
+  color: var(--rv-del-text);
+  font-family: var(--nov-font-mono);
+  font-weight: 600;
+}
+
+.mod-review .rv-progress-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mod-review .rv-progress-track {
+  width: 48px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--nov-bg-2);
+  overflow: hidden;
+}
+
+.mod-review .rv-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--rv-add-text);
+  transition: width 180ms ease;
+}
+
+.mod-review .rv-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mod-review .rv-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Controls & Buttons */
+.mod-review .rv-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--nov-border);
+  background: var(--nov-bg-0);
+  color: var(--nov-text-1);
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.mod-review .rv-icon-btn:hover {
+  color: var(--nov-text-0);
+  background: var(--nov-bg-2);
+}
+
+.mod-review .rv-segmented {
+  display: inline-flex;
+  background: var(--nov-bg-0);
+  border: 1px solid var(--nov-border);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.mod-review .rv-seg-btn {
+  border: 0;
+  background: transparent;
+  color: var(--nov-text-1);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.mod-review .rv-seg-btn.is-active {
+  background: var(--nov-bg-2);
+  color: var(--nov-text-0);
+}
+
+.mod-review .rv-scope-select,
+.mod-review .rv-input-sm,
+.mod-review .rv-compact-file-select {
+  height: 27px;
+  border-radius: 6px;
+  border: 1px solid var(--nov-border);
+  background: var(--nov-bg-0);
+  color: var(--nov-text-0);
+  font-family: var(--nov-font-sans);
+  font-size: 12px;
+  padding: 0 8px;
+  outline: none;
+}
+
+.mod-review .rv-scope-select:focus,
+.mod-review .rv-input-sm:focus,
+.mod-review .rv-compact-file-select:focus {
+  border-color: var(--nov-accent);
+}
+
+.mod-review .rv-search-input {
+  flex: 1 1 120px;
+  min-width: 100px;
+  max-width: 240px;
+}
+
+.mod-review .rv-range-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mod-review .rv-range-input {
+  width: 132px;
+  font-family: var(--nov-font-mono);
+}
+
+.mod-review .rv-filter-pills {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.mod-review .rv-filter-pill {
+  border: 1px solid var(--nov-border);
+  background: transparent;
+  color: var(--nov-text-1);
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.mod-review .rv-filter-pill:hover {
+  border-color: var(--nov-border-strong);
+  color: var(--nov-text-0);
+}
+
+.mod-review .rv-filter-pill.is-active {
+  background: var(--nov-accent-soft);
+  border-color: var(--nov-accent);
+  color: var(--nov-accent);
+  font-weight: 600;
+}
+
+.mod-review .rv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 27px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.mod-review .rv-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mod-review .rv-btn-primary {
+  background: var(--nov-accent);
+  color: var(--rv-text-inverse);
+  font-weight: 600;
+}
+
+.mod-review .rv-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.mod-review .rv-btn-secondary {
+  background: var(--nov-accent-soft);
+  color: var(--nov-accent);
+  border-color: var(--nov-accent);
+}
+
+.mod-review .rv-btn-secondary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.mod-review .rv-btn-subtle,
+.mod-review .rv-btn-ghost {
+  background: var(--nov-bg-0);
+  color: var(--nov-text-0);
+  border-color: var(--nov-border);
+}
+
+.mod-review .rv-btn-subtle:hover:not(:disabled),
+.mod-review .rv-btn-ghost:hover:not(:disabled) {
+  background: var(--nov-bg-2);
+}
+
+.mod-review .rv-link-btn {
+  border: 0;
+  background: transparent;
+  color: var(--nov-accent);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.mod-review .rv-link-btn:hover {
+  text-decoration: underline;
+}
+
+.mod-review .rv-spinning svg {
+  animation: rv-spin 0.9s linear infinite;
+}
+
+@keyframes rv-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Banners */
+.mod-review .rv-banner {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--nov-border);
+}
+
+.mod-review .rv-banner-info {
+  background: var(--nov-accent-soft);
+  color: var(--nov-text-0);
+}
+
+.mod-review .rv-banner-warn {
+  background: var(--nov-warn-soft);
+  color: var(--nov-text-0);
+}
+
+.mod-review .rv-banner-error {
+  background: var(--nov-danger-soft);
+  color: var(--nov-text-0);
+}
+
+/* Main Split Workspace */
+.mod-review .rv-studio-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.mod-review .rv-studio-body.is-compact {
+  flex-direction: column;
+}
+
+.mod-review .rv-compact-file-bar {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  background: var(--nov-bg-1);
+  border-bottom: 1px solid var(--nov-border);
+}
+
+.mod-review .rv-compact-file-select {
+  width: 100%;
+  font-family: var(--nov-font-mono);
+  font-size: 11.5px;
+}
+
+/* File Tree Sidebar */
+.mod-review .rv-file-tree {
+  flex: 0 0 245px;
+  width: 245px;
+  background: var(--nov-bg-1);
+  border-right: 1px solid var(--nov-border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.mod-review .rv-file-tree-drawer {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: min(300px, 86vw);
+  z-index: 30;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
+}
+
+.mod-review .rv-file-tree-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--nov-border);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--nov-text-1);
+}
+
+.mod-review .rv-file-tree-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mod-review .rv-file-tree-empty {
+  padding: 16px 8px;
+  text-align: center;
+  color: var(--nov-text-2);
+  font-size: 12px;
+}
+
+.mod-review .rv-file-item {
+  padding: 7px 8px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mod-review .rv-file-item:hover {
+  background: var(--rv-hover);
+}
+
+.mod-review .rv-file-item.is-selected {
+  background: var(--nov-accent-soft);
+  border-color: var(--nov-accent);
+}
+
+.mod-review .rv-file-item.is-viewed {
+  opacity: 0.72;
+}
+
+.mod-review .rv-file-item-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mod-review .rv-viewed-check {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.mod-review .rv-viewed-check input {
+  margin: 0;
+  accent-color: var(--rv-add-text);
+  cursor: pointer;
+}
+
+.mod-review .rv-status-dot {
+  font-family: var(--nov-font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mod-review .rv-status-added,
+.mod-review .rv-status-untracked {
+  background: var(--rv-add-bg);
+  color: var(--rv-add-text);
+}
+
+.mod-review .rv-status-modified {
+  background: var(--nov-warn-soft);
+  color: var(--rv-cat-bug);
+}
+
+.mod-review .rv-status-deleted {
+  background: var(--rv-del-bg);
+  color: var(--rv-del-text);
+}
+
+.mod-review .rv-status-renamed,
+.mod-review .rv-status-copied {
+  background: rgba(129, 140, 248, 0.18);
+  color: var(--rv-cat-refactor);
+}
+
+.mod-review .rv-file-name {
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+}
+
+.mod-review .rv-file-ann-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--nov-accent);
+  color: var(--rv-text-inverse);
+}
+
+.mod-review .rv-file-open-btn {
+  border: 0;
+  background: transparent;
+  color: var(--nov-text-2);
+  font: inherit;
+  font-size: 12px;
+  padding: 0 3px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.mod-review .rv-file-open-btn:hover {
+  color: var(--nov-text-0);
+  background: var(--nov-bg-2);
+}
+
+.mod-review .rv-file-item-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding-left: 22px;
+  font-size: 11px;
+  color: var(--nov-text-2);
+}
+
+.mod-review .rv-file-dir {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--nov-font-mono);
+}
+
+.mod-review .rv-file-deltas {
+  display: inline-flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.mod-review .rv-file-risk-row {
+  display: flex;
+  gap: 4px;
+  padding-left: 22px;
+  flex-wrap: wrap;
+}
+
+.mod-review .rv-risk-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.mod-review .rv-risk-security-sensitive {
+  background: var(--nov-danger-soft);
+  color: var(--rv-cat-security);
+}
+
+.mod-review .rv-risk-large {
+  background: var(--nov-warn-soft);
+  color: var(--rv-cat-bug);
+}
+
+.mod-review .rv-risk-config {
+  background: rgba(129, 140, 248, 0.18);
+  color: var(--rv-cat-refactor);
+}
+
+.mod-review .rv-risk-test {
+  background: var(--nov-accent-soft);
+  color: var(--rv-cat-question);
+}
+
+/* Diff Pane */
+.mod-review .rv-diff-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--nov-bg-0);
+}
+
+.mod-review .rv-diff-empty {
+  align-items: center;
+  justify-content: center;
+}
+
+.mod-review .rv-empty-state {
+  text-align: center;
+  color: var(--nov-text-1);
+  padding: 32px 20px;
+}
+
+.mod-review .rv-empty-state h3 {
+  margin: 0 0 6px;
+  color: var(--nov-text-0);
+}
+
+.mod-review .rv-empty-state p {
+  margin: 0;
+}
+
+.mod-review .rv-empty-icon {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  background: var(--rv-add-bg);
+  color: var(--rv-add-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.mod-review .rv-loader-ring {
+  width: 24px;
+  height: 24px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  border: 2.5px solid var(--nov-border);
+  border-top-color: var(--nov-accent);
+  animation: rv-spin 0.85s linear infinite;
+}
+
+.mod-review .rv-file-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--nov-bg-1);
+  border-bottom: 1px solid var(--nov-border);
+  flex-wrap: wrap;
+}
+
+.mod-review .rv-file-header-main {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.mod-review .rv-status-pill {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.mod-review .rv-file-header-path {
+  font-family: var(--nov-font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.mod-review .rv-file-header-deltas {
+  display: inline-flex;
+  gap: 5px;
+  font-size: 11.5px;
+}
+
+.mod-review .rv-file-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mod-review .rv-viewed-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--nov-text-1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.mod-review .rv-viewed-toggle input {
+  accent-color: var(--rv-add-text);
+}
+
+.mod-review .rv-unanchored-section {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--nov-border);
+  background: var(--nov-bg-1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mod-review .rv-unanchored-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--nov-text-1);
+  text-transform: uppercase;
+}
+
+.mod-review .rv-diff-scroll {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding-bottom: 18px;
+}
+
+.mod-review .rv-hunk-block {
+  border-bottom: 1px solid var(--nov-border);
+}
+
+.mod-review .rv-hunk-header {
+  padding: 4px 12px;
+  background: var(--rv-hunk-bg);
+  color: var(--rv-hunk-text);
+  font-family: var(--nov-font-mono);
+  font-size: 11.5px;
+  border-bottom: 1px solid var(--nov-border);
+  user-select: none;
+}
+
+.mod-review .rv-diff-table {
+  font-family: var(--nov-font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* Unified Rows */
+.mod-review .rv-diff-row {
+  display: grid;
+  grid-template-columns: 20px 44px 44px 16px minmax(0, 1fr);
+  cursor: pointer;
+  position: relative;
+}
+
+.mod-review .rv-diff-row:hover {
+  filter: brightness(1.05);
+}
+
+.mod-review .rv-diff-row.rv-line-add {
+  background: var(--rv-add-bg);
+}
+
+.mod-review .rv-diff-row.rv-line-del {
+  background: var(--rv-del-bg);
+}
+
+.mod-review .rv-diff-row.is-selected,
+.mod-review .rv-split-cell.is-selected {
+  background: var(--rv-select-bg) !important;
+  box-shadow: inset 3px 0 0 var(--nov-accent);
+}
+
+.mod-review .rv-gutter-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  font-weight: 700;
+  user-select: none;
+}
+
+.mod-review .rv-diff-row:hover .rv-gutter-action {
+  color: var(--nov-accent);
+}
+
+.mod-review .rv-gutter-num {
+  text-align: right;
+  padding-right: 7px;
+  color: var(--nov-text-2);
+  font-size: 11px;
+  user-select: none;
+  border-right: 1px solid var(--nov-border);
+}
+
+.mod-review .rv-line-add .rv-gutter-num {
+  background: var(--rv-add-gutter);
+}
+
+.mod-review .rv-line-del .rv-gutter-num {
+  background: var(--rv-del-gutter);
+}
+
+.mod-review .rv-gutter-sign {
+  text-align: center;
+  font-weight: 700;
+  user-select: none;
+}
+
+.mod-review .rv-line-add .rv-gutter-sign {
+  color: var(--rv-add-text);
+}
+
+.mod-review .rv-line-del .rv-gutter-sign {
+  color: var(--rv-del-text);
+}
+
+.mod-review .rv-code-text {
+  white-space: pre;
+  padding: 0 10px 0 4px;
+  overflow-x: visible;
+}
+
+/* Split View Rows */
+.mod-review .rv-split-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-width: 640px;
+}
+
+.mod-review .rv-split-cell {
+  display: grid;
+  grid-template-columns: 42px 16px minmax(0, 1fr);
+  border-right: 1px solid var(--nov-border);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.mod-review .rv-split-cell:last-child {
+  border-right: 0;
+}
+
+.mod-review .rv-split-cell.rv-line-add {
+  background: var(--rv-add-bg);
+}
+
+.mod-review .rv-split-cell.rv-line-del {
+  background: var(--rv-del-bg);
+}
+
+.mod-review .rv-split-cell.rv-line-empty {
+  background: var(--nov-bg-1);
+  cursor: default;
+}
+
+/* Inline Annotation Thread & Composer */
+.mod-review .rv-inline-thread {
+  padding: 8px 14px 10px 32px;
+  background: var(--nov-bg-1);
+  border-top: 1px solid var(--nov-border);
+  border-bottom: 1px solid var(--nov-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mod-review .rv-ann-card,
+.mod-review .rv-composer-card {
+  background: var(--nov-bg-0);
+  border: 1px solid var(--nov-border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-family: var(--nov-font-sans);
+  max-width: 780px;
+}
+
+.mod-review .rv-cat-border-security {
+  border-left: 3px solid var(--rv-cat-security);
+}
+
+.mod-review .rv-cat-border-bug {
+  border-left: 3px solid var(--rv-cat-bug);
+}
+
+.mod-review .rv-cat-border-refactor {
+  border-left: 3px solid var(--rv-cat-refactor);
+}
+
+.mod-review .rv-cat-border-question {
+  border-left: 3px solid var(--rv-cat-question);
+}
+
+.mod-review .rv-cat-border-nit {
+  border-left: 3px solid var(--rv-cat-nit);
+}
+
+.mod-review .rv-ann-card.is-resolved {
+  opacity: 0.72;
+}
+
+.mod-review .rv-ann-resolved-collapsed {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.mod-review .rv-ann-resolved-collapsed:hover {
+  background: var(--rv-hover);
+}
+
+.mod-review .rv-ann-resolved-check {
+  color: var(--rv-add-text);
+  font-weight: 700;
+}
+
+.mod-review .rv-ann-preview-text {
+  color: var(--nov-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+}
+
+.mod-review .rv-ann-expand-hint {
+  color: var(--nov-text-2);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.mod-review .rv-ann-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+  flex-wrap: wrap;
+}
+
+.mod-review .rv-ann-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mod-review .rv-ann-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.mod-review .rv-ann-badge.rv-cat-security,
+.mod-review .rv-cat-chip.rv-cat-security.is-active {
+  background: var(--nov-danger-soft);
+  color: var(--rv-cat-security);
+  border-color: var(--rv-cat-security);
+}
+
+.mod-review .rv-ann-badge.rv-cat-bug,
+.mod-review .rv-cat-chip.rv-cat-bug.is-active {
+  background: var(--nov-warn-soft);
+  color: var(--rv-cat-bug);
+  border-color: var(--rv-cat-bug);
+}
+
+.mod-review .rv-ann-badge.rv-cat-refactor,
+.mod-review .rv-cat-chip.rv-cat-refactor.is-active {
+  background: rgba(129, 140, 248, 0.18);
+  color: var(--rv-cat-refactor);
+  border-color: var(--rv-cat-refactor);
+}
+
+.mod-review .rv-ann-badge.rv-cat-question,
+.mod-review .rv-cat-chip.rv-cat-question.is-active {
+  background: var(--nov-accent-soft);
+  color: var(--rv-cat-question);
+  border-color: var(--rv-cat-question);
+}
+
+.mod-review .rv-ann-badge.rv-cat-nit,
+.mod-review .rv-cat-chip.rv-cat-nit.is-active {
+  background: rgba(148, 163, 184, 0.2);
+  color: var(--rv-cat-nit);
+  border-color: var(--rv-cat-nit);
+}
+
+.mod-review .rv-ann-range {
+  font-family: var(--nov-font-mono);
+  font-size: 11px;
+  color: var(--nov-text-1);
+}
+
+.mod-review .rv-ann-stale {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--nov-warn-soft);
+  color: var(--rv-cat-bug);
+}
+
+.mod-review .rv-ann-resolved-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--rv-add-bg);
+  color: var(--rv-add-text);
+}
+
+.mod-review .rv-ann-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.mod-review .rv-ann-action-btn {
+  border: 0;
+  background: transparent;
+  color: var(--nov-text-1);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+.mod-review .rv-ann-action-btn:hover {
+  background: var(--nov-bg-2);
+  color: var(--nov-text-0);
+}
+
+.mod-review .rv-ann-action-btn.rv-ann-danger:hover {
+  color: var(--rv-cat-security);
+}
+
+.mod-review .rv-ann-body {
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.mod-review .rv-composer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+  flex-wrap: wrap;
+}
+
+.mod-review .rv-composer-anchor {
+  font-family: var(--nov-font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--nov-accent);
+}
+
+.mod-review .rv-category-group {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.mod-review .rv-cat-chip {
+  border: 1px solid var(--nov-border);
+  background: var(--nov-bg-1);
+  color: var(--nov-text-1);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.mod-review .rv-composer-snippet {
+  margin: 0 0 7px;
+  padding: 6px 8px;
+  background: var(--nov-bg-1);
+  border: 1px solid var(--nov-border);
+  border-radius: 6px;
+  font-family: var(--nov-font-mono);
+  font-size: 11px;
+  color: var(--nov-text-1);
+  overflow-x: auto;
+  max-height: 100px;
+}
+
+.mod-review .rv-composer-textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 62px;
+  border: 1px solid var(--nov-border);
+  border-radius: 6px;
+  background: var(--nov-bg-1);
+  color: var(--nov-text-0);
+  font-family: var(--nov-font-sans);
+  font-size: 12.5px;
+  padding: 7px 9px;
+  outline: none;
+}
+
+.mod-review .rv-composer-textarea:focus {
+  border-color: var(--nov-accent);
+}
+
+.mod-review .rv-composer-footer {
+  margin-top: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mod-review .rv-composer-hint {
+  font-size: 11px;
+  color: var(--nov-text-2);
+}
+
+.mod-review .rv-composer-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+/* Sticky Bottom Review Cart */
+.mod-review .rv-review-cart {
+  flex: 0 0 auto;
+  background: var(--nov-bg-1);
+  border-top: 1px solid var(--nov-border);
+  z-index: 20;
+}
+
+.mod-review .rv-cart-preview-drawer {
+  border-bottom: 1px solid var(--nov-border);
+  background: var(--nov-bg-0);
+  max-height: 240px;
+  display: flex;
+  flex-direction: column;
+}
+
+.mod-review .rv-cart-preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--nov-bg-1);
+  border-bottom: 1px solid var(--nov-border);
+}
+
+.mod-review .rv-cart-preview-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--nov-text-1);
+}
+
+.mod-review .rv-cart-preview-code {
+  margin: 0;
+  padding: 10px 12px;
+  font-family: var(--nov-font-mono);
+  font-size: 11.5px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--nov-text-0);
+}
+
+.mod-review .rv-cart-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  flex-wrap: wrap;
+}
+
+.mod-review .rv-cart-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mod-review .rv-cart-count-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--nov-border);
+  background: var(--nov-bg-0);
+  color: var(--nov-text-0);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mod-review .rv-cart-count-btn:hover {
+  background: var(--nov-bg-2);
+}
+
+.mod-review .rv-cart-count-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--nov-accent);
+  color: var(--rv-text-inverse);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mod-review .rv-cart-chevron {
+  color: var(--nov-text-2);
+}
+
+.mod-review .rv-cart-chips {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.mod-review .rv-cart-toast {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--rv-add-text);
+}
+
+.mod-review .rv-cart-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 560px) {
+  .mod-review .rv-btn-label-sm {
+    display: none;
+  }
+  .mod-review .rv-inline-thread {
+    padding: 8px 8px 10px 10px;
+  }
+  .mod-review .rv-diff-row {
+    grid-template-columns: 16px 34px 34px 14px minmax(0, 1fr);
+  }
+}

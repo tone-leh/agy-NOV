@@ -1,0 +1,208 @@
+import React from 'react';
+import type { DiffViewMode, FileFilterMode, ReviewScope } from './types';
+
+interface HeaderBarProps {
+  repoName: string;
+  branch: string;
+  isDemo: boolean;
+  scope: ReviewScope;
+  commitRange: string;
+  searchQuery: string;
+  viewMode: DiffViewMode;
+  filterMode: FileFilterMode;
+  viewedCount: number;
+  totalFiles: number;
+  totalAdditions: number;
+  totalDeletions: number;
+  loading: boolean;
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
+  onScopeChange: (scope: ReviewScope) => void;
+  onCommitRangeChange: (range: string) => void;
+  onCommitRangeApply: () => void;
+  onSearchChange: (q: string) => void;
+  onViewModeChange: (mode: DiffViewMode) => void;
+  onFilterModeChange: (mode: FileFilterMode) => void;
+  onRefresh: () => void;
+}
+
+export const HeaderBar: React.FC<HeaderBarProps> = ({
+  repoName,
+  branch,
+  isDemo,
+  scope,
+  commitRange,
+  searchQuery,
+  viewMode,
+  filterMode,
+  viewedCount,
+  totalFiles,
+  totalAdditions,
+  totalDeletions,
+  loading,
+  sidebarOpen,
+  onToggleSidebar,
+  onScopeChange,
+  onCommitRangeChange,
+  onCommitRangeApply,
+  onSearchChange,
+  onViewModeChange,
+  onFilterModeChange,
+  onRefresh,
+}) => {
+  const progressPct = totalFiles > 0 ? Math.round((viewedCount / totalFiles) * 100) : 0;
+
+  return (
+    <header className="rv-header">
+      <div className="rv-header-top">
+        <div className="rv-header-brand">
+          <button
+            type="button"
+            className="rv-icon-btn"
+            onClick={onToggleSidebar}
+            title={sidebarOpen ? 'Hide file list' : 'Show file list'}
+            aria-label="Toggle file list"
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="2" y="2.5" width="12" height="11" rx="2" />
+              <line x1="6" y1="2.5" x2="6" y2="13.5" />
+            </svg>
+          </button>
+          <span className="rv-brand-mark" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <rect x="2" y="2" width="20" height="20" rx="6" fill="currentColor" opacity="0.14" />
+              <path
+                d="M7 8.5h4.5M9.25 6.25V10.75M7 15.5h4.5M14 9l2.5 2.5L20 7.5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+          <div className="rv-brand-meta">
+            <div className="rv-brand-title-row">
+              <span className="rv-repo-name">{repoName}</span>
+              <span className="rv-branch-pill">{branch}</span>
+              {isDemo && <span className="rv-demo-pill">DEMO</span>}
+            </div>
+            <div className="rv-header-stats">
+              <span className="rv-stat-files">{totalFiles} files</span>
+              <span className="rv-stat-add">+{totalAdditions}</span>
+              <span className="rv-stat-del">-{totalDeletions}</span>
+              <span className="rv-progress-inline" title={`${viewedCount} of ${totalFiles} files marked viewed`}>
+                <span className="rv-progress-track">
+                  <span className="rv-progress-fill" style={{ width: `${progressPct}%` }} />
+                </span>
+                <span>
+                  {viewedCount}/{totalFiles} reviewed
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rv-header-actions">
+          <div className="rv-segmented" role="group" aria-label="Diff layout">
+            <button
+              type="button"
+              className={viewMode === 'unified' ? 'rv-seg-btn is-active' : 'rv-seg-btn'}
+              onClick={() => onViewModeChange('unified')}
+            >
+              Unified
+            </button>
+            <button
+              type="button"
+              className={viewMode === 'split' ? 'rv-seg-btn is-active' : 'rv-seg-btn'}
+              onClick={() => onViewModeChange('split')}
+            >
+              Split
+            </button>
+          </div>
+          <button
+            type="button"
+            className={loading ? 'rv-btn rv-btn-ghost rv-spinning' : 'rv-btn rv-btn-ghost'}
+            onClick={onRefresh}
+            disabled={loading}
+            title="Refresh Git diff"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <path
+                d="M13.5 8a5.5 5.5 0 1 1-1.4-3.67M13.5 2.5v2.75h-2.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span className="rv-btn-label-sm">Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="rv-header-controls">
+        <select
+          className="rv-scope-select"
+          value={scope}
+          onChange={(e) => onScopeChange(e.target.value as ReviewScope)}
+          aria-label="Diff scope"
+        >
+          <option value="working">Working Tree (All)</option>
+          <option value="staged">Staged</option>
+          <option value="unstaged">Unstaged + Untracked</option>
+          <option value="head~1">Last Commit (HEAD~1)</option>
+          <option value="commit-range">Commit Range…</option>
+        </select>
+
+        {scope === 'commit-range' && (
+          <form
+            className="rv-range-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              onCommitRangeApply();
+            }}
+          >
+            <input
+              type="text"
+              className="rv-input-sm rv-range-input"
+              value={commitRange}
+              onChange={(e) => onCommitRangeChange(e.target.value)}
+              placeholder="HEAD~2..HEAD"
+              aria-label="Git commit range"
+            />
+            <button type="submit" className="rv-btn rv-btn-subtle">
+              Apply
+            </button>
+          </form>
+        )}
+
+        <input
+          type="search"
+          className="rv-input-sm rv-search-input"
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Filter files…"
+          aria-label="Filter files"
+        />
+
+        <div className="rv-filter-pills" role="group" aria-label="File filter">
+          {(
+            [
+              ['all', 'All'],
+              ['annotated', 'Annotated'],
+              ['unviewed', 'Unviewed'],
+              ['risky', 'Risky'],
+            ] as const
+          ).map(([val, label]) => (
+            <button
+              key={val}
+              type="button"
+              className={filterMode === val ? 'rv-filter-pill is-active' : 'rv-filter-pill'}
+              onClick={() => onFilterModeChange(val)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </header>
+  );
+};

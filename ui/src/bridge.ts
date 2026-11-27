@@ -1,0 +1,381 @@
+import {
+  App as McpApp,
+  applyDocumentTheme,
+  applyHostStyleVariables,
+} from '@modelcontextprotocol/ext-apps';
+import { z } from 'zod';
+import type { ModuleId, NovConfig, PresetId } from '../../src/core/catalog.js';
+
+declare global {
+  interface Window {
+    __AGY_NOV_WORKBENCH__?: boolean;
+  }
+}
+
+export interface HostCapabilitiesSummary {
+  message: boolean;
+  updateModelContext: boolean;
+  openLinks: boolean;
+  isWorkbench: boolean;
+}
+
+export interface ToolResultEvent {
+  toolName?: string;
+  structuredContent: Record<string, unknown>;
+}
+
+export interface NovConfigSnapshot {
+  config: NovConfig;
+  enabledCount: number;
+  exposedModelTools: number;
+  remoteRunning: boolean;
+  demoMode: boolean;
+  workspaceRoot: string;
+}
+
+const ToggleAuxPaneResultSchema = z
+  .object({
+    isError: z.boolean().optional(),
+  })
+  .passthrough();
+
+type ThemeListener = (theme: 'dark' | 'light') => void;
+type ToolResultListener = (evt: ToolResultEvent) => void;
+
+export class NovBridge {
+  private app: McpApp | null = null;
+  private readyPromise: Promise<void>;
+  private isWorkbenchMode = false;
+  private capabilities: HostCapabilitiesSummary = {
+    message: false,
+    updateModelContext: false,
+    openLinks: false,
+    isWorkbench: false,
+  };
+  private themeListeners = new Set<ThemeListener>();
+  private toolResultListeners = new Set<ToolResultListener>();
+  private currentTheme: 'dark' | 'light' = 'dark';
+
+  constructor() {
+    this.isWorkbenchMode = Boolean(
+      typeof window !== 'undefined' &&
+        (window.__AGY_NOV_WORKBENCH__ || window.parent === window),
+    );
+    this.capabilities.isWorkbench = this.isWorkbenchMode;
+    this.readyPromise = this.init();
+  }
+
+  private async init(): Promise<void> {
+    if (typeof window === 'undefined') return;
+
+    // Listen for workbench theme toggle postMessages
+    window.addEventListener('message', (event) => {
+      const data = event.data as Record<string, unknown> | null;
+      if (data && data.type === 'nov-workbench-theme' && (data.theme === 'dark' || data.theme === 'light')) {
+        this.applyTheme(data.theme);
+      }
+    });
+
+    if (this.isWorkbenchMode) {
+      const initialTheme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+      this.applyTheme(initialTheme);
+      this.capabilities = {
+        message: true,
+        updateModelContext: true,
+        openLinks: true,
+        isWorkbench: true,
+      };
+      return;
+    }
+
+    const app = new McpApp({ name: 'agy-NOV', version: '0.1.0' }, {});
+    this.app = app;
+
+    app.ontoolresult = (result) => {
+      const sc =
+        result && typeof result === 'object' && result.structuredContent && typeof result.structuredContent === 'object'
+          ? (result.structuredContent as Record<string, unknown>)
+          : {};
+      const evt: ToolResultEvent = {
+        toolName: typeof sc.toolName === 'string' ? sc.toolName : undefined,
+        structuredContent: sc,
+      };
+      for (const listener of this.toolResultListeners) {
+        try {
+          listener(evt);
+        } catch {
+          // isolate subscriber failures
+        }
+      }
+    };
+
+    app.onhostcontextchanged = (ctx) => {
+      if (ctx?.theme === 'dark' || ctx?.theme === 'light') {
+        this.applyTheme(ctx.theme);
+      }
+      if (ctx?.styles?.variables) {
+        applyHostStyleVariables(ctx.styles.variables);
+      }
+    };
+
+    try {
+      await app.connect();
+      const ctx = app.getHostContext();
+      if (ctx?.theme === 'dark' || ctx?.theme === 'light') {
+        this.applyTheme(ctx.theme);
+      } else {
+        this.applyTheme('dark');
+      }
+      if (ctx?.styles?.variables) {
+        applyHostStyleVariables(ctx.styles.variables);
+      }
+      const caps = app.getHostCapabilities() as Record<string, unknown> | undefined;
+      this.capabilities = {
+        message: Boolean(caps?.message),
+        updateModelContext: Boolean(caps?.updateModelContext),
+        openLinks: Boolean(caps?.openLinks),
+        isWorkbench: false,
+      };
+    } catch {
+      // Fallback safely to standalone workbench mode if host handshake unavailable
+      this.isWorkbenchMode = true;
+      this.capabilities = {
+        message: true,
+        updateModelContext: true,
+        openLinks: true,
+        isWorkbench: true,
+      };
+      this.applyTheme('dark');
+    }
+  }
+
+  private applyTheme(theme: 'dark' | 'light'): void {
+    this.currentTheme = theme;
+    try {
+      applyDocumentTheme(theme);
+    } catch {
+      // ignore outside browser
+    }
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.theme = theme;
+    }
+    for (const listener of this.themeListeners) {
+      try {
+        listener(theme);
+      } catch {
+        // ignore listener failure
+      }
+    }
+  }
+
+  async ready(): Promise<void> {
+    await this.readyPromise;
+  }
+
+  getCapabilities(): HostCapabilitiesSummary {
+    return { ...this.capabilities };
+  }
+
+  getTheme(): 'dark' | 'light' {
+    return this.currentTheme;
+  }
+
+  onThemeChange(listener: ThemeListener): () => void {
+    this.themeListeners.add(listener);
+    return () => this.themeListeners.delete(listener);
+  }
+
+  onToolResult(listener: ToolResultListener): () => void {
+    this.toolResultListeners.add(listener);
+    return () => this.toolResultListeners.delete(listener);
+  }
+
+  async callTool<T = Record<string, unknown>>(
+    name: string,
+    args: Record<string, unknown> = {},
+  ): Promise<T> {
+    await this.readyPromise;
+
+    if (this.isWorkbenchMode || !this.app) {
+      const res = await fetch(`/api/tool/${encodeURIComponent(name)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(args),
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => res.statusText);
+        throw new Error(`Tool ${name} failed (${res.status}): ${errText}`);
+      }
+      const data = (await res.json()) as {
+        structuredContent?: T;
+        error?: string;
+        isError?: boolean;
+        content?: Array<{ text?: string }>;
+      };
+      if (data.error) throw new Error(data.error);
+      if (data.isError) {
+        const textItem = Array.isArray(data.content)
+          ? data.content.find((c) => c && typeof c === 'object' && typeof c.text === 'string')
+          : undefined;
+        throw new Error(textItem?.text || `Tool ${name} returned error`);
+      }
+      return (data.structuredContent ?? (data as unknown as T)) as T;
+    }
+
+    const res = await this.app.callServerTool({ name, arguments: args });
+    if (res?.isError) {
+      const textItem = Array.isArray(res.content)
+        ? (res.content.find((c) => c && typeof c === 'object' && 'text' in c) as { text?: string } | undefined)
+        : undefined;
+      throw new Error(textItem?.text || `Tool ${name} returned error`);
+    }
+    if (res?.structuredContent && typeof res.structuredContent === 'object') {
+      return res.structuredContent as T;
+    }
+    // Fallback parse JSON text if server returned text content
+    const textItem = Array.isArray(res?.content)
+      ? (res.content.find((c) => c && typeof c === 'object' && 'text' in c) as { text?: string } | undefined)
+      : undefined;
+    if (textItem?.text) {
+      try {
+        return JSON.parse(textItem.text) as T;
+      } catch {
+        return { text: textItem.text } as unknown as T;
+      }
+    }
+    return {} as T;
+  }
+
+  private notifyWorkbenchHost(kind: string, payload: Record<string, unknown>): void {
+    if (typeof window !== 'undefined' && window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'nov-workbench-event', kind, payload }, '*');
+    }
+  }
+
+  async sendMessage(text: string): Promise<'sent' | 'context' | 'copied'> {
+    await this.readyPromise;
+    if (this.isWorkbenchMode || !this.app) {
+      this.notifyWorkbenchHost('sendMessage', { text });
+      try {
+        await navigator.clipboard?.writeText(text);
+      } catch {
+        // clipboard may be restricted
+      }
+      return 'sent';
+    }
+    if (this.capabilities.message) {
+      try {
+        await this.app.sendMessage({
+          role: 'user',
+          content: [{ type: 'text', text }],
+        });
+        return 'sent';
+      } catch {
+        // fall through to updateModelContext
+      }
+    }
+    if (this.capabilities.updateModelContext) {
+      try {
+        await this.app.updateModelContext({
+          content: [{ type: 'text', text }],
+        });
+        return 'context';
+      } catch {
+        // fall through to clipboard
+      }
+    }
+    try {
+      await navigator.clipboard?.writeText(text);
+    } catch {
+      // ignore
+    }
+    return 'copied';
+  }
+
+  async updateModelContext(text: string): Promise<'context' | 'copied'> {
+    await this.readyPromise;
+    if (this.isWorkbenchMode || !this.app) {
+      this.notifyWorkbenchHost('updateModelContext', { text });
+      try {
+        await navigator.clipboard?.writeText(text);
+      } catch {
+        // ignore
+      }
+      return 'context';
+    }
+    if (this.capabilities.updateModelContext) {
+      try {
+        await this.app.updateModelContext({
+          content: text ? [{ type: 'text', text }] : [],
+        });
+        return 'context';
+      } catch {
+        // fallback to clipboard
+      }
+    }
+    try {
+      await navigator.clipboard?.writeText(text);
+    } catch {
+      // ignore
+    }
+    return 'copied';
+  }
+
+  async openFile(filePath: string): Promise<boolean> {
+    await this.readyPromise;
+    const uri = filePath.startsWith('file://')
+      ? filePath
+      : `file://${filePath.startsWith('/') ? '' : '/'}${encodeURI(filePath)}`;
+
+    if (this.isWorkbenchMode || !this.app) {
+      this.notifyWorkbenchHost('openFile', { uri, filePath });
+      return true;
+    }
+    try {
+      const result = await this.app.request(
+        {
+          method: 'com.google.antigravity/toggle-aux-pane',
+          params: { tabType: 'fileView', uri },
+        },
+        ToggleAuxPaneResultSchema,
+      );
+      return !result?.isError;
+    } catch {
+      return false;
+    }
+  }
+
+  async openExternalLink(url: string): Promise<boolean> {
+    await this.readyPromise;
+    if (!/^https?:\/\//i.test(url)) return false;
+    if (this.isWorkbenchMode || !this.app) {
+      this.notifyWorkbenchHost('openLink', { url });
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return true;
+    }
+    if (this.capabilities.openLinks) {
+      try {
+        await this.app.openLink({ url });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  // Convenience typed helpers for top-level config
+  getConfig(): Promise<NovConfigSnapshot> {
+    return this.callTool<NovConfigSnapshot>('nov_app_get_config', {});
+  }
+
+  setModule(module: ModuleId, enabled: boolean): Promise<NovConfigSnapshot> {
+    return this.callTool<NovConfigSnapshot>('nov_app_set_module', { module, enabled });
+  }
+
+  applyPreset(preset: PresetId): Promise<NovConfigSnapshot> {
+    return this.callTool<NovConfigSnapshot>('nov_app_apply_preset', { preset });
+  }
+}
+
+export const novBridge = new NovBridge();

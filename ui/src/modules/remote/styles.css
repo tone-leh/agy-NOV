@@ -1,0 +1,343 @@
+/* agy-NOV Mobile & IM Remote Module — Strictly Scoped under .mod-remote */
+.mod-remote {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 12px 14px 18px;
+  min-height: 100%;
+  background: var(--nov-bg-0);
+  color: var(--nov-text-0);
+  font-family: var(--nov-font-sans);
+  font-size: 13px;
+}
+
+.mod-remote .remote-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--nov-border);
+  flex-wrap: wrap;
+}
+
+.mod-remote .remote-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 13.5px;
+  flex-wrap: wrap;
+}
+
+.mod-remote .remote-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #10b981, #38bdf8);
+  color: #0b111b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--nov-font-mono);
+  font-weight: 900;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.mod-remote .remote-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--nov-bg-1);
+  padding: 3px;
+  border-radius: 9px;
+  border: 1px solid var(--nov-border);
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.mod-remote .remote-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--nov-text-1);
+  font-family: var(--nov-font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.mod-remote .remote-tab:hover {
+  color: var(--nov-text-0);
+}
+
+.mod-remote .remote-tab.is-active {
+  background: var(--nov-bg-2);
+  color: var(--nov-text-0);
+}
+
+.mod-remote .remote-offline-banner {
+  background: var(--nov-bg-1);
+  border: 1px solid color-mix(in srgb, var(--nov-success) 45%, var(--nov-border));
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mod-remote .remote-offline-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--nov-text-0);
+  flex-wrap: wrap;
+}
+
+.mod-remote .remote-offline-desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--nov-text-1);
+  line-height: 1.5;
+}
+
+.mod-remote .remote-card {
+  background: var(--nov-bg-1);
+  border: 1px solid var(--nov-border);
+  border-radius: 10px;
+  padding: 11px 12px;
+}
+
+.mod-remote .remote-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mod-remote .remote-stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.mod-remote .remote-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 8px;
+}
+
+.mod-remote .remote-kpi-label {
+  font-size: 10.5px;
+  color: var(--nov-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mod-remote .remote-kpi-value {
+  font-size: 19px;
+  font-weight: 700;
+  font-family: var(--nov-font-mono);
+  margin-top: 2px;
+  color: var(--nov-text-0);
+}
+
+.mod-remote .remote-kpi-value.is-warn {
+  color: var(--nov-warn);
+}
+
+.mod-remote .remote-kpi-value.is-good {
+  color: var(--nov-success);
+}
+
+.mod-remote .remote-badge {
+  font-size: 10px;
+  font-family: var(--nov-font-mono);
+  padding: 2px 6px;
+  border-radius: 99px;
+  background: var(--nov-bg-2);
+  color: var(--nov-text-1);
+  border: 1px solid var(--nov-border);
+}
+
+.mod-remote .remote-badge.is-good {
+  color: var(--nov-success);
+  background: var(--nov-success-soft);
+  border-color: color-mix(in srgb, var(--nov-success) 40%, transparent);
+}
+
+.mod-remote .remote-badge.is-warn {
+  color: var(--nov-warn);
+  background: var(--nov-warn-soft);
+  border-color: color-mix(in srgb, var(--nov-warn) 40%, transparent);
+}
+
+.mod-remote .remote-badge.is-danger {
+  color: var(--nov-danger);
+  background: var(--nov-danger-soft);
+  border-color: color-mix(in srgb, var(--nov-danger) 40%, transparent);
+}
+
+.mod-remote .remote-badge.is-info {
+  color: var(--nov-accent);
+  background: var(--nov-accent-soft);
+  border-color: color-mix(in srgb, var(--nov-accent) 40%, transparent);
+}
+
+.mod-remote .remote-btn {
+  appearance: none;
+  background: var(--nov-bg-1);
+  color: var(--nov-text-0);
+  border: 1px solid var(--nov-border);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-family: var(--nov-font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.mod-remote .remote-btn:hover:not(:disabled) {
+  background: var(--nov-bg-2);
+  border-color: var(--nov-accent);
+}
+
+.mod-remote .remote-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mod-remote .remote-btn.is-primary {
+  background: var(--nov-accent-soft);
+  border-color: color-mix(in srgb, var(--nov-accent) 55%, transparent);
+  color: var(--nov-accent);
+}
+
+.mod-remote .remote-btn.is-good {
+  background: var(--nov-success-soft);
+  border-color: var(--nov-success);
+  color: var(--nov-success);
+}
+
+.mod-remote .remote-btn.is-danger {
+  background: var(--nov-danger-soft);
+  border-color: var(--nov-danger);
+  color: var(--nov-danger);
+}
+
+.mod-remote .remote-input,
+.mod-remote .remote-textarea,
+.mod-remote .remote-select {
+  width: 100%;
+  background: var(--nov-bg-0);
+  color: var(--nov-text-0);
+  border: 1px solid var(--nov-border);
+  border-radius: 7px;
+  padding: 6px 9px;
+  font-size: 12px;
+  font-family: var(--nov-font-sans);
+  outline: none;
+}
+
+.mod-remote .remote-input:focus,
+.mod-remote .remote-textarea:focus,
+.mod-remote .remote-select:focus {
+  border-color: var(--nov-accent);
+}
+
+.mod-remote .remote-textarea {
+  resize: vertical;
+}
+
+.mod-remote .remote-field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--nov-text-1);
+}
+
+.mod-remote .remote-checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--nov-text-0);
+  cursor: pointer;
+}
+
+.mod-remote .remote-checkbox-row input[type='checkbox'] {
+  width: auto;
+  margin: 0;
+}
+
+.mod-remote .remote-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.mod-remote .remote-row.is-between {
+  justify-content: space-between;
+}
+
+.mod-remote .remote-item {
+  background: var(--nov-bg-2);
+  border: 1px solid var(--nov-border);
+  border-radius: 8px;
+  padding: 9px 10px;
+}
+
+.mod-remote .remote-mono {
+  font-family: var(--nov-font-mono);
+}
+
+.mod-remote .remote-muted {
+  color: var(--nov-text-1);
+  font-size: 12px;
+}
+
+.mod-remote .remote-codebox {
+  background: var(--nov-bg-0);
+  border: 1px solid var(--nov-border);
+  border-radius: 7px;
+  padding: 7px 9px;
+  font-family: var(--nov-font-mono);
+  font-size: 11.5px;
+  word-break: break-all;
+  white-space: pre-wrap;
+  color: var(--nov-text-0);
+}
+
+.mod-remote .remote-error {
+  background: var(--nov-danger-soft);
+  border: 1px solid var(--nov-danger);
+  color: var(--nov-danger);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.mod-remote .remote-toast {
+  position: fixed;
+  bottom: 14px;
+  right: 14px;
+  background: var(--nov-bg-1);
+  color: var(--nov-text-0);
+  border: 1px solid var(--nov-accent);
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-size: 12px;
+  z-index: 60;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}

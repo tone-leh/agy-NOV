@@ -1,0 +1,2570 @@
+"use strict";
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// src/hooks/dispatcher.ts
+var dispatcher_exports = {};
+__export(dispatcher_exports, {
+  dispatchNovHook: () => dispatchNovHook
+});
+module.exports = __toCommonJS(dispatcher_exports);
+var import_node_fs9 = __toESM(require("node:fs"), 1);
+
+// src/core/config.ts
+var import_node_fs = __toESM(require("node:fs"), 1);
+var import_node_os = __toESM(require("node:os"), 1);
+var import_node_path = __toESM(require("node:path"), 1);
+
+// src/core/catalog.ts
+var MODULE_IDS = ["review", "guard", "xray", "canvas", "mem", "remote"];
+var PRESET_IDS = ["core", "local-all", "full", "minimal"];
+var PRESET_DEFINITIONS = {
+  core: {
+    id: "core",
+    label: "Core (Default)",
+    description: "Review + Guard + X-Ray \u2014 100% offline local essentials with low token footprint.",
+    modules: { review: true, guard: true, xray: true, canvas: false, mem: false, remote: false }
+  },
+  "local-all": {
+    id: "local-all",
+    label: "Local All (5 Offline)",
+    description: "All 5 local modules enabled; Remote stays completely off with zero network activity.",
+    modules: { review: true, guard: true, xray: true, canvas: true, mem: true, remote: false }
+  },
+  full: {
+    id: "full",
+    label: "Full Suite (6 Modules)",
+    description: "All 6 modules including the opt-in Mobile PWA / IM remote approval hub.",
+    modules: { review: true, guard: true, xray: true, canvas: true, mem: true, remote: true }
+  },
+  minimal: {
+    id: "minimal",
+    label: "Minimal Shield",
+    description: "Guard only \u2014 secret shield & pre-edit snapshots with minimum model tool overhead.",
+    modules: { review: false, guard: true, xray: false, canvas: false, mem: false, remote: false }
+  }
+};
+function isModuleId(value) {
+  return typeof value === "string" && MODULE_IDS.includes(value);
+}
+
+// src/core/config.ts
+function sanitizeDataDirCandidate(candidate) {
+  if (!candidate) return void 0;
+  const trimmed = candidate.trim();
+  if (!trimmed) return void 0;
+  if (/\$\{?[A-Za-z_][A-Za-z0-9_]*\}?/.test(trimmed)) return void 0;
+  return import_node_path.default.resolve(trimmed);
+}
+function resolveNovDataDir(cliDataDir) {
+  return sanitizeDataDirCandidate(cliDataDir) ?? sanitizeDataDirCandidate(process.env.AGY_NOV_DATA_DIR) ?? sanitizeDataDirCandidate(process.env.PLUGIN_DATA) ?? import_node_path.default.join(import_node_os.default.homedir(), ".agy-nov-data");
+}
+function getModuleDataDir(rootDataDir, moduleId) {
+  return import_node_path.default.join(rootDataDir, "modules", moduleId);
+}
+function getConfigPath(rootDataDir) {
+  return import_node_path.default.join(rootDataDir, "config.json");
+}
+function createDefaultConfig() {
+  return {
+    schemaVersion: 1,
+    preset: "core",
+    modules: { ...PRESET_DEFINITIONS.core.modules },
+    defaultTab: "review",
+    updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+}
+function detectPreset(modules) {
+  for (const id of PRESET_IDS) {
+    const target = PRESET_DEFINITIONS[id].modules;
+    if (MODULE_IDS.every((m) => Boolean(modules[m]) === Boolean(target[m]))) {
+      return id;
+    }
+  }
+  return "custom";
+}
+function normalizeConfig(raw) {
+  const base = createDefaultConfig();
+  if (!raw || typeof raw !== "object") return base;
+  const obj = raw;
+  const rawMods = obj.modules && typeof obj.modules === "object" ? obj.modules : {};
+  const modules = { ...base.modules };
+  for (const id of MODULE_IDS) {
+    if (typeof rawMods[id] === "boolean") {
+      modules[id] = rawMods[id];
+    }
+  }
+  const enabledList = MODULE_IDS.filter((id) => modules[id]);
+  const defaultTab = isModuleId(obj.defaultTab) && modules[obj.defaultTab] ? obj.defaultTab : enabledList[0] ?? "review";
+  return {
+    schemaVersion: 1,
+    preset: detectPreset(modules),
+    modules,
+    defaultTab,
+    updatedAt: typeof obj.updatedAt === "string" ? obj.updatedAt : base.updatedAt
+  };
+}
+function loadNovConfigReadOnly(rootDataDir) {
+  const cfgPath = getConfigPath(rootDataDir);
+  if (!import_node_fs.default.existsSync(cfgPath)) {
+    return createDefaultConfig();
+  }
+  try {
+    const raw = JSON.parse(import_node_fs.default.readFileSync(cfgPath, "utf8"));
+    return normalizeConfig(raw);
+  } catch {
+    return createDefaultConfig();
+  }
+}
+
+// src/core/utils.ts
+var import_node_fs2 = __toESM(require("node:fs"), 1);
+function parseCliFlag(argv, flag) {
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === flag && i + 1 < argv.length) {
+      return argv[i + 1];
+    }
+    if (arg.startsWith(`${flag}=`)) {
+      return arg.slice(flag.length + 1);
+    }
+  }
+  return void 0;
+}
+function ensurePrivateDir(dirPath) {
+  import_node_fs2.default.mkdirSync(dirPath, { recursive: true, mode: 448 });
+  try {
+    import_node_fs2.default.chmodSync(dirPath, 448);
+  } catch {
+  }
+}
+function normalizeHookEvent(rawEvent, fallback) {
+  if (rawEvent === "SessionStart" || rawEvent === "PreToolUse" || rawEvent === "PostToolUse" || rawEvent === "Stop") {
+    return rawEvent;
+  }
+  return fallback;
+}
+function asRecord(val) {
+  if (val && typeof val === "object" && !Array.isArray(val)) {
+    return val;
+  }
+  return void 0;
+}
+function normalizeHookPayload(rawInput, fallbackEvent) {
+  const raw = asRecord(rawInput) ?? {};
+  const toolCall = asRecord(raw.toolCall) ?? asRecord(raw.tool_call);
+  const toolNameCandidate = toolCall?.name ?? raw.toolName ?? raw.tool_name ?? raw.name ?? void 0;
+  const toolName = typeof toolNameCandidate === "string" ? toolNameCandidate : void 0;
+  const toolInputRaw = toolCall?.args ?? toolCall?.arguments ?? toolCall?.input ?? raw.toolInput ?? raw.tool_input ?? raw.arguments ?? raw.input;
+  let toolInput;
+  if (typeof toolInputRaw === "string") {
+    try {
+      toolInput = asRecord(JSON.parse(toolInputRaw));
+    } catch {
+      toolInput = { raw: toolInputRaw };
+    }
+  } else {
+    toolInput = asRecord(toolInputRaw);
+  }
+  const workspacePaths = [];
+  if (Array.isArray(raw.workspacePaths)) {
+    for (const p of raw.workspacePaths) {
+      if (typeof p === "string" && p.trim()) workspacePaths.push(p);
+    }
+  }
+  if (Array.isArray(raw.workspace_paths)) {
+    for (const p of raw.workspace_paths) {
+      if (typeof p === "string" && p.trim() && !workspacePaths.includes(p)) {
+        workspacePaths.push(p);
+      }
+    }
+  }
+  const singleWorkspace = typeof raw.workspaceRoot === "string" && raw.workspaceRoot || typeof raw.workspace_root === "string" && raw.workspace_root || typeof raw.cwd === "string" && raw.cwd || workspacePaths[0];
+  if (singleWorkspace && !workspacePaths.includes(singleWorkspace)) {
+    workspacePaths.unshift(singleWorkspace);
+  }
+  const event = normalizeHookEvent(raw.hookEventName ?? raw.hook_event_name ?? raw.event, fallbackEvent);
+  const conversationId = typeof raw.conversationId === "string" && raw.conversationId || typeof raw.conversation_id === "string" && raw.conversation_id || void 0;
+  const transcriptPath = typeof raw.transcriptPath === "string" && raw.transcriptPath || typeof raw.transcript_path === "string" && raw.transcript_path || void 0;
+  const lastUserInput = typeof raw.lastUserInput === "string" && raw.lastUserInput || typeof raw.last_user_input === "string" && raw.last_user_input || void 0;
+  const terminationReason = typeof raw.terminationReason === "string" && raw.terminationReason || typeof raw.termination_reason === "string" && raw.termination_reason || void 0;
+  const pluginData = typeof raw.pluginData === "string" && raw.pluginData || typeof raw.plugin_data === "string" && raw.plugin_data || void 0;
+  const toolCallId = typeof toolCall?.id === "string" && toolCall.id || typeof raw.toolCallId === "string" && raw.toolCallId || void 0;
+  const stepIdx = typeof raw.stepIdx === "number" ? raw.stepIdx : typeof raw.step_idx === "number" ? raw.step_idx : void 0;
+  return {
+    event,
+    conversationId,
+    workspacePaths,
+    workspaceRoot: singleWorkspace,
+    cwd: typeof raw.cwd === "string" ? raw.cwd : singleWorkspace,
+    transcriptPath,
+    lastUserInput,
+    terminationReason,
+    error: raw.error,
+    stepIdx,
+    toolCallId,
+    toolName,
+    toolInput,
+    pluginData,
+    raw
+  };
+}
+
+// src/modules/guard/hook.ts
+var import_node_path4 = __toESM(require("node:path"), 1);
+
+// src/modules/guard/policy.ts
+var import_node_path2 = __toESM(require("node:path"), 1);
+var SECRET_PATTERNS = [
+  {
+    ruleId: "secret.private-key",
+    label: "Private Key Block",
+    severity: "critical",
+    regex: /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/g
+  },
+  {
+    ruleId: "secret.aws-access-key",
+    label: "AWS Access Key ID",
+    severity: "critical",
+    regex: /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g
+  },
+  {
+    ruleId: "secret.github-token",
+    label: "GitHub Personal Access Token",
+    severity: "critical",
+    regex: /\b(?:ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|gho_[A-Za-z0-9]{30,})\b/g
+  },
+  {
+    ruleId: "secret.google-api-key",
+    label: "Google / Gemini API Key",
+    severity: "high",
+    regex: /\bAIza[0-9A-Za-z_-]{35}\b/g
+  },
+  {
+    ruleId: "secret.openai-anthropic",
+    label: "OpenAI / Anthropic / Stripe Secret Key",
+    severity: "critical",
+    regex: /\b(?:sk-ant-[A-Za-z0-9_-]{20,}|sk-proj-[A-Za-z0-9_-]{20,}|sk_live_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{32,})\b/g
+  },
+  {
+    ruleId: "secret.slack-token",
+    label: "Slack API Token",
+    severity: "high",
+    regex: /\bxox[baprs]-[0-9A-Za-z-]{16,}\b/g
+  },
+  {
+    ruleId: "secret.jwt-bearer",
+    label: "Hardcoded Bearer JWT",
+    severity: "high",
+    regex: /Bearer\s+eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g
+  },
+  {
+    ruleId: "secret.generic-assignment",
+    label: "Hardcoded Secret Assignment",
+    severity: "medium",
+    regex: /\b(?:API_KEY|SECRET_KEY|ACCESS_TOKEN|PRIVATE_TOKEN|DB_PASSWORD|DATABASE_PASSWORD)\s*[:=]\s*['"`](?!YOUR_|REPLACE_|EXAMPLE_|TEST_|DUMMY_|<|\$\{)[A-Za-z0-9_/+=-]{18,}['"`]/g
+  }
+];
+var SAFE_ENV_SUFFIXES = [".example", ".sample", ".template", ".dist"];
+var SENSITIVE_BASENAMES = /* @__PURE__ */ new Set([
+  ".env",
+  ".npmrc",
+  ".netrc",
+  ".pypirc",
+  "id_rsa",
+  "id_ed25519",
+  "id_dsa",
+  "id_ecdsa",
+  "credentials",
+  "secrets.yaml",
+  "secrets.yml",
+  "secrets.json",
+  "master.key"
+]);
+var SHELL_SENSITIVE_BASENAMES = /* @__PURE__ */ new Set([
+  "id_rsa",
+  "id_ed25519",
+  "id_dsa",
+  "id_ecdsa",
+  ".netrc",
+  ".npmrc",
+  ".pypirc"
+]);
+var SENSITIVE_EXTENSIONS = /* @__PURE__ */ new Set([".pem", ".key", ".p12", ".pfx", ".jks", ".keystore"]);
+var SENSITIVE_PATH_REGEXES = [
+  { ruleId: "path.ssh-dir", regex: /(?:^|[/\\])\.ssh(?:[/\\]|$)/i, label: "SSH key directory (~/.ssh)" },
+  { ruleId: "path.aws-dir", regex: /(?:^|[/\\])\.aws[/\\](?:credentials|config)(?:[/\\]|$)/i, label: "AWS credentials directory" },
+  { ruleId: "path.kube-config", regex: /(?:^|[/\\])\.kube[/\\]config$/i, label: "Kubernetes config" },
+  { ruleId: "path.gcp-sa", regex: /service[-_]?account.*\.json$/i, label: "GCP service account JSON" },
+  { ruleId: "path.gnupg", regex: /(?:^|[/\\])\.gnupg(?:[/\\]|$)/i, label: "GPG private keyring" }
+];
+var DESTRUCTIVE_COMMAND_RULES = [
+  {
+    ruleId: "cmd.git-force-push",
+    regex: /\bgit\s+push\b[^\n]*(?:\s--force\b|\s-f\b|\s--force-with-lease\b)/,
+    label: "Git force push"
+  },
+  {
+    ruleId: "cmd.git-reset-hard",
+    regex: /\bgit\s+(?:reset\s+--hard|clean\s+-[a-zA-Z]*f[a-zA-Z]*d)/,
+    label: "Destructive git reset --hard / clean -fd"
+  },
+  {
+    ruleId: "cmd.disk-format",
+    regex: /\b(?:mkfs\.[a-z0-9]+|dd\s+if=.*of=\/dev\/|diskutil\s+eraseDisk)\b/i,
+    label: "Raw disk wipe / format command"
+  },
+  {
+    ruleId: "cmd.chmod-777",
+    regex: /\bchmod\s+(?:-R\s+)?0?777\b/,
+    label: "World-writable chmod 777 permission change"
+  },
+  {
+    ruleId: "cmd.fork-bomb",
+    regex: /:\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:/,
+    label: "Shell fork bomb"
+  }
+];
+var SQL_DESTRUCTIVE_REGEX = /\b(?:DROP\s+(?:DATABASE|SCHEMA|TABLE)|TRUNCATE\s+TABLE)\b/i;
+var NETWORK_PIPE_RULES = [
+  {
+    ruleId: "cmd.curl-pipe-shell",
+    regex: /\b(?:curl|wget)\b[^\n|]*\|\s*(?:sudo\s+)?(?:sh|bash|zsh|fish|python3?|node)\b/,
+    label: "Remote script piped directly into shell/interpreter"
+  }
+];
+var CATASTROPHIC_SYSTEM_ROOT_PREFIX_RE = /^\/(?:etc|usr|bin|sbin|lib|lib64|boot|dev|proc|sys|root|System|Library)(?:\/|$)/;
+var CATASTROPHIC_TOP_LEVEL_DIR_RE = /^\/(?:var|home|Users|Applications|opt)(?:\/?\*?)?$/;
+function splitShellSegments(commandLine) {
+  const segments = [];
+  let current = "";
+  let quote = null;
+  let escaped = false;
+  for (let i = 0; i < commandLine.length; i++) {
+    const ch = commandLine[i];
+    if (escaped) {
+      current += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\" && quote !== "'") {
+      current += ch;
+      escaped = true;
+      continue;
+    }
+    if (quote) {
+      if (ch === quote) quote = null;
+      current += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      current += ch;
+      continue;
+    }
+    const next = commandLine[i + 1];
+    if (ch === "\n" || ch === ";") {
+      if (current.trim()) segments.push({ segment: current.trim(), pipedToNext: false });
+      current = "";
+      continue;
+    }
+    if (ch === "&" && next === "&" || ch === "|" && next === "|") {
+      if (current.trim()) segments.push({ segment: current.trim(), pipedToNext: false });
+      current = "";
+      i++;
+      continue;
+    }
+    if (ch === "|") {
+      if (current.trim()) segments.push({ segment: current.trim(), pipedToNext: true });
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  if (current.trim()) segments.push({ segment: current.trim(), pipedToNext: false });
+  return segments;
+}
+function tokenizeSimpleShellSegment(segment) {
+  const tokens = [];
+  let current = "";
+  let quote = null;
+  let escaped = false;
+  for (let i = 0; i < segment.length; i++) {
+    const ch = segment[i];
+    if (escaped) {
+      current += ch;
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\" && quote !== "'") {
+      escaped = true;
+      continue;
+    }
+    if (quote) {
+      if (ch === quote) quote = null;
+      else current += ch;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (/\s/.test(ch)) {
+      if (current) {
+        tokens.push(current);
+        current = "";
+      }
+      continue;
+    }
+    current += ch;
+  }
+  if (current) tokens.push(current);
+  return tokens;
+}
+function stripCommandWrappers(tokens) {
+  let idx = 0;
+  while (idx < tokens.length) {
+    const tok = tokens[idx];
+    if (tok === "sudo" || tok === "env" || tok === "command" || tok === "nohup" || tok === "time") {
+      idx++;
+      while (idx < tokens.length && tokens[idx].startsWith("-")) {
+        const flag = tokens[idx];
+        idx++;
+        if ((flag === "-u" || flag === "-g" || flag === "-C") && idx < tokens.length) idx++;
+      }
+      continue;
+    }
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(tok)) {
+      idx++;
+      continue;
+    }
+    break;
+  }
+  return tokens.slice(idx);
+}
+function isCatastrophicRmTarget(rawTarget) {
+  const trimmed = rawTarget.trim();
+  if (!trimmed) return false;
+  const collapsed = trimmed.replace(/\/+/g, "/");
+  const candidates = [collapsed];
+  if (collapsed.startsWith("/")) {
+    const normalizedAbs = import_node_path2.default.posix.normalize(collapsed);
+    if (normalizedAbs !== collapsed) candidates.push(normalizedAbs);
+  }
+  for (const target of candidates) {
+    if (target === "/" || target === "/*" || target === "/." || target === "~" || target === "~/" || target === "~/*" || target === "$HOME" || target === "$HOME/" || target === "$HOME/*" || target === "${HOME}" || target === "${HOME}/" || target === "${HOME}/*" || target === "*" || target === "." || target === "./" || target === "./*" || target === ".." || target === "../" || target === "../*") {
+      return true;
+    }
+    if (CATASTROPHIC_SYSTEM_ROOT_PREFIX_RE.test(target)) return true;
+    if (CATASTROPHIC_TOP_LEVEL_DIR_RE.test(target)) return true;
+  }
+  return false;
+}
+function isCatastrophicRmCommand(commandLine) {
+  for (const { segment } of splitShellSegments(commandLine)) {
+    const tokens = stripCommandWrappers(tokenizeSimpleShellSegment(segment));
+    if (tokens.length < 2) continue;
+    const cmd = import_node_path2.default.posix.basename(tokens[0].replace(/\\/g, "/"));
+    if (cmd !== "rm") continue;
+    let hasRecursive = false;
+    let endOfFlags = false;
+    const targets = [];
+    for (let i = 1; i < tokens.length; i++) {
+      const tok = tokens[i];
+      if (!endOfFlags && tok === "--") {
+        endOfFlags = true;
+        continue;
+      }
+      if (!endOfFlags && tok.startsWith("--")) {
+        if (tok === "--recursive") hasRecursive = true;
+        continue;
+      }
+      if (!endOfFlags && tok.startsWith("-") && tok.length > 1) {
+        if (/[rR]/.test(tok.slice(1))) hasRecursive = true;
+        continue;
+      }
+      targets.push(tok);
+    }
+    if (hasRecursive && targets.some((t) => isCatastrophicRmTarget(t))) {
+      return true;
+    }
+  }
+  return false;
+}
+function hasUnquotedRedirection(segment) {
+  let quote = null;
+  let escaped = false;
+  for (let i = 0; i < segment.length; i++) {
+    const ch = segment[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\" && quote !== "'") {
+      escaped = true;
+      continue;
+    }
+    if (quote) {
+      if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (ch === ">") return true;
+  }
+  return false;
+}
+function hasDangerousSqlCommand(commandLine) {
+  if (!SQL_DESTRUCTIVE_REGEX.test(commandLine)) return false;
+  const segments = splitShellSegments(commandLine);
+  for (const { segment, pipedToNext } of segments) {
+    if (!SQL_DESTRUCTIVE_REGEX.test(segment)) continue;
+    const tokens = stripCommandWrappers(tokenizeSimpleShellSegment(segment));
+    if (tokens.length === 0) return true;
+    const cmd = import_node_path2.default.posix.basename(tokens[0].replace(/\\/g, "/")).toLowerCase();
+    const sub = (tokens[1] ?? "").toLowerCase();
+    const hasRedirection = hasUnquotedRedirection(segment);
+    if (!pipedToNext && !hasRedirection) {
+      if (cmd === "git" && (sub === "commit" || sub === "log" || sub === "tag")) {
+        continue;
+      }
+      if (cmd === "grep" || cmd === "egrep" || cmd === "fgrep" || cmd === "rg" || cmd === "ag") {
+        continue;
+      }
+      if (cmd === "echo" || cmd === "printf") {
+        continue;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+function isSafeEnvBasename(lowerBase) {
+  return lowerBase.startsWith(".env.") && SAFE_ENV_SUFFIXES.some((s) => lowerBase.endsWith(s));
+}
+function detectCommandSensitiveAccess(commandLine, customProtectedPaths) {
+  const rawTokens = commandLine.split(/[\s"'`()\[\]{}<>|&;,=@:]+/).filter(Boolean);
+  for (const rawTok of rawTokens) {
+    const norm = rawTok.replace(/\\/g, "/").replace(/\/+$/, "");
+    if (!norm || norm === "-" || norm === "--") continue;
+    const base = import_node_path2.default.posix.basename(norm);
+    const lowerBase = base.toLowerCase();
+    if (lowerBase === ".env" || lowerBase === ".envrc" || lowerBase.startsWith(".env.") || /^\.env[*?[]/.test(lowerBase)) {
+      if (!isSafeEnvBasename(lowerBase)) {
+        return {
+          ruleId: "cmd.read-env-secret",
+          category: "sensitive-file",
+          label: `Shell access/exfiltration of .env file (${base})`
+        };
+      }
+      continue;
+    }
+    if (/(?:^|\/)\.ssh(?:\/|$)/i.test(norm)) {
+      return {
+        ruleId: "cmd.read-ssh-aws",
+        category: "sensitive-file",
+        label: "Shell access/exfiltration of SSH directory"
+      };
+    }
+    if (/(?:^|\/)\.aws\/(?:credentials|config)(?:\/|$)/i.test(norm)) {
+      return {
+        ruleId: "cmd.read-ssh-aws",
+        category: "sensitive-file",
+        label: "Shell access/exfiltration of AWS credentials"
+      };
+    }
+    if (/(?:^|\/)\.gnupg(?:\/|$)/i.test(norm)) {
+      return {
+        ruleId: "cmd.read-ssh-aws",
+        category: "sensitive-file",
+        label: "Shell access/exfiltration of GPG private keyring"
+      };
+    }
+    if (/(?:^|\/)\.kube\/config$/i.test(norm)) {
+      return {
+        ruleId: "cmd.read-ssh-aws",
+        category: "sensitive-file",
+        label: "Shell access/exfiltration of Kubernetes config"
+      };
+    }
+    if (SHELL_SENSITIVE_BASENAMES.has(lowerBase)) {
+      return {
+        ruleId: "cmd.read-ssh-aws",
+        category: "sensitive-file",
+        label: `Shell access/exfiltration of credential file (${base})`
+      };
+    }
+    for (const rawPat of customProtectedPaths) {
+      const pat = rawPat.trim();
+      if (!pat) continue;
+      if (norm.toLowerCase().includes(pat.toLowerCase())) {
+        return {
+          ruleId: "custom.path",
+          category: "custom",
+          label: `Custom protected path rule (${pat})`
+        };
+      }
+    }
+  }
+  return null;
+}
+function maskSecret(raw) {
+  const clean = raw.trim();
+  if (clean.length <= 10) return `${clean.slice(0, 2)}****`;
+  return `${clean.slice(0, 5)}****${clean.slice(-3)}`;
+}
+function redactCommand(cmd) {
+  if (!cmd) return "";
+  let out = cmd;
+  out = out.replace(
+    /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----[\s\S]*?(?:-----END (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----|$)/g,
+    (match) => match.includes("****") ? match : maskSecret(match)
+  );
+  out = out.replace(
+    /\b((?:Bearer|Basic|Token)\s+)([A-Za-z0-9._~+/=-]{6,})/gi,
+    (full, prefix, token) => token.includes("****") ? full : `${prefix}${maskSecret(token)}`
+  );
+  out = out.replace(
+    /([a-z][a-z0-9+.-]*:\/\/[^/\s:@]+:)([^@\s]+)@/gi,
+    (full, prefix, secret) => secret.includes("****") ? full : `${prefix}${maskSecret(secret)}@`
+  );
+  out = out.replace(
+    /((?:^|\s)(?:-u|--user)(?:\s+|=))([^:\s'"]+):([^\s'"]+)/g,
+    (full, flag, user, pass) => pass.includes("****") ? full : `${flag}${user}:${maskSecret(pass)}`
+  );
+  for (const pat of SECRET_PATTERNS) {
+    pat.regex.lastIndex = 0;
+    out = out.replace(pat.regex, (match) => match.includes("****") ? match : maskSecret(match));
+  }
+  out = out.replace(
+    /(^|[\s"'`({;,])((?:--)?[A-Za-z0-9_.-]*(?:key|secret|token|password|passwd|pwd|credential|auth|cookie)[A-Za-z0-9_.-]*['"`]?\s*[:=]\s*)(['"`]?)([^\s'"`;|&(){}]{4,})(\3)/gi,
+    (full, lead, prefix, quote, val, endQuote) => {
+      if (val.includes("****")) return full;
+      if (/^\$(?:\{[A-Za-z0-9_]+\}|[A-Za-z0-9_]+)$/.test(val)) return full;
+      if (/^(?:true|false|null|none|undefined|bearer|basic|token|digest|oauth)$/i.test(val)) return full;
+      return `${lead}${prefix}${quote}${maskSecret(val)}${endQuote}`;
+    }
+  );
+  return out;
+}
+function scanTextForSecrets(text) {
+  if (!text) return [];
+  const findings = [];
+  const seen = /* @__PURE__ */ new Set();
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const lineText = lines[i];
+    if (!lineText || lineText.length > 2e4) continue;
+    for (const pat of SECRET_PATTERNS) {
+      pat.regex.lastIndex = 0;
+      let match;
+      while ((match = pat.regex.exec(lineText)) !== null) {
+        const masked = maskSecret(match[0]);
+        const key = `${pat.ruleId}:${i + 1}:${masked}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        findings.push({
+          ruleId: pat.ruleId,
+          label: pat.label,
+          severity: pat.severity,
+          line: i + 1,
+          preview: masked
+        });
+        if (findings.length >= 25) return findings;
+      }
+    }
+  }
+  return findings;
+}
+function isSensitivePath(filePath, customPatterns = []) {
+  if (!filePath) return { sensitive: false };
+  const normalized = filePath.replace(/\\/g, "/").trim().replace(/\/+$/, "");
+  if (!normalized) return { sensitive: false };
+  const base = import_node_path2.default.posix.basename(normalized);
+  const lowerBase = base.toLowerCase();
+  for (const rule of SENSITIVE_PATH_REGEXES) {
+    if (rule.regex.test(normalized)) {
+      return { sensitive: true, ruleId: rule.ruleId, label: rule.label };
+    }
+  }
+  for (const rawPat of customPatterns) {
+    const pat = rawPat.trim();
+    if (!pat) continue;
+    if (normalized.toLowerCase().includes(pat.toLowerCase())) {
+      return { sensitive: true, ruleId: "custom.path", label: `Custom protected path rule (${pat})` };
+    }
+  }
+  if (isSafeEnvBasename(lowerBase)) {
+    return { sensitive: false };
+  }
+  if (lowerBase === ".env" || lowerBase === ".envrc" || lowerBase.startsWith(".env.")) {
+    return { sensitive: true, ruleId: "path.dotenv", label: `Environment secrets file (${base})` };
+  }
+  if (SENSITIVE_BASENAMES.has(lowerBase)) {
+    return { sensitive: true, ruleId: "path.sensitive-file", label: `Protected credential file (${base})` };
+  }
+  const ext = import_node_path2.default.posix.extname(lowerBase);
+  if (SENSITIVE_EXTENSIONS.has(ext)) {
+    return { sensitive: true, ruleId: "path.private-key-ext", label: `Private key / certificate file (${base})` };
+  }
+  return { sensitive: false };
+}
+function extractTargetPath(args) {
+  const candidates = [
+    args.Path,
+    args.path,
+    args.TargetFile,
+    args.targetFile,
+    args.target_file,
+    args.TargetPath,
+    args.targetPath,
+    args.target_path,
+    args.AbsolutePath,
+    args.absolutePath,
+    args.absolute_path,
+    args.filePath,
+    args.file_path,
+    args.FilePath
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim().length > 0) return c.trim();
+  }
+  return null;
+}
+function extractCommandLine(args) {
+  const candidates = [args.CommandLine, args.commandLine, args.command, args.cmd];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim().length > 0) return c.trim();
+  }
+  return null;
+}
+function extractWritePayload(args) {
+  const parts = [];
+  const directKeys = [
+    "Content",
+    "content",
+    "CodeContent",
+    "Replacement",
+    "replacement",
+    "ReplacementContent",
+    "new_str",
+    "newString",
+    "patch",
+    "Patch",
+    "diff",
+    "Diff",
+    "input",
+    "Input",
+    "text",
+    "Text",
+    "body",
+    "Body",
+    "file_text"
+  ];
+  for (const key of directKeys) {
+    if (typeof args[key] === "string") parts.push(args[key]);
+  }
+  if (Array.isArray(args.ReplacementChunks)) {
+    for (const chunk of args.ReplacementChunks) {
+      if (chunk && typeof chunk === "object" && typeof chunk.ReplacementContent === "string") {
+        parts.push(chunk.ReplacementContent);
+      }
+    }
+  }
+  return parts.join("\n");
+}
+function evaluateToolCall(toolName, args, policy, options) {
+  if (!policy.enabled) {
+    return { decision: "allow", category: "safe", reason: "Guard policy disabled", findings: [] };
+  }
+  const lowerTool = toolName.toLowerCase();
+  const targetPath = extractTargetPath(args);
+  const commandLine = extractCommandLine(args);
+  if (targetPath && policy.protectEnvAndKeys !== "allow") {
+    const check = isSensitivePath(targetPath, policy.customProtectedPaths);
+    if (check.sensitive) {
+      return {
+        decision: policy.protectEnvAndKeys,
+        category: check.ruleId?.startsWith("custom.") ? "custom" : "sensitive-file",
+        ruleId: check.ruleId,
+        reason: `Blocked ${toolName} on protected path: ${check.label} (${import_node_path2.default.basename(targetPath)})`,
+        findings: []
+      };
+    }
+    if (options?.resolvedTargetPath && options.resolvedTargetPath !== targetPath) {
+      const realCheck = isSensitivePath(options.resolvedTargetPath, policy.customProtectedPaths);
+      if (realCheck.sensitive) {
+        return {
+          decision: policy.protectEnvAndKeys,
+          category: realCheck.ruleId?.startsWith("custom.") ? "custom" : "sensitive-file",
+          ruleId: realCheck.ruleId,
+          reason: `Blocked ${toolName} via symlink resolving to protected path: ${realCheck.label} (${import_node_path2.default.basename(options.resolvedTargetPath)})`,
+          findings: []
+        };
+      }
+    }
+  }
+  const isMutatingFileTool = /write|edit|replace|patch_file|apply_patch|create_file|patch/.test(lowerTool);
+  if (isMutatingFileTool && policy.blockSecretWrites !== "allow") {
+    const payload = extractWritePayload(args);
+    if (payload) {
+      const findings = scanTextForSecrets(payload);
+      if (findings.length > 0) {
+        const summary = findings.slice(0, 3).map((f) => `${f.label} (${f.preview})`).join(", ");
+        return {
+          decision: policy.blockSecretWrites,
+          category: "secret-leak",
+          ruleId: findings[0].ruleId,
+          reason: `Detected ${findings.length} potential secret(s) in ${toolName} payload: ${summary}`,
+          findings
+        };
+      }
+    }
+  }
+  if (commandLine) {
+    if (policy.blockDestructiveCommands !== "allow") {
+      if (isCatastrophicRmCommand(commandLine)) {
+        return {
+          decision: policy.blockDestructiveCommands,
+          category: "destructive-command",
+          ruleId: "cmd.rm-rf-root",
+          reason: "Blocked dangerous command: Catastrophic recursive delete (rm -r/-rf targeting /, ~, $HOME, or system root)",
+          findings: []
+        };
+      }
+      if (hasDangerousSqlCommand(commandLine)) {
+        return {
+          decision: policy.blockDestructiveCommands,
+          category: "destructive-command",
+          ruleId: "cmd.sql-drop",
+          reason: "Blocked dangerous command: Destructive SQL DROP/TRUNCATE statement",
+          findings: []
+        };
+      }
+      for (const rule of DESTRUCTIVE_COMMAND_RULES) {
+        if (rule.regex.test(commandLine)) {
+          return {
+            decision: policy.blockDestructiveCommands,
+            category: "destructive-command",
+            ruleId: rule.ruleId,
+            reason: `Blocked dangerous command: ${rule.label}`,
+            findings: []
+          };
+        }
+      }
+    }
+    for (const custom of policy.customBlockedCommands) {
+      const trimmed = custom.trim();
+      if (trimmed && commandLine.toLowerCase().includes(trimmed.toLowerCase())) {
+        return {
+          decision: "deny",
+          category: "custom",
+          ruleId: "custom.command",
+          reason: `Matched custom blocked command pattern: "${trimmed}"`,
+          findings: []
+        };
+      }
+    }
+    if (policy.protectEnvAndKeys !== "allow") {
+      const hit = detectCommandSensitiveAccess(commandLine, policy.customProtectedPaths);
+      if (hit) {
+        return {
+          decision: policy.protectEnvAndKeys,
+          category: hit.category,
+          ruleId: hit.ruleId,
+          reason: `Blocked credential access in shell: ${hit.label}`,
+          findings: []
+        };
+      }
+    }
+    if (policy.askOnNetworkPipes !== "allow") {
+      for (const rule of NETWORK_PIPE_RULES) {
+        if (rule.regex.test(commandLine)) {
+          return {
+            decision: policy.askOnNetworkPipes,
+            category: "network-pipe",
+            ruleId: rule.ruleId,
+            reason: `Requires confirmation: ${rule.label}`,
+            findings: []
+          };
+        }
+      }
+    }
+    if (policy.blockSecretWrites !== "allow") {
+      const cmdSecrets = scanTextForSecrets(commandLine);
+      if (cmdSecrets.length > 0) {
+        return {
+          decision: policy.blockSecretWrites,
+          category: "secret-leak",
+          ruleId: cmdSecrets[0].ruleId,
+          reason: `Command contains inline secret (${cmdSecrets[0].label}: ${cmdSecrets[0].preview})`,
+          findings: cmdSecrets
+        };
+      }
+    }
+  }
+  return { decision: "allow", category: "safe", reason: "Passed all guardrails", findings: [] };
+}
+
+// src/modules/guard/store.ts
+var import_node_crypto = __toESM(require("node:crypto"), 1);
+var import_node_fs3 = __toESM(require("node:fs"), 1);
+var import_node_path3 = __toESM(require("node:path"), 1);
+
+// src/modules/guard/types.ts
+var DEFAULT_POLICY = {
+  enabled: true,
+  protectEnvAndKeys: "deny",
+  blockSecretWrites: "deny",
+  blockDestructiveCommands: "deny",
+  askOnNetworkPipes: "ask",
+  autoSnapshotBeforeEdit: true,
+  maxSnapshotsPerFile: 30,
+  maxSnapshotFileBytes: 1048576,
+  customProtectedPaths: [],
+  customBlockedCommands: []
+};
+
+// src/modules/guard/store.ts
+var SHA256_HEX_RE = /^[a-f0-9]{64}$/;
+var MAX_SYMLINK_DEPTH = 20;
+function ensureDir(dir) {
+  import_node_fs3.default.mkdirSync(dir, { recursive: true, mode: 448 });
+  try {
+    import_node_fs3.default.chmodSync(dir, 448);
+  } catch {
+  }
+}
+function writePrivateJson(filePath, data) {
+  ensureDir(import_node_path3.default.dirname(filePath));
+  const tmp = `${filePath}.${process.pid}.${import_node_crypto.default.randomBytes(4).toString("hex")}.tmp`;
+  import_node_fs3.default.writeFileSync(tmp, `${JSON.stringify(data, null, 2)}
+`, { encoding: "utf8", mode: 384 });
+  try {
+    import_node_fs3.default.chmodSync(tmp, 384);
+  } catch {
+  }
+  import_node_fs3.default.renameSync(tmp, filePath);
+}
+function resolveRealPathWithMissingTail(inputPath, depth = 0) {
+  if (depth > MAX_SYMLINK_DEPTH) {
+    throw new Error(`Too many levels of symbolic links: ${inputPath}`);
+  }
+  const resolved = import_node_path3.default.resolve(inputPath);
+  const missingSegments = [];
+  let current = resolved;
+  while (true) {
+    try {
+      const realBase = import_node_fs3.default.realpathSync(current);
+      return missingSegments.length > 0 ? import_node_path3.default.join(realBase, ...missingSegments.reverse()) : realBase;
+    } catch (err) {
+      const code = err?.code;
+      if (code !== "ENOENT" && code !== "ENOTDIR") {
+        throw err;
+      }
+      try {
+        const lstat = import_node_fs3.default.lstatSync(current);
+        if (lstat.isSymbolicLink()) {
+          const linkTarget = import_node_fs3.default.readlinkSync(current);
+          const resolvedLink = import_node_path3.default.resolve(import_node_path3.default.dirname(current), linkTarget);
+          const nextTarget = missingSegments.length > 0 ? import_node_path3.default.join(resolvedLink, ...missingSegments.reverse()) : resolvedLink;
+          return resolveRealPathWithMissingTail(nextTarget, depth + 1);
+        }
+      } catch {
+      }
+      const parent = import_node_path3.default.dirname(current);
+      if (parent === current) {
+        return resolved;
+      }
+      missingSegments.push(import_node_path3.default.basename(current));
+      current = parent;
+    }
+  }
+}
+function assertInsideWorkspace(workspaceRoot, targetPath) {
+  if (!workspaceRoot || workspaceRoot.includes("\0")) {
+    throw new Error("Invalid workspace root path");
+  }
+  if (!targetPath || targetPath.includes("\0")) {
+    throw new Error("Invalid target path");
+  }
+  const realRoot = resolveRealPathWithMissingTail(workspaceRoot);
+  const candidate = import_node_path3.default.isAbsolute(targetPath) ? targetPath : import_node_path3.default.resolve(workspaceRoot, targetPath);
+  const realTarget = resolveRealPathWithMissingTail(candidate);
+  const rootPrefix = realRoot.endsWith(import_node_path3.default.sep) ? realRoot : `${realRoot}${import_node_path3.default.sep}`;
+  if (realTarget !== realRoot && !realTarget.startsWith(rootPrefix)) {
+    throw new Error(`Path escapes workspace boundary: ${targetPath}`);
+  }
+  return realTarget;
+}
+function assertNotSensitive(rawPath, realPath, customProtectedPaths, action) {
+  const rawCheck = isSensitivePath(rawPath, customProtectedPaths);
+  const realCheck = isSensitivePath(realPath, customProtectedPaths);
+  if (rawCheck.sensitive || realCheck.sensitive) {
+    const label = rawCheck.label ?? realCheck.label ?? import_node_path3.default.basename(realPath);
+    throw new Error(`Refused to ${action} sensitive path: ${label}`);
+  }
+}
+function readJsonSafe(filePath, fallback) {
+  try {
+    if (!import_node_fs3.default.existsSync(filePath)) return fallback;
+    return JSON.parse(import_node_fs3.default.readFileSync(filePath, "utf8"));
+  } catch {
+    return fallback;
+  }
+}
+function sha256Buffer(buf) {
+  return import_node_crypto.default.createHash("sha256").update(buf).digest("hex");
+}
+function loadPolicy(dataDir) {
+  const stored = readJsonSafe(import_node_path3.default.join(dataDir, "policy.json"), {});
+  return { ...DEFAULT_POLICY, ...stored };
+}
+function loadSnapshots(dataDir) {
+  return readJsonSafe(import_node_path3.default.join(dataDir, "snapshots.json"), []);
+}
+function saveSnapshots(dataDir, records) {
+  writePrivateJson(import_node_path3.default.join(dataDir, "snapshots.json"), records);
+}
+function loadAuditLog(dataDir) {
+  return readJsonSafe(import_node_path3.default.join(dataDir, "audit.json"), []);
+}
+function appendAuditEvent(dataDir, event) {
+  const existing = loadAuditLog(dataDir);
+  const full = {
+    id: event.id ?? `evt_${import_node_crypto.default.randomBytes(5).toString("hex")}`,
+    timestamp: event.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+    event: event.event,
+    toolName: event.toolName,
+    decision: event.decision,
+    category: event.category,
+    target: redactCommand(event.target),
+    summary: redactCommand(event.summary),
+    ruleId: event.ruleId,
+    snapshotId: event.snapshotId,
+    isDemo: event.isDemo
+  };
+  const next = [full, ...existing].slice(0, 200);
+  writePrivateJson(import_node_path3.default.join(dataDir, "audit.json"), next);
+  return full;
+}
+function blobPath(dataDir, hash) {
+  if (!SHA256_HEX_RE.test(hash)) {
+    throw new Error("Invalid snapshot blob hash: expected 64 lowercase hexadecimal characters");
+  }
+  return import_node_path3.default.join(dataDir, "blobs", `${hash}.blob`);
+}
+function capturePreEditSnapshot(params) {
+  const { dataDir, toolName, reason, policy, workspaceRoot, restoredFromId } = params;
+  const realRoot = assertInsideWorkspace(workspaceRoot, workspaceRoot);
+  const safePath = assertInsideWorkspace(workspaceRoot, params.filePath);
+  assertNotSensitive(params.filePath, safePath, policy.customProtectedPaths, "snapshot");
+  const relPath = import_node_path3.default.relative(realRoot, safePath) || import_node_path3.default.basename(safePath);
+  const existed = import_node_fs3.default.existsSync(safePath);
+  let sha256 = "EMPTY_FILE";
+  let sizeBytes = 0;
+  let lineCount = 0;
+  if (existed) {
+    const stat = import_node_fs3.default.statSync(safePath);
+    if (!stat.isFile() || stat.size > policy.maxSnapshotFileBytes) {
+      return null;
+    }
+    const raw = import_node_fs3.default.readFileSync(safePath);
+    if (raw.includes(0)) return null;
+    sha256 = sha256Buffer(raw);
+    sizeBytes = raw.byteLength;
+    lineCount = raw.toString("utf8").split(/\r?\n/).length;
+    const targetBlob = blobPath(dataDir, sha256);
+    if (!import_node_fs3.default.existsSync(targetBlob)) {
+      ensureDir(import_node_path3.default.dirname(targetBlob));
+      import_node_fs3.default.writeFileSync(targetBlob, raw, { mode: 384 });
+      try {
+        import_node_fs3.default.chmodSync(targetBlob, 384);
+      } catch {
+      }
+    }
+  }
+  const isManualCheckpoint = toolName === "guard_create_checkpoint" || toolName === "create_checkpoint";
+  const all = loadSnapshots(dataDir);
+  const latestForFile = all.find((s) => s.filePath === safePath && !s.isDemo);
+  if (latestForFile && latestForFile.sha256 === sha256 && latestForFile.existed === existed && !isManualCheckpoint && !restoredFromId) {
+    return latestForFile;
+  }
+  const record = {
+    id: `snap_${Date.now().toString(36)}_${import_node_crypto.default.randomBytes(3).toString("hex")}`,
+    filePath: safePath,
+    relPath,
+    toolName,
+    reason,
+    createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+    sha256,
+    sizeBytes,
+    lineCount,
+    existed,
+    restoredFromId
+  };
+  const sameFile = [record, ...all.filter((s) => s.filePath === safePath)].slice(0, policy.maxSnapshotsPerFile);
+  const others = all.filter((s) => s.filePath !== safePath);
+  const next = [...sameFile, ...others].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 300);
+  saveSnapshots(dataDir, next);
+  appendAuditEvent(dataDir, {
+    event: isManualCheckpoint ? "Checkpoint" : "PreToolUse",
+    toolName,
+    decision: "snapshot",
+    category: "time-machine",
+    target: relPath,
+    summary: existed ? `Saved pre-edit snapshot (${lineCount} lines, ${sizeBytes} B) before ${toolName}` : `Recorded pre-create marker before ${toolName} creates ${relPath}`,
+    snapshotId: record.id
+  });
+  return record;
+}
+
+// src/modules/guard/hook.ts
+var MUTATING_FILE_TOOL_RE = /^(edit_file|write_file|write_to_file|create_file|patch_file|apply_patch|replace_file_content|multi_replace_file_content|delete_file)$/i;
+function handleGuardPreToolHook(payload, rootDataDir) {
+  if (payload.event !== "PreToolUse") {
+    return { decision: "allow" };
+  }
+  const moduleDataDir = getModuleDataDir(rootDataDir, "guard");
+  const workspaceRoot = payload.workspaceRoot || payload.cwd || payload.workspacePaths[0] || process.cwd();
+  const toolName = payload.toolName ?? "";
+  const toolInput = payload.toolInput ?? {};
+  const policy = loadPolicy(moduleDataDir);
+  const targetPath = extractTargetPath(toolInput);
+  let resolvedTargetPath;
+  let symlinkLoopBlocked = false;
+  if (targetPath) {
+    const absTarget = import_node_path4.default.isAbsolute(targetPath) ? targetPath : import_node_path4.default.resolve(workspaceRoot, targetPath);
+    try {
+      resolvedTargetPath = resolveRealPathWithMissingTail(absTarget);
+    } catch {
+      symlinkLoopBlocked = true;
+    }
+  }
+  const evalResult = symlinkLoopBlocked && policy.enabled && policy.protectEnvAndKeys !== "allow" ? {
+    decision: policy.protectEnvAndKeys,
+    category: "sensitive-file",
+    ruleId: "path.symlink-loop",
+    reason: `Blocked ${toolName} on unresolvable/cyclic symlink target (${import_node_path4.default.basename(targetPath ?? "")})`,
+    findings: []
+  } : evaluateToolCall(toolName, toolInput, policy, { resolvedTargetPath });
+  const commandLine = extractCommandLine(toolInput);
+  const targetDisplay = targetPath ? import_node_path4.default.relative(workspaceRoot, import_node_path4.default.resolve(workspaceRoot, targetPath)) || import_node_path4.default.basename(targetPath) : commandLine ? redactCommand(commandLine).slice(0, 100) : toolName;
+  if (evalResult.decision === "deny" || evalResult.decision === "ask") {
+    const safeReason = redactCommand(evalResult.reason);
+    try {
+      appendAuditEvent(moduleDataDir, {
+        event: "PreToolUse",
+        toolName,
+        decision: evalResult.decision,
+        category: evalResult.category,
+        target: targetDisplay,
+        summary: safeReason,
+        ruleId: evalResult.ruleId
+      });
+    } catch {
+    }
+    return {
+      decision: evalResult.decision,
+      reason: `[Agy NOV Guard] ${safeReason}`
+    };
+  }
+  if (policy.enabled && policy.autoSnapshotBeforeEdit && MUTATING_FILE_TOOL_RE.test(toolName) && targetPath) {
+    try {
+      const resolvedPath = import_node_path4.default.isAbsolute(targetPath) ? targetPath : import_node_path4.default.resolve(workspaceRoot, targetPath);
+      capturePreEditSnapshot({
+        dataDir: moduleDataDir,
+        filePath: resolvedPath,
+        toolName,
+        reason: `Automatic pre-edit snapshot before ${toolName}`,
+        policy,
+        workspaceRoot
+      });
+    } catch {
+    }
+  }
+  return { decision: "allow" };
+}
+
+// src/modules/mem/hook.ts
+var import_node_fs5 = __toESM(require("node:fs"), 1);
+var import_node_path6 = __toESM(require("node:path"), 1);
+
+// src/modules/mem/store.ts
+var import_node_crypto2 = __toESM(require("node:crypto"), 1);
+var import_node_fs4 = __toESM(require("node:fs"), 1);
+var import_node_path5 = __toESM(require("node:path"), 1);
+var import_node_url = require("node:url");
+
+// src/modules/mem/demo-memories.ts
+function buildDemoMemories() {
+  return [
+    {
+      id: "mem_demo_pkce",
+      kind: "architecture",
+      title: "Single-Flight OAuth2 PKCE Refresh Lock",
+      content: "Concurrent 401 responses share one in-flight refresh promise keyed by sessionId with a 30s clock-skew margin to prevent duplicate refresh token rotation failures.",
+      tags: ["auth", "oauth2", "concurrency"],
+      workspacePath: "/workspace/demo-app",
+      anchors: [
+        { filePath: "/workspace/demo-app/src/auth/token-refresh.ts", basename: "token-refresh.ts", uri: "file:///workspace/demo-app/src/auth/token-refresh.ts", symbol: "refreshSessionToken", driftStatus: "fresh" },
+        { filePath: "/workspace/demo-app/src/auth/singleflight-lock.ts", basename: "singleflight-lock.ts", uri: "file:///workspace/demo-app/src/auth/singleflight-lock.ts", symbol: "SingleFlightMap", driftStatus: "fresh" }
+      ],
+      pinned: true,
+      createdAt: "2026-11-24T09:10:00Z",
+      updatedAt: "2026-11-26T06:40:00Z",
+      recallCount: 7,
+      drifted: false
+    },
+    {
+      id: "mem_demo_redis",
+      kind: "pitfall",
+      title: "Redis Pool Starvation Under Burst Checkout",
+      content: "Never run sequential HGET calls inside checkout loops; batch via pipeline() with a 400ms circuit breaker fallback or p99 latency spikes past 850ms.",
+      tags: ["redis", "performance", "checkout"],
+      workspacePath: "/workspace/demo-app",
+      anchors: [
+        { filePath: "/workspace/demo-app/src/checkout/pricing-cache.ts", basename: "pricing-cache.ts", uri: "file:///workspace/demo-app/src/checkout/pricing-cache.ts", symbol: "fetchCartPrices", driftStatus: "drifted" }
+      ],
+      pinned: true,
+      createdAt: "2026-11-22T14:20:00Z",
+      updatedAt: "2026-11-25T15:02:00Z",
+      recallCount: 5,
+      drifted: true
+    },
+    {
+      id: "mem_demo_stripe",
+      kind: "decision",
+      title: "Transactional Outbox for Billing Webhooks",
+      content: "Persist webhook events into PostgreSQL outbox table within the same transaction before publishing to Kafka orders.v1 topic so duplicate Stripe retries remain idempotent.",
+      tags: ["billing", "postgres", "kafka"],
+      workspacePath: "/workspace/demo-app",
+      anchors: [
+        { filePath: "/workspace/demo-app/src/billing/webhook-handler.ts", basename: "webhook-handler.ts", uri: "file:///workspace/demo-app/src/billing/webhook-handler.ts", driftStatus: "fresh" }
+      ],
+      pinned: false,
+      createdAt: "2026-11-21T11:00:00Z",
+      updatedAt: "2026-11-24T17:12:00Z",
+      recallCount: 3,
+      drifted: false
+    },
+    {
+      id: "mem_demo_style",
+      kind: "convention",
+      title: "Zero-Native-Addon Policy for Cross-Platform Plugins",
+      content: "Prefer pure TypeScript + Node 20+ built-ins over native C++ addons (better-sqlite3/node-gyp) so users on macOS, Linux, and Windows never hit compilation errors.",
+      tags: ["typescript", "packaging", "plugins"],
+      workspacePath: "/workspace/demo-app",
+      anchors: [
+        { filePath: "/workspace/demo-app/package.json", basename: "package.json", uri: "file:///workspace/demo-app/package.json", driftStatus: "fresh" }
+      ],
+      pinned: true,
+      createdAt: "2026-11-20T08:00:00Z",
+      updatedAt: "2026-11-26T05:10:00Z",
+      recallCount: 9,
+      drifted: false
+    },
+    {
+      id: "mem_demo_pref",
+      kind: "preference",
+      title: "Concise Chinese Summaries & English Code Comments",
+      content: "Respond in concise Chinese with conclusions first; keep source code comments in clear English and always verify builds before reporting completion.",
+      tags: ["workflow", "style"],
+      anchors: [],
+      pinned: false,
+      createdAt: "2026-11-18T10:30:00Z",
+      updatedAt: "2026-11-26T04:00:00Z",
+      recallCount: 12,
+      drifted: false
+    }
+  ];
+}
+
+// src/modules/mem/store.ts
+var MAX_ANCHOR_FILE_BYTES = 2 * 1024 * 1024;
+var VALID_MEMORY_KINDS = /* @__PURE__ */ new Set([
+  "architecture",
+  "decision",
+  "pitfall",
+  "convention",
+  "preference"
+]);
+var VALID_DRIFT_STATUSES = /* @__PURE__ */ new Set([
+  "fresh",
+  "drifted",
+  "missing",
+  "untracked",
+  "skipped"
+]);
+var SECRET_RE = [
+  [
+    /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/gi,
+    "[REDACTED_PRIVATE_KEY]"
+  ],
+  [/-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[^\r\n]*/gi, "[REDACTED_PRIVATE_KEY]"],
+  [/\bBearer\s+[A-Za-z0-9\-._~+/]+=*/gi, "Bearer [REDACTED]"],
+  [/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, "[REDACTED_JWT]"],
+  [
+    /(?<![A-Za-z0-9])(sk-[A-Za-z0-9_-]{16,}|sk_(?:live|test)_[A-Za-z0-9]{16,}|AIza[0-9A-Za-z\-_]{24,}|github_pat_[A-Za-z0-9_]{16,}|gh[pousr]_[A-Za-z0-9]{16,}|AKIA[0-9A-Z]{16})(?![A-Za-z0-9])/g,
+    "[REDACTED_KEY]"
+  ],
+  [
+    /(["']?(?:api[_-]?key|secret|token|password)["']?\s*[:=]\s*["']?)([^\s"',;}{]{8,})(["']?)/gi,
+    "$1[REDACTED]$3"
+  ]
+];
+function redactSecrets(input) {
+  let out = input;
+  for (const [re, rep] of SECRET_RE) out = out.replace(re, rep);
+  return out;
+}
+function sanitizeTag(raw) {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  const redacted = redactSecrets(trimmed);
+  if (redacted === trimmed) return trimmed.toLowerCase();
+  return redacted.toLowerCase().replace(/\[redacted(?:_[a-z_]+)?\]/g, (m) => m.toUpperCase());
+}
+function isSensitiveFilePath(filePath) {
+  const trimmed = filePath.trim();
+  if (!trimmed) return true;
+  const segments = trimmed.split(/[\\/]+/).filter(Boolean);
+  if (segments.length === 0) return true;
+  for (const seg of segments) {
+    const lower = seg.toLowerCase();
+    if (lower === ".ssh") return true;
+    if (lower.startsWith(".env")) return true;
+  }
+  const base = segments[segments.length - 1].toLowerCase();
+  if (/\.(pem|key|p12|pfx|jks)$/i.test(base)) return true;
+  if (/^(id_rsa|id_ed25519|id_ecdsa|id_dsa)(\.pub)?$/i.test(base)) return true;
+  for (let i = 0; i < segments.length - 1; i++) {
+    if (segments[i].toLowerCase() === ".aws" && base === "credentials") return true;
+  }
+  return false;
+}
+function isRelativeInside(rootDir, targetPath) {
+  const rel = import_node_path5.default.relative(rootDir, targetPath);
+  return rel !== "" && !rel.startsWith("..") && !import_node_path5.default.isAbsolute(rel);
+}
+function resolveExistingAncestorRealpath(absTarget) {
+  let cursor = import_node_path5.default.dirname(absTarget);
+  while (true) {
+    try {
+      const realAncestor = import_node_fs4.default.realpathSync(cursor);
+      const tail = import_node_path5.default.relative(cursor, absTarget);
+      return import_node_path5.default.join(realAncestor, tail);
+    } catch {
+      const parent = import_node_path5.default.dirname(cursor);
+      if (parent === cursor) return void 0;
+      cursor = parent;
+    }
+  }
+}
+function inspectAnchorFile(filePath, workspacePath, maxBytes = MAX_ANCHOR_FILE_BYTES) {
+  if (!filePath || !filePath.trim()) {
+    return { status: "skipped", reason: "unreadable" };
+  }
+  const absFile = import_node_path5.default.resolve(filePath);
+  if (isSensitiveFilePath(filePath) || isSensitiveFilePath(absFile)) {
+    return { status: "skipped", reason: "sensitive" };
+  }
+  const effectiveWorkspace = workspacePath && workspacePath.trim() ? workspacePath.trim() : process.cwd();
+  let realWorkspace;
+  try {
+    realWorkspace = import_node_fs4.default.realpathSync(import_node_path5.default.resolve(effectiveWorkspace));
+  } catch {
+    return { status: "skipped", reason: "outside-workspace" };
+  }
+  let realFile;
+  try {
+    realFile = import_node_fs4.default.realpathSync(absFile);
+  } catch (err) {
+    const code = err?.code;
+    if (code === "ENOENT" || code === "ENOTDIR") {
+      const projected = resolveExistingAncestorRealpath(absFile);
+      if (!projected || !isRelativeInside(realWorkspace, projected)) {
+        return { status: "skipped", reason: "outside-workspace" };
+      }
+      return { status: "missing" };
+    }
+    return { status: "skipped", reason: "unreadable" };
+  }
+  if (isSensitiveFilePath(realFile)) {
+    return { status: "skipped", reason: "sensitive" };
+  }
+  if (!isRelativeInside(realWorkspace, realFile)) {
+    return { status: "skipped", reason: "outside-workspace" };
+  }
+  let fd;
+  try {
+    const stat = import_node_fs4.default.statSync(realFile);
+    if (!stat.isFile()) return { status: "skipped", reason: "non-file" };
+    if (stat.size > maxBytes) return { status: "skipped", reason: "oversized" };
+    fd = import_node_fs4.default.openSync(realFile, "r");
+    const fdStat = import_node_fs4.default.fstatSync(fd);
+    if (!fdStat.isFile()) return { status: "skipped", reason: "non-file" };
+    if (fdStat.size > maxBytes) return { status: "skipped", reason: "oversized" };
+    const hash = import_node_crypto2.default.createHash("sha256");
+    const chunkSize = Math.min(64 * 1024, Math.max(1, maxBytes));
+    const chunk = Buffer.alloc(chunkSize);
+    let totalRead = 0;
+    while (true) {
+      const n = import_node_fs4.default.readSync(fd, chunk, 0, chunk.length, null);
+      if (n <= 0) break;
+      totalRead += n;
+      if (totalRead > maxBytes) {
+        return { status: "skipped", reason: "oversized" };
+      }
+      hash.update(chunk.subarray(0, n));
+    }
+    return { status: "ok", sha256: hash.digest("hex").slice(0, 16) };
+  } catch {
+    return { status: "skipped", reason: "unreadable" };
+  } finally {
+    if (fd !== void 0) {
+      try {
+        import_node_fs4.default.closeSync(fd);
+      } catch {
+      }
+    }
+  }
+}
+function safePathToFileUri(filePath) {
+  try {
+    return (0, import_node_url.pathToFileURL)(import_node_path5.default.resolve(filePath)).href;
+  } catch {
+    return "";
+  }
+}
+function normalizeAnchor(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw;
+  if (typeof r.filePath !== "string" || !r.filePath.trim()) return null;
+  const filePath = r.filePath.trim();
+  const basename = typeof r.basename === "string" && r.basename.trim() ? r.basename.trim() : import_node_path5.default.basename(filePath);
+  const uri = typeof r.uri === "string" && r.uri.trim() ? r.uri.trim() : safePathToFileUri(filePath);
+  const symbol = typeof r.symbol === "string" && r.symbol.trim() ? r.symbol.trim() : void 0;
+  const sha256 = typeof r.sha256 === "string" && r.sha256.trim() ? r.sha256.trim() : void 0;
+  const driftStatus = typeof r.driftStatus === "string" && VALID_DRIFT_STATUSES.has(r.driftStatus) ? r.driftStatus : void 0;
+  return {
+    filePath,
+    basename,
+    uri,
+    ...symbol ? { symbol } : {},
+    ...sha256 ? { sha256 } : {},
+    ...driftStatus ? { driftStatus } : {}
+  };
+}
+function normalizeMemoryItem(raw, index) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw;
+  const fallbackSeed = `${index}:${String(r.title ?? "")}:${String(r.content ?? "")}`;
+  const fallbackId = `mem_rec_${import_node_crypto2.default.createHash("sha256").update(fallbackSeed).digest("hex").slice(0, 10)}`;
+  const id = typeof r.id === "string" && r.id.trim() ? r.id.trim() : fallbackId;
+  const kind = typeof r.kind === "string" && VALID_MEMORY_KINDS.has(r.kind) ? r.kind : "decision";
+  const title = typeof r.title === "string" && r.title.trim() ? r.title.trim() : "(Untitled memory)";
+  const content = typeof r.content === "string" ? r.content : "";
+  const tags = Array.isArray(r.tags) ? Array.from(
+    new Set(
+      r.tags.filter((t) => typeof t === "string").map((t) => t.trim()).filter(Boolean)
+    )
+  ) : [];
+  const anchors = Array.isArray(r.anchors) ? r.anchors.map((a) => normalizeAnchor(a)).filter((a) => a !== null) : [];
+  const workspacePath = typeof r.workspacePath === "string" && r.workspacePath.trim() ? r.workspacePath.trim() : void 0;
+  const sourceConversationId = typeof r.sourceConversationId === "string" && r.sourceConversationId.trim() ? r.sourceConversationId.trim() : void 0;
+  const createdAt = typeof r.createdAt === "string" && r.createdAt.trim() ? r.createdAt.trim() : (/* @__PURE__ */ new Date(0)).toISOString();
+  const updatedAt = typeof r.updatedAt === "string" && r.updatedAt.trim() ? r.updatedAt.trim() : createdAt;
+  const recallCount = typeof r.recallCount === "number" && Number.isFinite(r.recallCount) && r.recallCount >= 0 ? Math.floor(r.recallCount) : 0;
+  const pinned = Boolean(r.pinned);
+  const drifted = typeof r.drifted === "boolean" ? r.drifted : void 0;
+  return {
+    id,
+    kind,
+    title,
+    content,
+    tags,
+    ...workspacePath ? { workspacePath } : {},
+    ...sourceConversationId ? { sourceConversationId } : {},
+    anchors,
+    pinned,
+    createdAt,
+    updatedAt,
+    recallCount,
+    ...drifted !== void 0 ? { drifted } : {}
+  };
+}
+function ensurePrivateDir2(dirPath) {
+  import_node_fs4.default.mkdirSync(dirPath, { recursive: true, mode: 448 });
+  try {
+    import_node_fs4.default.chmodSync(dirPath, 448);
+  } catch {
+  }
+}
+function tokenize(text) {
+  const lower = text.toLowerCase();
+  const latin = lower.match(/[a-z0-9_./-]{2,}/g) ?? [];
+  const cjkRuns = lower.match(/[\u4e00-\u9fff]+/g) ?? [];
+  const cjk = [];
+  for (const run of cjkRuns) {
+    if (run.length === 1) cjk.push(run);
+    else for (let i = 0; i < run.length - 1; i++) cjk.push(run.slice(i, i + 2));
+  }
+  return [...latin, ...cjk];
+}
+var MemoryStore = class {
+  constructor(dataDir, demoMode = false, defaultWorkspaceRoot) {
+    this.dataDir = dataDir;
+    this.demoMode = demoMode;
+    this.defaultWorkspaceRoot = defaultWorkspaceRoot;
+    this.filePath = import_node_path5.default.join(dataDir, "memories.json");
+  }
+  filePath;
+  demoSeeded = false;
+  ensureDemoSeeded() {
+    if (!this.demoMode || this.demoSeeded) return;
+    this.demoSeeded = true;
+    if (!import_node_fs4.default.existsSync(this.filePath)) {
+      this.writeAll(buildDemoMemories());
+    }
+  }
+  backupCorruptFile(reason) {
+    const base = `${this.filePath}.corrupt.${Date.now()}`;
+    const backupPath = import_node_fs4.default.existsSync(base) ? `${base}.${import_node_crypto2.default.randomBytes(2).toString("hex")}` : base;
+    try {
+      import_node_fs4.default.renameSync(this.filePath, backupPath);
+      try {
+        import_node_fs4.default.chmodSync(backupPath, 384);
+      } catch {
+      }
+      console.error(`[agy-nov:mem] Corrupt memories store backed up to ${backupPath}: ${reason}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[agy-nov:mem] Corrupt memories store detected (${reason}), backup failed: ${msg}`);
+    }
+  }
+  readRaw() {
+    this.ensureDemoSeeded();
+    if (!import_node_fs4.default.existsSync(this.filePath)) return [];
+    let rawText;
+    try {
+      rawText = import_node_fs4.default.readFileSync(this.filePath, "utf8");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[agy-nov:mem] Failed to read ${this.filePath}: ${msg}`);
+      return [];
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.backupCorruptFile(`invalid JSON (${msg})`);
+      return [];
+    }
+    if (!Array.isArray(parsed)) {
+      this.backupCorruptFile("root JSON value must be an array");
+      return [];
+    }
+    return parsed.map((entry, idx) => normalizeMemoryItem(entry, idx)).filter((item) => item !== null);
+  }
+  writeAll(items) {
+    ensurePrivateDir2(this.dataDir);
+    const tmp = `${this.filePath}.${process.pid}.${import_node_crypto2.default.randomBytes(4).toString("hex")}.tmp`;
+    try {
+      import_node_fs4.default.writeFileSync(tmp, JSON.stringify(items, null, 2), { encoding: "utf8", mode: 384 });
+      try {
+        import_node_fs4.default.chmodSync(tmp, 384);
+      } catch {
+      }
+      import_node_fs4.default.renameSync(tmp, this.filePath);
+    } catch (err) {
+      try {
+        if (import_node_fs4.default.existsSync(tmp)) import_node_fs4.default.unlinkSync(tmp);
+      } catch {
+      }
+      throw err;
+    }
+  }
+  evaluateDrift(item) {
+    if (this.demoMode && item.id.startsWith("mem_demo_")) {
+      return item;
+    }
+    let anyDrifted = false;
+    const effectiveWs = item.workspacePath ?? this.defaultWorkspaceRoot;
+    const rawAnchors = Array.isArray(item.anchors) ? item.anchors : [];
+    const anchors = rawAnchors.map((a) => {
+      if (!a.sha256) return { ...a, driftStatus: a.driftStatus ?? "untracked" };
+      const inspected = inspectAnchorFile(a.filePath, effectiveWs);
+      if (inspected.status === "skipped") {
+        return { ...a, driftStatus: "skipped" };
+      }
+      if (inspected.status === "missing" || !inspected.sha256) {
+        anyDrifted = true;
+        return { ...a, driftStatus: "missing" };
+      }
+      if (inspected.sha256 !== a.sha256) {
+        anyDrifted = true;
+        return { ...a, driftStatus: "drifted" };
+      }
+      return { ...a, driftStatus: "fresh" };
+    });
+    return { ...item, anchors, drifted: anyDrifted };
+  }
+  list(opts = {}) {
+    let items = this.readRaw().map((m) => this.evaluateDrift(m));
+    if (opts.workspacePath) {
+      const target = import_node_path5.default.resolve(opts.workspacePath);
+      items = items.filter((m) => !m.workspacePath || import_node_path5.default.resolve(m.workspacePath) === target);
+    }
+    if (opts.kind) items = items.filter((m) => m.kind === opts.kind);
+    if (opts.pinnedOnly) items = items.filter((m) => m.pinned);
+    return items.sort(
+      (a, b) => Number(b.pinned) - Number(a.pinned) || b.updatedAt.localeCompare(a.updatedAt)
+    );
+  }
+  remember(input) {
+    const items = this.readRaw();
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    const requestedWorkspace = input.workspacePath ? import_node_path5.default.resolve(input.workspacePath) : void 0;
+    let inspectWorkspace = this.defaultWorkspaceRoot ? import_node_path5.default.resolve(this.defaultWorkspaceRoot) : requestedWorkspace;
+    let resolvedWorkspace = inspectWorkspace;
+    if (requestedWorkspace && this.defaultWorkspaceRoot) {
+      const trustedRoot = import_node_path5.default.resolve(this.defaultWorkspaceRoot);
+      const realTrusted = (() => {
+        try {
+          return import_node_fs4.default.realpathSync(trustedRoot);
+        } catch {
+          return trustedRoot;
+        }
+      })();
+      let realReq;
+      try {
+        realReq = import_node_fs4.default.realpathSync(requestedWorkspace);
+      } catch {
+        realReq = resolveExistingAncestorRealpath(requestedWorkspace) ?? requestedWorkspace;
+      }
+      if (realReq === realTrusted || isRelativeInside(realTrusted, realReq)) {
+        inspectWorkspace = realReq;
+        resolvedWorkspace = requestedWorkspace;
+      }
+    }
+    const anchors = (input.anchors ?? []).filter((a) => a && typeof a.filePath === "string" && a.filePath.trim().length > 0).map((a) => {
+      const rawPath = a.filePath.trim();
+      const abs = import_node_path5.default.isAbsolute(rawPath) ? import_node_path5.default.resolve(rawPath) : import_node_path5.default.resolve(inspectWorkspace ?? process.cwd(), rawPath);
+      const cleanSymbol = a.symbol ? redactSecrets(a.symbol.trim()) : void 0;
+      const inspected = inspectAnchorFile(abs, inspectWorkspace);
+      const driftStatus = inspected.status === "ok" ? "fresh" : inspected.status === "skipped" ? "skipped" : "untracked";
+      return {
+        filePath: abs,
+        basename: import_node_path5.default.basename(abs),
+        uri: safePathToFileUri(abs),
+        ...cleanSymbol ? { symbol: cleanSymbol } : {},
+        ...inspected.sha256 ? { sha256: inspected.sha256 } : {},
+        driftStatus
+      };
+    });
+    const cleanTitle = redactSecrets(input.title.trim());
+    const cleanContent = redactSecrets(input.content.trim());
+    const tags = Array.from(new Set((input.tags ?? []).map((t) => sanitizeTag(t)).filter(Boolean)));
+    const existingIdx = input.id ? items.findIndex((m) => m.id === input.id) : items.findIndex(
+      (m) => m.title.toLowerCase() === cleanTitle.toLowerCase() && (m.workspacePath ?? "") === (resolvedWorkspace ?? "")
+    );
+    if (existingIdx >= 0) {
+      const updated = {
+        ...items[existingIdx],
+        kind: input.kind,
+        title: cleanTitle,
+        content: cleanContent,
+        tags,
+        anchors: anchors.length ? anchors : items[existingIdx].anchors,
+        pinned: input.pinned ?? items[existingIdx].pinned,
+        updatedAt: now
+      };
+      items[existingIdx] = updated;
+      this.writeAll(items);
+      return this.evaluateDrift(updated);
+    }
+    const created = {
+      id: input.id || `mem_${import_node_crypto2.default.randomBytes(5).toString("hex")}`,
+      kind: input.kind,
+      title: cleanTitle,
+      content: cleanContent,
+      tags,
+      workspacePath: resolvedWorkspace,
+      sourceConversationId: input.sourceConversationId,
+      anchors,
+      pinned: Boolean(input.pinned),
+      createdAt: now,
+      updatedAt: now,
+      recallCount: 0
+    };
+    items.unshift(created);
+    this.writeAll(items);
+    return this.evaluateDrift(created);
+  }
+  reverifyAnchorHashes(id) {
+    const items = this.readRaw();
+    const idx = items.findIndex((m) => m.id === id);
+    if (idx < 0) return null;
+    const ws = items[idx].workspacePath ?? this.defaultWorkspaceRoot;
+    items[idx].anchors = items[idx].anchors.map((a) => {
+      const inspected = inspectAnchorFile(a.filePath, ws);
+      if (inspected.status === "ok" && inspected.sha256) {
+        return { ...a, sha256: inspected.sha256, driftStatus: "fresh" };
+      }
+      if (inspected.status === "skipped") {
+        const { sha256: _ignored, ...rest } = a;
+        return { ...rest, driftStatus: "skipped" };
+      }
+      return { ...a, driftStatus: "missing" };
+    });
+    items[idx].drifted = false;
+    items[idx].updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+    this.writeAll(items);
+    return this.evaluateDrift(items[idx]);
+  }
+  togglePin(id, pinned) {
+    const items = this.readRaw();
+    const idx = items.findIndex((m) => m.id === id);
+    if (idx < 0) return null;
+    items[idx].pinned = pinned ?? !items[idx].pinned;
+    items[idx].updatedAt = (/* @__PURE__ */ new Date()).toISOString();
+    this.writeAll(items);
+    return this.evaluateDrift(items[idx]);
+  }
+  forget(id) {
+    const items = this.readRaw();
+    const next = items.filter((m) => m.id !== id);
+    if (next.length === items.length) return false;
+    this.writeAll(next);
+    return true;
+  }
+  recall(query, opts = {}) {
+    const limit = opts.limit ?? 10;
+    const all = this.list({ workspacePath: opts.workspacePath });
+    const trimmed = query.trim();
+    if (!trimmed) {
+      return all.slice(0, limit).map((m) => ({ ...m, score: m.pinned ? 2 : 1 }));
+    }
+    const qTokens = Array.from(new Set(tokenize(trimmed)));
+    if (qTokens.length === 0) return [];
+    const docTokens = all.map(
+      (m) => tokenize(
+        `${m.title} ${m.content} ${m.tags.join(" ")} ${m.anchors.map((a) => `${a.basename} ${a.symbol ?? ""}`).join(" ")}`
+      )
+    );
+    const N = all.length || 1;
+    const avgLen = docTokens.reduce((s, t) => s + t.length, 0) / N || 1;
+    const df = /* @__PURE__ */ new Map();
+    for (const q of qTokens) {
+      let c = 0;
+      for (const dt of docTokens) if (dt.includes(q)) c += 1;
+      df.set(q, c);
+    }
+    const k1 = 1.5;
+    const b = 0.75;
+    const qLower = trimmed.toLowerCase();
+    const hits = all.map((m, i) => {
+      const tfMap = /* @__PURE__ */ new Map();
+      for (const t of docTokens[i]) tfMap.set(t, (tfMap.get(t) ?? 0) + 1);
+      let score = 0;
+      for (const q of qTokens) {
+        const tf = tfMap.get(q) ?? 0;
+        if (!tf) continue;
+        const docFreq = df.get(q) ?? 0;
+        const idf = Math.log(1 + (N - docFreq + 0.5) / (docFreq + 0.5));
+        score += idf * (tf * (k1 + 1) / (tf + k1 * (1 - b + b * docTokens[i].length / avgLen)));
+      }
+      if (m.title.toLowerCase().includes(qLower)) score += 3;
+      if (m.content.toLowerCase().includes(qLower)) score += 2;
+      if (m.pinned && score > 0) score += 0.6;
+      return { ...m, score: Number(score.toFixed(2)) };
+    }).filter((h) => h.score > 0).sort((a, b2) => b2.score - a.score).slice(0, limit);
+    if (opts.incrementRecall && hits.length > 0) {
+      const raw = this.readRaw();
+      const hitIds = new Set(hits.map((h) => h.id));
+      for (const m of raw) {
+        if (hitIds.has(m.id)) m.recallCount = (m.recallCount ?? 0) + 1;
+      }
+      this.writeAll(raw);
+    }
+    return hits;
+  }
+  buildSessionStartInjection(workspacePaths = [], maxItems = 8) {
+    const ws = workspacePaths[0];
+    const candidates = this.list({ workspacePath: ws }).filter((m) => !m.drifted).slice(0, maxItems);
+    if (candidates.length === 0) return "";
+    const lines = [
+      `[Agy Mem \u2014 Persistent Workspace Memory (${candidates.length} active)]`,
+      ...candidates.map((m) => {
+        const anchorTxt = m.anchors.length ? ` [files: ${m.anchors.map((a) => a.basename).join(", ")}]` : "";
+        return `- (${m.kind.toUpperCase()}${m.pinned ? " \u2605" : ""}) **${m.title}**: ${m.content}${anchorTxt}`;
+      })
+    ];
+    return lines.join("\n").slice(0, 2400);
+  }
+};
+
+// src/modules/mem/hook.ts
+var MAX_TRANSCRIPT_TAIL_BYTES = 256 * 1024;
+function isSensitiveOrSymlinkToSensitive(filePath) {
+  if (isSensitiveFilePath(filePath)) return true;
+  try {
+    const real = import_node_fs5.default.realpathSync(filePath);
+    if (isSensitiveFilePath(real)) return true;
+  } catch {
+  }
+  return false;
+}
+function extractEditedFilesFromTranscript(transcriptPath, maxTailBytes = MAX_TRANSCRIPT_TAIL_BYTES) {
+  if (!transcriptPath) return [];
+  const files = /* @__PURE__ */ new Set();
+  let fd;
+  try {
+    fd = import_node_fs5.default.openSync(transcriptPath, "r");
+    const stat = import_node_fs5.default.fstatSync(fd);
+    if (!stat.isFile() || stat.size === 0) return [];
+    const bytesToRead = Math.min(stat.size, maxTailBytes);
+    const startOffset = stat.size - bytesToRead;
+    const buf = Buffer.alloc(bytesToRead);
+    let totalRead = 0;
+    while (totalRead < bytesToRead) {
+      const n = import_node_fs5.default.readSync(fd, buf, totalRead, bytesToRead - totalRead, startOffset + totalRead);
+      if (n <= 0) break;
+      totalRead += n;
+    }
+    let text = buf.subarray(0, totalRead).toString("utf8");
+    if (startOffset > 0) {
+      const firstNewline = text.indexOf("\n");
+      text = firstNewline >= 0 ? text.slice(firstNewline + 1) : "";
+    }
+    const lines = text.split(/\r?\n/).slice(-120);
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const obj = JSON.parse(line);
+        const calls = obj.tool_calls ?? obj.toolCalls ?? [];
+        for (const tc of calls) {
+          if (!tc.name || !/edit|write|replace/i.test(tc.name)) continue;
+          const rawPath = tc.args?.Path ?? tc.args?.path ?? tc.args?.TargetFile ?? tc.args?.target_file ?? tc.args?.file_path ?? tc.args?.filePath;
+          if (typeof rawPath === "string") {
+            const clean = rawPath.replace(/^["']|["']$/g, "").trim();
+            if (clean.startsWith("/") && !isSensitiveOrSymlinkToSensitive(clean)) {
+              files.add(clean);
+            }
+          }
+        }
+      } catch {
+      }
+    }
+  } catch {
+  } finally {
+    if (fd !== void 0) {
+      try {
+        import_node_fs5.default.closeSync(fd);
+      } catch {
+      }
+    }
+  }
+  return Array.from(files).slice(0, 6);
+}
+function handleMemSessionStartHook(payload, rootDataDir) {
+  try {
+    const resolvedRoot = resolveNovDataDir(rootDataDir);
+    const dataDir = getModuleDataDir(resolvedRoot, "mem");
+    const storeFile = import_node_path6.default.join(dataDir, "memories.json");
+    if (!import_node_fs5.default.existsSync(storeFile)) {
+      return {};
+    }
+    const workspacePaths = payload.workspacePaths.length > 0 ? payload.workspacePaths : payload.workspaceRoot ? [payload.workspaceRoot] : [];
+    const store = new MemoryStore(dataDir, false, workspacePaths[0]);
+    const injected = store.buildSessionStartInjection(workspacePaths, 8);
+    if (!injected) return {};
+    return {
+      injectSteps: [
+        {
+          systemMessage: {
+            systemMessage: injected
+          }
+        }
+      ]
+    };
+  } catch {
+    return {};
+  }
+}
+function handleMemStopHook(payload, rootDataDir) {
+  try {
+    const editedFiles = extractEditedFilesFromTranscript(payload.transcriptPath);
+    const userPrompt = (payload.lastUserInput ?? "").replace(/\s+/g, " ").trim();
+    if (editedFiles.length === 0 || userPrompt.length < 16) {
+      return;
+    }
+    const resolvedRoot = resolveNovDataDir(rootDataDir);
+    const dataDir = getModuleDataDir(resolvedRoot, "mem");
+    const workspacePath = payload.workspacePaths[0] ?? payload.workspaceRoot;
+    const convId = payload.conversationId ?? "session";
+    const store = new MemoryStore(dataDir, false, workspacePath);
+    store.remember({
+      id: `mem_auto_${convId.slice(0, 12)}`,
+      kind: "decision",
+      title: `Session recap: ${userPrompt.slice(0, 56)}${userPrompt.length > 56 ? "\u2026" : ""}`,
+      content: `Auto-captured from conversation ${convId.slice(0, 8)}. Modified ${editedFiles.length} file(s): ${editedFiles.map((f) => import_node_path6.default.basename(f)).join(", ")}.`,
+      tags: ["auto-capture"],
+      workspacePath,
+      sourceConversationId: convId,
+      anchors: editedFiles.map((filePath) => ({ filePath })),
+      pinned: false
+    });
+  } catch {
+  }
+}
+
+// src/modules/remote/config.ts
+var import_node_crypto3 = __toESM(require("node:crypto"), 1);
+var import_node_fs6 = __toESM(require("node:fs"), 1);
+var import_node_path7 = __toESM(require("node:path"), 1);
+var DEFAULT_PIN_TTL_MS = 5 * 60 * 1e3;
+var DEFAULT_RISK_PATTERNS = [
+  "\\brm\\s+(-[a-zA-Z]*(?:r[a-zA-Z]*f|f[a-zA-Z]*r)|-[a-zA-Z]*r\\b[^;&|]*-[a-zA-Z]*f\\b)",
+  "\\bgit\\s+push\\b.*(--force|-f\\b)",
+  "\\bgit\\s+reset\\s+--hard",
+  "\\bsudo\\b",
+  "\\b(drop|truncate)\\s+(table|database)\\b",
+  "curl\\b.*\\|\\s*(ba)?sh\\b",
+  "\\bchmod\\s+777\\b",
+  "\\bmkfs\\.|\\bdd\\s+if="
+];
+var DEFAULT_SENSITIVE_PATH_PATTERNS = [
+  { label: "sensitive_path:.env*", regex: /(?:^|[\\/])\.env[^\\/\s"']*(?:$|[\\/\s"'])/i },
+  { label: "sensitive_path:.ssh", regex: /(?:^|[\\/])\.ssh(?:$|[\\/\s"'])/i },
+  { label: "sensitive_path:*.pem", regex: /(?:^|[\\/])[^\\/\s"']+\.pem(?:$|[\\/\s"'])/i },
+  { label: "sensitive_path:*.key", regex: /(?:^|[\\/])[^\\/\s"']+\.key(?:$|[\\/\s"'])/i },
+  { label: "sensitive_path:ssh_key", regex: /(?:^|[\\/])id_(?:rsa|ed25519|ecdsa|dsa)(?:\.pub)?(?:$|[\\/\s"'])/i }
+];
+var SECRET_REGEXES = [
+  [/-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/g, "[REDACTED_PRIVATE_KEY]"],
+  [/https:\/\/hooks\.slack\.com\/services\/[A-Za-z0-9/_-]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/(?:discord\.com|discordapp\.com)\/api\/webhooks\/\d+\/[A-Za-z0-9_-]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/open\.(?:feishu\.cn|larksuite\.com)\/open-apis\/bot\/v2\/hook\/[A-Za-z0-9_-]+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/oapi\.dingtalk\.com\/robot\/send\?[^\s"']+/gi, "[REDACTED_WEBHOOK]"],
+  [/https:\/\/qyapi\.weixin\.qq\.com\/cgi-bin\/webhook\/send\?[^\s"']+/gi, "[REDACTED_WEBHOOK]"],
+  [/(https?:\/\/[^:\s/@]+:)([^@\s/]+)(@)/gi, "$1[REDACTED]$3"],
+  [/([?&](?:token|access_token|api[_-]?key|key|secret|sign|sig)=)([^&#\s"']+)/gi, "$1[REDACTED]"],
+  [/\bBearer\s+[A-Za-z0-9\-._~+/]+=*/gi, "Bearer [REDACTED]"],
+  [/\bBasic\s+[A-Za-z0-9+/]+=*/gi, "Basic [REDACTED]"],
+  [/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g, "[REDACTED_JWT]"],
+  [/\b\d{6,12}:[A-Za-z0-9_-]{20,}\b/g, "[REDACTED_BOT_TOKEN]"],
+  [
+    /\b(sk-(?:proj-|ant-)?[A-Za-z0-9_-]{16,}|AIza[0-9A-Za-z\-_]{24,}|gh[opusr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|glpat-[A-Za-z0-9_-]{16,}|xox[baprs]-[A-Za-z0-9-]{10,}|(?:AKIA|ASIA)[0-9A-Z]{16}|npm_[A-Za-z0-9]{20,}|hf_[A-Za-z0-9]{20,}|pypi-[A-Za-z0-9_-]{20,})\b/g,
+    "[REDACTED_KEY]"
+  ],
+  [
+    /(["']?(?:api[_-]?key|access[_-]?token|auth[_-]?token|bot[_-]?token|client[_-]?secret|signing[_-]?secret|secret|token|password|passwd|csrf[_-]?token)["']?\s*[:=]\s*["']?)([^\s"',;}{]{6,})(["']?)/gi,
+    "$1[REDACTED]$3"
+  ]
+];
+function redactText(text) {
+  let out = text;
+  for (const [re, rep] of SECRET_REGEXES) out = out.replace(re, rep);
+  return out;
+}
+function generatePairingToken() {
+  return import_node_crypto3.default.randomBytes(24).toString("base64url");
+}
+function generatePairingPin() {
+  return String(import_node_crypto3.default.randomInt(1e5, 1e6));
+}
+function defaultRemoteConfig(now = Date.now()) {
+  return {
+    gatewayEnabled: false,
+    host: "127.0.0.1",
+    port: 4391,
+    pairingToken: generatePairingToken(),
+    pairingPin: generatePairingPin(),
+    pairingPinExpiresAt: new Date(now + DEFAULT_PIN_TTL_MS).toISOString(),
+    remoteApprovalEnabled: true,
+    approvalTimeoutSec: 25,
+    notifyOnStop: true,
+    riskPatterns: [...DEFAULT_RISK_PATTERNS],
+    channels: [
+      { id: "telegram", kind: "telegram", label: "Telegram Bot", enabled: false },
+      { id: "feishu", kind: "feishu", label: "Feishu / Lark (\u98DE\u4E66)", enabled: false },
+      { id: "dingtalk", kind: "dingtalk", label: "DingTalk (\u9489\u9489)", enabled: false },
+      { id: "wecom", kind: "wecom", label: "WeCom (\u4F01\u4E1A\u5FAE\u4FE1)", enabled: false },
+      { id: "slack", kind: "slack", label: "Slack Webhook", enabled: false },
+      { id: "discord", kind: "discord", label: "Discord Webhook", enabled: false }
+    ]
+  };
+}
+function getRemoteConfigPath(dataDir) {
+  return import_node_path7.default.join(dataDir, "config.json");
+}
+function normalizeRemoteConfig(raw) {
+  const base = defaultRemoteConfig();
+  return {
+    ...base,
+    ...raw,
+    gatewayEnabled: typeof raw.gatewayEnabled === "boolean" ? raw.gatewayEnabled : false,
+    host: typeof raw.host === "string" && raw.host.trim() ? raw.host.trim() : base.host,
+    port: typeof raw.port === "number" && Number.isInteger(raw.port) && raw.port >= 0 && raw.port <= 65535 ? raw.port : base.port,
+    pairingToken: typeof raw.pairingToken === "string" && raw.pairingToken ? raw.pairingToken : base.pairingToken,
+    pairingPin: typeof raw.pairingPin === "string" && raw.pairingPin ? raw.pairingPin : base.pairingPin,
+    pairingPinExpiresAt: typeof raw.pairingPinExpiresAt === "string" && raw.pairingPinExpiresAt ? raw.pairingPinExpiresAt : base.pairingPinExpiresAt,
+    riskPatterns: Array.isArray(raw.riskPatterns) && raw.riskPatterns.length ? raw.riskPatterns : base.riskPatterns,
+    channels: Array.isArray(raw.channels) && raw.channels.length ? raw.channels : base.channels
+  };
+}
+function loadConfigReadOnly(dataDir) {
+  const cfgPath = getRemoteConfigPath(dataDir);
+  if (!import_node_fs6.default.existsSync(cfgPath)) {
+    return { config: defaultRemoteConfig(), persisted: false };
+  }
+  try {
+    const parsed = JSON.parse(import_node_fs6.default.readFileSync(cfgPath, "utf8"));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { config: defaultRemoteConfig(), persisted: false };
+    }
+    return {
+      config: normalizeRemoteConfig(parsed),
+      persisted: true
+    };
+  } catch {
+    return { config: defaultRemoteConfig(), persisted: false };
+  }
+}
+function readRuntimeInfo(dataDir) {
+  const runtimePath = import_node_path7.default.join(dataDir, "runtime.json");
+  if (!import_node_fs6.default.existsSync(runtimePath)) return null;
+  try {
+    const parsed = JSON.parse(import_node_fs6.default.readFileSync(runtimePath, "utf8"));
+    const port = Number(parsed.port);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) return null;
+    const pid = Number(parsed.pid ?? 0);
+    return {
+      port,
+      host: typeof parsed.host === "string" && parsed.host ? parsed.host : "127.0.0.1",
+      url: `http://127.0.0.1:${port}`,
+      pid: Number.isInteger(pid) ? pid : 0,
+      startedAt: typeof parsed.startedAt === "string" ? parsed.startedAt : ""
+    };
+  } catch {
+    return null;
+  }
+}
+function matchRiskPattern(text, patterns) {
+  for (const raw of patterns) {
+    try {
+      const re = new RegExp(raw, "i");
+      if (re.test(text)) return raw;
+    } catch {
+    }
+  }
+  return null;
+}
+function matchSensitivePath(target) {
+  const normalized = target.trim();
+  if (!normalized) return null;
+  for (const { label, regex } of DEFAULT_SENSITIVE_PATH_PATTERNS) {
+    if (regex.test(normalized)) return label;
+  }
+  return null;
+}
+
+// src/modules/remote/hook.ts
+var FILE_MUTATION_TOOLS = /* @__PURE__ */ new Set([
+  "delete_file",
+  "write_file",
+  "edit_file",
+  "write_to_file",
+  "replace_file_content",
+  "multi_replace_file_content"
+]);
+var PATH_LIKE_KEYS = /* @__PURE__ */ new Set([
+  "path",
+  "file_path",
+  "filepath",
+  "target_file",
+  "targetfile",
+  "target_path",
+  "targetpath",
+  "absolutepath",
+  "absolute_path",
+  "filename",
+  "file",
+  "files",
+  "paths",
+  "uri"
+]);
+function normalizeToolArgs(raw) {
+  if (raw === void 0 || raw === null) {
+    return { obj: {}, text: "{}" };
+  }
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return { obj: parsed, text: JSON.stringify(parsed) };
+        }
+      } catch {
+      }
+    }
+    return { obj: { raw: trimmed }, text: trimmed };
+  }
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return { obj: raw, text: JSON.stringify(raw) };
+  }
+  return { obj: {}, text: JSON.stringify(raw) };
+}
+function collectCandidatePaths(value, depth = 0) {
+  if (depth > 5 || value === null || value === void 0) return [];
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) {
+    const out = [];
+    for (const item of value) out.push(...collectCandidatePaths(item, depth + 1));
+    return out;
+  }
+  if (typeof value === "object") {
+    const record = value;
+    const prioritized = [];
+    const fallback = [];
+    for (const [k, v] of Object.entries(record)) {
+      const extracted = collectCandidatePaths(v, depth + 1);
+      if (PATH_LIKE_KEYS.has(k.toLowerCase())) {
+        prioritized.push(...extracted);
+      } else {
+        fallback.push(...extracted);
+      }
+    }
+    return prioritized.length > 0 ? prioritized : fallback;
+  }
+  return [];
+}
+function extractSummary(obj, fallbackText) {
+  const candidates = [
+    obj.CommandLine,
+    obj.command,
+    obj.cmd,
+    obj.file_path,
+    obj.filePath,
+    obj.TargetFile,
+    obj.target_file,
+    obj.path,
+    obj.Path,
+    obj.AbsolutePath
+  ];
+  for (const val of candidates) {
+    if (typeof val === "string" && val.trim()) {
+      return redactText(val).slice(0, 260);
+    }
+  }
+  return redactText(fallbackText).slice(0, 260);
+}
+function loadEnabledRemoteStateReadOnly(rootDataDir) {
+  const resolvedRoot = resolveNovDataDir(rootDataDir);
+  const novConfig = loadNovConfigReadOnly(resolvedRoot);
+  if (!novConfig.modules.remote) {
+    return null;
+  }
+  const remoteDataDir = getModuleDataDir(resolvedRoot, "remote");
+  const { config, persisted } = loadConfigReadOnly(remoteDataDir);
+  if (!persisted || config.gatewayEnabled !== true) {
+    return null;
+  }
+  return {
+    config,
+    runtime: readRuntimeInfo(remoteDataDir)
+  };
+}
+async function handleRemotePreToolHook(payload, rootDataDir) {
+  const active = loadEnabledRemoteStateReadOnly(rootDataDir);
+  if (!active) {
+    return {};
+  }
+  const { config, runtime } = active;
+  const toolName = payload.toolName ?? "unknown";
+  const { obj: toolArgsObj, text: rawArgsText } = normalizeToolArgs(payload.toolInput ?? {});
+  let matched = matchRiskPattern(rawArgsText, config.riskPatterns);
+  if (!matched && FILE_MUTATION_TOOLS.has(toolName.toLowerCase())) {
+    const candidatePaths = collectCandidatePaths(toolArgsObj);
+    for (const candidate of candidatePaths) {
+      const hit = matchSensitivePath(candidate);
+      if (hit) {
+        matched = hit;
+        break;
+      }
+    }
+  }
+  if (!matched) {
+    return {};
+  }
+  const summary = extractSummary(toolArgsObj, rawArgsText);
+  if (!config.remoteApprovalEnabled) {
+    return {
+      decision: "ask",
+      reason: `Agy Remote risk policy matched (${matched}); prompting locally.`
+    };
+  }
+  if (!runtime) {
+    return {
+      decision: "ask",
+      reason: `Risky operation matched (${matched}) while remote gateway is offline; confirming locally.`
+    };
+  }
+  try {
+    const waitMs = Math.max(2e3, Math.min(25e3, config.approvalTimeoutSec * 1e3));
+    const res = await fetch(`${runtime.url}/api/hooks/approval`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.pairingToken}`
+      },
+      body: JSON.stringify({
+        conversationId: payload.conversationId ?? "unknown",
+        toolName,
+        summary,
+        matchedRule: matched,
+        timeoutSec: config.approvalTimeoutSec,
+        waitMs
+      }),
+      signal: AbortSignal.timeout(waitMs + 1500)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const st = data.approval?.status;
+      if (st === "approved") {
+        return {
+          decision: "allow",
+          reason: `Approved remotely via Agy Remote (${data.approval?.decidedBy ?? "mobile"}).`
+        };
+      }
+      if (st === "denied") {
+        return {
+          decision: "deny",
+          reason: `Denied remotely via Agy Remote (${data.approval?.decidedBy ?? "mobile"}).`
+        };
+      }
+    }
+  } catch {
+  }
+  return {
+    decision: "ask",
+    reason: `Risky operation matched (${matched}) and no remote decision arrived; confirming locally.`
+  };
+}
+async function handleRemoteStopHook(payload, rootDataDir) {
+  const active = loadEnabledRemoteStateReadOnly(rootDataDir);
+  if (!active) {
+    return;
+  }
+  const { config, runtime } = active;
+  if (!config.notifyOnStop) {
+    return;
+  }
+  if (!runtime) {
+    return;
+  }
+  const terminationReason = payload.terminationReason ?? "NO_TOOL_CALL";
+  const lastUserInput = payload.lastUserInput ?? "";
+  try {
+    await fetch(`${runtime.url}/api/hooks/stop`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.pairingToken}`
+      },
+      body: JSON.stringify({
+        conversationId: payload.conversationId ?? "unknown",
+        terminationReason,
+        lastUserInput,
+        error: typeof payload.error === "string" ? payload.error : ""
+      }),
+      signal: AbortSignal.timeout(3e3)
+    });
+  } catch {
+  }
+}
+
+// src/modules/review/hook.ts
+var import_node_crypto4 = __toESM(require("node:crypto"), 1);
+var import_node_fs7 = __toESM(require("node:fs"), 1);
+var import_node_path8 = __toESM(require("node:path"), 1);
+var MUTATING_TOOL_RE = /(write|edit|replace|patch|create|delete|remove|rename|move|run_command|command|bash|shell|terminal|multi_replace)/i;
+function readReviewSignal(moduleDataDir) {
+  if (!moduleDataDir) return null;
+  const signalPath = import_node_path8.default.join(moduleDataDir, "review-signal.json");
+  if (!import_node_fs7.default.existsSync(signalPath)) return null;
+  try {
+    const parsed = JSON.parse(import_node_fs7.default.readFileSync(signalPath, "utf8"));
+    return {
+      lastEvent: parsed.lastEvent,
+      lastToolName: parsed.lastToolName,
+      lastWriteAt: parsed.lastWriteAt,
+      updatedAt: parsed.updatedAt,
+      changeCount: typeof parsed.changeCount === "number" ? parsed.changeCount : 0,
+      workspacePaths: Array.isArray(parsed.workspacePaths) ? parsed.workspacePaths : void 0,
+      conversationId: parsed.conversationId
+    };
+  } catch {
+    return null;
+  }
+}
+function handleReviewHook(payload, rootDataDir) {
+  const moduleDataDir = getModuleDataDir(rootDataDir, "review");
+  const event = payload.event;
+  const toolName = payload.toolName;
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  try {
+    ensurePrivateDir(moduleDataDir);
+    const signalPath = import_node_path8.default.join(moduleDataDir, "review-signal.json");
+    const prev = readReviewSignal(moduleDataDir) ?? { changeCount: 0 };
+    const isMutating = event === "Stop" || (toolName ? MUTATING_TOOL_RE.test(toolName) : false);
+    const next = {
+      ...prev,
+      lastEvent: event,
+      lastToolName: toolName ?? prev.lastToolName,
+      lastWriteAt: isMutating ? now : prev.lastWriteAt,
+      updatedAt: now,
+      changeCount: isMutating ? prev.changeCount + 1 : prev.changeCount,
+      workspacePaths: payload.workspacePaths.length > 0 ? payload.workspacePaths : prev.workspacePaths,
+      conversationId: payload.conversationId ?? prev.conversationId
+    };
+    const tmpPath = `${signalPath}.${process.pid}.${import_node_crypto4.default.randomBytes(4).toString("hex")}.tmp`;
+    import_node_fs7.default.writeFileSync(tmpPath, `${JSON.stringify(next, null, 2)}
+`, { encoding: "utf8", mode: 384 });
+    import_node_fs7.default.renameSync(tmpPath, signalPath);
+  } catch {
+  }
+}
+
+// src/modules/xray/hook.ts
+var import_node_crypto5 = __toESM(require("node:crypto"), 1);
+var import_node_fs8 = __toESM(require("node:fs"), 1);
+var import_node_path9 = __toESM(require("node:path"), 1);
+function formatErrorValue(err) {
+  if (err === void 0 || err === null || err === "") return void 0;
+  if (typeof err === "string") return err;
+  if (err instanceof Error) return err.message;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+function handleXrayHook(payload, rootDataDir) {
+  const moduleDataDir = getModuleDataDir(rootDataDir, "xray");
+  const event = payload.event;
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  try {
+    ensurePrivateDir(moduleDataDir);
+    const statePath = import_node_path9.default.join(moduleDataDir, "live-state.json");
+    let state = { recentEvents: [] };
+    if (import_node_fs8.default.existsSync(statePath)) {
+      try {
+        const parsed = JSON.parse(import_node_fs8.default.readFileSync(statePath, "utf8"));
+        state = {
+          ...parsed,
+          recentEvents: Array.isArray(parsed.recentEvents) ? parsed.recentEvents : []
+        };
+      } catch {
+        state = { recentEvents: [] };
+      }
+    }
+    if (payload.conversationId) state.activeConversationId = payload.conversationId;
+    if (payload.transcriptPath) state.activeTranscriptPath = payload.transcriptPath;
+    if (payload.workspacePaths.length > 0) state.activeWorkspacePaths = payload.workspacePaths;
+    if (payload.toolName) state.lastToolName = payload.toolName;
+    state.lastEvent = event;
+    state.updatedAt = now;
+    state.recentEvents.push({
+      event,
+      conversationId: payload.conversationId ?? "unknown",
+      toolName: payload.toolName,
+      stepIdx: payload.stepIdx,
+      timestamp: now,
+      error: formatErrorValue(payload.error)
+    });
+    if (state.recentEvents.length > 50) {
+      state.recentEvents = state.recentEvents.slice(-50);
+    }
+    const tmpPath = `${statePath}.${process.pid}.${import_node_crypto5.default.randomBytes(4).toString("hex")}.tmp`;
+    import_node_fs8.default.writeFileSync(tmpPath, `${JSON.stringify(state, null, 2)}
+`, { encoding: "utf8", mode: 384 });
+    import_node_fs8.default.renameSync(tmpPath, statePath);
+  } catch {
+  }
+}
+
+// src/hooks/dispatcher.ts
+async function dispatchNovHook(rawInput, fallbackEvent, cliDataDir) {
+  const payload = normalizeHookPayload(rawInput, fallbackEvent);
+  const rootDataDir = resolveNovDataDir(sanitizeDataDirCandidate(cliDataDir) ?? payload.pluginData);
+  const config = loadNovConfigReadOnly(rootDataDir);
+  const { modules } = config;
+  if (payload.event === "SessionStart") {
+    if (!modules.mem) return {};
+    try {
+      const memOut = handleMemSessionStartHook(payload, rootDataDir);
+      if (memOut && Array.isArray(memOut.injectSteps) && memOut.injectSteps.length > 0) {
+        return { injectSteps: memOut.injectSteps };
+      }
+    } catch {
+    }
+    return {};
+  }
+  if (payload.event === "PreToolUse") {
+    if (!modules.guard && !modules.remote) {
+      return {};
+    }
+    let finalDecision;
+    const reasons = [];
+    if (modules.guard) {
+      try {
+        const guardRes = handleGuardPreToolHook(payload, rootDataDir);
+        if (guardRes.decision === "deny") {
+          return { decision: "deny", reason: guardRes.reason };
+        }
+        if (guardRes.decision === "ask") {
+          finalDecision = "ask";
+          if (guardRes.reason) reasons.push(guardRes.reason);
+        } else if (guardRes.decision === "allow") {
+          finalDecision = "allow";
+        }
+      } catch {
+      }
+    }
+    if (modules.remote) {
+      try {
+        const remoteRes = await handleRemotePreToolHook(payload, rootDataDir);
+        if (remoteRes?.decision === "deny") {
+          return { decision: "deny", reason: remoteRes.reason };
+        }
+        if (remoteRes?.decision === "ask") {
+          finalDecision = "ask";
+          if (remoteRes.reason) reasons.push(remoteRes.reason);
+        } else if (remoteRes?.decision === "allow" && !finalDecision) {
+          finalDecision = "allow";
+        }
+      } catch {
+      }
+    }
+    if (finalDecision === "ask") {
+      return { decision: "ask", reason: reasons.join(" | ") || "Approval required by agy-NOV" };
+    }
+    if (finalDecision === "allow") {
+      return { decision: "allow" };
+    }
+    return {};
+  }
+  if (payload.event === "PostToolUse") {
+    if (modules.review) {
+      try {
+        handleReviewHook(payload, rootDataDir);
+      } catch {
+      }
+    }
+    if (modules.xray) {
+      try {
+        handleXrayHook(payload, rootDataDir);
+      } catch {
+      }
+    }
+    return {};
+  }
+  if (payload.event === "Stop") {
+    if (modules.review) {
+      try {
+        handleReviewHook(payload, rootDataDir);
+      } catch {
+      }
+    }
+    if (modules.xray) {
+      try {
+        handleXrayHook(payload, rootDataDir);
+      } catch {
+      }
+    }
+    if (modules.mem) {
+      try {
+        handleMemStopHook(payload, rootDataDir);
+      } catch {
+      }
+    }
+    if (modules.remote) {
+      try {
+        await handleRemoteStopHook(payload, rootDataDir);
+      } catch {
+      }
+    }
+    return { decision: "allow" };
+  }
+  return {};
+}
+function readStdinText() {
+  try {
+    return import_node_fs9.default.readFileSync(0, "utf8");
+  } catch {
+    return "";
+  }
+}
+async function main() {
+  const argv = process.argv.slice(2);
+  const event = normalizeHookEvent(parseCliFlag(argv, "--event"), "PostToolUse");
+  const cliDataDir = parseCliFlag(argv, "--data-dir");
+  let rawInput = {};
+  const text = readStdinText().trim();
+  if (text) {
+    try {
+      rawInput = JSON.parse(text);
+    } catch {
+      rawInput = {};
+    }
+  }
+  try {
+    const out = await dispatchNovHook(rawInput, event, cliDataDir);
+    process.stdout.write(`${JSON.stringify(out)}
+`);
+  } catch {
+    const fallback = event === "Stop" ? { decision: "allow" } : {};
+    process.stdout.write(`${JSON.stringify(fallback)}
+`);
+  }
+}
+var isMain = typeof require !== "undefined" && typeof module !== "undefined" && require.main === module || typeof process.argv[1] === "string" && (process.argv[1].endsWith("hook.cjs") || process.argv[1].endsWith("dispatcher.ts"));
+if (isMain) {
+  void main();
+}
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  dispatchNovHook
+});

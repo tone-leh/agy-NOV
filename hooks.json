@@ -1,0 +1,42 @@
+{
+  "agy-nov-hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "node ./dist/hook.cjs --event SessionStart --data-dir=${PLUGIN_DATA}",
+        "timeout": 5
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "run_command|read_file|view_file|edit_file|write_file|write_to_file|create_file|patch_file|apply_patch|replace_file_content|multi_replace_file_content|delete_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./dist/hook.cjs --event PreToolUse --data-dir=${PLUGIN_DATA}",
+            "timeout": 28
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./dist/hook.cjs --event PostToolUse --data-dir=${PLUGIN_DATA}",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node ./dist/hook.cjs --event Stop --data-dir=${PLUGIN_DATA}",
+        "timeout": 8
+      }
+    ]
+  }
+}

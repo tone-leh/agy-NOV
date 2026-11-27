@@ -1,0 +1,787 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { NovBridge } from '../../bridge.js';
+import './styles.css';
+
+export interface NovModulePanelProps {
+  bridge: NovBridge;
+  active: boolean;
+  onNotify?: (message: string) => void;
+  incomingEvent?: { toolName?: string; structuredContent: Record<string, unknown> } | null;
+}
+
+type MemoryKind = 'architecture' | 'decision' | 'pitfall' | 'convention' | 'preference';
+type MemSubTab = 'cards' | 'graph' | 'add' | 'injection';
+
+interface CodeAnchor {
+  filePath: string;
+  basename: string;
+  uri: string;
+  symbol?: string;
+  sha256?: string;
+  driftStatus?: 'fresh' | 'drifted' | 'missing' | 'untracked' | 'skipped';
+}
+
+interface MemoryItem {
+  id: string;
+  kind: MemoryKind;
+  title: string;
+  content: string;
+  tags: string[];
+  workspacePath?: string;
+  sourceConversationId?: string;
+  anchors: CodeAnchor[];
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+  recallCount: number;
+  drifted?: boolean;
+  score?: number;
+}
+
+interface GraphNode {
+  id: string;
+  kind: 'memory' | 'file' | 'tag';
+  subKind?: MemoryKind;
+  label: string;
+  x: number;
+  y: number;
+  weight: number;
+  drifted?: boolean;
+  pinned?: boolean;
+}
+
+interface GraphEdge {
+  source: string;
+  target: string;
+  kind: 'anchors' | 'tagged';
+}
+
+interface MemoryGraphPayload {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+interface MemPayload {
+  initialTab?: MemSubTab;
+  memories?: MemoryItem[];
+  graph?: MemoryGraphPayload;
+  injectionPreview?: string;
+}
+
+interface MemSearchPayload {
+  hits?: Array<MemoryItem & { score?: number }>;
+}
+
+const KIND_COLOR: Record<MemoryKind, string> = {
+  architecture: '#38bdf8',
+  decision: '#10b981',
+  pitfall: '#f43f5e',
+  convention: '#a78bfa',
+  preference: '#f59e0b',
+};
+
+function isMemSubTab(v: unknown): v is MemSubTab {
+  return v === 'cards' || v === 'graph' || v === 'add' || v === 'injection';
+}
+
+export const MemPanel: React.FC<NovModulePanelProps> = ({
+  bridge,
+  active,
+  onNotify,
+  incomingEvent,
+}) => {
+  const [tab, setTab] = useState<MemSubTab>('cards');
+  const [data, setData] = useState<{
+    memories: MemoryItem[];
+    graph: MemoryGraphPayload;
+    injectionPreview: string;
+  } | null>(null);
+  const [query, setQuery] = useState('');
+  const [searchHits, setSearchHits] = useState<Array<MemoryItem & { score?: number }> | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [filterKind, setFilterKind] = useState<string>('all');
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [newKind, setNewKind] = useState<MemoryKind>('architecture');
+  const [newTitle, setNewTitle] = useState('');
+  const [newContent, setNewContent] = useState('');
+  const [newTags, setNewTags] = useState('');
+  const [newAnchor, setNewAnchor] = useState('');
+  const [newPinned, setNewPinned] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [localToast, setLocalToast] = useState<string | null>(null);
+
+  const loadedOnceRef = useRef(false);
+  const fetchSeqRef = useRef(0);
+  const lastEventRef = useRef<typeof incomingEvent>(null);
+  const toastTimerRef = useRef<number | null>(null);
+
+  const notify = useCallback(
+    (msg: string) => {
+      if (onNotify) {
+        onNotify(msg);
+        return;
+      }
+      setLocalToast(msg);
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = window.setTimeout(() => setLocalToast(null), 2500);
+    },
+    [onNotify],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  const applyPayload = useCallback((res: MemPayload) => {
+    if (!Array.isArray(res.memories)) return;
+    setData({
+      memories: res.memories,
+      graph: res.graph ?? { nodes: [], edges: [] },
+      injectionPreview: res.injectionPreview ?? '',
+    });
+    loadedOnceRef.current = true;
+  }, []);
+
+  const refresh = useCallback(async () => {
+    const seq = ++fetchSeqRef.current;
+    setLoading(true);
+    setErrorMsg(null);
+    try {
+      const res = await bridge.callTool<MemPayload>('app_mem_get_state', {});
+      if (seq !== fetchSeqRef.current) return;
+      applyPayload(res);
+    } catch (err) {
+      if (seq !== fetchSeqRef.current) return;
+      setErrorMsg(err instanceof Error ? err.message : String(err));
+    } finally {
+      if (seq === fetchSeqRef.current) setLoading(false);
+    }
+  }, [bridge, applyPayload]);
+
+  // Initial fetch when active
+  useEffect(() => {
+    if (!active) return;
+    if (!loadedOnceRef.current) {
+      void refresh();
+    }
+  }, [active, refresh]);
+
+  // Respond to incoming tool result events
+  useEffect(() => {
+    if (!incomingEvent || incomingEvent === lastEventRef.current) return;
+    const sc = incomingEvent.structuredContent;
+    if (!sc || typeof sc !== 'object') return;
+
+    const isMemTool =
+      sc.novModule === 'mem' ||
+      (typeof incomingEvent.toolName === 'string' && incomingEvent.toolName.includes('mem'));
+    const hasMemShape =
+      Array.isArray(sc.memories) ||
+      isMemSubTab(sc.initialTab) ||
+      typeof sc.graphNodeCount === 'number' ||
+      typeof sc.anchorCount === 'number' ||
+      typeof sc.deleted === 'boolean';
+
+    if (!isMemTool && !hasMemShape) return;
+    lastEventRef.current = incomingEvent;
+
+    if (isMemSubTab(sc.initialTab)) {
+      setTab(sc.initialTab);
+    }
+    if (Array.isArray(sc.memories)) {
+      applyPayload(sc as unknown as MemPayload);
+    } else if (active) {
+      void refresh();
+    }
+  }, [incomingEvent, active, applyPayload, refresh]);
+
+  const handleServerSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setSearchHits(null);
+      return;
+    }
+    setSearching(true);
+    setErrorMsg(null);
+    try {
+      const res = await bridge.callTool<MemSearchPayload>('app_mem_search', { query: trimmed });
+      setSearchHits(Array.isArray(res.hits) ? res.hits : []);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setQuery('');
+    setSearchHits(null);
+  };
+
+  const filtered = useMemo(() => {
+    const baseList = searchHits !== null ? searchHits : data?.memories ?? [];
+    const q = searchHits !== null ? '' : query.trim().toLowerCase();
+    return baseList.filter((m) => {
+      if (filterKind === 'pinned' && !m.pinned) return false;
+      if (filterKind === 'drifted' && !m.drifted) return false;
+      if (
+        filterKind !== 'all' &&
+        filterKind !== 'pinned' &&
+        filterKind !== 'drifted' &&
+        m.kind !== filterKind
+      ) {
+        return false;
+      }
+      if (q) {
+        const hay = `${m.title} ${m.content} ${m.tags.join(' ')} ${m.anchors.map((a) => a.filePath).join(' ')}`.toLowerCase();
+        return hay.includes(q);
+      }
+      return true;
+    });
+  }, [data?.memories, searchHits, filterKind, query]);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const title = newTitle.trim();
+    const content = newContent.trim();
+    if (title.length < 2 || content.length < 4) {
+      notify('Title (min 2 chars) and content (min 4 chars) are required');
+      return;
+    }
+    try {
+      const res = await bridge.callTool<MemPayload>('app_mem_add_memory', {
+        kind: newKind,
+        title,
+        content,
+        tags: newTags
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        anchorFiles: newAnchor
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        pinned: newPinned,
+      });
+      applyPayload(res);
+      setSearchHits(null);
+      setNewTitle('');
+      setNewContent('');
+      setNewTags('');
+      setNewAnchor('');
+      setTab('cards');
+      notify('Saved code-anchored memory');
+    } catch (err) {
+      notify(`Failed to save memory: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  const handleTogglePin = async (id: string) => {
+    try {
+      const res = await bridge.callTool<MemPayload>('app_mem_toggle_pin', { id });
+      applyPayload(res);
+      if (searchHits !== null && query.trim()) {
+        await handleServerSearch();
+      }
+    } catch (err) {
+      notify(`Failed to toggle pin: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  const handleReverifyDrift = async (id: string) => {
+    try {
+      const res = await bridge.callTool<MemPayload>('app_mem_reverify_drift', { id });
+      applyPayload(res);
+      if (searchHits !== null && query.trim()) {
+        await handleServerSearch();
+      }
+      notify('Re-verified file anchor hashes');
+    } catch (err) {
+      notify(`Failed to verify anchor: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  const handleDeleteMemory = async (id: string) => {
+    try {
+      const res = await bridge.callTool<MemPayload>('app_mem_delete_memory', { id });
+      applyPayload(res);
+      if (searchHits !== null) {
+        setSearchHits((prev) => (prev ? prev.filter((item) => item.id !== id) : null));
+      }
+      if (selectedNodeId === id) setSelectedNodeId(null);
+      notify('Deleted memory card');
+    } catch (err) {
+      notify(`Failed to delete memory: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  const handleOpenAnchor = async (anchor: CodeAnchor) => {
+    const target = anchor.uri || anchor.filePath;
+    const ok = await bridge.openFile(target);
+    notify(ok ? `Opened ${anchor.basename} in side pane` : 'Open file available in Side Pane mode');
+  };
+
+  const handleInjectContext = async (title: string, content: string) => {
+    const mode = await bridge.updateModelContext(`[Memory Graph: ${title}]\n${content}`);
+    notify(
+      mode === 'context'
+        ? `Injected "${title}" into next model context`
+        : `Copied "${title}" to clipboard`,
+    );
+  };
+
+  const selectedGraphNode = useMemo(() => {
+    if (!selectedNodeId || !data) return null;
+    return data.graph.nodes.find((n) => n.id === selectedNodeId) ?? null;
+  }, [selectedNodeId, data]);
+
+  const selectedMemoryForNode = useMemo(() => {
+    if (!selectedGraphNode || selectedGraphNode.kind !== 'memory' || !data) return null;
+    return (
+      data.memories.find(
+        (m) => m.id === selectedGraphNode.id || `mem:${m.id}` === selectedGraphNode.id,
+      ) ?? null
+    );
+  }, [selectedGraphNode, data]);
+
+  const selectedAnchorForNode = useMemo(() => {
+    if (!selectedGraphNode || selectedGraphNode.kind !== 'file' || !data) return null;
+    for (const m of data.memories) {
+      const hit = m.anchors.find(
+        (a) =>
+          a.filePath === selectedGraphNode.id ||
+          `file:${a.filePath}` === selectedGraphNode.id ||
+          a.basename === selectedGraphNode.label,
+      );
+      if (hit) return hit;
+    }
+    return null;
+  }, [selectedGraphNode, data]);
+
+  const memories = data?.memories ?? [];
+  const driftedCount = memories.filter((m) => m.drifted).length;
+  const pinnedCount = memories.filter((m) => m.pinned).length;
+
+  return (
+    <div className="mod-mem">
+      <header className="mem-hdr">
+        <div className="mem-brand">
+          <span className="mem-logo">MG</span>
+          <span>Memory Graph</span>
+          <span className="mem-badge is-purple">Glass-Box Graph</span>
+        </div>
+        <button
+          type="button"
+          className="mem-btn is-primary"
+          onClick={() => void refresh()}
+          disabled={loading}
+        >
+          {loading ? 'Refreshing…' : 'Refresh'}
+        </button>
+      </header>
+
+      <nav className="mem-tabs" aria-label="Memory Graph sections">
+        <button
+          type="button"
+          className={`mem-tab ${tab === 'cards' ? 'is-active' : ''}`}
+          onClick={() => setTab('cards')}
+        >
+          Memory Cards ({memories.length})
+        </button>
+        <button
+          type="button"
+          className={`mem-tab ${tab === 'graph' ? 'is-active' : ''}`}
+          onClick={() => setTab('graph')}
+        >
+          Knowledge Graph
+        </button>
+        <button
+          type="button"
+          className={`mem-tab ${tab === 'add' ? 'is-active' : ''}`}
+          onClick={() => setTab('add')}
+        >
+          + Teach Memory
+        </button>
+        <button
+          type="button"
+          className={`mem-tab ${tab === 'injection' ? 'is-active' : ''}`}
+          onClick={() => setTab('injection')}
+        >
+          SessionStart Preview
+        </button>
+      </nav>
+
+      {errorMsg && (
+        <div className="mem-error" role="alert">
+          {errorMsg}
+        </div>
+      )}
+
+      {!data ? (
+        <div className="mem-card mem-muted">
+          {loading ? 'Loading local memory graph…' : 'Waiting for memory graph state…'}
+        </div>
+      ) : (
+        <>
+          <div className="mem-kpi-grid">
+            <div className="mem-card">
+              <div className="mem-kpi-label">Total Memories</div>
+              <div className="mem-kpi-value">{memories.length}</div>
+            </div>
+            <div className="mem-card">
+              <div className="mem-kpi-label">Pinned (Auto-Inject)</div>
+              <div className="mem-kpi-value is-accent">{pinnedCount}</div>
+            </div>
+            <div className="mem-card">
+              <div className="mem-kpi-label">Drifted Anchors</div>
+              <div className={`mem-kpi-value ${driftedCount ? 'is-warn' : 'is-good'}`}>
+                {driftedCount}
+              </div>
+            </div>
+            <div className="mem-card">
+              <div className="mem-kpi-label">Graph Nodes</div>
+              <div className="mem-kpi-value is-purple">{data.graph.nodes.length}</div>
+            </div>
+          </div>
+
+          {tab === 'cards' && (
+            <div className="mem-stack">
+              <form className="mem-row" onSubmit={(e) => void handleServerSearch(e)}>
+                <input
+                  className="mem-input mem-search-input"
+                  placeholder="Search memories, files, tags (EN / 中文) — Enter for BM25…"
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    if (!e.target.value.trim()) setSearchHits(null);
+                  }}
+                />
+                <button
+                  type="submit"
+                  className="mem-btn is-primary"
+                  disabled={searching || !query.trim()}
+                >
+                  {searching ? 'Searching…' : 'BM25 Search'}
+                </button>
+                {searchHits !== null && (
+                  <button type="button" className="mem-btn" onClick={handleClearSearch}>
+                    Clear ({searchHits.length})
+                  </button>
+                )}
+                <select
+                  className="mem-select mem-filter-select"
+                  aria-label="Filter memory kind"
+                  value={filterKind}
+                  onChange={(e) => setFilterKind(e.target.value)}
+                >
+                  <option value="all">All Types</option>
+                  <option value="pinned">Pinned Only</option>
+                  <option value="drifted">Drifted Only</option>
+                  <option value="architecture">Architecture</option>
+                  <option value="decision">Decision</option>
+                  <option value="pitfall">Pitfall</option>
+                  <option value="convention">Convention</option>
+                  <option value="preference">Preference</option>
+                </select>
+              </form>
+
+              {filtered.length === 0 ? (
+                <div className="mem-card mem-muted">
+                  No memory cards match the current filter.
+                </div>
+              ) : (
+                filtered.map((m) => (
+                  <div key={m.id} className={`mem-item-card ${m.drifted ? 'is-drifted' : ''}`}>
+                    <div className="mem-row is-between">
+                      <div className="mem-row">
+                        <span
+                          className="mem-badge"
+                          style={{ color: KIND_COLOR[m.kind], borderColor: KIND_COLOR[m.kind] }}
+                        >
+                          {m.kind.toUpperCase()}
+                        </span>
+                        <strong>{m.title}</strong>
+                        {typeof m.score === 'number' && (
+                          <span className="mem-badge is-good">BM25 {m.score.toFixed(2)}</span>
+                        )}
+                        {m.pinned && <span className="mem-badge is-info">★ PINNED</span>}
+                        {m.drifted && <span className="mem-badge is-warn">⚠ FILE DRIFTED</span>}
+                      </div>
+                      <div className="mem-row">
+                        <button
+                          type="button"
+                          className="mem-btn is-primary"
+                          onClick={() => void handleInjectContext(m.title, m.content)}
+                        >
+                          + Context
+                        </button>
+                        <button
+                          type="button"
+                          className="mem-btn"
+                          onClick={() => void handleTogglePin(m.id)}
+                        >
+                          {m.pinned ? 'Unpin' : 'Pin'}
+                        </button>
+                        {m.drifted && (
+                          <button
+                            type="button"
+                            className="mem-btn"
+                            onClick={() => void handleReverifyDrift(m.id)}
+                          >
+                            Verify
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="mem-btn"
+                          aria-label={`Delete memory ${m.title}`}
+                          onClick={() => void handleDeleteMemory(m.id)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mem-content">{m.content}</div>
+                    <div className="mem-row">
+                      {m.anchors.map((a) => (
+                        <button
+                          key={`${a.filePath}:${a.symbol ?? ''}`}
+                          type="button"
+                          className={`mem-anchor-chip ${
+                            a.driftStatus === 'drifted' || a.driftStatus === 'missing'
+                              ? 'is-drifted'
+                              : ''
+                          }`}
+                          title={`${a.filePath} (${a.driftStatus ?? 'tracked'}) — click to open in side pane`}
+                          onClick={() => void handleOpenAnchor(a)}
+                        >
+                          📄 {a.basename}
+                          {a.symbol ? `::${a.symbol}` : ''}
+                        </button>
+                      ))}
+                      {m.tags.map((t) => (
+                        <span key={t} className="mem-badge">
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {tab === 'graph' && (
+            <div className="mem-card">
+              <div className="mem-row is-between" style={{ marginBottom: 8 }}>
+                <strong>Code-Anchored Memory Knowledge Graph</strong>
+                <span className="mem-badge">Click any node to inspect</span>
+              </div>
+              <svg viewBox="0 0 680 400" className="mem-graph-svg">
+                {data.graph.edges.map((e, idx) => {
+                  const s = data.graph.nodes.find((n) => n.id === e.source);
+                  const t = data.graph.nodes.find((n) => n.id === e.target);
+                  if (!s || !t) return null;
+                  const hi =
+                    selectedNodeId !== null &&
+                    (e.source === selectedNodeId || e.target === selectedNodeId);
+                  return (
+                    <line
+                      key={idx}
+                      x1={s.x}
+                      y1={s.y}
+                      x2={t.x}
+                      y2={t.y}
+                      stroke={e.kind === 'anchors' ? '#38bdf8' : '#a78bfa'}
+                      strokeOpacity={hi ? 0.95 : 0.3}
+                      strokeWidth={hi ? 2.2 : 1.2}
+                      strokeDasharray={e.kind === 'tagged' ? '4 3' : undefined}
+                    />
+                  );
+                })}
+                {data.graph.nodes.map((n) => {
+                  const color =
+                    n.kind === 'memory'
+                      ? n.drifted
+                        ? '#f59e0b'
+                        : KIND_COLOR[n.subKind ?? 'decision']
+                      : n.kind === 'file'
+                        ? '#38bdf8'
+                        : '#94a3b8';
+                  const r = n.kind === 'memory' ? 11 : n.kind === 'file' ? 8 : 6;
+                  const isSelected = selectedNodeId === n.id;
+                  return (
+                    <g
+                      key={n.id}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setSelectedNodeId(isSelected ? null : n.id)}
+                    >
+                      <circle
+                        cx={n.x}
+                        cy={n.y}
+                        r={isSelected ? r + 2.5 : r}
+                        fill={color}
+                        stroke={isSelected ? 'var(--nov-text-0)' : 'var(--nov-bg-1)'}
+                        strokeWidth={isSelected ? 2.5 : 2}
+                      />
+                      <text
+                        x={n.x}
+                        y={n.y + r + 12}
+                        textAnchor="middle"
+                        fill="var(--nov-text-0)"
+                        fontSize="9.5"
+                        fontFamily="var(--nov-font-mono)"
+                      >
+                        {n.label}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+
+              {selectedGraphNode && (
+                <div className="mem-graph-inspector">
+                  <div className="mem-row is-between">
+                    <div className="mem-row">
+                      <span className="mem-badge is-info">{selectedGraphNode.kind.toUpperCase()}</span>
+                      <strong>{selectedGraphNode.label}</strong>
+                    </div>
+                    <button
+                      type="button"
+                      className="mem-btn"
+                      onClick={() => setSelectedNodeId(null)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                  {selectedMemoryForNode && (
+                    <>
+                      <div className="mem-content">{selectedMemoryForNode.content}</div>
+                      <div className="mem-row">
+                        <button
+                          type="button"
+                          className="mem-btn is-primary"
+                          onClick={() =>
+                            void handleInjectContext(
+                              selectedMemoryForNode.title,
+                              selectedMemoryForNode.content,
+                            )
+                          }
+                        >
+                          + Context
+                        </button>
+                        {selectedMemoryForNode.anchors.map((a) => (
+                          <button
+                            key={a.filePath}
+                            type="button"
+                            className="mem-anchor-chip"
+                            onClick={() => void handleOpenAnchor(a)}
+                          >
+                            📄 {a.basename}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {selectedAnchorForNode && (
+                    <div className="mem-row is-between">
+                      <span className="mem-muted">{selectedAnchorForNode.filePath}</span>
+                      <button
+                        type="button"
+                        className="mem-btn is-primary"
+                        onClick={() => void handleOpenAnchor(selectedAnchorForNode)}
+                      >
+                        Open File
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'add' && (
+            <form className="mem-card mem-stack" onSubmit={(e) => void handleAdd(e)}>
+              <strong>Teach Permanent Workspace Memory</strong>
+              <select
+                className="mem-select"
+                value={newKind}
+                onChange={(e) => setNewKind(e.target.value as MemoryKind)}
+              >
+                <option value="architecture">Architecture</option>
+                <option value="decision">Decision</option>
+                <option value="pitfall">Pitfall / Root Cause</option>
+                <option value="convention">Convention</option>
+                <option value="preference">Preference</option>
+              </select>
+              <input
+                className="mem-input"
+                placeholder="Short title (e.g. Redis Pipeline Batching Rule)"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+              />
+              <textarea
+                className="mem-textarea"
+                rows={3}
+                placeholder="Concise, actionable truth the agent should always remember..."
+                value={newContent}
+                onChange={(e) => setNewContent(e.target.value)}
+              />
+              <input
+                className="mem-input"
+                placeholder="Tags (comma-separated, e.g. redis, checkout)"
+                value={newTags}
+                onChange={(e) => setNewTags(e.target.value)}
+              />
+              <input
+                className="mem-input"
+                placeholder="Anchored file path(s) (comma-separated, optional)"
+                value={newAnchor}
+                onChange={(e) => setNewAnchor(e.target.value)}
+              />
+              <label className="mem-checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={newPinned}
+                  onChange={(e) => setNewPinned(e.target.checked)}
+                />
+                Pin for automatic SessionStart recall
+              </label>
+              <button type="submit" className="mem-btn is-primary">
+                Save Memory Card
+              </button>
+            </form>
+          )}
+
+          {tab === 'injection' && (
+            <div className="mem-card mem-stack">
+              <div className="mem-row is-between">
+                <strong>Exact SessionStart System Message Preview (Glass-Box Transparency)</strong>
+                {data.injectionPreview && (
+                  <button
+                    type="button"
+                    className="mem-btn is-primary"
+                    onClick={() =>
+                      void handleInjectContext('SessionStart Injection', data.injectionPreview)
+                    }
+                  >
+                    + Context
+                  </button>
+                )}
+              </div>
+              <div className="mem-prebox">
+                {data.injectionPreview || '(No active non-drifted memories to inject yet)'}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {!onNotify && localToast && <div className="mem-toast">{localToast}</div>}
+    </div>
+  );
+};
