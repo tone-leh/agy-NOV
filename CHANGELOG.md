@@ -2,6 +2,34 @@
 
 All notable changes to **agy-NOV** will be documented in this file.
 
+## [1.2.0] - 2026-11-28
+
+### Added
+- **Opt-In Read-Only Audit Sidecar & 11th CLI Command `audit-once` (+0 Model Tools) (`server`, `cli`, `sidecars/`):**
+  - Added `src/server/sidecar.ts`, one-shot runner `sidecars/audit-sidecar.mjs`, and usage guide [`sidecars/README.md`](./sidecars/README.md), staying strictly OFF by default (zero idle daemon, zero background polling, zero listening ports, zero directory creation, and zero disk writes until invoked).
+  - Aggregates read-only workspace Ops static security & rule scores, Mem stale-anchor & expired-unpinned counts, Verify dirty files & last check status, Guard block counts, and active config posture into a redacted JSON sweep report with actionable recommendations for Antigravity `/schedule` or OS schedulers (`cron`, `launchd`, Task Scheduler).
+  - Added the **11th native CLI command** `agy-nov audit-once [--workspace=<dir>] [--data-dir=<dir>] [--json] [--write-report]` and standalone invocation `node sidecars/audit-sidecar.mjs --once`; `--write-report` atomically persists `health-sweep.json` (`<= 64 KiB`, mode `0600`) strictly inside an existing safe non-symlink `dataDir`.
+- **Layer 1 Shared `ConversationService` Connect API Collaboration (+0 Model Tools) (`core`, `remote`, `xray`, `radar`):**
+  - Added Layer 1 shared client `src/core/conversation-service.ts` wrapping Google Antigravity's official `product.v1.ConversationService` Connect API with strict loopback-only anti-SSRF validation (`127.0.0.1` / `localhost` / `[::1]`), silent graceful degradation when unavailable, zero CSRF token echoing, and full outbound `<private>`/secret redaction, shared cleanly across `remote`, `xray`, and `radar`.
+  - Added confirmation-gated App-only tool `app_xray_fork_via_service` (`visibility: ['app']`, +0 model tools) to `xray`: supports dry-run Clean Fork preview and explicit `confirmCreate` creation of a clean new conversation via `ConversationService`, falling back gracefully to `app.sendMessage` when the host service is unavailable.
+  - Added read-only App-only tool `app_radar_reconcile_conversations` (`visibility: ['app']`, +0 model tools) to `radar`: performs zero-write reconciliation between the local Radar board and live host `ListConversations`, surfacing ghost sessions that have turned idle alongside newly active host conversations.
+- **Antigravity Marketplace Readiness Alignment & 18-Asset `doctor` (`plugin.json`, `cli`):**
+  - Refined `plugin.json` while strictly retaining only the 10 officially allowed top-level manifest keys, condensing `description` to **148 characters** (within the 60–200 recommended range) alongside 3 validated `suggestedPrompts` and the 128×128 transparent-background `assets/logo.svg`.
+  - Expanded `agy-nov doctor` verification from 16 to all **18 core plugin assets** (adding `sidecars/audit-sidecar.mjs` and `sidecars/README.md`) and integrated **4 Marketplace Readiness Checks** (concise `description` 60–200 chars, 1–3 non-empty `suggestedPrompts`, relative regular `logo` asset containment inside plugin root, and zero always-on `rules/AGENTS.md` rule bloat).
+- **Expanded Automated Regression Verification (`test`):**
+  - Added `test/v120-sidecar-marketplace.test.ts` covering read-only sidecar sweeps, `audit-once`, `ConversationService` loopback/redaction invariants, `app_xray_fork_via_service`, `app_radar_reconcile_conversations`, and 18-asset + 4-check Marketplace `doctor`, expanding total automated verification to **100 suites / 280 tests** passing green.
+
+### Changed
+- **Preserved 13-Module Architecture, 5 Presets & Strictly 47 Canonical Model Tools (+0 Inflation):** All 13 toggleable native modules (12 local offline + 1 opt-in `remote`), 5 presets (`minimal` 6 / `core` 12 / `power` 32 / `local-all` 43 / `full` 47), 6 official Lifecycle Hooks, 6 official Skills, 2 read-only specialist subagents, 4 `agy-nov://context/*` resources, and all **47 canonical model tool names** remain 100% backward-compatible from `v0.4` through `v1.2.0`; `app_xray_fork_via_service` and `app_radar_reconcile_conversations` stay strictly App-only (`visibility: ['app']`) and hidden automatically on headless CLI clients without MCP UI extensions.
+- **Updated Runtime Bundles, 11 CLI Commands & 18-Asset `doctor` (`v1.2.0`):**
+  - Measured minified `v1.2.0` artifacts: `dist/server.cjs` **`1,583.5 KB`**, `dist/hook.cjs` **`211.9 KB`**, `dist/cli.cjs` **`190.0 KB`**, and single-file 8-language UI `dist/ui/app.html` **`1,390.2 KB`** (`~1.36 MiB`, far below the 10 MiB cap, carrying **755 core dictionary keys × 8 locales** across all **24 UI components**).
+  - Updated `src/server/cli.ts` to **11 native CLI commands** (adding `audit-once`), `doctor` to verify all **18** core plugin assets plus **4** Marketplace Readiness Checks (`version=1.2.0`), and synchronized `README.md`, all 7 localized `docs/i18n/README.*.md` files, `llms.txt`, `docs/llms-install.md`, and `skills/agy-nov/SKILL.md` to `v1.2.0` with links to `sidecars/README.md`.
+
+### Security
+- **Opt-In Audit Sidecar Zero-Touch & Safe Write Containment (`server`, `sidecars/`):** Sidecar execution starts strictly on demand with zero background daemon, zero listening sockets, zero outbound network traffic, shell-free `spawnSync(..., { shell: false })`, symlink ancestor refusal, 2 MiB JSON read caps, and full `<private>`/secret redaction with host path minimization. `--write-report` writes `health-sweep.json` only when `dataDir` already exists as a safe non-symlink directory, enforcing `<= 64 KiB`, `0600` permissions, `O_CREAT | O_EXCL` temporary files, and atomic rename.
+- **Loopback-Only `ConversationService` Anti-SSRF & Zero-Echo Guarantees (`core`, `xray`, `radar`, `remote`):** Enforces strict loopback host validation (`127.0.0.1` / `localhost` / `[::1]`) on Connect API calls, never echoes CSRF tokens in responses or errors, applies full outbound `<private>` and secret redaction, requires explicit `confirmCreate` before `app_xray_fork_via_service` creates a conversation, and keeps `app_radar_reconcile_conversations` strictly read-only with zero disk writes.
+- **Marketplace Manifest Hygiene & Zero-Touch Invariants Preserved (`v1.2.0`):** Verified `plugin.json` contains strictly the 10 officially allowed top-level keys (`description` 148 chars, 3 valid `suggestedPrompts`, relative regular `assets/logo.svg`, zero `rules/AGENTS.md`), maintained 100% Zero ASAR / Zero CDP boundaries and four-zero OFF-state isolation for `remote`, and verified **100 suites / 280 tests** green.
+
 ## [1.1.0] - 2026-11-28
 
 ### Added

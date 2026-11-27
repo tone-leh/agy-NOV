@@ -126,11 +126,12 @@ describe('Architecture Layer Hygiene & Dependency Boundaries', () => {
     );
   });
 
-  it('enforces zero circular dependencies across src/core/*, src/modules/*, and src/server/cli/*', () => {
+  it('enforces zero circular dependencies across src/core/*, src/modules/*, src/hooks/*, and src/server/*', () => {
     const roots = [
       path.join(REPO_ROOT, 'src', 'core'),
       path.join(REPO_ROOT, 'src', 'modules'),
-      path.join(REPO_ROOT, 'src', 'server', 'cli'),
+      path.join(REPO_ROOT, 'src', 'hooks'),
+      path.join(REPO_ROOT, 'src', 'server'),
     ];
     const allFiles = roots.flatMap((r) => walkSourceFiles(r, new Set(['.ts'])));
     const fileSet = new Set(allFiles);

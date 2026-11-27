@@ -787,6 +787,7 @@ describe('v0.2.0 Unified McpServer registration, zero-write init & live enable/d
           'app_radar_ack_session',
           'app_radar_update_prefs',
           'app_radar_clear_completed',
+          'app_radar_reconcile_conversations',
           // ops (3 model + 5 app)
           'ops_list_prompts',
           'ops_render_prompt',

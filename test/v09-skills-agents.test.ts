@@ -59,6 +59,7 @@ const CANONICAL_CLI_COMMANDS = new Set([
   'doctor',
   'compact-run',
   'compile-spec',
+  'audit-once',
 ]);
 
 const CANONICAL_MODEL_TOOLS = new Set<string>([

@@ -12,7 +12,7 @@ import {
   PRESET_IDS,
 } from '../../core/config.js';
 
-export const CLI_VERSION = '1.1.0';
+export const CLI_VERSION = '1.2.0';
 export const MAX_READ_JSON_BYTES = 2 * 1024 * 1024; // 2 MiB hard cap for silent read-only JSON loading
 
 export function printHelp(): void {
@@ -29,6 +29,7 @@ Usage:
   agy-nov doctor [--data-dir=<dir>]                                                   Verify plugin bundle, manifests & config health (read-only)
   agy-nov compact-run --payload=<b64> [--data-dir=<dir>]                              Auto-RTK whitelisted shell-free compact command runner
   agy-nov compile-spec [--spec=<id>] [--format=workflow|swarm|both] [--json]          Read-only Spec DAG compiler to /run-workflow Python & /swarm plan.json
+  agy-nov audit-once [--workspace=<dir>] [--data-dir=<dir>] [--json] [--write-report] Read-only workspace & plugin health sweep (zero writes by default)
 
 Tip:
   When installed via "agy plugin install", invoke directly with:

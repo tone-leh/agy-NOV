@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import type { ConversationRecord } from '../../core/conversation-service.js';
 import { atomicWriteJson } from '../../core/utils.js';
 
 export type RadarSessionStatus =
@@ -705,5 +706,120 @@ export function createDemoRadarBoard(nowMs = Date.now()): RadarBoardFile {
       },
     },
     updatedAt: new Date(nowMs).toISOString(),
+  };
+}
+
+export type ReconcileBoardSessionInput = Pick<
+  RadarSessionRecord,
+  'conversationId' | 'workspaceName'
+> & {
+  status: RadarSessionStatus;
+  idleMinutes?: number;
+};
+
+export interface RadarDriftedSessionItem {
+  conversationId: string;
+  workspaceName: string;
+  radarStatus: RadarSessionStatus;
+  hostRunState: string;
+  hostTitle: string;
+  hostUpdateTime: string;
+  idleMinutes?: number;
+}
+
+export interface RadarHostOnlyRunningItem {
+  id: string;
+  title: string;
+  summary: string;
+  runState: string;
+  updateTime: string;
+  tags: string[];
+}
+
+export interface RadarReconcileReport {
+  totalRadarSessions: number;
+  totalHostConversations: number;
+  matchedCount: number;
+  driftedToIdle: RadarDriftedSessionItem[];
+  hostOnlyRunning: RadarHostOnlyRunningItem[];
+  inSync: boolean;
+}
+
+const RADAR_ACTIVE_STATUSES: ReadonlySet<RadarSessionStatus> = new Set([
+  'running',
+  'stalled',
+  'awaiting_approval',
+]);
+
+/**
+ * Pure read-only reconciliation between local Radar board sessions and live host
+ * `ConversationService` records. Never mutates inputs or writes to disk.
+ */
+export function reconcileRadarWithHostConversations(
+  boardSessions: ReadonlyArray<ReconcileBoardSessionInput>,
+  hostConversations: ReadonlyArray<ConversationRecord>,
+): RadarReconcileReport {
+  const radarById = new Map<string, ReconcileBoardSessionInput>();
+  for (const session of boardSessions) {
+    if (session && typeof session.conversationId === 'string' && session.conversationId) {
+      radarById.set(session.conversationId, session);
+    }
+  }
+
+  const hostById = new Map<string, ConversationRecord>();
+  for (const conv of hostConversations) {
+    if (conv && typeof conv.id === 'string' && conv.id) {
+      hostById.set(conv.id, conv);
+    }
+  }
+
+  let matchedCount = 0;
+  const driftedToIdle: RadarDriftedSessionItem[] = [];
+
+  for (const [convId, radarSession] of radarById.entries()) {
+    const hostConv = hostById.get(convId);
+    if (!hostConv) continue;
+    matchedCount += 1;
+
+    if (
+      RADAR_ACTIVE_STATUSES.has(radarSession.status) &&
+      hostConv.runState === 'RUN_STATE_IDLE'
+    ) {
+      driftedToIdle.push({
+        conversationId: convId,
+        workspaceName: radarSession.workspaceName,
+        radarStatus: radarSession.status,
+        hostRunState: hostConv.runState,
+        hostTitle: hostConv.title,
+        hostUpdateTime: hostConv.updateTime,
+        ...(typeof radarSession.idleMinutes === 'number'
+          ? { idleMinutes: radarSession.idleMinutes }
+          : {}),
+      });
+    }
+  }
+
+  const hostOnlyRunning: RadarHostOnlyRunningItem[] = [];
+  for (const [convId, hostConv] of hostById.entries()) {
+    if (radarById.has(convId)) continue;
+    if (hostConv.runState === 'RUN_STATE_RUNNING' && !hostConv.archived) {
+      hostOnlyRunning.push({
+        id: hostConv.id,
+        title: hostConv.title,
+        summary: hostConv.summary,
+        runState: hostConv.runState,
+        updateTime: hostConv.updateTime,
+        tags: [...hostConv.tags],
+      });
+    }
+  }
+
+  return {
+    totalRadarSessions: radarById.size,
+    totalHostConversations: hostById.size,
+    matchedCount,
+    driftedToIdle,
+    hostOnlyRunning,
+    inSync: driftedToIdle.length === 0 && hostOnlyRunning.length === 0,
   };
 }

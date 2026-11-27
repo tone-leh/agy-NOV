@@ -1,6 +1,10 @@
 import type { McpServer, RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getModuleDataDir, resolveNovDataDir } from '../../core/config.js';
+import {
+  listHostConversationsReadOnly,
+  type ConversationRecord,
+} from '../../core/conversation-service.js';
 import type {
   ModuleRegistrationResult,
   ModuleToolHandle,
@@ -15,6 +19,7 @@ import {
   createDemoRadarBoard,
   loadRadarBoardReadOnly,
   normalizeRadarPrefs,
+  reconcileRadarWithHostConversations,
   updateRadarPrefs,
   type RadarBoardFile,
   type RadarSessionStatus,
@@ -237,8 +242,138 @@ export function registerRadarModule(
     },
   );
 
+  server.registerTool(
+    'app_radar_reconcile_conversations',
+    {
+      title: 'Reconcile Radar with Host Conversations (App Only)',
+      description:
+        'Read-only comparison of local Radar board sessions against live Antigravity ConversationService records to detect ghost-active (driftedToIdle) and untracked host-running sessions.',
+      inputSchema: {
+        pageSize: z.number().int().min(1).max(100).optional(),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ pageSize }) => {
+      const boardView = getBoardView();
+      const checkedAt = new Date().toISOString();
+
+      if (isDemo) {
+        const nowMs = Date.now();
+        const demoHostConversations: ConversationRecord[] = [
+          {
+            id: 'conv-ui-polish',
+            title: 'Implementing Turbo & Radar tabs in single-file MCP App UI',
+            summary: 'Actively editing Radar tab layout',
+            runState: 'RUN_STATE_RUNNING',
+            updateTime: new Date(nowMs - 20_000).toISOString(),
+            tags: ['ui', 'radar'],
+            pinned: false,
+            starred: false,
+            archived: false,
+          },
+          {
+            id: 'conv-dep-upgrade',
+            title: 'Background Scout subagent dependency audit',
+            summary: 'Subagent finished execution on host while Radar still marks stalled',
+            runState: 'RUN_STATE_IDLE',
+            updateTime: new Date(nowMs - 9 * 60_000).toISOString(),
+            tags: ['subagent'],
+            pinned: false,
+            starred: false,
+            archived: false,
+          },
+          {
+            id: 'conv-unit-tests',
+            title: 'Offline unit test suite',
+            summary: 'All 42 offline unit tests passed with zero warnings',
+            runState: 'RUN_STATE_IDLE',
+            updateTime: new Date(nowMs - 2 * 60_000).toISOString(),
+            tags: ['tests'],
+            pinned: false,
+            starred: false,
+            archived: false,
+          },
+          {
+            id: 'conv-host-background-01',
+            title: 'Untracked host background build verification',
+            summary: 'Running on host without Radar hook registration yet',
+            runState: 'RUN_STATE_RUNNING',
+            updateTime: new Date(nowMs - 15_000).toISOString(),
+            tags: ['host-live'],
+            pinned: false,
+            starred: false,
+            archived: false,
+          },
+        ];
+
+        const report = reconcileRadarWithHostConversations(
+          boardView.sessions,
+          demoHostConversations,
+        );
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Radar reconcile (demo): matched=${report.matchedCount}, driftedToIdle=${report.driftedToIdle.length}, hostOnlyRunning=${report.hostOnlyRunning.length}.`,
+            },
+          ],
+          structuredContent: {
+            mode: 'demo' as const,
+            live: false,
+            serviceAvailable: true,
+            readOnly: true,
+            ...report,
+            checkedAt,
+          },
+        };
+      }
+
+      const res = await listHostConversationsReadOnly({}, pageSize ?? 50);
+      if (!res.ok || !res.live) {
+        const report = reconcileRadarWithHostConversations(boardView.sessions, []);
+        const reason = res.reason || res.error || 'ConversationService unavailable';
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Radar reconcile skipped (${reason}); local Radar tracks ${boardView.counts.total} session(s).`,
+            },
+          ],
+          structuredContent: {
+            mode: 'live' as const,
+            live: false,
+            serviceAvailable: false,
+            readOnly: true,
+            reason,
+            ...report,
+            checkedAt,
+          },
+        };
+      }
+
+      const report = reconcileRadarWithHostConversations(boardView.sessions, res.conversations);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Radar reconcile (live): matched=${report.matchedCount}, driftedToIdle=${report.driftedToIdle.length}, hostOnlyRunning=${report.hostOnlyRunning.length}.`,
+          },
+        ],
+        structuredContent: {
+          mode: 'live' as const,
+          live: true,
+          serviceAvailable: true,
+          readOnly: true,
+          ...report,
+          checkedAt,
+        },
+      };
+    },
+  );
+
   return {
     moduleId: 'radar',
     modelTools,
+    exemptReadOnlyAppTools: ['app_radar_reconcile_conversations'],
   };
 }

@@ -39,17 +39,36 @@ import {
   type StatusLineSegmentId,
   type StatusLineSnapshot,
 } from './cli/statusline.js';
+import {
+  getHealthSweepReportPath,
+  MAX_HEALTH_SWEEP_BYTES,
+  runReadOnlyHealthSweep,
+  writeHealthSweepReportIfPermitted,
+  type HealthSweepFindingSummary,
+  type HealthSweepOptions,
+  type HealthSweepOverallStatus,
+  type HealthSweepReport,
+  type WriteHealthSweepReportResult,
+} from './sidecar.js';
 
 export {
   buildStatusLine,
   buildTeamPresetDraft,
   buildWorkspaceRecommendation,
+  getHealthSweepReportPath,
+  MAX_HEALTH_SWEEP_BYTES,
   parseHostStatusLineStdin,
   parseStatusLineSegments,
+  runReadOnlyHealthSweep,
   STATUSLINE_SEGMENTS,
+  writeHealthSweepReportIfPermitted,
 };
 export type {
   BuildStatusLineOptions,
+  HealthSweepFindingSummary,
+  HealthSweepOptions,
+  HealthSweepOverallStatus,
+  HealthSweepReport,
   OfflineModuleId,
   SafeRecommendedPreset,
   StatusLineHostStdinPayload,
@@ -57,6 +76,7 @@ export type {
   StatusLineSnapshot,
   TeamPresetDraft,
   WorkspaceRecommendation,
+  WriteHealthSweepReportResult,
 };
 
 async function main(): Promise<void> {
@@ -311,6 +331,78 @@ async function main(): Promise<void> {
     console.log(pyText);
     console.log('\n## /swarm plan.json Blueprint\n');
     console.log(swarmText);
+    return;
+  }
+
+  if (cmd === 'audit-once') {
+    const workspaceRoot = parseCliFlag(argv, '--workspace') ?? process.cwd();
+    const asJson = hasCliFlag(argv, '--json');
+    const writeReport = hasCliFlag(argv, '--write-report');
+
+    const report = runReadOnlyHealthSweep({ workspaceRoot, dataDir });
+    const writeResult = writeReport
+      ? writeHealthSweepReportIfPermitted(dataDir, report)
+      : undefined;
+
+    if (asJson) {
+      if (writeResult) {
+        console.log(
+          JSON.stringify(
+            {
+              ...report,
+              reportWrite: {
+                written: writeResult.written,
+                ...(writeResult.written ? { file: 'health-sweep.json' } : {}),
+                ...(writeResult.bytes !== undefined ? { bytes: writeResult.bytes } : {}),
+                ...(writeResult.reason ? { reason: writeResult.reason } : {}),
+              },
+            },
+            null,
+            2,
+          ),
+        );
+      } else {
+        console.log(JSON.stringify(report, null, 2));
+      }
+      return;
+    }
+
+    console.log(`agy-NOV v${CLI_VERSION} Read-Only Health Sweep (${report.overallStatus})`);
+    console.log(`  Workspace:   ${report.workspaceName}`);
+    console.log(
+      `  Config:      preset=${report.config.preset} · ${report.config.enabledModulesCount}/${report.config.totalModules} modules (${report.config.exposedModelTools} tools) · remote=${report.config.remoteEnabled ? 'ON' : 'OFF'}`,
+    );
+    console.log(
+      `  Ops Audit:   health=${report.ops.healthScore}/100 · security=${report.ops.securityScore}/100 · ruleBloat=${report.ops.ruleBloatStatus} (${report.ops.ruleTotalTokens} tok) · toolBudget=${report.ops.toolBudgetStatus} (${report.ops.estimatedTotalTools}/${report.ops.toolBudgetLimit}) · highSec=${report.ops.highSecurityFindingsCount}`,
+    );
+    console.log(
+      `  Memory:      total=${report.mem.totalMemories} · stale=${report.mem.staleCount} · expiredUnpinned=${report.mem.expiredUnpinnedCount}`,
+    );
+    console.log(
+      `  Verify:      last=${report.verify.verifyLastStatus} · dirtyFiles=${report.verify.dirtyFilesCount}`,
+    );
+    console.log(`  Guard:       blocked=${report.guard.guardBlockedCount}`);
+    if (report.ops.topFindings.length > 0) {
+      console.log('  Findings:');
+      for (const finding of report.ops.topFindings) {
+        console.log(
+          `    - [${finding.severity.toUpperCase()}] ${finding.category} · ${finding.file} — ${finding.title}`,
+        );
+      }
+    }
+    if (report.recommendations.length > 0) {
+      console.log('  Recommendations:');
+      for (const rec of report.recommendations) {
+        console.log(`    - ${rec}`);
+      }
+    }
+    if (writeResult) {
+      console.log(
+        writeResult.written
+          ? `  Report:      written (${writeResult.bytes} bytes -> health-sweep.json)`
+          : `  Report:      skipped (${writeResult.reason ?? 'not permitted'})`,
+      );
+    }
     return;
   }
 

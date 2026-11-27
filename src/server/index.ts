@@ -64,7 +64,7 @@ import { NOV_CONTEXT_RESOURCE_URIS, registerNovContextResources } from './contex
 
 export { NOV_CONTEXT_RESOURCE_URIS };
 export const UI_RESOURCE_URI = 'ui://agy-nov/app.html';
-export const NOV_VERSION = '1.1.0';
+export const NOV_VERSION = '1.2.0';
 
 const MCP_APPS_UI_EXTENSION_ID = 'io.modelcontextprotocol/ui';
 

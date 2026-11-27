@@ -2,6 +2,12 @@ import path from 'node:path';
 import type { McpServer, RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getModuleDataDir } from '../../core/config.js';
+import {
+  createHostConversation,
+  isConversationServiceConfigured,
+  type ConversationRecord,
+} from '../../core/conversation-service.js';
+import { redactFeedText } from '../../core/feed.js';
 import type { ModuleRegistrationResult, ModuleToolHandle, NovRuntimeOptions } from '../../core/types.js';
 import {
   buildOtlpUsagePayload,
@@ -452,6 +458,147 @@ export function registerXrayModule(
       return {
         content: [{ type: 'text', text: pack.promptMarkdown }],
         structuredContent: { ...pack },
+      };
+    },
+  );
+
+  server.registerTool(
+    'app_xray_fork_via_service',
+    {
+      title: 'Clean Fork via ConversationService (App Only)',
+      description:
+        'Build a redacted Clean Fork context pack and preview (default dry-run) or create a clean Antigravity session directly via local loopback ConversationService when confirmCreate=true.',
+      inputSchema: {
+        sessionId: z.string().optional(),
+        title: z.string().optional(),
+        model: z.enum(['flash_lite', 'flash', 'pro']).optional(),
+        maxBytes: z
+          .number()
+          .int()
+          .min(CLEAN_FORK_MIN_MAX_BYTES)
+          .max(CLEAN_FORK_HARD_MAX_BYTES)
+          .optional(),
+        confirmCreate: z.boolean().optional(),
+      },
+      _meta: APP_ONLY_META,
+    },
+    async ({ sessionId, title, model, maxBytes, confirmCreate }) => {
+      const pack = buildCleanForkPack({
+        rootDataDir: opts.dataDir,
+        workspaceRoot: opts.workspaceRoot,
+        brainDir: opts.brainDir,
+        demoMode: opts.demoMode,
+        conversationId: sessionId,
+        maxBytes,
+      });
+
+      const fallbackTitle = pack.sections.activeSpecTitle
+        ? `Clean Fork: ${pack.sections.activeSpecTitle}`
+        : `Clean Fork: ${path.basename(path.resolve(opts.workspaceRoot)) || 'workspace'}`;
+      const safeTitle = redactFeedText(title?.trim() || fallbackTitle, 140) || 'Clean Fork Session';
+      const targetModel = model ?? 'flash';
+
+      if (confirmCreate !== true) {
+        const availability = isConversationServiceConfigured();
+        const serviceConfigured = availability.available;
+        return {
+          content: [
+            {
+              type: 'text',
+              text: serviceConfigured
+                ? `Clean Fork dry-run preview ready (${pack.totalBytes} B, ~${pack.estimatedTokens} tok). Pass confirmCreate=true to create a fresh session via ConversationService.`
+                : `Clean Fork dry-run preview ready (${pack.totalBytes} B, ~${pack.estimatedTokens} tok). Host ConversationService unavailable (${availability.reason ?? 'not configured'}); fallback action: sendMessage.`,
+            },
+          ],
+          structuredContent: {
+            dryRun: true,
+            created: false,
+            serviceConfigured,
+            ...(availability.reason ? { serviceReason: availability.reason } : {}),
+            title: safeTitle,
+            model: targetModel,
+            pack,
+            fallbackAction: 'sendMessage' as const,
+          },
+        };
+      }
+
+      if (opts.demoMode) {
+        const conversation: ConversationRecord = {
+          id: `conv-fork-demo-${Date.now().toString(36)}`,
+          title: safeTitle,
+          summary: redactFeedText(pack.promptMarkdown, 180),
+          runState: 'RUN_STATE_RUNNING',
+          updateTime: new Date().toISOString(),
+          tags: ['agy-nov', 'clean-fork'],
+          pinned: false,
+          starred: false,
+          archived: false,
+        };
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Created demo Clean Fork conversation "${conversation.title}" (${conversation.id}).`,
+            },
+          ],
+          structuredContent: {
+            dryRun: false,
+            created: true,
+            live: false,
+            mode: 'demo' as const,
+            conversation,
+            pack,
+          },
+        };
+      }
+
+      const res = await createHostConversation(
+        {},
+        {
+          title: safeTitle,
+          prompt: pack.promptMarkdown,
+          model: targetModel,
+          tags: ['agy-nov', 'clean-fork'],
+        },
+      );
+
+      if (res.ok && res.live && res.conversation) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Created live Clean Fork conversation "${res.conversation.title}" (${res.conversation.id}).`,
+            },
+          ],
+          structuredContent: {
+            dryRun: false,
+            created: true,
+            live: true,
+            mode: 'live' as const,
+            conversation: res.conversation,
+            pack,
+          },
+        };
+      }
+
+      const reason = res.reason || res.error || 'ConversationService unavailable';
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `ConversationService unavailable (${reason}); use fallback sendMessage with the Clean Fork pack.`,
+          },
+        ],
+        structuredContent: {
+          dryRun: false,
+          created: false,
+          live: false,
+          mode: 'live' as const,
+          fallbackAction: 'sendMessage' as const,
+          reason,
+          pack,
+        },
       };
     },
   );

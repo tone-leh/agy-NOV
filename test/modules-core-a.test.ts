@@ -554,6 +554,7 @@ describe('Builder A — Unified McpServer registration, tool naming & dynamic to
           'app_xray_export_otlp',
           'app_xray_export_csv',
           'app_xray_build_clean_fork_pack',
+          'app_xray_fork_via_service',
         ];
 
         assert.equal(listed.tools.length, expectedAll.length);
