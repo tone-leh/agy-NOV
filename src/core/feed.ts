@@ -19,7 +19,7 @@ import {
   isPathInsideDir,
 } from './utils.js';
 
-export const FEED_SNAPSHOT_VERSION = '1.0.1' as const;
+export const FEED_SNAPSHOT_VERSION = '1.0.2' as const;
 export const FEED_SNAPSHOT_FILENAME = 'feed-snapshot.json' as const;
 export const MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
 export const MAX_FEED_ALERTS = 6;
@@ -66,6 +66,10 @@ export interface NovFeedGuardSummary {
   enabled: boolean;
   blockedCount: number;
   askCount: number;
+  forceAskCount?: number;
+  permissionMode?: string;
+  snapshotCount?: number;
+  latestSnapshotId?: string | null;
   lastEvent?: NovFeedGuardLastEvent;
 }
 
@@ -448,7 +452,14 @@ function toNonNegFloat(value: unknown): number {
 
 function extractGuardSummary(rootDataDir: string, enabled: boolean): NovFeedGuardSummary {
   if (!enabled) {
-    return { enabled: false, blockedCount: 0, askCount: 0 };
+    return {
+      enabled: false,
+      blockedCount: 0,
+      askCount: 0,
+      forceAskCount: 0,
+      snapshotCount: 0,
+      latestSnapshotId: null,
+    };
   }
   const raw = readSafeModuleJson(rootDataDir, 'guard', 'audit.json');
   const rawObj = asRecord(raw);
@@ -460,6 +471,7 @@ function extractGuardSummary(rootDataDir: string, enabled: boolean): NovFeedGuar
 
   let blockedCount = 0;
   let askCount = 0;
+  let forceAskCount = 0;
   let lastEvent: NovFeedGuardLastEvent | undefined;
   let lastEventTs = -Infinity;
 
@@ -471,7 +483,10 @@ function extractGuardSummary(rootDataDir: string, enabled: boolean): NovFeedGuar
       .toLowerCase();
     if (rawDecision === 'deny' || rawDecision === 'denied' || rawDecision === 'block' || rawDecision === 'blocked') {
       blockedCount += 1;
-    } else if (rawDecision === 'ask' || rawDecision === 'force_ask') {
+    } else if (rawDecision === 'force_ask') {
+      askCount += 1;
+      forceAskCount += 1;
+    } else if (rawDecision === 'ask') {
       askCount += 1;
     }
 
@@ -491,10 +506,41 @@ function extractGuardSummary(rootDataDir: string, enabled: boolean): NovFeedGuar
     }
   }
 
+  const policyObj = asRecord(readSafeModuleJson(rootDataDir, 'guard', 'policy.json'));
+  const rawPerm = typeof policyObj?.permissionMode === 'string' ? policyObj.permissionMode.trim() : '';
+  const permissionMode =
+    rawPerm === 'readonly-audit' || rawPerm === 'balanced-dev' || rawPerm === 'strict-gate'
+      ? rawPerm
+      : 'balanced-dev';
+
+  const snapshotsRaw = readSafeModuleJson(rootDataDir, 'guard', 'snapshots.json');
+  const snapshotsObj = asRecord(snapshotsRaw);
+  const snapshotsArr = Array.isArray(snapshotsRaw)
+    ? snapshotsRaw
+    : Array.isArray(snapshotsObj?.snapshots)
+      ? snapshotsObj.snapshots
+      : [];
+  let latestSnapshotId: string | null = null;
+  let latestSnapTs = -Infinity;
+  for (const snapItem of snapshotsArr) {
+    const rec = asRecord(snapItem);
+    if (!rec || typeof rec.id !== 'string' || !rec.id.trim()) continue;
+    const tsVal = typeof rec.timestamp === 'string' ? Date.parse(rec.timestamp) : Number.NaN;
+    const score = Number.isFinite(tsVal) ? tsVal : -Infinity;
+    if (latestSnapshotId === null || score >= latestSnapTs) {
+      latestSnapshotId = redactFeedText(rec.id.trim(), 64);
+      latestSnapTs = score;
+    }
+  }
+
   return {
     enabled: true,
     blockedCount,
     askCount,
+    forceAskCount,
+    permissionMode,
+    snapshotCount: snapshotsArr.length,
+    latestSnapshotId,
     ...(lastEvent ? { lastEvent } : {}),
   };
 }
@@ -993,6 +1039,10 @@ export function buildDemoFeedSnapshot(
           enabled: true,
           blockedCount: 2,
           askCount: 1,
+          forceAskCount: 0,
+          permissionMode: 'balanced-dev',
+          snapshotCount: 3,
+          latestSnapshotId: 'snap-demo-03',
           lastEvent: {
             decision: 'deny',
             toolName: 'read_file',
@@ -1000,7 +1050,14 @@ export function buildDemoFeedSnapshot(
             timestamp: generatedAt,
           },
         }
-      : { enabled: false, blockedCount: 0, askCount: 0 },
+      : {
+          enabled: false,
+          blockedCount: 0,
+          askCount: 0,
+          forceAskCount: 0,
+          snapshotCount: 0,
+          latestSnapshotId: null,
+        },
     spec: normalized.modules.spec
       ? {
           enabled: true,

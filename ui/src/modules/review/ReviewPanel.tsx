@@ -48,7 +48,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
   incomingEvent,
   onNavigateModule,
 }) => {
-  const { dict } = useNovI18n();
+  const { dict, t } = useNovI18n();
   const r = dict.panels.review;
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -164,7 +164,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
               : null;
 
         if (!nextSession) {
-          throw new Error('Unexpected response format from app_review_get_diff');
+          throw new Error(r.unexpectedDiffFormat);
         }
 
         setSession(nextSession);
@@ -501,7 +501,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      setError(`Failed to save annotation: ${msg}`);
+      setError(t(dict.common.actionFailed, { error: msg }));
     }
   };
 
@@ -527,7 +527,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      setError(`Failed to update annotation: ${msg}`);
+      setError(t(dict.common.actionFailed, { error: msg }));
     }
   };
 
@@ -547,7 +547,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      setError(`Failed to toggle resolve: ${msg}`);
+      setError(t(dict.common.actionFailed, { error: msg }));
     }
   };
 
@@ -567,7 +567,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      setError(`Failed to delete annotation: ${msg}`);
+      setError(t(dict.common.actionFailed, { error: msg }));
     }
   };
 
@@ -587,7 +587,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      setError(`Failed to clear resolved annotations: ${msg}`);
+      setError(t(dict.common.actionFailed, { error: msg }));
     }
   };
 
@@ -605,7 +605,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      setError(`Failed to update viewed state: ${msg}`);
+      setError(t(dict.common.actionFailed, { error: msg }));
     }
   };
 
@@ -638,12 +638,13 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
   };
 
   const handleOpenInHost = async (absolutePath: string) => {
+    const fileLabel = absolutePath.split('/').pop() || absolutePath;
     const ok = await bridge.openFile(absolutePath);
     if (ok) {
-      onNotify?.(`Opened ${absolutePath.split('/').pop() || absolutePath}`);
+      onNotify?.(t(r.openedFileToast, { file: fileLabel }));
       return;
     }
-    const msg = 'Side-pane file opening is unavailable in this host surface.';
+    const msg = t(r.openFileUnavailable, { file: fileLabel });
     setHostNotice(msg);
     onNotify?.(msg);
     window.setTimeout(() => {
@@ -677,8 +678,14 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
   const handleQuickSendFixes = async () => {
     if (!hasTwoStagePayload) return;
     const md = await handleRefreshPreview();
-    await bridge.sendMessage(md);
-    onNotify?.(r.sendFixes);
+    const mode = await bridge.sendMessage(md);
+    onNotify?.(
+      mode === 'sent'
+        ? dict.common.toastPromptSent
+        : mode === 'context'
+          ? dict.common.toastPromptContext
+          : dict.common.toastPromptCopied,
+    );
   };
 
   const canToggleAuxPane = caps.isWorkbench || caps.message || caps.updateModelContext;
@@ -757,7 +764,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
       )}
 
       {session && (
-        <section className="rv-twostage-bar" aria-label="Two-Stage Review">
+        <section className="rv-twostage-bar" aria-label={r.twoStageTitle}>
           <div className="rv-twostage-head">
             <button
               type="button"
@@ -766,16 +773,19 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
               onClick={() => setTwoStageOpen((v) => !v)}
             >
               <span>{twoStageOpen ? '▾' : '▸'}</span>
-              <strong>Two-Stage Review</strong>
+              <strong>{r.twoStageTitle}</strong>
               {session.specCompliance ? (
                 <span className="rv-twostage-pill is-spec">
-                  Stage 1 · Spec {stage1CheckedCount}/{effectiveStage1Checklist.length}
+                  {t(r.stage1SpecProgress, {
+                    done: stage1CheckedCount,
+                    total: effectiveStage1Checklist.length,
+                  })}
                 </span>
               ) : (
-                <span className="rv-twostage-pill">Stage 1 · No active spec</span>
+                <span className="rv-twostage-pill">{r.stage1NoSpecBadge}</span>
               )}
               <span className="rv-twostage-pill is-code">
-                Stage 2 · {openAnnotationsCount} {r.annotations}
+                {t(r.stage2AnnotationsBadge, { n: openAnnotationsCount })}
               </span>
             </button>
 
@@ -795,7 +805,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
                   className="rv-btn rv-btn-primary"
                   onClick={() => void handleQuickSendFixes()}
                 >
-                  {r.sendFixes}
+                  {caps.message ? r.sendFixes : dict.common.copyPrompt}
                 </button>
               )}
               {onNavigateModule && (
@@ -819,7 +829,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
             <div className="rv-twostage-body">
               <div className="rv-twostage-col">
                 <div className="rv-twostage-col-title">
-                  <span>Stage 1 · Spec Compliance Checklist</span>
+                  <span>{r.stage1ChecklistTitle}</span>
                   {session.specCompliance && (
                     <span className="rv-twostage-meta">
                       <code>{session.specCompliance.specId}</code> · {session.specCompliance.status}
@@ -830,7 +840,7 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
                   <>
                     <div className="rv-twostage-spec-title">{session.specCompliance.title}</div>
                     {effectiveStage1Checklist.length === 0 ? (
-                      <div className="rv-twostage-empty">No tasks defined in active spec.</div>
+                      <div className="rv-twostage-empty">{r.stage1NoTasks}</div>
                     ) : (
                       <ul className="rv-twostage-checklist">
                         {effectiveStage1Checklist.map((item) => (
@@ -853,18 +863,16 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
                     )}
                   </>
                 ) : (
-                  <div className="rv-twostage-empty">
-                    No active Spec found. Activate a Spec in Spec Flow to link Stage 1 compliance checks.
-                  </div>
+                  <div className="rv-twostage-empty">{r.stage1NoSpecHint}</div>
                 )}
               </div>
 
               <div className="rv-twostage-col">
                 <div className="rv-twostage-col-title">
-                  <span>Stage 2 · Code Quality Annotations</span>
+                  <span>{r.stage2Title}</span>
                   <span className="rv-twostage-meta">
-                    {openAnnotationsCount} open · {session.annotations.length - openAnnotationsCount}{' '}
-                    {r.resolved}
+                    {openAnnotationsCount} {r.unresolved} ·{' '}
+                    {session.annotations.length - openAnnotationsCount} {r.resolved}
                   </span>
                 </div>
                 <div className="rv-twostage-cat-row">
@@ -880,13 +888,14 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
                   )}
                 </div>
                 {openAnnotationsCount === 0 ? (
-                  <div className="rv-twostage-empty">
-                    Click any diff line below to attach pinpoint file:line annotations.
-                  </div>
+                  <div className="rv-twostage-empty">{r.stage2EmptyHint}</div>
                 ) : (
                   <div className="rv-twostage-empty">
-                    Two-stage prompt packages Stage 1 Spec checks + {openAnnotationsCount} prioritized
-                    file:line annotation(s).
+                    {t(r.stage2Summary, {
+                      count: openAnnotationsCount,
+                      files: session.totalFiles,
+                    })}{' '}
+                    {r.stage2PackageHint}
                   </div>
                 )}
               </div>

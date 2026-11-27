@@ -29,9 +29,10 @@ import { handleVerifyPostToolHook, handleVerifyStopHook } from '../modules/verif
 import { handleXrayHook } from '../modules/xray/hook.js';
 
 export type PreToolDecision = 'allow' | 'ask' | 'force_ask' | 'deny';
+export type HookDecision = PreToolDecision | 'continue';
 
 export interface UnifiedHookResult {
-  decision?: PreToolDecision;
+  decision?: HookDecision;
   reason?: string;
   overwrite?: Record<string, unknown>;
   injectSteps?: unknown[];
@@ -271,7 +272,7 @@ export async function dispatchNovHook(
 
   if (payload.event === 'PreToolUse') {
     if (!modules.guard && !modules.spec && !modules.remote && !modules.radar && !modules.turbo) {
-      return {};
+      return { decision: 'allow' };
     }
 
     if (modules.radar) {
@@ -373,10 +374,7 @@ export async function dispatchNovHook(
       }
     }
 
-    if (finalDecision === 'allow') {
-      return { decision: 'allow' };
-    }
-    return {};
+    return { decision: 'allow' };
   }
 
   if (payload.event === 'PostToolUse') {
@@ -437,10 +435,10 @@ export async function dispatchNovHook(
     if (modules.verify) {
       try {
         const verifyRes = await handleVerifyStopHook(payload, rootDataDir);
-        if (verifyRes.decision === 'deny') {
+        if (verifyRes.decision === 'continue') {
           refreshFeedSnapshotBestEffort(rootDataDir, config);
           return {
-            decision: 'deny',
+            decision: 'continue',
             reason:
               verifyRes.reason ||
               '[agy-NOV Verify Gate] Verification checks failed before stopping.',
@@ -550,7 +548,7 @@ async function main(): Promise<void> {
     const out = await dispatchNovHook(rawInput, event, cliDataDir);
     process.stdout.write(`${JSON.stringify(out)}\n`);
   } catch {
-    const fallback = event === 'Stop' ? { decision: 'allow' } : {};
+    const fallback = event === 'Stop' || event === 'PreToolUse' ? { decision: 'allow' } : {};
     process.stdout.write(`${JSON.stringify(fallback)}\n`);
   }
 }

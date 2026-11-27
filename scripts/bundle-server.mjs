@@ -19,7 +19,7 @@ const common = {
   target: 'node20',
   format: 'cjs',
   sourcemap: false,
-  minify: false,
+  minify: true,
   logLevel: 'info',
 };
 

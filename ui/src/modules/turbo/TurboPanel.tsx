@@ -836,6 +836,17 @@ export const TurboPanel: React.FC<NovModulePanelProps> = ({
   onOpenSettings,
 }) => {
   const { locale, dict, t } = useNovI18n();
+  const [caps, setCaps] = useState(() => bridge.getCapabilities());
+  useEffect(() => {
+    let mounted = true;
+    void bridge.ready().then(() => {
+      if (mounted) setCaps(bridge.getCapabilities());
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [bridge]);
+  const canUpdateContext = caps.updateModelContext;
   const v08 = TURBO_V08_LABELS[locale] ?? TURBO_V08_LABELS.en;
 
   const [tab, setTab] = useState<TurboTabId>('search');
@@ -1865,7 +1876,7 @@ export const TurboPanel: React.FC<NovModulePanelProps> = ({
                   className="nov-p-btn is-primary"
                   onClick={() => void attachContextPack(lastPack.markdown)}
                 >
-                  {v08.packAttachBtn}
+                  {canUpdateContext ? v08.packAttachBtn : dict.common.copyPrompt}
                 </button>
               </div>
             )}

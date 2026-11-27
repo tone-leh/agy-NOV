@@ -30,7 +30,8 @@ export function registerMemModule(
 ): ModuleRegistrationResult {
   const rootDataDir = resolveNovDataDir(opts.dataDir);
   const dataDir = getModuleDataDir(rootDataDir, 'mem');
-  const store = new MemoryStore(dataDir, Boolean(opts.demoMode), opts.workspaceRoot);
+  const getWorkspaceRoot = () => opts.workspaceRoot;
+  const store = new MemoryStore(dataDir, Boolean(opts.demoMode), getWorkspaceRoot);
 
   const APP_ONLY_META = {
     ui: {
@@ -346,15 +347,22 @@ export function registerMemModule(
       _meta: APP_ONLY_META,
     },
     async ({ ids, action, ttlDays }) => {
-      const result = store.batchHygieneMemories(ids, action, { ttlDays });
+      const result = store.batchHygieneMemories(ids, action, {
+        ttlDays,
+        workspaceRoot: getWorkspaceRoot(),
+      });
+      const unresolvedCount = result.unresolvedDriftIds?.length ?? 0;
+      const summaryText =
+        action === 'prune'
+          ? `Pruned ${result.deletedCount} memory item(s).`
+          : action === 'verify' && unresolvedCount > 0
+            ? `Updated ${result.updatedCount} memory item(s) via verify (${result.reverifiedAnchorCount ?? 0} anchor(s) reverified, ${unresolvedCount} item(s) remain drifted due to missing or out-of-workspace anchors).`
+            : `Updated ${result.updatedCount} memory item(s) via ${action}.`;
       return {
         content: [
           {
             type: 'text',
-            text:
-              action === 'prune'
-                ? `Pruned ${result.deletedCount} memory item(s).`
-                : `Updated ${result.updatedCount} memory item(s) via ${action}.`,
+            text: summaryText,
           },
         ],
         structuredContent: {

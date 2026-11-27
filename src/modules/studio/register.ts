@@ -125,12 +125,12 @@ export function registerStudioModule(
   options: NovRuntimeOptions,
   uiResourceUri: string,
 ): ModuleRegistrationResult {
-  const workspaceRoot = path.resolve(options.workspaceRoot);
+  const getWorkspaceRoot = () => path.resolve(options.workspaceRoot);
   const isDemo = options.demoMode === true;
 
   // Strictly zero disk I/O and zero network calls during registration.
   const demoService: DemoStudioService | null = isDemo
-    ? createDemoStudioService(workspaceRoot)
+    ? createDemoStudioService(getWorkspaceRoot())
     : null;
 
   const APP_ONLY_META = {
@@ -143,15 +143,17 @@ export function registerStudioModule(
   const runListSources = (category?: StudioSourceFilterCategory): StudioSourcesResult =>
     isDemo && demoService
       ? demoService.listSources(category)
-      : listStudioSources(workspaceRoot, { category });
+      : listStudioSources(getWorkspaceRoot(), { category });
 
   const runInspectData = async (opts: StudioInspectDataOptions): Promise<StudioDataResult> =>
-    isDemo && demoService ? demoService.inspectData(opts) : inspectStudioData(workspaceRoot, opts);
+    isDemo && demoService
+      ? demoService.inspectData(opts)
+      : inspectStudioData(getWorkspaceRoot(), opts);
 
   const runInspectDocument = (opts: StudioInspectDocumentOptions): StudioDocumentResult =>
     isDemo && demoService
       ? demoService.inspectDocument(opts)
-      : inspectStudioDocument(workspaceRoot, opts);
+      : inspectStudioDocument(getWorkspaceRoot(), opts);
 
   const runHttpProbe = async (opts: StudioHttpProbeOptions): Promise<StudioHttpProbeResult> =>
     isDemo && demoService ? demoService.httpProbe(opts) : runLoopbackHttpProbe(opts);
@@ -159,7 +161,7 @@ export function registerStudioModule(
   const runParseOpenApi = (filePath: string): ParsedOpenApiSpec =>
     isDemo && demoService
       ? demoService.parseOpenApi(filePath)
-      : parseStudioOpenApiFile(workspaceRoot, filePath);
+      : parseStudioOpenApiFile(getWorkspaceRoot(), filePath);
 
   const modelTools: ModuleToolHandle[] = [];
 
@@ -514,7 +516,7 @@ export function registerStudioModule(
       try {
         const result = await openNativeFileViewer(
           { file, path: filePath, limit },
-          { workspaceRoot, demoMode: isDemo, demoService },
+          { workspaceRoot: getWorkspaceRoot, demoMode: isDemo, demoService },
         );
         return {
           content: [{ type: 'text', text: formatFileViewerText(result) }],

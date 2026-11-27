@@ -75,11 +75,12 @@ const FAILURE_TAIL_MIN_LINES = 60;
 const SHELL_META_NO_BACKSLASH_RE = /[;&|`$><\r\n()\x00-\x1f\x7f]/;
 const WIN_EXTRA_SHELL_META_RE = /[%!^]/;
 const SHELL_META_HARD_DENY_RE = /[;&|`$><\r\n()\\\x00-\x1f\x7f]/;
-const PATH_META_HARD_DENY_RE = /[%!^"';&|`$><()\r\n\x00-\x1f\x7f]/;
+// Path arguments are always quoted by quoteSafeShellPathArg; allow () in paths while hard-denying all shell metacharacters, quotes, expansions ($ -> rejects $(), %, !, ^), and control bytes
+const PATH_META_HARD_DENY_RE = /[%!^"';&|`$><\r\n\x00-\x1f\x7f]/;
 const UNQUOTED_SHELL_SYNTAX_RE = /[*?[\]{}#]/;
 const SAFE_EXECUTABLE_RE = /^[a-z][a-z0-9-]*$/;
-const SAFE_SHELL_PATH_RE = /^[A-Za-z0-9._/@:+ -]+$/;
-const SAFE_WIN_PATH_BODY_RE = /^[A-Za-z0-9._/@\\+ ~-]+$/;
+const SAFE_SHELL_PATH_RE = /^[\p{L}\p{M}\p{N}._/@:+ ()-]+$/u;
+const SAFE_WIN_PATH_BODY_RE = /^[\p{L}\p{M}\p{N}._/@\\+ ~()-]+$/u;
 const SAFE_B64URL_RE = /^[A-Za-z0-9_-]+$/;
 const ENV_ASSIGN_TOKEN_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
 
@@ -1079,7 +1080,7 @@ export function isSafeAbsolutePathArg(
   }
 
   if (!candidate.startsWith('/')) return false;
-  if (SHELL_META_HARD_DENY_RE.test(candidate)) return false;
+  if (candidate.includes('\\')) return false;
   return SAFE_SHELL_PATH_RE.test(candidate);
 }
 

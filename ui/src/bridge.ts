@@ -2,8 +2,8 @@ import {
   App as McpApp,
   applyDocumentTheme,
   applyHostStyleVariables,
+  type StandardSchemaV1,
 } from '@modelcontextprotocol/ext-apps';
-import { z } from 'zod';
 import type {
   ModuleId,
   NovConfig,
@@ -38,8 +38,11 @@ export function toSafeLocalFileUri(filePath: string): string | null {
   if (!trimmed) return null;
 
   if (/^file:\/\//i.test(trimmed)) {
-    // Reject traversal segments (`..` or percent-encoded `%2e%2e`) before URL normalization collapses them
+    // Reject traversal segments (`..` or percent-encoded `%2e%2e`) and UNC `file:////host/...` before URL normalization
     const rawAfterScheme = trimmed.slice('file://'.length);
+    if (!rawAfterScheme || rawAfterScheme.startsWith('//')) {
+      return null;
+    }
     let rawDecodedAfterScheme: string;
     try {
       rawDecodedAfterScheme = decodeURIComponent(rawAfterScheme);
@@ -111,6 +114,93 @@ export function toSafeLocalFileUri(filePath: string): string | null {
 export interface ToolResultEvent {
   toolName?: string;
   structuredContent: Record<string, unknown>;
+}
+
+export interface ToolInputEvent {
+  arguments: Record<string, unknown>;
+}
+
+export interface ToolCancelledEvent {
+  reason?: string;
+}
+
+export type HostResourceReadResult =
+  | {
+      ok: true;
+      text?: string;
+      blob?: string;
+      mimeType?: string;
+      byteLength: number;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+const MAX_HOST_RESOURCE_BYTES = 10 * 1024 * 1024;
+const BASE64_CONTENT_RE = /^[A-Za-z0-9+/]*={0,2}$/;
+
+/**
+ * Validate a URI for host `resources/read` requests.
+ * Permits only `antigravity-file://` opaque host URIs and canonical local `file://` URIs.
+ * Rejects `http(s)://`, remote UNC shares, control characters, backslashes, and `..` traversal.
+ */
+export function toSafeHostResourceUri(rawUri: string): string | null {
+  if (typeof rawUri !== 'string') return null;
+  if (/[\x00-\x1f\x7f]/.test(rawUri)) return null;
+  const trimmed = rawUri.trim();
+  if (!trimmed) return null;
+
+  if (/^file:\/\//i.test(trimmed)) {
+    return toSafeLocalFileUri(trimmed);
+  }
+
+  if (!/^antigravity-file:\/\//i.test(trimmed)) {
+    return null;
+  }
+
+  const rawAfterScheme = trimmed.slice('antigravity-file://'.length);
+  if (!rawAfterScheme || rawAfterScheme.startsWith('//') || rawAfterScheme.includes('\\')) {
+    return null;
+  }
+
+  const rawPathPart = rawAfterScheme.split(/[?#]/, 1)[0] ?? '';
+  let decodedRawPath: string;
+  try {
+    decodedRawPath = decodeURIComponent(rawPathPart);
+  } catch {
+    return null;
+  }
+  if (
+    /[\x00-\x1f\x7f\\]/.test(decodedRawPath) ||
+    decodedRawPath.split('/').some((seg) => seg === '..')
+  ) {
+    return null;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol.toLowerCase() !== 'antigravity-file:') return null;
+  if (parsed.search || parsed.hash) return null;
+
+  let decodedPathname: string;
+  try {
+    decodedPathname = decodeURIComponent(parsed.pathname || '');
+  } catch {
+    return null;
+  }
+  if (
+    /[\x00-\x1f\x7f\\]/.test(decodedPathname) ||
+    decodedPathname.split('/').some((seg) => seg === '..')
+  ) {
+    return null;
+  }
+
+  return trimmed;
 }
 
 export interface NovConfigSnapshot {
@@ -309,15 +399,67 @@ export interface CleanForkPackPayload {
   };
 }
 
-const ToggleAuxPaneResultSchema = z
-  .object({
-    isError: z.boolean().optional(),
-  })
-  .passthrough();
+interface ToggleAuxPaneResult {
+  isError?: boolean;
+  [key: string]: unknown;
+}
+
+interface HostResourceContentItem {
+  uri?: string;
+  mimeType?: string;
+  text?: string;
+  blob?: string;
+}
+
+interface ReadResourceResultPayload {
+  contents?: HostResourceContentItem[];
+  [key: string]: unknown;
+}
+
+const ToggleAuxPaneResultSchema: StandardSchemaV1<ToggleAuxPaneResult> = {
+  '~standard': {
+    version: 1,
+    vendor: 'agy-nov',
+    validate(value: unknown) {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const record = value as Record<string, unknown>;
+        if (record.isError === undefined || typeof record.isError === 'boolean') {
+          return { value: record as ToggleAuxPaneResult };
+        }
+      }
+      return { issues: [{ message: 'Expected object result with optional boolean isError' }] };
+    },
+  },
+};
+
+const ReadResourceResultSchema: StandardSchemaV1<ReadResourceResultPayload> = {
+  '~standard': {
+    version: 1,
+    vendor: 'agy-nov',
+    validate(value: unknown) {
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        const record = value as Record<string, unknown>;
+        if (record.contents === undefined || Array.isArray(record.contents)) {
+          return { value: record as ReadResourceResultPayload };
+        }
+      }
+      return { issues: [{ message: 'Expected resources/read object result with contents array' }] };
+    },
+  },
+};
+
+function measureUtf8Bytes(text: string): number {
+  if (typeof TextEncoder !== 'undefined') {
+    return new TextEncoder().encode(text).byteLength;
+  }
+  return text.length;
+}
 
 type ThemeListener = (theme: 'dark' | 'light') => void;
 type LocaleHintListener = (localeHint: string) => void;
 type ToolResultListener = (evt: ToolResultEvent) => void;
+type ToolInputListener = (evt: ToolInputEvent) => void;
+type ToolCancelledListener = (evt: ToolCancelledEvent) => void;
 type ConfigChangeListener = (snapshot: NovConfigSnapshot) => void;
 
 export class NovBridge {
@@ -333,7 +475,11 @@ export class NovBridge {
   private themeListeners = new Set<ThemeListener>();
   private localeListeners = new Set<LocaleHintListener>();
   private toolResultListeners = new Set<ToolResultListener>();
+  private toolInputListeners = new Set<ToolInputListener>();
+  private toolCancelledListeners = new Set<ToolCancelledListener>();
   private configListeners = new Set<ConfigChangeListener>();
+  private lastToolResult: ToolResultEvent | null = null;
+  private lastToolInput: ToolInputEvent | null = null;
   private currentTheme: 'dark' | 'light' = 'dark';
   private hostLocaleHint: string =
     typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en';
@@ -374,8 +520,27 @@ export class NovBridge {
       return;
     }
 
-    const app = new McpApp({ name: 'agy-NOV', version: '1.0.1' }, {});
+    const app = new McpApp({ name: 'agy-NOV', version: '1.0.2' }, {});
     this.app = app;
+
+    app.ontoolinput = (params) => {
+      const args =
+        params &&
+        typeof params === 'object' &&
+        params.arguments &&
+        typeof params.arguments === 'object'
+          ? (params.arguments as Record<string, unknown>)
+          : {};
+      const evt: ToolInputEvent = { arguments: args };
+      this.lastToolInput = evt;
+      for (const listener of this.toolInputListeners) {
+        try {
+          listener(evt);
+        } catch {
+          // isolate subscriber failures
+        }
+      }
+    };
 
     app.ontoolresult = (result) => {
       const sc =
@@ -386,7 +551,23 @@ export class NovBridge {
         toolName: typeof sc.toolName === 'string' ? sc.toolName : undefined,
         structuredContent: sc,
       };
+      this.lastToolResult = evt;
       for (const listener of this.toolResultListeners) {
+        try {
+          listener(evt);
+        } catch {
+          // isolate subscriber failures
+        }
+      }
+    };
+
+    app.ontoolcancelled = (params) => {
+      const reason =
+        params && typeof params === 'object' && typeof params.reason === 'string'
+          ? params.reason
+          : undefined;
+      const evt: ToolCancelledEvent = reason !== undefined ? { reason } : {};
+      for (const listener of this.toolCancelledListeners) {
         try {
           listener(evt);
         } catch {
@@ -501,7 +682,39 @@ export class NovBridge {
 
   onToolResult(listener: ToolResultListener): () => void {
     this.toolResultListeners.add(listener);
+    const cached = this.lastToolResult;
+    if (cached) {
+      Promise.resolve().then(() => {
+        if (!this.toolResultListeners.has(listener) || this.lastToolResult !== cached) return;
+        try {
+          listener(cached);
+        } catch {
+          // isolate subscriber failures
+        }
+      });
+    }
     return () => this.toolResultListeners.delete(listener);
+  }
+
+  onToolInput(listener: ToolInputListener): () => void {
+    this.toolInputListeners.add(listener);
+    const cached = this.lastToolInput;
+    if (cached) {
+      Promise.resolve().then(() => {
+        if (!this.toolInputListeners.has(listener) || this.lastToolInput !== cached) return;
+        try {
+          listener(cached);
+        } catch {
+          // isolate subscriber failures
+        }
+      });
+    }
+    return () => this.toolInputListeners.delete(listener);
+  }
+
+  onToolCancelled(listener: ToolCancelledListener): () => void {
+    this.toolCancelledListeners.add(listener);
+    return () => this.toolCancelledListeners.delete(listener);
   }
 
   onConfigChange(listener: ConfigChangeListener): () => void {
@@ -709,6 +922,76 @@ export class NovBridge {
       // ignore
     }
     return 'copied';
+  }
+
+  async readHostResource(uri: string): Promise<HostResourceReadResult> {
+    await this.readyPromise;
+    const safeUri = toSafeHostResourceUri(uri);
+    if (!safeUri) {
+      return { ok: false, error: 'Unsupported or unsafe resource URI' };
+    }
+    if (this.isWorkbenchMode || !this.app) {
+      return {
+        ok: false,
+        error: 'Host resource reading is unavailable outside Antigravity host mode',
+      };
+    }
+    try {
+      const result = await this.app.request(
+        {
+          method: 'resources/read',
+          params: { uri: safeUri },
+        },
+        ReadResourceResultSchema,
+      );
+      const item = Array.isArray(result?.contents) ? result.contents[0] : undefined;
+      if (!item || (typeof item.text !== 'string' && typeof item.blob !== 'string')) {
+        return { ok: false, error: 'Host returned empty resource content' };
+      }
+
+      if (typeof item.text === 'string') {
+        // UTF-8 byte length is always >= UTF-16 code unit length for valid strings
+        if (item.text.length > MAX_HOST_RESOURCE_BYTES) {
+          return { ok: false, error: 'Resource exceeds 10 MiB read limit' };
+        }
+        const byteLength = measureUtf8Bytes(item.text);
+        if (byteLength > MAX_HOST_RESOURCE_BYTES) {
+          return { ok: false, error: 'Resource exceeds 10 MiB read limit' };
+        }
+        return {
+          ok: true,
+          text: item.text,
+          ...(typeof item.mimeType === 'string' && item.mimeType ? { mimeType: item.mimeType } : {}),
+          byteLength,
+        };
+      }
+
+      const rawBlob = item.blob ?? '';
+      const maxEncodedBlobChars = Math.ceil((MAX_HOST_RESOURCE_BYTES * 4) / 3) + 1024 * 1024;
+      if (rawBlob.length > maxEncodedBlobChars) {
+        return { ok: false, error: 'Resource exceeds 10 MiB read limit' };
+      }
+      const cleanedBlob = rawBlob.replace(/\s+/g, '');
+      if (!cleanedBlob || cleanedBlob.length % 4 !== 0 || !BASE64_CONTENT_RE.test(cleanedBlob)) {
+        return { ok: false, error: 'Host returned malformed base64 resource payload' };
+      }
+      const padding = cleanedBlob.endsWith('==') ? 2 : cleanedBlob.endsWith('=') ? 1 : 0;
+      const byteLength = Math.max(0, Math.floor((cleanedBlob.length * 3) / 4) - padding);
+      if (byteLength > MAX_HOST_RESOURCE_BYTES) {
+        return { ok: false, error: 'Resource exceeds 10 MiB read limit' };
+      }
+      return {
+        ok: true,
+        blob: cleanedBlob,
+        ...(typeof item.mimeType === 'string' && item.mimeType ? { mimeType: item.mimeType } : {}),
+        byteLength,
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
   }
 
   async openFile(filePath: string): Promise<boolean> {

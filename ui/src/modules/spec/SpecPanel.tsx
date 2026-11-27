@@ -1102,6 +1102,17 @@ export const SpecPanel: React.FC<NovModulePanelProps> = ({
   onOpenSettings,
 }) => {
   const { dict, locale } = useNovI18n();
+  const [caps, setCaps] = useState(() => bridge.getCapabilities());
+  useEffect(() => {
+    let mounted = true;
+    void bridge.ready().then(() => {
+      if (mounted) setCaps(bridge.getCapabilities());
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [bridge]);
+  const canSendMessage = caps.message;
   const sDict = dict.panels.spec;
   const actions = ACTION_LABELS[locale] ?? ACTION_LABELS.en;
 
@@ -2496,7 +2507,7 @@ export const SpecPanel: React.FC<NovModulePanelProps> = ({
                   >
                     {busyAction === 'send-feedback'
                       ? dict.common.loading
-                      : `${actions.sendFeedbackBtn} (${unresolvedCount})`}
+                      : `${canSendMessage ? actions.sendFeedbackBtn : dict.common.copyPrompt} (${unresolvedCount})`}
                   </button>
 
                   <button
@@ -3036,7 +3047,7 @@ export const SpecPanel: React.FC<NovModulePanelProps> = ({
                       >
                         {busyAction === 'send-feedback'
                           ? dict.common.loading
-                          : `${actions.sendFeedbackBtn} (${unresolvedCount})`}
+                          : `${canSendMessage ? actions.sendFeedbackBtn : dict.common.copyPrompt} (${unresolvedCount})`}
                       </button>
                     </div>
                   )}

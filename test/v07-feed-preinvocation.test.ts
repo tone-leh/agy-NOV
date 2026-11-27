@@ -39,7 +39,11 @@ async function connectInMemory(
   client: Client;
   close: () => Promise<void>;
 }> {
-  const bundle = createNovServer({ configPollMs: 0, ...opts });
+  const bundle = createNovServer({
+    configPollMs: 0,
+    exposeAppToolsWithoutUiCapability: true,
+    ...opts,
+  });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: 'test-v07-client', version: '0.7.0' });
   await bundle.server.connect(serverTransport);

@@ -1116,7 +1116,7 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
             </label>
 
             <label className="nov-drawer-field">
-              <span>.env / SSH / Keys</span>
+              <span>{sh.guardEnvKeysLabel}</span>
               <select
                 className="nov-p-select"
                 value={guardData.policy.protectEnvAndKeys}
@@ -1125,14 +1125,20 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
                   void updateGuardPolicy({ protectEnvAndKeys: e.target.value as GuardDecision })
                 }
               >
-                <option value="deny">DENY — {dict.panels.guard.blocked}</option>
-                <option value="ask">ASK — {dict.panels.guard.ask}</option>
-                <option value="allow">ALLOW — {dict.panels.guard.safe}</option>
+                <option value="deny">
+                  {sh.guardDecisionDeny} — {dict.panels.guard.blocked}
+                </option>
+                <option value="ask">
+                  {sh.guardDecisionAsk} — {dict.panels.guard.ask}
+                </option>
+                <option value="allow">
+                  {sh.guardDecisionAllow} — {dict.panels.guard.safe}
+                </option>
               </select>
             </label>
 
             <label className="nov-drawer-field">
-              <span>{dict.panels.guard.tabScanner} (Write)</span>
+              <span>{sh.guardSecretWriteLabel}</span>
               <select
                 className="nov-p-select"
                 value={guardData.policy.blockSecretWrites}
@@ -1141,14 +1147,20 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
                   void updateGuardPolicy({ blockSecretWrites: e.target.value as GuardDecision })
                 }
               >
-                <option value="deny">DENY — {dict.panels.guard.blocked}</option>
-                <option value="ask">ASK — {dict.panels.guard.ask}</option>
-                <option value="allow">ALLOW — {dict.panels.guard.safe}</option>
+                <option value="deny">
+                  {sh.guardDecisionDeny} — {dict.panels.guard.blocked}
+                </option>
+                <option value="ask">
+                  {sh.guardDecisionAsk} — {dict.panels.guard.ask}
+                </option>
+                <option value="allow">
+                  {sh.guardDecisionAllow} — {dict.panels.guard.safe}
+                </option>
               </select>
             </label>
 
             <label className="nov-drawer-field">
-              <span>Shell Firewall</span>
+              <span>{sh.guardShellFirewallLabel}</span>
               <select
                 className="nov-p-select"
                 value={guardData.policy.blockDestructiveCommands}
@@ -1159,14 +1171,20 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
                   })
                 }
               >
-                <option value="deny">DENY — {dict.panels.guard.blocked}</option>
-                <option value="ask">ASK — {dict.panels.guard.ask}</option>
-                <option value="allow">ALLOW — {dict.panels.guard.safe}</option>
+                <option value="deny">
+                  {sh.guardDecisionDeny} — {dict.panels.guard.blocked}
+                </option>
+                <option value="ask">
+                  {sh.guardDecisionAsk} — {dict.panels.guard.ask}
+                </option>
+                <option value="allow">
+                  {sh.guardDecisionAllow} — {dict.panels.guard.safe}
+                </option>
               </select>
             </label>
 
             <div className="nov-drawer-toggle-row">
-              <span>{dict.panels.guard.tabSnapshots} (Auto)</span>
+              <span>{sh.guardAutoSnapshotLabel}</span>
               <button
                 type="button"
                 role="switch"
@@ -1436,7 +1454,7 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
 
             <div className="nov-drawer-grid">
               <div className="nov-drawer-toggle-row">
-                <span>Remote Approval Gate</span>
+                <span>{sh.remoteApprovalGateLabel}</span>
                 <button
                   type="button"
                   role="switch"
@@ -1454,7 +1472,7 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
               </div>
 
               <div className="nov-drawer-toggle-row">
-                <span>Stop Alerts (IM)</span>
+                <span>{sh.remoteStopAlertsLabel}</span>
                 <button
                   type="button"
                   role="switch"
@@ -1472,7 +1490,7 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
               </div>
 
               <div className="nov-drawer-field">
-                <span>Gateway Port (0–65535)</span>
+                <span>{sh.remoteGatewayPortLabel} (0–65535)</span>
                 <div className="nov-inline-input-row">
                   <input
                     type="number"
@@ -1750,7 +1768,7 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
                           type="button"
                           role="switch"
                           aria-checked={enabled}
-                          aria-label={`Toggle ${text.name}`}
+                          aria-label={t(sh.toggleModuleAria, { name: text.name })}
                           className="nov-switch"
                           disabled={isBusy}
                           onClick={() => void onToggleModule(modId, !enabled)}
@@ -1855,7 +1873,7 @@ export const SettingsHub: React.FC<SettingsHubProps> = ({
                 <strong>{sh.teamPresetSection}</strong>
                 {teamPreset?.found ? (
                   <span className={`nov-badge ${teamPreset.valid ? 'is-offline' : 'is-danger'}`}>
-                    {teamPreset.valid ? dict.ops.teamPresetValid : 'INVALID'}
+                    {teamPreset.valid ? dict.ops.teamPresetValid : dict.common.invalid}
                     {teamPreset.preset ? ` · ${teamPreset.preset}` : ''}
                   </span>
                 ) : (

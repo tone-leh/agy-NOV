@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import os from 'node:os';
 import path from 'node:path';
 import type {
   ApprovalRequest,
@@ -103,11 +104,14 @@ export const MAX_BODY_BYTES = 64 * 1024; // 64 KiB hard limit
 export const MAX_APPROVALS_RETAINED = 100;
 export const PAIR_MAX_FAILURES = 5;
 export const PAIR_LOCKOUT_MS = 15 * 60 * 1000;
+export const MAX_SSE_CLIENTS = 16;
+export const SSE_KEEPALIVE_INTERVAL_MS = 25_000;
 
 export interface GatewayOptions {
   pinTtlMs?: number;
   pairLockoutMs?: number;
   maxPairFailures?: number;
+  sseKeepaliveIntervalMs?: number;
   now?: () => number;
   channelSendOptions?: ChannelSendOptions;
   demoMode?: boolean;
@@ -146,14 +150,26 @@ function isLoopbackBindHost(host: string): boolean {
   return h === '' || h === '127.0.0.1' || h === 'localhost' || h === '::1';
 }
 
+function normalizeHostForAllowlist(rawHost: string): string | null {
+  const trimmed = rawHost.trim().toLowerCase();
+  if (!trimmed) return null;
+  if (trimmed === '0.0.0.0' || trimmed === '::' || trimmed === '[::]') return null;
+  if (trimmed.includes(':') && !trimmed.startsWith('[')) {
+    return `[${trimmed}]`;
+  }
+  return trimmed;
+}
+
 export class RemoteGateway {
   private server: http.Server | null = null;
   private stopping = false;
   private pruneTimer: NodeJS.Timeout | null = null;
+  private sseKeepaliveTimer: NodeJS.Timeout | null = null;
   private expiryTimers = new Map<string, NodeJS.Timeout>();
   private config: RemoteConfig;
   private configPersisted: boolean;
   private actualPort: number;
+  private boundHost: string;
   private pairingPinExpiresAt: number;
   private approvals = new Map<string, ApprovalRequest>();
   private waiters = new Map<string, Array<(req: ApprovalRequest) => void>>();
@@ -165,6 +181,7 @@ export class RemoteGateway {
   private readonly pinTtlMs: number;
   private readonly pairLockoutMs: number;
   private readonly maxPairFailures: number;
+  private readonly sseKeepaliveIntervalMs: number;
   private readonly nowFn: () => number;
   private readonly channelSendOptions?: ChannelSendOptions;
   private readonly demoMode: boolean;
@@ -179,6 +196,10 @@ export class RemoteGateway {
     this.pinTtlMs = options.pinTtlMs ?? DEFAULT_PIN_TTL_MS;
     this.pairLockoutMs = options.pairLockoutMs ?? PAIR_LOCKOUT_MS;
     this.maxPairFailures = options.maxPairFailures ?? PAIR_MAX_FAILURES;
+    this.sseKeepaliveIntervalMs = Math.max(
+      100,
+      options.sseKeepaliveIntervalMs ?? SSE_KEEPALIVE_INTERVAL_MS,
+    );
     this.nowFn = options.now ?? (() => Date.now());
     this.channelSendOptions = options.channelSendOptions;
     this.demoMode = Boolean(options.demoMode);
@@ -190,6 +211,7 @@ export class RemoteGateway {
     this.config = loaded.config;
     this.configPersisted = loaded.persisted;
     this.actualPort = this.config.port;
+    this.boundHost = this.config.host || '127.0.0.1';
     this.pairingPinExpiresAt = this.resolveInitialPinExpiryInMemory();
   }
 
@@ -329,15 +351,207 @@ export class RemoteGateway {
     return full;
   }
 
+  private pruneClosedSseClients(): void {
+    for (const res of Array.from(this.sseClients)) {
+      if (res.destroyed || res.writableEnded) {
+        this.sseClients.delete(res);
+      }
+    }
+    if (this.sseClients.size === 0) {
+      this.stopSseKeepaliveTimer();
+    }
+  }
+
+  private ensureSseKeepaliveTimer(): void {
+    if (
+      this.sseKeepaliveTimer ||
+      !this.isRunning() ||
+      this.stopping ||
+      this.sseClients.size === 0
+    ) {
+      return;
+    }
+    this.sseKeepaliveTimer = setInterval(() => {
+      if (!this.isRunning() || this.stopping || this.sseClients.size === 0) {
+        this.stopSseKeepaliveTimer();
+        return;
+      }
+      for (const res of Array.from(this.sseClients)) {
+        if (res.destroyed || res.writableEnded) {
+          this.sseClients.delete(res);
+          continue;
+        }
+        try {
+          res.write(': keepalive\n\n');
+        } catch {
+          this.sseClients.delete(res);
+        }
+      }
+      if (this.sseClients.size === 0) {
+        this.stopSseKeepaliveTimer();
+      }
+    }, this.sseKeepaliveIntervalMs);
+    this.sseKeepaliveTimer.unref();
+  }
+
+  private stopSseKeepaliveTimer(): void {
+    if (this.sseKeepaliveTimer) {
+      clearInterval(this.sseKeepaliveTimer);
+      this.sseKeepaliveTimer = null;
+    }
+  }
+
   private broadcastSse(event: Record<string, unknown>) {
     const line = `data: ${JSON.stringify(event)}\n\n`;
-    for (const res of this.sseClients) {
+    for (const res of Array.from(this.sseClients)) {
+      if (res.destroyed || res.writableEnded) {
+        this.sseClients.delete(res);
+        continue;
+      }
       try {
         res.write(line);
       } catch {
         this.sseClients.delete(res);
       }
     }
+    if (this.sseClients.size === 0) {
+      this.stopSseKeepaliveTimer();
+    }
+  }
+
+  private getAllowedLocalHosts(): Set<string> {
+    const allowed = new Set<string>(['127.0.0.1', 'localhost', '[::1]']);
+    const normalizedBound = normalizeHostForAllowlist(this.boundHost);
+    if (normalizedBound) {
+      allowed.add(normalizedBound);
+    }
+    const configuredHost = this.config.host?.trim().toLowerCase() ?? '';
+    const normalizedConfigured = normalizeHostForAllowlist(configuredHost);
+    if (normalizedConfigured) {
+      allowed.add(normalizedConfigured);
+    }
+    const wildcardV4 = this.boundHost === '0.0.0.0' || configuredHost === '0.0.0.0';
+    const wildcardV6 = this.boundHost === '::' || configuredHost === '::';
+    if (wildcardV4 || wildcardV6) {
+      const lanIp = normalizeHostForAllowlist(detectLanIpv4());
+      if (lanIp) allowed.add(lanIp);
+      try {
+        const ifaces = os.networkInterfaces();
+        for (const entries of Object.values(ifaces)) {
+          if (!entries) continue;
+          for (const entry of entries) {
+            if (entry.internal || !entry.address) continue;
+            if (entry.family === 'IPv4' || (wildcardV6 && entry.family === 'IPv6')) {
+              const norm = normalizeHostForAllowlist(entry.address);
+              if (norm) allowed.add(norm);
+            }
+          }
+        }
+      } catch {
+        // ignore interface enumeration error
+      }
+    }
+    return allowed;
+  }
+
+  private getConfiguredPublicUrl(): URL | null {
+    const raw = this.config.publicBaseUrl?.trim();
+    if (!raw) return null;
+    try {
+      const parsed = new URL(raw);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return parsed;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  private validateSensitiveRequestHeaders(
+    req: http.IncomingMessage,
+  ): { ok: true } | { ok: false; error: string } {
+    const allowedLocalHosts = this.getAllowedLocalHosts();
+    const publicUrl = this.getConfiguredPublicUrl();
+    const expectedPort = String(this.actualPort);
+
+    // 1. Validate Host header (prevents DNS rebinding & cross-host / explicit :80 port spoofing)
+    const rawHostHeader = req.headers.host;
+    if (typeof rawHostHeader !== 'string' || !rawHostHeader.trim()) {
+      return { ok: false, error: 'Forbidden: missing Host header' };
+    }
+    const hostValue = rawHostHeader.trim();
+    if (/[\s/@?#\\\x00-\x1f\x7f]/.test(hostValue)) {
+      return { ok: false, error: 'Forbidden: invalid Host header' };
+    }
+    let explicitPort = '';
+    if (hostValue.startsWith('[')) {
+      const m = /^\[[^\]]+\](?::(\d+))?$/.exec(hostValue);
+      if (!m) {
+        return { ok: false, error: 'Forbidden: malformed IPv6 Host header' };
+      }
+      explicitPort = m[1] ?? '';
+    } else {
+      const firstColon = hostValue.indexOf(':');
+      if (firstColon !== -1) {
+        const portPart = hostValue.slice(firstColon + 1);
+        if (!/^\d{1,5}$/.test(portPart)) {
+          return { ok: false, error: 'Forbidden: malformed Host port' };
+        }
+        explicitPort = portPart;
+      }
+    }
+    let parsedHostUrl: URL;
+    try {
+      parsedHostUrl = new URL(`http://${hostValue}`);
+    } catch {
+      return { ok: false, error: 'Forbidden: malformed Host header' };
+    }
+    const hostName = parsedHostUrl.hostname.toLowerCase();
+    const hostPort = explicitPort;
+    const isAllowedLocalHost =
+      allowedLocalHosts.has(hostName) && (!hostPort || hostPort === expectedPort);
+    const isAllowedPublicHost =
+      publicUrl !== null &&
+      hostName === publicUrl.hostname.toLowerCase() &&
+      (!hostPort ||
+        hostPort === (publicUrl.port || (publicUrl.protocol === 'https:' ? '443' : '80')));
+    if (!isAllowedLocalHost && !isAllowedPublicHost) {
+      return { ok: false, error: 'Forbidden: Host header is not allowed for local gateway' };
+    }
+
+    // 2. Validate optional Origin header (prevents cross-site PIN brute-force / lockout DoS)
+    const rawOriginHeader = req.headers.origin;
+    if (rawOriginHeader !== undefined) {
+      const originValue = Array.isArray(rawOriginHeader) ? rawOriginHeader[0] : rawOriginHeader;
+      if (typeof originValue !== 'string' || !originValue.trim()) {
+        return { ok: false, error: 'Forbidden: invalid Origin header' };
+      }
+      const trimmedOrigin = originValue.trim();
+      if (trimmedOrigin.toLowerCase() === 'null') {
+        return { ok: false, error: 'Forbidden: null Origin is not permitted' };
+      }
+      let parsedOrigin: URL;
+      try {
+        parsedOrigin = new URL(trimmedOrigin);
+      } catch {
+        return { ok: false, error: 'Forbidden: malformed Origin header' };
+      }
+      if (parsedOrigin.origin === 'null' || parsedOrigin.origin !== trimmedOrigin) {
+        return { ok: false, error: 'Forbidden: non-canonical Origin header' };
+      }
+      const originPort = parsedOrigin.port || (parsedOrigin.protocol === 'https:' ? '443' : '80');
+      const isSameLocalOrigin =
+        parsedOrigin.protocol === 'http:' &&
+        allowedLocalHosts.has(parsedOrigin.hostname.toLowerCase()) &&
+        originPort === expectedPort;
+      const isSamePublicOrigin = publicUrl !== null && parsedOrigin.origin === publicUrl.origin;
+      if (!isSameLocalOrigin && !isSamePublicOrigin) {
+        return { ok: false, error: 'Forbidden: cross-origin request rejected' };
+      }
+    }
+
+    return { ok: true };
   }
 
   private resolvePublicBaseUrl(): { localUrl: string; baseUrl: string } {
@@ -678,6 +892,17 @@ export class RemoteGateway {
           return;
         }
 
+        // Guard all sensitive /api/* routes (including /api/pair, /api/approve, /api/approvals/*,
+        // /api/events, /api/status, /api/state, /api/live, /api/conversations/*, /api/hooks/*)
+        // against DNS rebinding and cross-site lockout DoS before touching PIN rate limits or auth.
+        if (url.pathname.startsWith('/api/')) {
+          const headerCheck = this.validateSensitiveRequestHeaders(req);
+          if (!headerCheck.ok) {
+            this.writeJson(res, 403, { error: headerCheck.error });
+            return;
+          }
+        }
+
         if (url.pathname === '/api/pair' && req.method === 'POST') {
           const now = this.nowFn();
           const clientIp = this.getClientIp(req);
@@ -725,6 +950,16 @@ export class RemoteGateway {
         }
 
         if (url.pathname === '/api/events') {
+          this.pruneClosedSseClients();
+          if (this.sseClients.size >= MAX_SSE_CLIENTS) {
+            this.writeJson(
+              res,
+              503,
+              { error: `Too many active SSE clients (max ${MAX_SSE_CLIENTS})` },
+              { 'Retry-After': '5' },
+            );
+            return;
+          }
           res.writeHead(200, {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
@@ -734,7 +969,16 @@ export class RemoteGateway {
           });
           res.write(`data: ${JSON.stringify({ type: 'hello' })}\n\n`);
           this.sseClients.add(res);
-          req.on('close', () => this.sseClients.delete(res));
+          this.ensureSseKeepaliveTimer();
+          const cleanupClient = () => {
+            this.sseClients.delete(res);
+            if (this.sseClients.size === 0) {
+              this.stopSseKeepaliveTimer();
+            }
+          };
+          req.on('close', cleanupClient);
+          res.on('close', cleanupClient);
+          res.on('error', cleanupClient);
           return;
         }
 
@@ -905,6 +1149,7 @@ export class RemoteGateway {
           srv.off('error', onError);
           const addr = srv.address() as AddressInfo | null;
           if (addr?.port) this.actualPort = addr.port;
+          this.boundHost = addr?.address || bindHost;
           resolve();
         };
         srv.once('error', onError);
@@ -932,7 +1177,8 @@ export class RemoteGateway {
 
   async stop(): Promise<void> {
     this.stopping = true;
-    // 1. Stop periodic prune timer and clear all approval expiry timers
+    // 1. Stop periodic prune & SSE keepalive timers and clear all approval expiry timers
+    this.stopSseKeepaliveTimer();
     if (this.pruneTimer) {
       clearInterval(this.pruneTimer);
       this.pruneTimer = null;
@@ -997,6 +1243,7 @@ export class RemoteGateway {
     const srv = this.server;
     this.server = null;
     this.actualPort = this.config.port;
+    this.boundHost = this.config.host || '127.0.0.1';
     if (srv) {
       try {
         srv.closeIdleConnections?.();

@@ -170,16 +170,16 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             className="rv-scope-select rv-worktree-select"
             value={activeWorktreePath ?? availableWorktrees[0]?.path ?? ''}
             onChange={(e) => onWorktreeChange(e.target.value)}
-            aria-label="Target Worktree"
-            title="Switch review target between main repository and active Git worktrees"
+            aria-label={r.targetWorktreeLabel}
+            title={r.targetWorktreeTip}
           >
             {availableWorktrees.map((wt) => {
-              const prefix = wt.isMain ? 'Main' : 'WT';
-              const name = wt.branch || '(detached)';
+              const prefix = wt.isMain ? r.worktreeMainPrefix : '[WT]';
+              const name = wt.branch || r.worktreeDetached;
               const dirty = wt.isDirty ? ' *' : '';
               return (
                 <option key={wt.path} value={wt.path}>
-                  [{prefix}] {name}
+                  {prefix} {name}
                   {dirty}
                 </option>
               );

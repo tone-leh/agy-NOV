@@ -2,7 +2,7 @@
   <img src="../../assets/logo.svg" width="88" height="88" alt="agy-NOV Logo" />
   <h1>agy-NOV</h1>
   <p><strong>Google Antigravity 2.0을 위한 100% 네이티브 모듈형 슈퍼 워크벤치.</strong></p>
-  <p><em>하나의 플러그인. 4대 기능 영역으로 체계화된 13개 모듈에 Ops 3.0 정적 보안 진단·크로스 클라이언트 중복 감축 미리보기·S4 Tool-Slot Idle Advisor, Mem 3.0 메모리 위생 및 신뢰도/TTL 거버넌스, 9개 세그먼트 사용자 정의 CLI <code>statusline --segments</code> 및 미리보기-확인 방식 <code>.agy-nov.json</code> 스캐폴드를 통합했습니다. <code>Spec → Worktree → Two-Stage Review → Verify → Mem</code> 엔드투엔드 파이프라인, One-Click Clean Fork, 5개 공식 온디맨드 Skills 및 2개 읽기 전용 서브에이전트, MCP Apps <code>file</code> 뷰어, Remote 2.5 구조화 위험 승인 카드, 전 24개 컴포넌트 8개 언어 UI 및 9개 명령 CLI를 제공하며, macOS / Windows / Linux 3대 OS 네이티브 호환성까지 전면 강화했습니다. 제로 ASAR · 제로 CDP, <code>v0.4 → v1.0.1</code> 전반에 걸쳐 47개 모델 도구 팽창 제로와 비활성화 시 토큰 비용 제로를 유지합니다.</em></p>
+  <p><em>하나의 플러그인. 4+1 기능 영역으로 체계화된 13개 모듈에 Antigravity 2.35+ 실제 런타임 강화(<code>Stop: continue</code> 공식 프로토콜 · <code>hooks.json</code> Windows 크로스 플랫폼 블랙박스 검증 · CLI <code>io.modelcontextprotocol/ui</code> 47개 도구 폭주 방지 게이팅 · MCP <code>roots/list</code> 동적 워크스페이스 · <code>antigravity-file://</code> 호스트 <code>resources/read</code> 미리보기), Ops 3.0 정적 보안 진단·크로스 클라이언트 중복 감축 미리보기·S4 Tool-Slot Idle Advisor, Mem 3.0 메모리 위생 및 신뢰도/TTL 거버넌스, 9개 세그먼트 사용자 정의 CLI <code>statusline --segments</code> 및 미리보기-확인 방식 <code>.agy-nov.json</code> 스캐폴드를 통합했습니다. <code>Spec → Worktree → Two-Stage Review → Verify → Mem</code> 엔드투엔드 파이프라인, One-Click Clean Fork, 5개 공식 온디맨드 Skills 및 2개 읽기 전용 서브에이전트, MCP Apps <code>file</code> 뷰어, Remote 2.5 구조화 위험 승인 카드, 755개 사전 키 × 8개 언어 완전 현지화 UI, 백엔드 <code>minify</code> 약 45.5% 경량화 및 9개 명령 CLI를 제공하며, macOS / Windows / Linux 3대 OS 네이티브 호환성까지 전면 강화했습니다. 제로 ASAR · 제로 CDP, <code>v0.4 → v1.0.2</code> 전반에 걸쳐 47개 모델 도구 팽창 제로와 비활성화 시 토큰 비용 제로를 유지합니다.</em></p>
 
   <p>
     <a href="../../README.md">English</a> ·
@@ -18,7 +18,7 @@
   <p><sub>이 문서는 영문 공식 문서 <a href="../../README.md">README.md</a>의 한국어 번역본입니다. 명령어, 모듈 ID 및 설정 기준은 영문 원본을 따릅니다.</sub></p>
 
   <p>
-    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v1.0.1"><img src="https://img.shields.io/badge/Version-v1.0.1-0284c7?style=flat-square" alt="버전: v1.0.1" /></a>
+    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v1.0.2"><img src="https://img.shields.io/badge/Version-v1.0.2-0284c7?style=flat-square" alt="버전: v1.0.2" /></a>
     <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tone-leh/agy-NOV/ci.yml?branch=main&style=flat-square&label=CI" alt="CI 상태" /></a>
     <a href="../../LICENSE"><img src="https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square" alt="License: MIT" /></a>
     <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node-%3E%3D20-16a34a?style=flat-square" alt="Node >= 20" /></a>
@@ -29,7 +29,7 @@
   <br />
 
   <p><strong>실시간 워크벤치 미리보기</strong></p>
-  <img src="../../assets/demo-preview.gif" alt="agy-NOV v1.0.1 실시간 워크벤치 미리보기 — macOS / Windows / Linux 3대 OS 네이티브 호환성 강화, Ops 3.0 정적 보안 진단 및 Tool-Slot Idle Advisor, Mem 3.0 신뢰도·TTL 거버넌스, 엔드투엔드 파이프라인, One-Click Clean Fork, 5개 공식 Skills 및 2개 읽기 전용 서브에이전트, MCP Apps file 뷰어, Remote 2.5 구조화 위험 승인 카드, 전 24개 컴포넌트 8개 언어 UI" width="100%" />
+  <img src="../../assets/demo-preview.gif" alt="agy-NOV v1.0.2 실시간 워크벤치 미리보기 — 신규 4+1 IA 데모 애니메이션, Antigravity 2.35+ 실제 런타임 강화, 755개 사전 키 × 8개 언어 전 24개 컴포넌트 UI, 백엔드 minify 약 45.5% 경량화, macOS / Windows / Linux 3대 OS 네이티브 호환성 강화, Ops 3.0 정적 보안 진단 및 Tool-Slot Idle Advisor, Mem 3.0 신뢰도·TTL 거버넌스, 엔드투엔드 파이프라인, One-Click Clean Fork, 5개 공식 Skills 및 2개 읽기 전용 서브에이전트, MCP Apps file 뷰어, Remote 2.5 구조화 위험 승인 카드" width="100%" />
 
   <br />
 
@@ -46,7 +46,7 @@
 </div>
 
 > [!NOTE]
-> **독립 오픈소스 프로젝트:** `agy-NOV` (`v1.0.1`)는 Google Antigravity 2.0을 위해 제작된 독립 MIT 라이선스 커뮤니티 플러그인입니다. Google LLC와 제휴, 후원 또는 공식 보증 관계가 없습니다.
+> **독립 오픈소스 프로젝트:** `agy-NOV` (`v1.0.2`)는 Google Antigravity 2.0을 위해 제작된 독립 MIT 라이선스 커뮤니티 플러그인입니다. Google LLC와 제휴, 후원 또는 공식 보증 관계가 없습니다.
 
 ---
 
@@ -76,35 +76,39 @@ node dist/cli.cjs recommend --workspace=.
 | 비교 항목 | ❌ 플러그인 난립 (12–13개 개별 도구) | ✅ agy-NOV 슈퍼 워크벤치 |
 | :--- | :--- | :--- |
 | **상주 프로세스** | 12–13개 백그라운드 Node/Python 서버가 메모리와 시작 시간을 잠식 | **단일 상주 MCP 서버** (`dist/server.cjs`)가 활성화된 모든 기능 제공 |
-| **턴당 토큰 세금** | 사용 여부와 무관하게 70개 이상의 정적 도구 스키마를 매 턴 주입해 100도구 상한 압박 | **동적 `tools/list`** — 꺼진 모듈은 즉시 등록 해제 (`0` 토큰 및 도구 예산 소비), `v0.4 → v1.0.1` 전반에서 **47개 모델 도구** 팽창 제로 (+0) + S4 **Tool-Slot Idle Advisor**로 유휴 슬롯 회수 |
-| **라이프사이클 훅 폭주** | 매 `SessionStart` / `PreToolUse` / `PostToolUse` / `PreInvocation` / `Stop`마다 여러 개별 훅이 경합 실행 | **단일 통합 훅 디스패처** (`dist/hook.cjs`)가 전체 **5종 공식 훅**(`PreToolUse` `force_ask` 및 `overwrite` 지원)을 처리하고 O(1) 단락 |
+| **턴당 토큰 세금** | 사용 여부와 무관하게 70개 이상의 정적 도구 스키마를 매 턴 주입해 100도구 상한 압박 | **동적 `tools/list`** — 꺼진 모듈은 즉시 등록 해제 (`0` 토큰 및 도구 예산 소비), `v0.4 → v1.0.2` 전반에서 **47개 모델 도구** 팽창 제로 (+0) + CLI `io.modelcontextprotocol/ui` 47개 도구 폭주 방지 게이팅과 S4 **Tool-Slot Idle Advisor**로 유휴 슬롯 회수 |
+| **라이프사이클 훅 폭주** | 매 `SessionStart` / `PreToolUse` / `PostToolUse` / `PreInvocation` / `Stop`마다 여러 개별 훅이 경합 실행 | **단일 통합 훅 디스패처** (`dist/hook.cjs`)가 전체 **5종 공식 훅**(`PreToolUse` `force_ask` / `overwrite` 및 `Stop: continue` 공식 프로토콜 지원)을 처리하고 O(1) 단락 |
 | **업데이트 내구성** | 바이너리 `app.asar` 패치와 DOM 훅은 Antigravity 업데이트 후 손상 | **100% 공식 네이티브 프로토콜** — 제로 ASAR · 제로 CDP로 모든 클라이언트 업데이트 유지 |
-| **정보 구조 및 다국어 UX** | 흩어진 JSON 파일, 복잡한 평면 탭, 영어 혼용 패널 | **4대 영역 IA + 워크플로 허브 + 4단계 통합 설정 센터 + `⌘K` 명령 팔레트** + **전 24개 컴포넌트 100% 8개 언어 UI** + **5개 공식 Skills · 2개 읽기 전용 서브에이전트** + **5가지 즉시 프리셋** + 9개 명령 CLI |
+| **정보 구조 및 다국어 UX** | 흩어진 JSON 파일, 복잡한 평면 탭, 영어 혼용 패널 | **4+1 영역 IA + 워크플로 허브 + 4단계 통합 설정 센터 + `⌘K` 명령 팔레트** + **전 24개 컴포넌트 100% 8개 언어 UI (755개 사전 키 × 8개 언어, 잔존 하드코딩 영문 제로)** + **5개 공식 Skills · 2개 읽기 전용 서브에이전트** + **5가지 즉시 프리셋** + 9개 명령 CLI |
 
-### `v1.0.1` 핵심 신기능 및 크로스 플랫폼 강화
+### `v1.0.2` 핵심 신기능 및 실제 런타임 강화
 
-`Spec → Worktree → Two-Stage Review → Verify → Mem` 엔드투엔드 파이프라인 폐루프, One-Click Clean Fork, 5개 공식 온디맨드 Skills, 2개 읽기 전용 서브에이전트, MCP Apps `file` 네이티브 뷰어, Remote 2.5 구조화 위험 승인 카드를 그대로 유지하면서 `v1.0.1`은 **+0 모델 도구 팽창**(47개 표준 모델 도구 불변, **88개 테스트 스위트 / 245개 테스트** 전량 통과)으로 다음 4대 핵심 역량을 제공합니다:
+`Spec → Worktree → Two-Stage Review → Verify → Mem` 엔드투엔드 파이프라인 폐루프, One-Click Clean Fork, 5개 공식 온디맨드 Skills, 2개 읽기 전용 서브에이전트, MCP Apps `file` 네이티브 뷰어, Remote 2.5 구조화 위험 승인 카드를 그대로 유지하면서 `v1.0.2`는 **+0 모델 도구 팽창**(47개 표준 모델 도구 불변, **91개 테스트 스위트 / 256개 테스트** 전량 통과)으로 다음 5대 핵심 하이라이트를 제공합니다:
 
-1. **macOS / Windows / Linux 3대 OS 네이티브 크로스 플랫폼 강화 + `agy-Sag` 컴패니언 링크 통합 (`v1.0.1` 신규):**
+1. **Antigravity 2.35+ 실제 런타임 강화 · 755키 8개 언어 완전 현지화 · 백엔드 경량화 (`v1.0.2` 신규):**
+   - **Antigravity 2.35+ 공식 프로토콜 및 크로스 플랫폼 런타임 강화:** 공식 `Stop: continue` 지속 프로토콜을 준수하고 `hooks.json` Windows 크로스 플랫폼 블랙박스 검증을 마쳤습니다. CLI 환경의 `io.modelcontextprotocol/ui` 47개 도구 폭주 방지 게이팅, MCP `roots/list` 동적 워크스페이스 추적, 호스트 `resources/read`를 통한 `antigravity-file://` 안전 미리보기까지 지원합니다.
+   - **755개 사전 키 × 8개 언어 100% 완료 및 신규 4+1 IA 데모 애니메이션:** **755개 사전 키 × 8개 언어**로 전체 24개 UI 컴포넌트에서 잔존 하드코딩 영문을 완전히 제거했습니다. 단일 파일 `dist/ui/app.html`은 **`1,376.3 KB`**(약 `1.34 MiB`, 10 MiB 한도 대비 대폭 경량)를 유지하며 새 4+1 IA 라이브 데모 애니메이션(`assets/demo-preview.gif`)으로 교체했습니다.
+   - **백엔드 번들 `minify` 약 45.5% 경량화:** 핵심 백엔드 런타임 번들을 전면 미니파이해 용량을 약 **45.5%** 줄였습니다(`server.cjs 1,541.9 KB` / `hook.cjs 207.1 KB` / `cli.cjs 94.5 KB`).
+2. **macOS / Windows / Linux 3대 OS 네이티브 크로스 플랫폼 강화 + `agy-Sag` 컴패니언 링크 통합:**
    - **3대 OS 네이티브 호환성 및 3-OS GitHub Actions CI 매트릭스:** macOS, Windows, Linux 전반의 경로 정규화, 파일 권한 처리 및 무셸 프로세스 실행을 강화하고 GitHub Actions에 3대 OS(`macos-latest` / `windows-latest` / `ubuntu-latest`) 자동 검증 매트릭스를 구축했습니다.
    - **Windows PowerShell / `cmd` 고위험 방어:** `Guard 2.5` 실행 전 방화벽 규칙을 확장해 Windows PowerShell 및 `cmd` 파괴적 명령, 인코딩 페이로드, 자격 증명 유출을 POSIX 환경과 동일한 수준으로 차단합니다.
    - **`agy-Sag` 컴패니언 링크 통합:** 동반 저장소 링크와 플러그인 설치 명령을 공식 저장소 `https://github.com/tone-leh/agy-Sag`로 전면 통일해 병렬 설치 경험을 깔끔하게 정비했습니다.
-2. **Ops 3.0 정적 보안 진단 + 크로스 클라이언트 중복 감축 미리보기 + 유휴 도구 슬롯 어드바이저:**
+3. **Ops 3.0 정적 보안 진단 + 크로스 클라이언트 중복 감축 미리보기 + 유휴 도구 슬롯 어드바이저:**
    - **`ops_audit_workspace` 정적 보안 진단:** 규칙·Skill·Hook·MCP 설정 내 Prompt Injection, 과도한 허용 규칙, 고위험 Hook, 평문 자격 증명을 읽기 전용 스캔해 `0–100` 범위의 **`securityScore`**를 산출합니다(시크릿 값 에코 제로 · 정상 설정 오탐 제로).
    - **크로스 클라이언트 중복 감축 미리보기 (`migrationPreview`):** `.claude/`, `.cursor/rules/`, `.codex/` 마이그레이션 점검을 읽기 전용 중복 감축 비교 미리보기로 업그레이드해 중복 비율과 절감 가능 토큰을 정량화합니다.
    - **SettingsHub S4 Tool-Slot Idle Advisor:** 8개 언어 지원 **Tool-Slot Idle Advisor**가 유휴 대형 모듈을 식별해 원클릭 비활성화로 100개 도구 예산을 즉시 회수합니다.
-3. **Mem 3.0 메모리 위생 및 신뢰도/TTL 거버넌스:**
+4. **Mem 3.0 메모리 위생 및 신뢰도/TTL 거버넌스:**
    - **신뢰도 · 출처 태그 · 선택적 TTL:** 장기 메모리에 3단계 신뢰도(`verified` / `normal` / `tentative`), 출처 표시 및 선택적 **`TTL`(1–365일)**을 추가했습니다.
    - **자동 만료 필터링 및 안전한 복구 조회:** `Stop` Hook이 자동 수집한 항목은 기본으로 **`tentative`** + **`14`일 TTL**이 부여되며, 만료된 미고정 `tentative` 항목은 `SessionStart` L1 색인과 기본 `mem_recall`에서 자동 제외됩니다(`pinned` 항목은 영구 보존되며 `includeExpired: true`로 언제든 다시 조회 가능).
    - **`MemPanel` 위생 관리 보드:** 위생 개요 필터, 다중 선택 및 일괄 **Verify** / **Refresh TTL (+30d)** / **Prune**(인라인 이중 확인 포함)을 지원합니다.
-4. **사용자 정의 CLI `statusLine` + 미리보기-확인 방식 `.agy-nov.json` 스캐폴드:**
+5. **사용자 정의 CLI `statusLine` + 미리보기-확인 방식 `.agy-nov.json` 스캐폴드:**
    - **9개 세그먼트 맞춤 상태 줄:** `agy-nov statusline --segments=<csv>`(`AGY_NOV_STATUSLINE_SEGMENTS` 환경 변수 지원)로 9개 세그먼트(`brand`, `context`, `burn`, `cache`, `spec`, `verify`, `guard`, `radar`, `network`)를 자유롭게 조합하며, LLM 토큰 소비 제로 · 디스크 쓰기 제로로 동작합니다.
    - **미리보기-확인 방식 팀 스캐폴드:** `agy-nov recommend --export-preset`은 기본으로 디스크 쓰기 없이 `.agy-nov.json` 팀 설정을 읽기 전용 미리보기하며, 명시적으로 `--confirm`(기존 파일 덮어쓰기 시 `--force` 병행)을 전달한 경우에만 원자적으로 기록합니다(`remote` 기록 금지 · 심볼릭 링크 거부 · 무음 덮어쓰기 차단).
 
 ### 100% 네이티브 스위치보드 철학
 
-1. **단일 네이티브 런타임:** MCP 서버 1개(`dist/server.cjs`) + **5종 공식 훅**(`SessionStart`, `PreToolUse`, `PostToolUse`, `PreInvocation`, `Stop`) 통합 디스패처 1개(`dist/hook.cjs`) + 자체 완결형 100% 8개 언어 UI 1개(`dist/ui/app.html`, 약 `1.23 MiB`, 실측 `1,261.2 KB`로 10 MiB 한도보다 훨씬 가볍고 전체 **24개 UI 컴포넌트**를 8개 언어로 완전 지원) + **9개 명령** 지원 CLI(`dist/cli.cjs`, `doctor`가 전체 **15개** 핵심 자산을 검증) + **5개 공식 온디맨드 Skills** 및 **2개 읽기 전용 전담 서브에이전트**.
-2. **비활성화 시 토큰 세금 제로:** 모든 모듈은 모델 도구를 `RegisteredTool.enable()` / `.disable()`로 감싸고 `tools/list_changed`를 실시간 푸시합니다. 모듈을 끄면 해당 스키마가 모델 컨텍스트에서 즉시 사라지며 S4 **Tool-Slot Idle Advisor**와 함께 100개 도구 상한을 여유 있게 피할 수 있습니다. `v1.0.1`에서도 `v0.4`부터 이어진 전체 **47개 표준 모델 도구 이름**은 팽창 없이 완전히 동일하게 유지됩니다(Clean Fork 패키징, PR 증빙 요약, `app_nov_file_viewer`, Mem 3.0 일괄 위생 제어, 설정 센터, 턴 Rewind, Context Pack 제어는 모두 App-only).
+1. **단일 네이티브 런타임:** MCP 서버 1개(`dist/server.cjs`, `1,541.9 KB`) + **5종 공식 훅**(`SessionStart`, `PreToolUse`, `PostToolUse`, `PreInvocation`, `Stop`) 통합 디스패처 1개(`dist/hook.cjs`, `207.1 KB`) + 자체 완결형 100% 8개 언어 UI 1개(`dist/ui/app.html`, 약 `1.34 MiB`, 실측 **`1,376.3 KB`**로 10 MiB 한도보다 훨씬 가볍고 **755개 사전 키 × 8개 언어**로 전체 **24개 UI 컴포넌트**를 하드코딩 영문 없이 완전 지원) + **9개 명령** 지원 CLI(`dist/cli.cjs`, `94.5 KB`, 백엔드 번들 `minify` 약 45.5% 경량화, `doctor`가 전체 **15개** 핵심 자산을 검증) + **5개 공식 온디맨드 Skills** 및 **2개 읽기 전용 전담 서브에이전트**.
+2. **비활성화 시 토큰 세금 제로:** 모든 모듈은 모델 도구를 `RegisteredTool.enable()` / `.disable()`로 감싸고 `tools/list_changed`를 실시간 푸시합니다. 모듈을 끄면 해당 스키마가 모델 컨텍스트에서 즉시 사라지며 S4 **Tool-Slot Idle Advisor** 및 CLI `io.modelcontextprotocol/ui` 47개 도구 폭주 방지 게이팅과 함께 100개 도구 상한을 여유 있게 피할 수 있습니다. `v1.0.2`에서도 `v0.4`부터 이어진 전체 **47개 표준 모델 도구 이름**은 팽창 없이 완전히 동일하게 유지됩니다(Clean Fork 패키징, PR 증빙 요약, `app_nov_file_viewer`, Mem 3.0 일괄 위생 제어, 설정 센터, 턴 Rewind, Context Pack 제어는 모두 App-only).
 3. **12개 로컬 오프라인 모듈 우선:** 핵심 필수 기능(`review`, `guard` 2.5, `xray`), 엔지니어링 파이프라인(`spec` 2.0, `worktree`, `verify`, `turbo` 3.0, `mem` 3.0), 온디맨드 도구함(`radar`, `studio`, `canvas`, `ops` 3.0)이 외부 네트워크 요청·ASAR 수정·CDP 훅 없이 100% 로컬에서 동작합니다.
 4. **엄격한 옵트인 원격 모듈 1개 (Remote 2.5):** 격리 원격 연결 영역의 `remote`(모바일 PWA + IM 웹훅)는 기본 완전 OFF 상태를 유지합니다. 명시적으로 켜기 전까지 수신 포트 0, 백그라운드 폴링 0, 디스크 쓰기 0, 외부 네트워크 요청 0을 보장하며, 활성화 시 읽기 전용 라이브 스트림, 구조화 위험 승인 카드(`HIGH`/`MED`/`LOW`) 및 `tailscale` / `cloudflared` 안전 터널링 가이드를 제공합니다.
 
@@ -122,7 +126,7 @@ node dist/cli.cjs recommend --workspace=.
 | **`local-all`** | *올-로컬 스튜디오* — Workspace Studio(OpenAPI 2.0/3.x 파서 및 네이티브 `file` 뷰어 연계), 비주얼 캔버스, Mem 3.0(신뢰도/TTL 위생 거버넌스 및 3단계 메모리 그래프)을 포함한 모든 오프라인 기능 | 12개 오프라인 네이티브 모듈 전체 | **43** | 100% 오프라인 |
 | **`full`** | *자리 비움 지휘관* — 풀 스튜디오 + 옵트인 Remote 2.5 모바일 PWA 라이브 조회 및 구조화 위험 IM 승인 카드 | 13개 네이티브 모듈 전체 (옵트인 `remote` 포함) | **47** | 옵트인 네트워크 |
 
-<sub>*정확한 모델 도구 수 = 상시 진입 도구 `2`개(`nov_open`, `nov_status`) + 활성 모듈 도구 수 합계(`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47; `v1.0.1`에서도 `v0.4`부터 이어진 47개 표준 모델 도구 이름은 완전히 동일하며 `app_nov_file_viewer`·Clean Fork·PR 증빙 요약·Mem 3.0 위생 관리·Tool-Slot Idle Advisor 등은 모두 App-only, 5개 Skills와 2개 서브에이전트는 도구 슬롯 점유 0).</sub>
+<sub>*정확한 모델 도구 수 = 상시 진입 도구 `2`개(`nov_open`, `nov_status`) + 활성 모듈 도구 수 합계(`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47; `v1.0.2`에서도 `v0.4`부터 이어진 47개 표준 모델 도구 이름은 완전히 동일하며 `app_nov_file_viewer`·Clean Fork·PR 증빙 요약·Mem 3.0 위생 관리·Tool-Slot Idle Advisor 등은 모두 App-only, 5개 Skills와 2개 서브에이전트는 도구 슬롯 점유 0).</sub>
 
 ```bash
 # 저장소를 읽기 전용으로 진단하고 --export-preset으로 .agy-nov.json 팀 설정 미리보기 (쓰기 제로)
@@ -165,7 +169,7 @@ node dist/cli.cjs preset power
 
 - **5개 공식 온디맨드 Skills (`skills/`):** 기본 `agy-nov`와 4개 슬래시 Playbook — **`/nov-spec`**, **`/nov-debug`**(4단계 근본 원인 분석), **`/nov-review`**(2단계 리뷰), **`/nov-handoff`** — 를 제공하며, 호출 시에만 로드되어 기본 `rules/AGENTS.md` 비대화 제로를 유지합니다.
 - **2개 공식 읽기 전용 전담 서브에이전트 (`agents/`):** **`nov-blind-reviewer`**(`agents/nov-blind-reviewer.md`, 대화 이력 편향 없는 독립 코드 블라인드 리뷰)와 **`nov-security-auditor`**(`agents/nov-security-auditor.md`, 독립 읽기 전용 레드팀 보안 감사)를 엄격한 읽기 전용 도구 집합으로 제공합니다(MCP 도구 슬롯 점유 제로).
-- **MCP Apps `file` 네이티브 파일 뷰어 (`app_nov_file_viewer`):** 공식 `com.google.antigravity/ui` `file` 진입점을 등록해 `.sqlite` / `.sqlite3` / `.db` / `.csv` / `.tsv` / `.svg` / `.openapi.yaml` / `.openapi.yml`을 안전하게 바로 열람합니다(모델 완전 비공개로 도구 세금 제로, `realpath` 경계 + SVG 정제 + `antigravity-file://` opaque URI 폴백).
+- **MCP Apps `file` 네이티브 파일 뷰어 (`app_nov_file_viewer`):** 공식 `com.google.antigravity/ui` `file` 진입점을 등록해 `.sqlite` / `.sqlite3` / `.db` / `.csv` / `.tsv` / `.svg` / `.openapi.yaml` / `.openapi.yml`을 안전하게 바로 열람합니다(모델 완전 비공개로 도구 세금 제로, `realpath` 경계 + SVG 정제 + 호스트 `resources/read` 기반 `antigravity-file://` 안전 미리보기 및 폴백).
 
 <details>
 <summary><strong>에이전트에게 이렇게 요청해 보세요… (Tier 1 오프라인 모듈 실전 프롬프트 12가지)</strong></summary>
@@ -199,7 +203,7 @@ node dist/cli.cjs preset power
 
 ### 전 컴포넌트 100% 8개 언어 플러그인 UI (전체 24개 컴포넌트 지원 · 재시작 불필요)
 
-`agy-NOV` `v1.0.1`은 **전체 24개 UI 컴포넌트의 100% 8개 언어 현지화**를 플러그인 번들 자체에 내장했습니다(`dist/ui/app.html` 약 `1.23 MiB`, 실측 `1,261.2 KB`로 10 MiB 한도 대비 대폭 경량). 워크플로 허브 및 Clean Fork, 4단계 통합 설정 센터와 S4 **Tool-Slot Idle Advisor**, Ops 3.0 `securityScore` 정적 진단 및 `migrationPreview` 중복 감축 미리보기, Mem 3.0 위생 필터 및 일괄 Verify/Refresh TTL/Prune, 적응형 내비게이션과 `⌘K` 팔레트, Worktree `.worktreeinclude` 미리보기, Diff Review 2단계 리뷰, Verify PR 증빙 요약, Radar Kanban 4레인, 네이티브 `file` 파일 뷰어, Turbo 3.0, Guard 2.5, Spec 2.0, Remote 2.5까지 하드코딩 영문 혼용 없이 현지화했으며 8개 언어 문서(`docs/i18n/README.*.md`)와 완전히 일치합니다:
+`agy-NOV` `v1.0.2`는 **전체 24개 UI 컴포넌트의 100% 8개 언어 현지화(755개 사전 키 × 8개 언어, 잔존 하드코딩 영문 제로)**를 플러그인 번들 자체에 내장했습니다(`dist/ui/app.html` 약 `1.34 MiB`, 실측 **`1,376.3 KB`**로 10 MiB 한도 대비 대폭 경량). 워크플로 허브 및 Clean Fork, 4단계 통합 설정 센터와 S4 **Tool-Slot Idle Advisor**, Ops 3.0 `securityScore` 정적 진단 및 `migrationPreview` 중복 감축 미리보기, Mem 3.0 위생 필터 및 일괄 Verify/Refresh TTL/Prune, 적응형 내비게이션과 `⌘K` 팔레트, Worktree `.worktreeinclude` 미리보기, Diff Review 2단계 리뷰, Verify PR 증빙 요약, Radar Kanban 4레인, 네이티브 `file` 파일 뷰어, Turbo 3.0, Guard 2.5, Spec 2.0, Remote 2.5까지 하드코딩 영문 혼용 없이 현지화했으며 8개 언어 문서(`docs/i18n/README.*.md`)와 완전히 일치합니다:
 
 - **상단 바 네이티브 언어 전환기:** 워크벤치 헤더 드롭다운 또는 통합 설정 센터에서 원하는 언어를 고르면 새로고침 없이 UI와 `<html lang>`이 즉시 전환됩니다.
 - **자동 BCP-47 호스트 언어 감지 (`auto`):** 기본값 `auto`가 Antigravity 호스트 로캘을 자동 추적하며 내장 8개 언어 전체의 직접 선택도 지원합니다:
@@ -243,12 +247,12 @@ flowchart TB
     Sag["선택적 컴패니언 · agy-Sag\nconfig.json 원자적 핫 동기화 · feed-snapshot.json 통합 스냅샷"]
   end
 
-  subgraph L2["레이어 2 · agy-NOV v1.0.1 순수 네이티브 런타임 및 확장"]
-    MCP["단일 MCP 서버 (dist/server.cjs)\n동적 tools/list: 6 / 12 / 32 / 43 / 47 (+0 팽창) · app_nov_file_viewer (App-only)"]
-    Hook["단일 훅 디스패처 (dist/hook.cjs)\n5종 공식 훅 · PreToolUse: Guard > Spec > Remote > Turbo · Stop 자동 수집 tentative+14d TTL · O(1) 단락"]
-    UI["단일 파일 8개 언어 UI (dist/ui/app.html)\n4대 영역 IA · Hub · S4 Tool-Slot Idle Advisor · Mem 3.0 위생 · Ops 3.0 감사 · 24개 컴포넌트 · ~1.23 MiB (1,261.2 KB)"]
+  subgraph L2["레이어 2 · agy-NOV v1.0.2 순수 네이티브 런타임 및 확장 (백엔드 minify 약 45.5% 경량화)"]
+    MCP["단일 MCP 서버 (dist/server.cjs · 1,541.9 KB)\n동적 tools/list: 6 / 12 / 32 / 43 / 47 (+0 팽창) · CLI 47도구 폭주 게이팅 · roots/list 동적 워크스페이스 · app_nov_file_viewer"]
+    Hook["단일 훅 디스패처 (dist/hook.cjs · 207.1 KB)\n5종 공식 훅 · Stop: continue 공식 프로토콜 · PreToolUse: Guard > Spec > Remote > Turbo · Windows 크로스 검증 · O(1) 단락"]
+    UI["단일 파일 8개 언어 UI (dist/ui/app.html)\n4+1 영역 IA · Hub · S4 Tool-Slot Idle Advisor · Mem 3.0 위생 · Ops 3.0 감사 · 755키 × 8개 언어 · 24개 컴포넌트 · ~1.34 MiB (1,376.3 KB)"]
     Ext["공식 온디맨드 확장 (도구 슬롯 점유 0)\n5 Skills: agy-nov, /nov-spec, /nov-debug, /nov-review, /nov-handoff\n2 읽기 전용 서브에이전트: nov-blind-reviewer, nov-security-auditor"]
-    CLI["제로 의존성 네이티브 CLI (dist/cli.cjs)\n9개 명령 · doctor 15개 자산 · statusline --segments (9단) · recommend --export-preset (--confirm) · compact-run"]
+    CLI["제로 의존성 네이티브 CLI (dist/cli.cjs · 94.5 KB)\n9개 명령 · doctor 15개 자산 · statusline --segments (9단) · recommend --export-preset (--confirm) · compact-run"]
   end
 
   subgraph L3["레이어 3 · 4대 영역 13개 모듈 및 격리 저장소"]
@@ -282,7 +286,7 @@ flowchart TB
 - **Mem 3.0 위생 및 TTL 거버넌스 가드레일:** `Stop` Hook 자동 수집 메모리는 기본으로 `tentative` + `14`일 TTL로 저장되며 만료된 미고정 항목은 `SessionStart` L1 색인과 기본 `mem_recall`에서 자동 제외됩니다(`pinned` 영구 보존, `includeExpired: true`로 복구 조회 가능). `MemPanel` 일괄 Prune은 인라인 이중 확인을 강제하며 O(n) `<private>...</private>` 제거로 민감 정보 유출을 차단합니다.
 - **사용자 정의 `statusline --segments` 및 미리보기-확인 방식 `--export-preset` 방어:** `agy-nov statusline --segments=<csv>`(`AGY_NOV_STATUSLINE_SEGMENTS` 지원)는 LLM 토큰 소비 제로·디스크 쓰기 제로를 유지합니다. `agy-nov recommend --export-preset`은 기본 읽기 전용 미리보기를 출력하며 명시적 `--confirm` 시에만 원자적으로 기록하고, 심볼릭 링크 거부 · 무음 덮어쓰기 차단(덮어쓰기 시 `--force` 필수) · `remote` 기록 금지를 강제합니다.
 - **`.worktreeinclude` 읽기 전용 화이트리스트 및 RCE 제로 방어:** `worktree`의 `.worktreeinclude`는 워크스페이스 내 허용된 설정 템플릿만 미리보기·복사하며 `.env`, 개인 키, 자격 증명, 심볼릭 링크 및 경계 이탈 경로를 강제 차단해 `skippedSensitive`에 강조 표시하고 어떠한 임의 스크립트도 실행하지 않습니다.
-- **MCP Apps `file` 파일 뷰어 (`app_nov_file_viewer`) 가드레일:** 공식 `com.google.antigravity/ui` `file` 진입점으로 등록되며 모델에는 완전히 숨겨집니다(`visibility: ['app']`, 도구 세금 제로). `.sqlite`/`.sqlite3`/`.db`/`.csv`/`.tsv`/`.svg`/`.openapi.yaml`/`.openapi.yml`만 허용하고 엄격한 `realpath` 경계 검사, SVG 정제 및 `antigravity-file://` opaque URI 안전 폴백을 적용합니다.
+- **MCP Apps `file` 파일 뷰어 (`app_nov_file_viewer`) 가드레일:** 공식 `com.google.antigravity/ui` `file` 진입점으로 등록되며 모델에는 완전히 숨겨집니다(`visibility: ['app']`, 도구 세금 제로). `.sqlite`/`.sqlite3`/`.db`/`.csv`/`.tsv`/`.svg`/`.openapi.yaml`/`.openapi.yml`만 허용하고 엄격한 `realpath` 경계 검사, SVG 정제, 호스트 `resources/read`를 통한 `antigravity-file://` 안전 미리보기 및 미지원 시 안전 폴백을 적용합니다.
 - **One-Click Clean Fork 마스킹 및 폴백 가드레일:** `app_xray_build_clean_fork_pack`은 Handoff·Spec Ready 작업·Mem 앵커를 `<= 12 KB` 이내로 압축하고 O(n) 자격 증명 마스킹을 적용합니다. 공식 `app.sendMessage({ _meta: { "com.google.antigravity/message": { target: "new" } } })`로 동일 프로젝트에 새 클린 세션을 시작하며 `global` 화면에 `message` 기능이 없으면 컨텍스트 첨부나 복사로 자동 폴백합니다.
 - **5개 온디맨드 Skills 및 2개 읽기 전용 서브에이전트 최소 권한:** `nov-blind-reviewer`와 `nov-security-auditor`는 읽기 전용 도구만 허용되며 파일 수정이나 파괴적 명령 권한이 없습니다. 4개 슬래시 Playbook(`/nov-spec`, `/nov-debug`, `/nov-review`, `/nov-handoff`)은 온디맨드 로드 방식으로 기본 `rules/AGENTS.md` 비대화 제로를 유지합니다.
 - **Auto-RTK 기본 OFF, 무셸 허용 목록 및 엄격한 훅 우선순위:** Auto-RTK는 기본 `autoRtk: false`(쓰기 제로)를 유지하며 활성화 시에도 `PreToolUse`에서 `Guard` > `Spec` > `Remote` > `Turbo` 순서를 엄수하고, 화이트리스트 단일 명령만 `base64url` 페이로드 기반 무셸 `spawnSync`(`shell: false`, `agy-nov compact-run`)로 실행합니다.
@@ -292,7 +296,7 @@ flowchart TB
 - **듀얼스타 스냅샷 `feed-snapshot.json` 및 4단계 설정 거버넌스:** `feed-snapshot.json`은 `<= 64 KiB`, O(n) 마스킹, `lstatSync` 심볼릭 링크 거부, `<NOV_DATA_DIR>` 미존재 시 쓰기 제로를 준수합니다. 설정 S4 내보내기/가져오기는 화이트리스트·`32 KiB` 제한·프로토타입 오염 방어·`remote: false` 강제를 적용합니다.
 - **Remote 2.5 구조화 위험 승인 카드 및 최소 권한 격리:** 모바일 PWA와 IM 승인 카드는 구조화 위험 등급(`HIGH`/`MED`/`LOW`), 영향 파일 수, 마스킹된 명령 요약, 최근 읽기 전용 `Verify` 상태만 표시하며 `innerHTML` 제로(XSS 방어), 원격 파일 쓰기 제로, 원격 셸 제로, OFF 시 4중 제로 격리를 유지합니다.
 - **Diff Review · Verify · Studio · `realpath` 경계:** 전 모듈이 `realpath` 경계 검증을 적용하며, Diff Review는 순수 React 렌더링과 제로 ReDoS 스캔을, Verify는 `worktreePath` 지정 실행과 `app_verify_pr_summary` PR 증빙 요약에 무셸 화이트리스트와 O(n) 마스킹을, Studio는 SQLite 읽기 전용·ZIP Bomb 방어·OpenAPI 폭탄 및 프로토타입 오염 방어·루프백 한정 SSRF 방어를 적용합니다.
-- **`0700` / `0600` 격리 저장소 및 공식 매니페스트 한도:** 각 모듈은 `<dataDir>/modules/<moduleId>/` 아래 소유자 전용 권한으로만 기록합니다. `plugin.json`은 공식 10개 키만 유지하며 `dist/ui/app.html`(약 `1.23 MiB`, 실측 `1,261.2 KB`)은 10 MiB 한도를 크게 밑돌고, `agy-nov doctor`가 전체 **15개** 핵심 자산(5개 Skills 및 2개 읽기 전용 서브에이전트 포함)을 자동 검증합니다.
+- **`0700` / `0600` 격리 저장소 및 공식 매니페스트 한도:** 각 모듈은 `<dataDir>/modules/<moduleId>/` 아래 소유자 전용 권한으로만 기록합니다. `plugin.json`은 공식 10개 키만 유지하며 `dist/ui/app.html`(약 `1.34 MiB`, 실측 **`1,376.3 KB`**, 755개 사전 키 × 8개 언어)은 10 MiB 한도를 크게 밑돌고, 백엔드 번들 역시 `minify`로 약 45.5% 경량화(`server.cjs 1,541.9 KB` / `hook.cjs 207.1 KB` / `cli.cjs 94.5 KB`)했으며 `agy-nov doctor`가 전체 **15개** 핵심 자산(5개 Skills 및 2개 읽기 전용 서브에이전트 포함)을 자동 검증합니다.
 
 </details>
 
@@ -333,7 +337,7 @@ npm run workbench
 
 ### CLI 제어 치트시트 (9개 명령어)
 
-`PATH`에 등록되어 있다면 `agy-nov <command>`, 저장소 내부에서는 `node dist/cli.cjs <command>`를 사용하세요:
+`agy plugin install`로 설치한 뒤 전역 등록 없이도 `node ~/.gemini/config/plugins/agy-nov/dist/cli.cjs <cmd>`로 CLI를 바로 실행할 수 있으며(플러그인 디렉터리에서 `npm link`를 한 번 실행해 전역 `agy-nov` 명령으로 등록할 수도 있음), 기존 `plugin_data/agy-nov` 데이터 디렉터리를 자동으로 인식합니다. 클론한 저장소 내부에서는 `node dist/cli.cjs <cmd>`를 사용하세요:
 
 ```bash
 agy-nov status                                                               # 활성 모듈, 프리셋, UI 로캘 및 정확한 모델 도구 수 표시
@@ -377,7 +381,7 @@ AI 코딩 어시스턴트와 검색 파이프라인을 위한 기계 최적화 �
 | "규칙·Skill·Hook·MCP의 Prompt Injection과 평문 시크릿을 정적 진단하고 크로스 클라이언트 중복 감축 및 유휴 도구 슬롯 회수를 하고 싶어." | `ops` (`power` 프리셋) + SettingsHub S4 | **Ops 3.0**: `ops_audit_workspace`(`securityScore` 0–100, 시크릿 에코 제로·오탐 제로), `.claude/`·`.cursor/rules/`·`.codex/` 읽기 전용 **`migrationPreview`**, S4 **Tool-Slot Idle Advisor**, `#233`/`#1937` 및 24KB 진단 |
 | "제로 토큰 상태 줄 세그먼트를 원하는 대로 구성하고, `.agy-nov.json` 팀 설정을 쓰기 전 미리보기·확인 방식으로 안전하게 생성하고 싶어." | CLI `statusline --segments` + `recommend --export-preset` | 9개 세그먼트 자유 구성(`brand,context,burn,cache,spec,verify,guard,radar,network`, `AGY_NOV_STATUSLINE_SEGMENTS` 지원) + 기본 쓰기 제로 미리보기 및 `--confirm` 원자적 스캐폴드 |
 | "모바일이나 IM에서 위험 등급, 영향 파일 수, 최근 Verify 상태를 확인하며 고위험 명령을 안전하게 승인하고 싶어." | `remote` (`full` 프리셋) | **Remote 2.5**: 구조화 위험 승인 카드(`HIGH`/`MED`/`LOW`, 영향 파일 수, 마스킹된 명령 요약, 최근 읽기 전용 `Verify` 상태) + 읽기 전용 PWA 스트림(`innerHTML` 제로) + 6종 IM 웹훅 |
-| "Antigravity를 패치하지 않고 100% 현지화된 8개 언어 플러그인 워크벤치를 쓰고 싶어." | 내장 `locale` 전환기 (`auto` + 8개 언어) | 제로 CDP로 전체 **24개 UI 컴포넌트**를 8개 언어로 즉시 전환하는 상단 드롭다운 및 `agy-nov locale <lang>` CLI (`1,261.2 KB`) |
+| "Antigravity를 패치하지 않고 100% 현지화된 8개 언어 플러그인 워크벤치를 쓰고 싶어." | 내장 `locale` 전환기 (`auto` + 8개 언어) | 제로 CDP로 **755개 사전 키 × 8개 언어**를 통해 전체 **24개 UI 컴포넌트**를 즉시 전환하는 상단 드롭다운 및 `agy-nov locale <lang>` CLI (`1,376.3 KB`) |
 
 ### 전체 47개 표준 모델 도구 목록 (상시 진입 2 + 모듈 45)
 
@@ -416,7 +420,7 @@ AI 코딩 어시스턴트와 검색 파이프라인을 위한 기계 최적화 �
 
 ```bash
 npm run typecheck
-npm test                                                      # 88개 테스트 스위트 / 245개 테스트 (88 suites / 245 tests)
+npm test                                                      # 91개 테스트 스위트 / 256개 테스트 (91 suites / 256 tests)
 node dist/cli.cjs status
 node dist/cli.cjs statusline --json
 node dist/cli.cjs statusline --segments=brand,context,verify,guard
@@ -439,7 +443,7 @@ node dist/cli.cjs doctor                                      # 전체 15개 핵
 
 | 플러그인 | 아키텍처 | 핵심 기능 |
 | :--- | :--- | :--- |
-| **`agy-NOV`** *(현재 저장소)* | **100% 공식 네이티브 프로토콜** (MCP Apps SEP-1865 및 `file` 진입점 + 5종 라이프사이클 훅 + 5 Skills + 2 읽기 전용 서브에이전트; **Zero ASAR · Zero CDP**) | 4대 영역 13개 네이티브 모듈(Ops 3.0 `securityScore` 정적 보안 진단·`migrationPreview` 중복 감축·S4 **Tool-Slot Idle Advisor**, Mem 3.0 신뢰도/TTL 위생 거버넌스, `Spec → Worktree → Two-Stage Review → Verify → Mem` 폐루프, One-Click Clean Fork, `.worktreeinclude`, PR 증빙 요약, Radar Kanban 4레인, `app_nov_file_viewer`, Auto-RTK, Turbo 3.0, Guard 2.5, Spec 2.0, 옵트인 Remote 2.5 구조화 승인 카드), 5개 공식 온디맨드 Skills, 2개 읽기 전용 서브에이전트, `PreInvocation` 시각적 영수증, `feed-snapshot.json` 듀얼스타 계약, 전 24개 컴포넌트 8개 언어 UI(`~1.23 MiB` / `1,261.2 KB`), 5개 프리셋, 9개 CLI 명령(`statusline --segments` · `recommend --export-preset` 지원). |
+| **`agy-NOV`** *(현재 저장소)* | **100% 공식 네이티브 프로토콜** (MCP Apps SEP-1865 및 `file` 진입점 + 5종 라이프사이클 훅 + 5 Skills + 2 읽기 전용 서브에이전트; **Zero ASAR · Zero CDP**) | 4+1 영역 13개 네이티브 모듈(Antigravity 2.35+ 실제 런타임 강화, Ops 3.0 `securityScore` 정적 보안 진단·`migrationPreview` 중복 감축·S4 **Tool-Slot Idle Advisor**, Mem 3.0 신뢰도/TTL 위생 거버넌스, `Spec → Worktree → Two-Stage Review → Verify → Mem` 폐루프, One-Click Clean Fork, `.worktreeinclude`, PR 증빙 요약, Radar Kanban 4레인, `app_nov_file_viewer`, Auto-RTK, Turbo 3.0, Guard 2.5, Spec 2.0, 옵트인 Remote 2.5 구조화 승인 카드), 5개 공식 온디맨드 Skills, 2개 읽기 전용 서브에이전트, `PreInvocation` 시각적 영수증, `feed-snapshot.json` 듀얼스타 계약, 전 24개 컴포넌트 8개 언어 UI(755개 사전 키 × 8개 언어, `~1.34 MiB` / `1,376.3 KB`), 백엔드 `minify` 약 45.5% 경량화, 5개 프리셋, 9개 CLI 명령(`statusline --segments` · `recommend --export-preset` 지원). |
 | **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** *(구 `agy-session-guard`)* | **Zero-ASAR 로컬 CDP 심층 강화 스위트 + Watch 사이드카 + 스토리지 진단 CLI** | Antigravity 네이티브 **Settings** 내장 제어 패널(실시간 `agy-NOV` 토글 동기화 및 `feed-snapshot.json` 소비), **10개 언어 호스트 UI 번역**, 맞춤형 `/compact` 자동 압축 가드, **Draft Vault**, **Prompt Queue**, 턴 북마크 & 아카이브, 정책 기반 **Safe Auto-Accept**, 제로 `:has()` **Optical Theme Studio**, 읽기 전용 **Quota Pulse**, 오프라인 **Storage Doctor**. |
 
 ```bash

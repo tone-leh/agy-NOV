@@ -58,6 +58,24 @@ export interface ReviewPanelI18n {
   filesTitle: string;
   resolved: string;
   unresolved: string;
+  twoStageTitle: string;
+  stage1SpecProgress: string;
+  stage1NoSpecBadge: string;
+  stage2AnnotationsBadge: string;
+  stage1ChecklistTitle: string;
+  stage1NoTasks: string;
+  stage1NoSpecHint: string;
+  stage2Title: string;
+  stage2Summary: string;
+  stage2EmptyHint: string;
+  stage2PackageHint: string;
+  openedFileToast: string;
+  openFileUnavailable: string;
+  targetWorktreeLabel: string;
+  targetWorktreeTip: string;
+  worktreeMainPrefix: string;
+  worktreeDetached: string;
+  unexpectedDiffFormat: string;
 }
 
 export interface GuardPanelI18n {
@@ -114,6 +132,9 @@ export interface XrayPanelI18n {
   artifactsTitle: string;
   injectExcerpt: string;
   noSearchHits: string;
+  modeWorkbench: string;
+  modeMcpApp: string;
+  truncatedBadge: string;
 }
 
 export interface VerifyPanelI18n {
@@ -142,6 +163,15 @@ export interface VerifyPanelI18n {
   detectedCommandsTitle: string;
   applyDetectedBtn: string;
   noDetectedCommands: string;
+  targetWorktreeLabel: string;
+  workspaceDefaultOption: string;
+  worktreeMainPrefix: string;
+  worktreeDetached: string;
+  prSummaryTitle: string;
+  prChecksPassedBadge: string;
+  prSummaryHint: string;
+  exitCodeLabel: string;
+  timeoutBadge: string;
 }
 
 export interface WorktreePanelI18n {
@@ -221,6 +251,27 @@ export interface StudioPanelI18n {
   loadEndpointBtn: string;
   openApiEmpty: string;
   serversTitle: string;
+  nativeFileViewer: string;
+  endpointsCount: string;
+  rowsShort: string;
+  loopbackOk: string;
+  loopbackBlocked: string;
+  hostReadLoading: string;
+  hostReadFailedTitle: string;
+  hostReadFailedHint: string;
+  hostCsvFormulaNote: string;
+  hostCsvPreviewCapNote: string;
+  hostOpenApiSummaryTitle: string;
+  hostOpenApiPathsCount: string;
+  hostOpenApiSourceTitle: string;
+  hostBinaryCardTitle: string;
+  hostMagicLabel: string;
+  hostSizeLabel: string;
+  hostMimeLabel: string;
+  hostSqlitePageSizeLabel: string;
+  hostSqlitePagesLabel: string;
+  hostSqliteDetected: string;
+  hostBinaryGeneric: string;
 }
 
 export interface CanvasPanelI18n {
@@ -233,6 +284,34 @@ export interface CanvasPanelI18n {
   sendFeedback: string;
   pinPlaceholder: string;
   emptyCanvas: string;
+  nativeFileViewer: string;
+  closePreview: string;
+  svgFileViewer: string;
+  svgLinesCount: string;
+  sandboxedBadge: string;
+  selectRevisionAria: string;
+  slidePrev: string;
+  slideNext: string;
+  slideCounter: string;
+  blockedImageTitle: string;
+  blockedImageDesc: string;
+  tagFix: string;
+  tagLayout: string;
+  tagCopy: string;
+  tagPolish: string;
+  resolvePin: string;
+  reopenPin: string;
+  lastSentPrompt: string;
+  toastPinSaved: string;
+  toastNoOpenPins: string;
+  toastFeedbackSent: string;
+  toastFeedbackContext: string;
+  toastFeedbackCopied: string;
+  toastOpenedSource: string;
+  toastOpenSourceFallback: string;
+  hostSvgLoading: string;
+  hostSvgReadFailed: string;
+  hostSvgUnsafeRejected: string;
 }
 
 export interface MemPanelI18n {
@@ -254,6 +333,62 @@ export interface MemPanelI18n {
   recallModeTimeline: string;
   recallModeDetail: string;
   tokenSavingsNote: string;
+  hygieneRegionLabel: string;
+  hygieneFilterLabel: string;
+  hygieneHealthy: string;
+  hygieneNeedsReview: string;
+  hygieneStaleTtl: string;
+  hygieneDrifted: string;
+  confidenceVerified: string;
+  confidenceNormal: string;
+  confidenceTentative: string;
+  ttlNoExpiry: string;
+  ttlStaleDays: string;
+  ttlLeftDays: string;
+  filterPinnedOnly: string;
+  kindArchitecture: string;
+  kindDecision: string;
+  kindPitfall: string;
+  kindPitfallFull: string;
+  kindConvention: string;
+  kindPreference: string;
+  batchBarLabel: string;
+  selectedCount: string;
+  selectVisibleCount: string;
+  selectItemAria: string;
+  batchVerifyBtn: string;
+  batchRefreshTtlBtn: string;
+  batchPruneBtn: string;
+  batchConfirmPruneBtn: string;
+  hitBadge: string;
+  pinnedBadge: string;
+  pinBtn: string;
+  unpinBtn: string;
+  verifyBtn: string;
+  anchorOpenTip: string;
+  formTitlePlaceholder: string;
+  formContentPlaceholder: string;
+  formTagsPlaceholder: string;
+  formAnchorPlaceholder: string;
+  formConfidenceLabel: string;
+  formConfidenceNormal: string;
+  formConfidenceVerified: string;
+  formConfidenceTentative: string;
+  formTtlLabel: string;
+  formTtlPlaceholder: string;
+  activeCharsSummary: string;
+  toastBatchVerified: string;
+  toastBatchTtlRefreshed: string;
+  toastBatchPruned: string;
+  toastTitleContentRequired: string;
+  toastInvalidTtl: string;
+  toastSaved: string;
+  toastReverified: string;
+  toastDeleted: string;
+  toastOpenedAnchor: string;
+  toastOpenAnchorFallback: string;
+  toastInjected: string;
+  toastCopiedTitle: string;
 }
 
 export interface RemotePanelI18n {
@@ -276,6 +411,48 @@ export interface RemotePanelI18n {
   tunnelNotDetected: string;
   tunnelDetected: string;
   tunnelSafetyNote: string;
+  simulateApprovalBtn: string;
+  kpiPendingApprovals: string;
+  kpiConnectedPhones: string;
+  kpiPairingPin: string;
+  refreshPinBtn: string;
+  rotateSecretBtn: string;
+  pairHint: string;
+  tunnelTargetLabel: string;
+  pendingRiskyTitle: string;
+  waitingBadge: string;
+  approveBtn: string;
+  denyBtn: string;
+  configuredBadge: string;
+  configureBtn: string;
+  editChannelTitle: string;
+  telegramTokenPlaceholder: string;
+  telegramChatIdPlaceholder: string;
+  webhookUrlPlaceholder: string;
+  hmacSecretPlaceholder: string;
+  liveApiBadge: string;
+  demoMockBadge: string;
+  modelOptionLabel: string;
+  settingsTitle: string;
+  requireApprovalLabel: string;
+  notifyOnStopLabel: string;
+  bindHostLabel: string;
+  publicBaseUrlLabel: string;
+  riskPatternsTitle: string;
+  noRiskPatterns: string;
+  toastChannelSaved: string;
+  toastChannelValidationFailed: string;
+  toastPingDelivered: string;
+  toastPingFailed: string;
+  toastSimulated: string;
+  toastMarkedDecision: string;
+  toastPinRefreshed: string;
+  toastPairingRotated: string;
+  toastSettingsUpdated: string;
+  toastDispatched: string;
+  toastExternalLinkBlocked: string;
+  toastTunnelFailed: string;
+  toastStreamFailed: string;
 }
 
 export interface PanelsI18n {
@@ -307,6 +484,8 @@ export interface NavI18n {
   openSettingsTip: string;
   toolBudgetLabel: string;
   narrowSwitcherLabel: string;
+  primaryNavLabel: string;
+  enabledModulesNavLabel: string;
 }
 
 export interface HubI18n {
@@ -325,6 +504,26 @@ export interface HubI18n {
   verifyFail: string;
   verifyIdle: string;
   dualStarReady: string;
+  cleanForkTitle: string;
+  cleanForkReadyBadge: string;
+  cleanForkFallbackBadge: string;
+  cleanForkHintReady: string;
+  cleanForkHintFallback: string;
+  cleanForkPreviewBtn: string;
+  cleanForkHidePreviewBtn: string;
+  cleanForkCopyPackBtn: string;
+  cleanForkHandoffLabel: string;
+  cleanForkReadyVal: string;
+  cleanForkNoneVal: string;
+  cleanForkReadyTasksLabel: string;
+  cleanForkMemAnchorsLabel: string;
+  cleanForkLastLabel: string;
+  cleanForkStartedToast: string;
+  cleanForkStartedIdToast: string;
+  cleanForkContextToast: string;
+  cleanForkPackLabel: string;
+  worktreeSummary: string;
+  worktreeDirtySummary: string;
 }
 
 export interface SettingsHubI18n {
@@ -357,6 +556,17 @@ export interface SettingsHubI18n {
   safetyNotice: string;
   importSuccess: string;
   resetSuccess: string;
+  guardEnvKeysLabel: string;
+  guardSecretWriteLabel: string;
+  guardShellFirewallLabel: string;
+  guardAutoSnapshotLabel: string;
+  guardDecisionDeny: string;
+  guardDecisionAsk: string;
+  guardDecisionAllow: string;
+  remoteApprovalGateLabel: string;
+  remoteStopAlertsLabel: string;
+  remoteGatewayPortLabel: string;
+  toggleModuleAria: string;
 }
 
 export interface UiDictionary {
@@ -413,6 +623,18 @@ export interface UiDictionary {
     enabled: string;
     disabled: string;
     empty: string;
+    copyPrompt: string;
+    toastPromptSent: string;
+    toastPromptContext: string;
+    toastPromptCopied: string;
+    cancel: string;
+    close: string;
+    readOnlyBadge: string;
+    openLink: string;
+    optional: string;
+    invalid: string;
+    truncated: string;
+    actionFailed: string;
   };
   turbo: {
     title: string;
@@ -468,6 +690,10 @@ export interface UiDictionary {
     steps: string;
     subagents: string;
     orphanSubagents: string;
+    boardViewLabel: string;
+    viewKanban: string;
+    viewList: string;
+    minutesUnit: string;
   };
   ops: {
     title: string;
@@ -498,6 +724,44 @@ export interface UiDictionary {
     teamPresetWarnings: string;
     crossClientTitle: string;
     crossClientEmpty: string;
+    largestFileLabel: string;
+    aggregateRuleTokensLabel: string;
+    agyNovToolsBadge: string;
+    externalMcpBadge: string;
+    healthScoreLabel: string;
+    securityScoreLabel: string;
+    staticSecurityTitle: string;
+    scoreBadge: string;
+    severityHighCount: string;
+    severityMedCount: string;
+    severityLowCount: string;
+    remediationLabel: string;
+    securityCleanNote: string;
+    dedupPreviewTitle: string;
+    readOnlyPreviewBadge: string;
+    dedupSaveBadge: string;
+    dedupFilesLabel: string;
+    dedupTotalLabel: string;
+    dedupReclaimableLabel: string;
+    dedupColClient: string;
+    dedupColSource: string;
+    dedupColSizeTok: string;
+    dedupColOverlap: string;
+    dedupColTarget: string;
+    dedupColAction: string;
+    dedupEmptyNote: string;
+    mcpHealthyNote: string;
+    teamPresetInvalid: string;
+    teamPresetPresetLabel: string;
+    teamPresetModulesLabel: string;
+    teamPresetVerifyCmdsLabel: string;
+    teamPresetSpecTemplatesLabel: string;
+    catCustom: string;
+    catReview: string;
+    catDebug: string;
+    catRelease: string;
+    catSecurity: string;
+    catHandoff: string;
   };
   panels: PanelsI18n;
   quickStart: {

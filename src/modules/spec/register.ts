@@ -189,6 +189,7 @@ export function registerSpecModule(
 ): ModuleRegistrationResult {
   const rootDataDir = resolveNovDataDir(options.dataDir);
   const moduleDataDir = getModuleDataDir(rootDataDir, 'spec');
+  const getWorkspaceRoot = () => options.workspaceRoot;
   const isDemo = options.demoMode === true;
 
   // Keep demo specs strictly in memory with zero disk writes
@@ -835,7 +836,7 @@ export function registerSpecModule(
       const res = archiveSpecToMemory(moduleDataDir, rootDataDir, specId, {
         isDemo,
         demoState,
-        workspacePath: options.workspaceRoot,
+        workspacePath: getWorkspaceRoot(),
         pinned,
         note,
       });

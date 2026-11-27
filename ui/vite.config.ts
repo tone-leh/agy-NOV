@@ -10,6 +10,7 @@ export default defineConfig({
     outDir: path.resolve(__dirname, '../dist/ui'),
     emptyOutDir: true,
     assetsInlineLimit: 100_000_000,
+    chunkSizeWarningLimit: 2048,
     cssCodeSplit: false,
     rollupOptions: {
       input: path.resolve(__dirname, 'index.html'),

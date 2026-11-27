@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NovBridge } from '../../bridge.js';
 import { useNovI18n, type ResolvedUiLocale } from '../../i18n/index.js';
 
@@ -180,6 +180,7 @@ interface NativeFileViewerPayload {
   extension: string;
   relPath?: string;
   resourceUri?: string;
+  uri?: string;
   bytes?: number;
   mode?: 'live' | 'demo';
   readOnly?: boolean;
@@ -187,6 +188,34 @@ interface NativeFileViewerPayload {
   data?: StudioDataResult;
   openApi?: ParsedOpenApiSpec;
 }
+
+type HostResourcePreviewState =
+  | { status: 'idle' }
+  | { status: 'loading'; uri: string; fileName: string }
+  | { status: 'error'; uri: string; fileName: string; reason: string }
+  | {
+      status: 'openapi';
+      uri: string;
+      fileName: string;
+      byteLength: number;
+      specVersion?: string;
+      title?: string;
+      routes: Array<{ method: string; path: string; summary?: string }>;
+      redactedExcerpt: string;
+      truncated: boolean;
+    }
+  | {
+      status: 'binary';
+      uri: string;
+      fileName: string;
+      byteLength: number;
+      mimeType?: string;
+      isSqlite: boolean;
+      magicLabel: string;
+      hexPreview: string;
+      pageSize?: number;
+      pageCount?: number;
+    };
 
 const STUDIO_AUX_LABELS: Record<
   ResolvedUiLocale,
@@ -435,13 +464,367 @@ function escapeSqlIdentifier(name: string): string {
   return `"${name.replace(/"/g, '""')}"`;
 }
 
+const MAX_HOST_CSV_PREVIEW_ROWS = 200;
+const MAX_HOST_OPENAPI_EXCERPT_CHARS = 20_000;
+const SQLITE_MAGIC_BYTES = [
+  0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00,
+];
+
+function decodeBase64ToBytes(rawBase64: string, maxBytes?: number): Uint8Array | null {
+  try {
+    const clean = rawBase64.replace(/\s+/g, '');
+    if (!clean) return new Uint8Array(0);
+    const sliceLen =
+      typeof maxBytes === 'number'
+        ? Math.min(clean.length, Math.ceil(maxBytes / 3) * 4)
+        : clean.length;
+    const adjusted = sliceLen - (sliceLen % 4);
+    const chunk = adjusted > 0 ? clean.slice(0, adjusted) : clean;
+    const binary = atob(chunk);
+    const limit = typeof maxBytes === 'number' ? Math.min(binary.length, maxBytes) : binary.length;
+    const out = new Uint8Array(limit);
+    for (let i = 0; i < limit; i++) {
+      out[i] = binary.charCodeAt(i);
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+
+function decodeResourceText(res: { text?: string; blob?: string }): string | null {
+  if (typeof res.text === 'string') return res.text;
+  if (typeof res.blob === 'string') {
+    const bytes = decodeBase64ToBytes(res.blob);
+    if (!bytes) return null;
+    try {
+      return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function neutralizeCsvFormulaCell(raw: string): { value: string; neutralized: boolean } {
+  if (!raw) return { value: raw, neutralized: false };
+  const leadingTrimmed = raw.replace(/^[\t\r\n ]+/, '');
+  const first = raw[0];
+  const trigger =
+    first === '=' ||
+    first === '+' ||
+    first === '-' ||
+    first === '@' ||
+    first === '\t' ||
+    first === '\r' ||
+    (leadingTrimmed.length > 0 &&
+      (leadingTrimmed[0] === '=' ||
+        leadingTrimmed[0] === '+' ||
+        leadingTrimmed[0] === '-' ||
+        leadingTrimmed[0] === '@'));
+  if (!trigger) return { value: raw, neutralized: false };
+  // Allow plain signed numbers such as -42 or +3.14 without neutralizing (never allow leading \t/\r)
+  if (!raw.startsWith('\t') && !raw.startsWith('\r') && /^[+-]?\d+(?:\.\d+)?$/.test(raw.trim())) {
+    return { value: raw, neutralized: false };
+  }
+  return { value: `'${raw}`, neutralized: true };
+}
+
+function parseDelimitedPreview(
+  rawText: string,
+  delimiter: ',' | '\t',
+  maxRows = MAX_HOST_CSV_PREVIEW_ROWS,
+): {
+  columns: string[];
+  rows: string[][];
+  totalRows: number;
+  truncated: boolean;
+  formulaNeutralizedCount: number;
+} {
+  const text = rawText.replace(/^\uFEFF/, '');
+  const parsedRows: string[][] = [];
+  let row: string[] = [];
+  let field = '';
+  let inQuotes = false;
+  let totalRows = 0;
+
+  const pushRow = () => {
+    if (row.length === 1 && row[0] === '' && field === '') {
+      row = [];
+      return;
+    }
+    row.push(field);
+    field = '';
+    totalRows += 1;
+    if (parsedRows.length <= maxRows) {
+      parsedRows.push(row);
+    }
+    row = [];
+  };
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += ch;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === delimiter) {
+      row.push(field);
+      field = '';
+    } else if (ch === '\r') {
+      if (text[i + 1] === '\n') i += 1;
+      pushRow();
+    } else if (ch === '\n') {
+      pushRow();
+    } else {
+      field += ch;
+    }
+  }
+  if (field.length > 0 || row.length > 0) {
+    pushRow();
+  }
+
+  if (parsedRows.length === 0) {
+    return { columns: [], rows: [], totalRows: 0, truncated: false, formulaNeutralizedCount: 0 };
+  }
+
+  let formulaNeutralizedCount = 0;
+  const rawHeader = parsedRows[0];
+  const colCount = Math.max(
+    rawHeader.length,
+    ...parsedRows.slice(1).map((r) => r.length),
+  );
+  const columns = Array.from({ length: colCount }, (_, idx) => {
+    const raw = (rawHeader[idx] ?? '').trim() || `col_${idx + 1}`;
+    const safe = neutralizeCsvFormulaCell(raw);
+    if (safe.neutralized) formulaNeutralizedCount += 1;
+    return safe.value;
+  });
+
+  const dataTotalRows = Math.max(0, totalRows - 1);
+  const dataRows = parsedRows.slice(1, maxRows + 1).map((r) =>
+    columns.map((_, idx) => {
+      const safe = neutralizeCsvFormulaCell(r[idx] ?? '');
+      if (safe.neutralized) formulaNeutralizedCount += 1;
+      return safe.value;
+    }),
+  );
+
+  return {
+    columns,
+    rows: dataRows,
+    totalRows: dataTotalRows,
+    truncated: dataTotalRows > dataRows.length,
+    formulaNeutralizedCount,
+  };
+}
+
+function redactOpenApiText(rawText: string): { excerpt: string; truncated: boolean } {
+  const truncated = rawText.length > MAX_HOST_OPENAPI_EXCERPT_CHARS;
+  const slice = truncated ? rawText.slice(0, MAX_HOST_OPENAPI_EXCERPT_CHARS) : rawText;
+  const lines = slice.split(/\r?\n/).map((line) => {
+    if (line.includes('BEGIN') && line.includes('PRIVATE KEY')) {
+      return '[REDACTED PRIVATE KEY BLOCK]';
+    }
+    let out = line.replace(/\bBearer\s+[A-Za-z0-9._~+/=-]{8,}\b/gi, 'Bearer [REDACTED]');
+    out = out.replace(
+      /(\b(?:api[_-]?key|secret|token|password|passwd|authorization|client_secret)\b\s*[:=]\s*["']?)([^"'\s,;}{]+)/gi,
+      '$1[REDACTED]',
+    );
+    return out;
+  });
+  return { excerpt: lines.join('\n'), truncated };
+}
+
+function extractOpenApiBasicSummary(rawText: string): {
+  specVersion?: string;
+  title?: string;
+  routes: Array<{ method: string; path: string; summary?: string }>;
+} {
+  const trimmed = rawText.trim();
+  const routes: Array<{ method: string; path: string; summary?: string }> = [];
+  const validMethods = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
+
+  if (trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+      const specVersion =
+        typeof parsed.openapi === 'string'
+          ? parsed.openapi
+          : typeof parsed.swagger === 'string'
+            ? parsed.swagger
+            : undefined;
+      const info = parsed.info && typeof parsed.info === 'object'
+        ? (parsed.info as Record<string, unknown>)
+        : null;
+      const title = typeof info?.title === 'string' ? info.title : undefined;
+      const paths = parsed.paths && typeof parsed.paths === 'object'
+        ? (parsed.paths as Record<string, unknown>)
+        : null;
+      if (paths) {
+        for (const [routePath, pathVal] of Object.entries(paths)) {
+          if (!pathVal || typeof pathVal !== 'object') continue;
+          for (const [mKey, opVal] of Object.entries(pathVal as Record<string, unknown>)) {
+            const upper = mKey.toUpperCase();
+            if (!validMethods.has(upper)) continue;
+            const summary =
+              opVal && typeof opVal === 'object' && typeof (opVal as Record<string, unknown>).summary === 'string'
+                ? String((opVal as Record<string, unknown>).summary)
+                : undefined;
+            routes.push({ method: upper, path: routePath, summary });
+            if (routes.length >= 80) break;
+          }
+          if (routes.length >= 80) break;
+        }
+      }
+      return { specVersion, title, routes };
+    } catch {
+      // Fall through to lightweight line-based YAML scan
+    }
+  }
+
+  let specVersion: string | undefined;
+  let title: string | undefined;
+  let inPaths = false;
+  let currentPath = '';
+  let currentPathIndent = -1;
+  let currentMethodIdx = -1;
+
+  const lines = rawText.split(/\r?\n/);
+  for (const rawLine of lines) {
+    const cleanLine = rawLine.replace(/\t/g, '  ');
+    const trimmedLine = cleanLine.trim();
+    if (!trimmedLine || trimmedLine.startsWith('#')) continue;
+    const indent = cleanLine.length - cleanLine.trimStart().length;
+
+    if (!specVersion && indent === 0) {
+      const verMatch = /^(?:openapi|swagger)\s*:\s*['"]?([^'"\s#]+)['"]?/i.exec(trimmedLine);
+      if (verMatch) specVersion = verMatch[1];
+    }
+    if (!title && indent > 0 && indent <= 4) {
+      const titleMatch = /^title\s*:\s*['"]?([^'"#]+)['"]?$/i.exec(trimmedLine);
+      if (titleMatch) title = titleMatch[1].trim();
+    }
+    if (indent === 0) {
+      inPaths = /^paths\s*:/.test(trimmedLine);
+      currentPath = '';
+      currentPathIndent = -1;
+      currentMethodIdx = -1;
+      continue;
+    }
+    if (!inPaths) continue;
+
+    const pathMatch = /^['"]?(\/[^'":\s]*)['"]?\s*:/.exec(trimmedLine);
+    if (pathMatch && (currentPathIndent === -1 || indent <= currentPathIndent)) {
+      currentPath = pathMatch[1];
+      currentPathIndent = indent;
+      currentMethodIdx = -1;
+      continue;
+    }
+
+    if (currentPath && indent > currentPathIndent) {
+      const methodMatch = /^(get|post|put|patch|delete|head|options)\s*:/i.exec(trimmedLine);
+      if (methodMatch && routes.length < 80) {
+        routes.push({ method: methodMatch[1].toUpperCase(), path: currentPath });
+        currentMethodIdx = routes.length - 1;
+        continue;
+      }
+      if (currentMethodIdx >= 0 && !routes[currentMethodIdx].summary) {
+        const sumMatch = /^summary\s*:\s*['"]?([^'"#]+)['"]?$/i.exec(trimmedLine);
+        if (sumMatch) {
+          routes[currentMethodIdx].summary = sumMatch[1].trim();
+        }
+      }
+    }
+  }
+
+  return { specVersion, title, routes };
+}
+
+function inspectBinaryHeader(
+  bytes: Uint8Array,
+  totalByteLength: number,
+  mimeType?: string,
+): {
+  isSqlite: boolean;
+  magicLabel: string;
+  hexPreview: string;
+  byteLength: number;
+  mimeType?: string;
+  pageSize?: number;
+  pageCount?: number;
+} {
+  const head = bytes.slice(0, 16);
+  const hexPreview = Array.from(head)
+    .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
+    .join(' ');
+
+  const isSqlite =
+    bytes.length >= 16 && SQLITE_MAGIC_BYTES.every((expected, idx) => bytes[idx] === expected);
+
+  if (isSqlite) {
+    let pageSize: number | undefined;
+    let pageCount: number | undefined;
+    if (bytes.length >= 18) {
+      const rawPage = (bytes[16] << 8) | bytes[17];
+      pageSize = rawPage === 1 ? 65536 : rawPage > 0 ? rawPage : undefined;
+    }
+    if (bytes.length >= 32) {
+      const count =
+        ((bytes[28] << 24) >>> 0) + (bytes[29] << 16) + (bytes[30] << 8) + bytes[31];
+      if (count > 0) pageCount = count;
+    }
+    return {
+      isSqlite: true,
+      magicLabel: 'SQLite format 3',
+      hexPreview,
+      byteLength: totalByteLength,
+      mimeType: mimeType || 'application/vnd.sqlite3',
+      pageSize,
+      pageCount,
+    };
+  }
+
+  let magicLabel = 'BIN';
+  if (bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04) {
+    magicLabel = 'ZIP / OOXML (PK\\x03\\x04)';
+  } else if (bytes.length >= 5 && bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46 && bytes[4] === 0x2d) {
+    magicLabel = 'PDF (%PDF-)';
+  } else if (bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    magicLabel = 'PNG';
+  } else if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    magicLabel = 'GZIP';
+  } else if (hexPreview) {
+    magicLabel = `0x${hexPreview.slice(0, 11)}`;
+  }
+
+  return {
+    isSqlite: false,
+    magicLabel,
+    hexPreview,
+    byteLength: totalByteLength,
+    mimeType,
+  };
+}
+
 export const StudioPanel: React.FC<NovModulePanelProps> = ({
   bridge,
   active,
   onNotify,
   incomingEvent,
 }) => {
-  const { dict, locale } = useNovI18n();
+  const { dict, locale, t } = useNovI18n();
   const sDict = dict.panels.studio;
   const aux = STUDIO_AUX_LABELS[locale] ?? STUDIO_AUX_LABELS.en;
 
@@ -474,6 +857,10 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
   const [openApiFilter, setOpenApiFilter] = useState('');
   const [selectedEndpointId, setSelectedEndpointId] = useState<string | null>(null);
   const [fileViewerBanner, setFileViewerBanner] = useState<NativeFileViewerPayload | null>(null);
+  const [hostResourcePreview, setHostResourcePreview] = useState<HostResourcePreviewState>({
+    status: 'idle',
+  });
+  const hostReadSeqRef = useRef(0);
 
   const [copiedTarget, setCopiedTarget] = useState<string | null>(null);
 
@@ -495,6 +882,170 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
     }
   }, [active, loadSources]);
 
+  const loadOpaqueHostResource = useCallback(
+    async (fv: NativeFileViewerPayload) => {
+      const targetUri = (fv.resourceUri || fv.uri || '').trim();
+      if (!targetUri) return;
+      const seq = ++hostReadSeqRef.current;
+      setHostResourcePreview({ status: 'loading', uri: targetUri, fileName: fv.fileName });
+
+      try {
+        const res = await bridge.readHostResource(targetUri);
+        if (seq !== hostReadSeqRef.current) return;
+        if (!res.ok) {
+          setHostResourcePreview({
+            status: 'error',
+            uri: targetUri,
+            fileName: fv.fileName,
+            reason: res.error,
+          });
+          return;
+        }
+
+        const ext = (fv.extension || '').toLowerCase();
+        const lowerName = (fv.fileName || '').toLowerCase();
+        const isCsv = ext === '.csv' || lowerName.endsWith('.csv');
+        const isTsv = ext === '.tsv' || lowerName.endsWith('.tsv');
+        const isOpenApi =
+          ext.includes('openapi') ||
+          ext === '.yaml' ||
+          ext === '.yml' ||
+          lowerName.includes('openapi') ||
+          lowerName.includes('swagger');
+        const isSqliteExt =
+          ext === '.sqlite' ||
+          ext === '.sqlite3' ||
+          ext === '.db' ||
+          lowerName.endsWith('.sqlite') ||
+          lowerName.endsWith('.sqlite3') ||
+          lowerName.endsWith('.db');
+
+        if (isCsv || isTsv) {
+          const text = decodeResourceText(res);
+          if (text === null) {
+            setHostResourcePreview({
+              status: 'error',
+              uri: targetUri,
+              fileName: fv.fileName,
+              reason: sDict.hostReadFailedTitle,
+            });
+            return;
+          }
+          const parsed = parseDelimitedPreview(text, isTsv ? '\t' : ',', MAX_HOST_CSV_PREVIEW_ROWS);
+          const warnings: string[] = [];
+          if (parsed.truncated) {
+            warnings.push(
+              t(sDict.hostCsvPreviewCapNote, {
+                shown: parsed.rows.length,
+                total: parsed.totalRows,
+              }),
+            );
+          }
+          if (parsed.formulaNeutralizedCount > 0) {
+            warnings.push(t(sDict.hostCsvFormulaNote, { n: parsed.formulaNeutralizedCount }));
+          }
+          setHostResourcePreview({ status: 'idle' });
+          setTab('data');
+          setDataPath(fv.relPath || fv.fileName);
+          setSqlQuery('');
+          setDataFilter('');
+          setDataResult({
+            filePath: fv.relPath || fv.fileName,
+            format: isTsv ? 'tsv' : 'csv',
+            bytes: res.byteLength,
+            columns: parsed.columns,
+            rows: parsed.rows,
+            totalRows: parsed.totalRows,
+            returnedRows: parsed.rows.length,
+            truncated: parsed.truncated,
+            warning: warnings.length > 0 ? warnings.join(' ') : undefined,
+          });
+          return;
+        }
+
+        if (isOpenApi) {
+          const text = decodeResourceText(res);
+          if (text === null) {
+            setHostResourcePreview({
+              status: 'error',
+              uri: targetUri,
+              fileName: fv.fileName,
+              reason: sDict.hostReadFailedTitle,
+            });
+            return;
+          }
+          const summary = extractOpenApiBasicSummary(text);
+          const redacted = redactOpenApiText(text);
+          setTab('http');
+          setHostResourcePreview({
+            status: 'openapi',
+            uri: targetUri,
+            fileName: fv.fileName,
+            byteLength: res.byteLength,
+            specVersion: summary.specVersion,
+            title: summary.title,
+            routes: summary.routes,
+            redactedExcerpt: redacted.excerpt,
+            truncated: redacted.truncated,
+          });
+          return;
+        }
+
+        if (isSqliteExt || typeof res.blob === 'string') {
+          const headerBytes =
+            typeof res.blob === 'string'
+              ? decodeBase64ToBytes(res.blob, 64)
+              : typeof res.text === 'string'
+                ? new TextEncoder().encode(res.text.slice(0, 64))
+                : new Uint8Array(0);
+          const meta = inspectBinaryHeader(
+            headerBytes ?? new Uint8Array(0),
+            res.byteLength,
+            res.mimeType,
+          );
+          setTab('data');
+          setHostResourcePreview({
+            status: 'binary',
+            uri: targetUri,
+            fileName: fv.fileName,
+            byteLength: meta.byteLength,
+            mimeType: meta.mimeType,
+            isSqlite: meta.isSqlite,
+            magicLabel: meta.magicLabel,
+            hexPreview: meta.hexPreview,
+            pageSize: meta.pageSize,
+            pageCount: meta.pageCount,
+          });
+          return;
+        }
+
+        // Plain text fallback for unknown non-binary opaque URI
+        if (typeof res.text === 'string') {
+          const redacted = redactOpenApiText(res.text);
+          setTab('docs');
+          setDocPath(fv.relPath || fv.fileName);
+          setDocResult({
+            filePath: fv.relPath || fv.fileName,
+            format: ext.replace(/^\./, '') || 'text',
+            bytes: res.byteLength,
+            content: redacted.excerpt,
+            truncated: redacted.truncated,
+          });
+          setHostResourcePreview({ status: 'idle' });
+        }
+      } catch (err) {
+        if (seq !== hostReadSeqRef.current) return;
+        setHostResourcePreview({
+          status: 'error',
+          uri: targetUri,
+          fileName: fv.fileName,
+          reason: err instanceof Error ? err.message : String(err),
+        });
+      }
+    },
+    [bridge, sDict, t],
+  );
+
   useEffect(() => {
     if (!incomingEvent) return;
     const sc = incomingEvent.structuredContent;
@@ -503,8 +1054,19 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
         ? (sc.fileViewer as NativeFileViewerPayload)
         : null;
     if (rawFv && typeof rawFv.fileName === 'string' && typeof rawFv.kind === 'string') {
-      if (rawFv.targetTab === 'studio' || rawFv.kind === 'data' || rawFv.kind === 'openapi' || rawFv.kind === 'opaque-uri') {
+      const isCanvasTarget =
+        rawFv.targetTab === 'canvas' ||
+        rawFv.kind === 'svg' ||
+        (typeof rawFv.extension === 'string' && rawFv.extension.toLowerCase() === '.svg');
+      if (
+        !isCanvasTarget &&
+        (rawFv.targetTab === 'studio' ||
+          rawFv.kind === 'data' ||
+          rawFv.kind === 'openapi' ||
+          rawFv.kind === 'opaque-uri')
+      ) {
         setFileViewerBanner(rawFv);
+        setHostResourcePreview({ status: 'idle' });
         if (rawFv.kind === 'data' && rawFv.data) {
           setTab('data');
           setDataPath(rawFv.relPath || rawFv.data.filePath || rawFv.fileName);
@@ -517,6 +1079,8 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
           setOpenApiSpec(rawFv.openApi);
           setOpenApiFilter('');
           setSelectedEndpointId(null);
+        } else if (rawFv.kind === 'opaque-uri' && (rawFv.resourceUri || rawFv.uri)) {
+          void loadOpaqueHostResource(rawFv);
         }
       }
     }
@@ -526,7 +1090,7 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
     if (tool.startsWith('studio_') || tool.startsWith('app_studio_') || mod === 'studio') {
       void loadSources();
     }
-  }, [active, incomingEvent, loadSources]);
+  }, [active, incomingEvent, loadOpaqueHostResource, loadSources]);
 
   const inspectData = useCallback(
     async (opts?: { filePath?: string; query?: string; filter?: string; limit?: number }) => {
@@ -908,7 +1472,7 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
       {fileViewerBanner && (
         <section
           className="nov-p-card"
-          aria-label="Native File Viewer"
+          aria-label={sDict.nativeFileViewer}
           style={{
             borderColor: 'var(--nov-accent)',
             background: 'var(--nov-bg-1)',
@@ -916,8 +1480,8 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
         >
           <div className="nov-p-row">
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
-              <span className="nov-badge is-accent">Native File Viewer</span>
-              <span className="nov-badge is-offline">READ-ONLY</span>
+              <span className="nov-badge is-accent">{sDict.nativeFileViewer}</span>
+              <span className="nov-badge is-offline">{dict.common.readOnlyBadge}</span>
               <strong style={{ fontSize: '12.5px' }}>{fileViewerBanner.fileName}</strong>
               <span className="nov-badge">{fileViewerBanner.extension}</span>
               {typeof fileViewerBanner.bytes === 'number' && (
@@ -925,19 +1489,25 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
               )}
               {fileViewerBanner.kind === 'openapi' && fileViewerBanner.openApi && (
                 <span className="nov-badge is-network">
-                  {fileViewerBanner.openApi.totalEndpoints} endpoints
+                  {t(sDict.endpointsCount, { n: fileViewerBanner.openApi.totalEndpoints })}
                 </span>
               )}
               {fileViewerBanner.kind === 'data' && fileViewerBanner.data && (
                 <span className="nov-badge">
-                  {fileViewerBanner.data.returnedRows ?? fileViewerBanner.data.rows?.length ?? 0} rows
+                  {t(sDict.rowsShort, {
+                    n: fileViewerBanner.data.returnedRows ?? fileViewerBanner.data.rows?.length ?? 0,
+                  })}
                 </span>
               )}
             </div>
             <button
               type="button"
               className="nov-p-btn"
-              onClick={() => setFileViewerBanner(null)}
+              aria-label={dict.common.close}
+              onClick={() => {
+                setFileViewerBanner(null);
+                setHostResourcePreview({ status: 'idle' });
+              }}
             >
               ×
             </button>
@@ -947,14 +1517,164 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
               {fileViewerBanner.relPath}
             </div>
           )}
-          {fileViewerBanner.resourceUri && (
+          {(fileViewerBanner.resourceUri || fileViewerBanner.uri) && (
             <div style={{ fontSize: '11.5px', fontFamily: 'var(--nov-font-mono)', color: 'var(--nov-text-2)', wordBreak: 'break-all' }}>
-              URI: {fileViewerBanner.resourceUri}
+              URI: {fileViewerBanner.resourceUri || fileViewerBanner.uri}
             </div>
           )}
           {fileViewerBanner.note && (
             <div style={{ fontSize: '12px', color: 'var(--nov-text-1)', marginTop: '4px' }}>
               {fileViewerBanner.note}
+            </div>
+          )}
+
+          {hostResourcePreview.status === 'loading' && (
+            <div className="nov-p-banner" style={{ marginTop: '8px' }}>
+              {sDict.hostReadLoading}
+            </div>
+          )}
+
+          {hostResourcePreview.status === 'error' && (
+            <div
+              className="nov-p-banner"
+              role="alert"
+              style={{
+                marginTop: '8px',
+                background: 'var(--nov-warn-soft)',
+                borderColor: 'var(--nov-warn)',
+              }}
+            >
+              <strong>{sDict.hostReadFailedTitle}</strong>:{' '}
+              {t(sDict.hostReadFailedHint, { reason: hostResourcePreview.reason })}
+            </div>
+          )}
+
+          {hostResourcePreview.status === 'binary' && (
+            <div
+              className="nov-p-item"
+              style={{ marginTop: '8px', background: 'var(--nov-bg-0)', gap: '6px' }}
+            >
+              <div className="nov-p-row">
+                <strong style={{ fontSize: '12px', color: 'var(--nov-text-0)' }}>
+                  {sDict.hostBinaryCardTitle}
+                </strong>
+                <span className={`nov-badge ${hostResourcePreview.isSqlite ? 'is-accent' : ''}`}>
+                  {hostResourcePreview.isSqlite
+                    ? sDict.hostSqliteDetected
+                    : sDict.hostBinaryGeneric}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                <span className="nov-badge">
+                  {sDict.hostMagicLabel}: {hostResourcePreview.magicLabel}
+                </span>
+                <span className="nov-badge">
+                  {sDict.hostSizeLabel}: {formatBytes(hostResourcePreview.byteLength)} (
+                  {hostResourcePreview.byteLength.toLocaleString()} B)
+                </span>
+                {hostResourcePreview.mimeType && (
+                  <span className="nov-badge">
+                    {sDict.hostMimeLabel}: {hostResourcePreview.mimeType}
+                  </span>
+                )}
+                {typeof hostResourcePreview.pageSize === 'number' && (
+                  <span className="nov-badge">
+                    {sDict.hostSqlitePageSizeLabel}: {hostResourcePreview.pageSize} B
+                  </span>
+                )}
+                {typeof hostResourcePreview.pageCount === 'number' && (
+                  <span className="nov-badge">
+                    {sDict.hostSqlitePagesLabel}: {hostResourcePreview.pageCount}
+                  </span>
+                )}
+              </div>
+              {hostResourcePreview.hexPreview && (
+                <code
+                  style={{
+                    fontFamily: 'var(--nov-font-mono)',
+                    fontSize: '11px',
+                    color: 'var(--nov-text-2)',
+                  }}
+                >
+                  HEX[0..15]: {hostResourcePreview.hexPreview}
+                </code>
+              )}
+            </div>
+          )}
+
+          {hostResourcePreview.status === 'openapi' && (
+            <div
+              className="nov-p-item"
+              style={{ marginTop: '8px', background: 'var(--nov-bg-0)', gap: '8px' }}
+            >
+              <div className="nov-p-row">
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
+                  <strong style={{ fontSize: '12px', color: 'var(--nov-text-0)' }}>
+                    {hostResourcePreview.title || sDict.hostOpenApiSummaryTitle}
+                  </strong>
+                  {hostResourcePreview.specVersion && (
+                    <span className="nov-badge is-network">
+                      OpenAPI {hostResourcePreview.specVersion}
+                    </span>
+                  )}
+                  <span className="nov-badge">
+                    {t(sDict.hostOpenApiPathsCount, { n: hostResourcePreview.routes.length })}
+                  </span>
+                  <span className="nov-badge">
+                    {formatBytes(hostResourcePreview.byteLength)}
+                  </span>
+                  {hostResourcePreview.truncated && (
+                    <span className="nov-badge is-network">{sDict.truncatedNotice}</span>
+                  )}
+                </div>
+              </div>
+              {hostResourcePreview.routes.length > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    maxHeight: '160px',
+                    overflowY: 'auto',
+                  }}
+                >
+                  {hostResourcePreview.routes.map((rt, idx) => (
+                    <div
+                      key={`${rt.method}:${rt.path}:${idx}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}
+                    >
+                      <span
+                        className="nov-badge"
+                        style={{
+                          ...getHttpMethodStyle(rt.method),
+                          fontFamily: 'var(--nov-font-mono)',
+                          fontWeight: 700,
+                          minWidth: '52px',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {rt.method}
+                      </span>
+                      <code style={{ fontFamily: 'var(--nov-font-mono)', fontSize: '11.5px' }}>
+                        {rt.path}
+                      </code>
+                      {rt.summary && (
+                        <span style={{ fontSize: '11.5px', color: 'var(--nov-text-2)' }}>
+                          {rt.summary}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <strong style={{ fontSize: '11.5px', color: 'var(--nov-text-2)' }}>
+                  {sDict.hostOpenApiSourceTitle}
+                </strong>
+                <pre className="nov-p-pre" style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                  {hostResourcePreview.redactedExcerpt}
+                </pre>
+              </div>
             </div>
           )}
         </section>
@@ -1697,7 +2417,7 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
                                   }
                             }
                           >
-                            {srv.isLoopback ? 'Loopback OK' : 'Blocked (Non-Loopback)'}
+                            {srv.isLoopback ? sDict.loopbackOk : sDict.loopbackBlocked}
                           </span>
                         </div>
                       ))}

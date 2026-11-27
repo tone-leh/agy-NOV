@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { atomicRenameSync } from './utils.js';
+import { atomicRenameSync, hasUnsafeSymlinkAncestor } from './utils.js';
 import {
   countEnabledModelTools,
   isModuleDomainId,
@@ -77,11 +77,62 @@ export function sanitizeDataDirCandidate(candidate: string | undefined | null): 
   return path.resolve(trimmed);
 }
 
+/**
+ * Read-only detection of an existing Antigravity official plugin data directory
+ * (`~/.gemini/antigravity{,-cli,-ide}/plugin_data/agy-nov` and platform XDG/AppData
+ * equivalents). Never creates directories and ignores symlinked ancestors.
+ */
+export function detectExistingOfficialPluginDataDir(
+  env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform,
+  homeDir: string = os.homedir(),
+): string | undefined {
+  const roots: string[] = [
+    path.join(homeDir, '.gemini', 'antigravity', 'plugin_data', 'agy-nov'),
+    path.join(homeDir, '.gemini', 'antigravity-cli', 'plugin_data', 'agy-nov'),
+    path.join(homeDir, '.gemini', 'antigravity-ide', 'plugin_data', 'agy-nov'),
+  ];
+  if (platform === 'linux') {
+    const xdgData = env.XDG_DATA_HOME?.trim();
+    if (xdgData) {
+      roots.push(
+        path.join(xdgData, 'gemini', 'antigravity', 'plugin_data', 'agy-nov'),
+        path.join(xdgData, 'gemini', 'antigravity-cli', 'plugin_data', 'agy-nov'),
+        path.join(xdgData, 'gemini', 'antigravity-ide', 'plugin_data', 'agy-nov'),
+      );
+    }
+  } else if (platform === 'win32') {
+    for (const base of [env.LOCALAPPDATA?.trim(), env.APPDATA?.trim()]) {
+      if (!base) continue;
+      roots.push(
+        path.join(base, 'gemini', 'antigravity', 'plugin_data', 'agy-nov'),
+        path.join(base, 'gemini', 'antigravity-cli', 'plugin_data', 'agy-nov'),
+        path.join(base, 'gemini', 'antigravity-ide', 'plugin_data', 'agy-nov'),
+      );
+    }
+  }
+
+  for (const candidate of roots) {
+    try {
+      const resolved = path.resolve(candidate);
+      if (hasUnsafeSymlinkAncestor(resolved, platform)) continue;
+      const st = fs.lstatSync(resolved);
+      if (!st.isSymbolicLink() && st.isDirectory()) {
+        return resolved;
+      }
+    } catch {
+      // missing or unreadable; continue read-only scan
+    }
+  }
+  return undefined;
+}
+
 export function resolveNovDataDir(cliDataDir?: string): string {
   return (
     sanitizeDataDirCandidate(cliDataDir) ??
     sanitizeDataDirCandidate(process.env.AGY_NOV_DATA_DIR) ??
     sanitizeDataDirCandidate(process.env.PLUGIN_DATA) ??
+    detectExistingOfficialPluginDataDir() ??
     path.join(os.homedir(), '.agy-nov-data')
   );
 }

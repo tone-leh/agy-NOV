@@ -665,6 +665,7 @@ describe('v0.8.0 Guard 2.5 — Demo zero-write, model tool budget & disabled app
         workspaceRoot: ws,
         demoMode: true,
         configPollMs: 0,
+        exposeAppToolsWithoutUiCapability: true,
       });
 
       const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

@@ -77,6 +77,7 @@ interface CanvasFileViewerPayload {
   extension: string;
   relPath?: string;
   resourceUri?: string;
+  uri?: string;
   bytes?: number;
   mode?: 'live' | 'demo';
   readOnly?: boolean;
@@ -91,8 +92,31 @@ interface CanvasFileViewerPayload {
   };
 }
 
+type HostSvgLoadState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'error'; reason: string }
+  | { status: 'unsafe'; reason: string };
+
 const SAFE_IMAGE_DATA_URI_PREFIX = /^data:image\/(png|jpeg|webp|gif);base64,/;
 const BASE64_PAYLOAD_RE = /^[A-Za-z0-9+/]+={0,2}$/;
+
+function decodeSvgBase64ToUtf8(rawBase64: string): string | null {
+  try {
+    const clean = rawBase64.replace(/\s+/g, '');
+    const binary = atob(clean);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+import { validateClientSvgSafety } from './svg-safety.js';
+export { validateClientSvgSafety };
 
 function isSafeImageDataUri(src: string): boolean {
   if (typeof src !== 'string') return false;
@@ -249,8 +273,19 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
   onNotify,
   incomingEvent,
 }) => {
-  const { dict } = useNovI18n();
+  const { dict, t } = useNovI18n();
   const c = dict.panels.canvas;
+  const [caps, setCaps] = useState(() => bridge.getCapabilities());
+  useEffect(() => {
+    let mounted = true;
+    void bridge.ready().then(() => {
+      if (mounted) setCaps(bridge.getCapabilities());
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [bridge]);
+  const canSendMessage = caps.message;
 
   const [boards, setBoards] = useState<CanvasBoardSummary[]>([]);
   const [board, setBoard] = useState<CanvasBoard | null>(null);
@@ -269,10 +304,12 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
   const [localToast, setLocalToast] = useState<string | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => bridge.getTheme());
   const [fileViewer, setFileViewer] = useState<CanvasFileViewerPayload | null>(null);
+  const [hostSvgState, setHostSvgState] = useState<HostSvgLoadState>({ status: 'idle' });
 
   const dragStart = useRef<{ x: number; y: number } | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const fetchSeqRef = useRef<number>(0);
+  const hostSvgSeqRef = useRef<number>(0);
   const loadedOnceRef = useRef<boolean>(false);
   const lastEventRef = useRef<typeof incomingEvent>(null);
   const toastTimerRef = useRef<number | null>(null);
@@ -353,6 +390,57 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
     }
   }, [active, loadFullBoard]);
 
+  const loadHostOpaqueSvg = useCallback(
+    async (fv: CanvasFileViewerPayload) => {
+      const targetUri = (fv.resourceUri || fv.uri || '').trim();
+      if (!targetUri) return;
+      const seq = ++hostSvgSeqRef.current;
+      setHostSvgState({ status: 'loading' });
+      try {
+        const res = await bridge.readHostResource(targetUri);
+        if (seq !== hostSvgSeqRef.current) return;
+        if (!res.ok) {
+          setHostSvgState({ status: 'error', reason: res.error });
+          return;
+        }
+        const rawText =
+          typeof res.text === 'string'
+            ? res.text
+            : typeof res.blob === 'string'
+              ? decodeSvgBase64ToUtf8(res.blob)
+              : null;
+        if (!rawText) {
+          setHostSvgState({ status: 'error', reason: 'Empty resource payload' });
+          return;
+        }
+        const check = validateClientSvgSafety(rawText);
+        if (!check.safe) {
+          setHostSvgState({ status: 'unsafe', reason: check.reason });
+          return;
+        }
+        setHostSvgState({ status: 'idle' });
+        setFileViewer({
+          ...fv,
+          kind: 'svg',
+          bytes: res.byteLength,
+          svg: {
+            content: check.content,
+            bytes: res.byteLength,
+            lineCount: check.lineCount,
+            viewBox: check.viewBox,
+          },
+        });
+      } catch (err) {
+        if (seq !== hostSvgSeqRef.current) return;
+        setHostSvgState({
+          status: 'error',
+          reason: err instanceof Error ? err.message : String(err),
+        });
+      }
+    },
+    [bridge],
+  );
+
   // Respond to incoming tool result events (e.g., canvas_publish_artifact / canvas_open_file / app_nov_file_viewer)
   useEffect(() => {
     if (!incomingEvent || incomingEvent === lastEventRef.current) return;
@@ -366,7 +454,10 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
     const isCanvasFileViewer = Boolean(
       rawFileViewer &&
         typeof rawFileViewer.fileName === 'string' &&
-        (rawFileViewer.targetTab === 'canvas' || rawFileViewer.kind === 'svg'),
+        (rawFileViewer.targetTab === 'canvas' ||
+          rawFileViewer.kind === 'svg' ||
+          (typeof rawFileViewer.extension === 'string' &&
+            rawFileViewer.extension.toLowerCase() === '.svg')),
     );
 
     const rawBoard = sc.board as CanvasBoard | CanvasBoardMeta | null | undefined;
@@ -384,7 +475,11 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
 
     if (isCanvasFileViewer && rawFileViewer) {
       setFileViewer(rawFileViewer);
+      setHostSvgState({ status: 'idle' });
       loadedOnceRef.current = true;
+      if (rawFileViewer.kind === 'opaque-uri' && (rawFileViewer.resourceUri || rawFileViewer.uri)) {
+        void loadHostOpaqueSvg(rawFileViewer);
+      }
       if (rawBoard === undefined && !Array.isArray(sc.boards) && sc.boardId === undefined) {
         return;
       }
@@ -419,7 +514,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
     } else if (active) {
       void loadFullBoard(undefined, false);
     }
-  }, [incomingEvent, active, loadFullBoard]);
+  }, [incomingEvent, active, loadFullBoard, loadHostOpaqueSvg]);
 
   const handleRefresh = async () => {
     try {
@@ -525,11 +620,14 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
       });
       if (Array.isArray(res.boards)) setBoards(res.boards);
       if (res.board) setBoard(res.board);
+      const savedNum =
+        res.board?.annotations[res.board.annotations.length - 1]?.number ??
+        (board.annotations.length + 1);
       setDraftBox(null);
       setDraftNote('');
-      notify('Saved visual review pin');
+      notify(t(c.toastPinSaved, { n: savedNum }));
     } catch (err) {
-      notify(`Failed to save pin: ${err instanceof Error ? err.message : String(err)}`);
+      notify(t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }));
     }
   };
 
@@ -544,7 +642,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
       if (res.board) setBoard(res.board);
       if (Array.isArray(res.boards)) setBoards(res.boards);
     } catch (err) {
-      notify(`Failed to update pin: ${err instanceof Error ? err.message : String(err)}`);
+      notify(t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }));
     }
   };
 
@@ -559,7 +657,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
       if (Array.isArray(res.boards)) setBoards(res.boards);
       if (selectedPinId === pinId) setSelectedPinId(null);
     } catch (err) {
-      notify(`Failed to delete pin: ${err instanceof Error ? err.message : String(err)}`);
+      notify(t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }));
     }
   };
 
@@ -579,7 +677,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
       }
       notify(c.resolveAll);
     } catch (err) {
-      notify(`Failed to resolve pins: ${err instanceof Error ? err.message : String(err)}`);
+      notify(t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }));
     } finally {
       if (lastRes?.board) setBoard(lastRes.board);
       if (Array.isArray(lastRes?.boards)) setBoards(lastRes.boards);
@@ -595,20 +693,21 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
       });
       const prompt = String(res.prompt ?? '');
       if (!prompt) {
-        notify('No open pins to send');
+        notify(c.toastNoOpenPins);
         return;
       }
+      const openPinsCount = board.annotations.filter((a) => a.status === 'open').length || 1;
       setCompiledPreview(prompt);
       const mode = await bridge.sendMessage(prompt);
       notify(
         mode === 'sent'
-          ? 'Sent pinpoint visual feedback straight to Antigravity!'
+          ? t(c.toastFeedbackSent, { n: openPinsCount })
           : mode === 'context'
-            ? 'Attached feedback to your next model context'
-            : 'Copied feedback prompt to clipboard',
+            ? t(c.toastFeedbackContext, { n: openPinsCount })
+            : t(c.toastFeedbackCopied, { n: openPinsCount }),
       );
     } catch (err) {
-      notify(`Failed to compile feedback: ${err instanceof Error ? err.message : String(err)}`);
+      notify(t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }));
     }
   };
 
@@ -641,7 +740,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
           {board && board.revisions.length > 0 && (
             <select
               className="canvas-select"
-              aria-label="Select board revision"
+              aria-label={c.selectRevisionAria}
               value={viewVersion}
               onChange={(e) => setViewVersion(Number(e.target.value))}
             >
@@ -674,7 +773,18 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
               onClick={async () => {
                 const target = board.sourceUri || board.sourcePath!;
                 const ok = await bridge.openFile(target);
-                notify(ok ? 'Opened source file in side pane' : 'Open source available in Side Pane mode');
+                if (!ok) {
+                  try {
+                    await navigator.clipboard?.writeText(target);
+                  } catch {
+                    // ignore clipboard failure
+                  }
+                }
+                notify(
+                  ok
+                    ? t(c.toastOpenedSource, { file: target })
+                    : t(c.toastOpenSourceFallback, { file: target }),
+                );
               }}
             >
               {c.openFile}
@@ -686,7 +796,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
             onClick={() => void handleSendFeedback()}
             disabled={!board}
           >
-            {c.sendFeedback} ({openCount})
+            {canSendMessage ? c.sendFeedback : dict.common.copyPrompt} ({openCount})
           </button>
         </div>
       </header>
@@ -696,13 +806,13 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
       {fileViewer && (
         <section
           className="canvas-pin-card is-active"
-          aria-label="Native File Viewer"
+          aria-label={c.nativeFileViewer}
           style={{ flexShrink: 0 }}
         >
           <div className="canvas-row" style={{ justifyContent: 'space-between' }}>
             <div className="canvas-row">
-              <span className="canvas-badge">Native File Viewer</span>
-              <span className="canvas-badge">READ-ONLY</span>
+              <span className="canvas-badge">{c.nativeFileViewer}</span>
+              <span className="canvas-badge">{dict.common.readOnlyBadge}</span>
               <strong>{fileViewer.fileName}</strong>
               <span className="canvas-badge">{fileViewer.extension}</span>
               {typeof fileViewer.bytes === 'number' && (
@@ -715,18 +825,34 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
             <button
               type="button"
               className="canvas-btn is-compact"
-              onClick={() => setFileViewer(null)}
+              onClick={() => {
+                setFileViewer(null);
+                setHostSvgState({ status: 'idle' });
+              }}
             >
-              Close Preview
+              {c.closePreview}
             </button>
           </div>
           {fileViewer.relPath && <div className="canvas-muted">{fileViewer.relPath}</div>}
-          {fileViewer.resourceUri && (
+          {(fileViewer.resourceUri || fileViewer.uri) && (
             <div className="canvas-muted" style={{ wordBreak: 'break-all' }}>
-              URI: {fileViewer.resourceUri}
+              URI: {fileViewer.resourceUri || fileViewer.uri}
             </div>
           )}
           {fileViewer.note && <div className="canvas-pin-note">{fileViewer.note}</div>}
+          {hostSvgState.status === 'loading' && (
+            <div className="canvas-muted">{c.hostSvgLoading}</div>
+          )}
+          {hostSvgState.status === 'error' && (
+            <div className="canvas-error" role="alert">
+              {t(c.hostSvgReadFailed, { reason: hostSvgState.reason })}
+            </div>
+          )}
+          {hostSvgState.status === 'unsafe' && (
+            <div className="canvas-error" role="alert">
+              {t(c.hostSvgUnsafeRejected, { reason: hostSvgState.reason })}
+            </div>
+          )}
         </section>
       )}
 
@@ -734,10 +860,10 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
         <div className="canvas-stage-card" style={{ flex: 1, minHeight: 240 }}>
           <div className="canvas-stage-bar">
             <span>
-              <strong>SVG FILE VIEWER</strong> · {fileViewer.fileName}
-              {fileViewer.svg ? ` · ${fileViewer.svg.lineCount} lines` : ''}
+              <strong>{c.svgFileViewer}</strong> · {fileViewer.fileName}
+              {fileViewer.svg ? ` · ${t(c.svgLinesCount, { n: fileViewer.svg.lineCount })}` : ''}
             </span>
-            <span className="canvas-badge">SANDBOXED</span>
+            <span className="canvas-badge">{c.sandboxedBadge}</span>
           </div>
           <div className="canvas-stage-body">
             <iframe
@@ -772,10 +898,10 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
                     onClick={() => setSlideIdx((i) => Math.max(0, i - 1))}
                     disabled={slideIdx === 0}
                   >
-                    Prev
+                    {c.slidePrev}
                   </button>
                   <span className="canvas-badge">
-                    Slide {slideIdx + 1} / {slides.length}
+                    {t(c.slideCounter, { current: slideIdx + 1, total: slides.length })}
                   </span>
                   <button
                     type="button"
@@ -783,7 +909,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
                     onClick={() => setSlideIdx((i) => Math.min(slides.length - 1, i + 1))}
                     disabled={slideIdx >= slides.length - 1}
                   >
-                    Next
+                    {c.slideNext}
                   </button>
                 </div>
               )}
@@ -820,8 +946,8 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
                     />
                   ) : (
                     <div className="canvas-stage-blocked" role="alert">
-                      <strong>Blocked unsafe image URI</strong>
-                      <p>Only base64 raster data URIs (png, jpeg, webp, gif) are permitted for image previews.</p>
+                      <strong>{c.blockedImageTitle}</strong>
+                      <p>{c.blockedImageDesc}</p>
                     </div>
                   )}
                 </div>
@@ -909,10 +1035,10 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
                   value={draftTag}
                   onChange={(e) => setDraftTag(e.target.value as AnnotationTag)}
                 >
-                  <option value="fix">Tag: FIX</option>
-                  <option value="layout">Tag: LAYOUT</option>
-                  <option value="copy">Tag: COPY</option>
-                  <option value="polish">Tag: POLISH</option>
+                  <option value="fix">{c.tagFix}</option>
+                  <option value="layout">{c.tagLayout}</option>
+                  <option value="copy">{c.tagCopy}</option>
+                  <option value="polish">{c.tagPolish}</option>
                 </select>
                 <textarea
                   className="canvas-textarea"
@@ -944,9 +1070,22 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
                 >
                   <div className="canvas-row" style={{ justifyContent: 'space-between' }}>
                     <span>
-                      <strong>#{pin.number}</strong> <span className="canvas-badge">{pin.tag.toUpperCase()}</span>
+                      <strong>#{pin.number}</strong>{' '}
+                      <span className="canvas-badge">
+                        {pin.tag === 'fix'
+                          ? c.tagFix
+                          : pin.tag === 'layout'
+                            ? c.tagLayout
+                            : pin.tag === 'copy'
+                              ? c.tagCopy
+                              : c.tagPolish}
+                      </span>
                     </span>
-                    <span className="canvas-badge">{pin.status}</span>
+                    <span className="canvas-badge">
+                      {pin.status === 'resolved'
+                        ? dict.panels.review.resolved
+                        : dict.panels.review.unresolved}
+                    </span>
                   </div>
                   <div className="canvas-pin-note">{pin.note}</div>
                   <div className="canvas-pin-meta">
@@ -962,7 +1101,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
                           void handleTogglePin(pin);
                         }}
                       >
-                        {pin.status === 'open' ? 'Resolve' : 'Reopen'}
+                        {pin.status === 'open' ? c.resolvePin : c.reopenPin}
                       </button>
                       <button
                         type="button"
@@ -984,7 +1123,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
 
             {compiledPreview && (
               <div className="canvas-pin-card">
-                <strong style={{ fontSize: 11.5 }}>Last Sent Prompt</strong>
+                <strong style={{ fontSize: 11.5 }}>{c.lastSentPrompt}</strong>
                 <pre className="canvas-pre">{compiledPreview}</pre>
               </div>
             )}

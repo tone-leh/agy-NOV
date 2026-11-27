@@ -82,13 +82,13 @@ export function registerWorktreeModule(
   options: NovRuntimeOptions,
   uiResourceUri: string,
 ): ModuleRegistrationResult {
-  const workspaceRoot = path.resolve(options.workspaceRoot);
+  const getWorkspaceRoot = () => path.resolve(options.workspaceRoot);
   const isDemo = options.demoMode === true;
 
   // Registration performs zero disk I/O and zero Git commands.
   // In demo mode, all state lives strictly in memory.
   const demoStore: DemoWorktreeStore | null = isDemo
-    ? createDemoWorktreeStore(workspaceRoot)
+    ? createDemoWorktreeStore(getWorkspaceRoot())
     : null;
 
   const APP_ONLY_META = {
@@ -99,15 +99,15 @@ export function registerWorktreeModule(
   };
 
   const runList = async (): Promise<WorktreeInspectResult> =>
-    isDemo && demoStore ? demoStore.list() : inspectWorktrees(workspaceRoot);
+    isDemo && demoStore ? demoStore.list() : inspectWorktrees(getWorkspaceRoot());
 
   const runPreviewInclude = async (): Promise<WorktreeIncludePreviewResult> =>
     isDemo && demoStore
       ? demoStore.previewInclude()
-      : previewWorktreeIncludeForWorkspace(workspaceRoot);
+      : previewWorktreeIncludeForWorkspace(getWorkspaceRoot());
 
   const runCreate = async (opts: CreateWorktreeOptions): Promise<CreateWorktreeResult> =>
-    isDemo && demoStore ? demoStore.create(opts) : createWorktree(workspaceRoot, opts);
+    isDemo && demoStore ? demoStore.create(opts) : createWorktree(getWorkspaceRoot(), opts);
 
   const runDiffSummary = async (
     worktreePath: string,
@@ -115,10 +115,10 @@ export function registerWorktreeModule(
   ): Promise<WorktreeDiffSummaryResult> =>
     isDemo && demoStore
       ? demoStore.diffSummary(worktreePath, baseRef)
-      : getWorktreeDiffSummary(workspaceRoot, worktreePath, baseRef);
+      : getWorktreeDiffSummary(getWorkspaceRoot(), worktreePath, baseRef);
 
   const runCleanup = async (opts: CleanupWorktreeOptions): Promise<CleanupWorktreeResult> =>
-    isDemo && demoStore ? demoStore.cleanup(opts) : cleanupWorktree(workspaceRoot, opts);
+    isDemo && demoStore ? demoStore.cleanup(opts) : cleanupWorktree(getWorkspaceRoot(), opts);
 
   const modelTools: ModuleToolHandle[] = [];
 

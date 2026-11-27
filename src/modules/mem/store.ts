@@ -723,16 +723,33 @@ function tokenize(text: string): string[] {
   return [...latin, ...cjk];
 }
 
+export interface BatchHygieneVerifyResult extends BatchHygieneResult {
+  reverifiedAnchorCount?: number;
+  reverifiedItemCount?: number;
+  unresolvedDriftIds?: string[];
+  unresolvedAnchorCount?: number;
+}
+
 export class MemoryStore {
   private readonly filePath: string;
+  private readonly defaultWorkspaceRootProvider?: string | (() => string | undefined);
   private demoItems: MemoryItem[] | null = null;
 
   constructor(
     private readonly dataDir: string,
     private readonly demoMode = false,
-    private readonly defaultWorkspaceRoot?: string,
+    defaultWorkspaceRoot?: string | (() => string | undefined),
   ) {
     this.filePath = path.join(dataDir, 'memories.json');
+    this.defaultWorkspaceRootProvider = defaultWorkspaceRoot;
+  }
+
+  private getDefaultWorkspaceRoot(): string | undefined {
+    const raw =
+      typeof this.defaultWorkspaceRootProvider === 'function'
+        ? this.defaultWorkspaceRootProvider()
+        : this.defaultWorkspaceRootProvider;
+    return typeof raw === 'string' && raw.trim() ? raw : undefined;
   }
 
   private cloneItems(items: MemoryItem[]): MemoryItem[] {
@@ -835,7 +852,11 @@ export class MemoryStore {
     }
   }
 
-  private evaluateDrift(item: MemoryItem, nowMs = Date.now()): MemoryItem {
+  private evaluateDrift(
+    item: MemoryItem,
+    nowMs = Date.now(),
+    fallbackWorkspaceRoot?: string,
+  ): MemoryItem {
     const confidence: MemoryConfidence = item.confidence ?? 'normal';
     const source: MemorySource = item.source ?? 'manual';
     const ttlDays: number | null = item.ttlDays !== undefined ? item.ttlDays : null;
@@ -862,11 +883,15 @@ export class MemoryStore {
     }
 
     let anyDrifted = false;
-    const effectiveWs = item.workspacePath ?? this.defaultWorkspaceRoot;
+    const effectiveWs = item.workspacePath ?? this.getDefaultWorkspaceRoot() ?? fallbackWorkspaceRoot;
     const rawAnchors = Array.isArray(item.anchors) ? item.anchors : [];
     const anchors: CodeAnchor[] = rawAnchors.map((a) => {
       if (!a.sha256) return { ...a, driftStatus: a.driftStatus ?? 'untracked' };
-      const inspected = inspectAnchorFile(a.filePath, effectiveWs);
+      const targetPath =
+        effectiveWs && !path.isAbsolute(a.filePath)
+          ? path.resolve(effectiveWs, a.filePath)
+          : a.filePath;
+      const inspected = inspectAnchorFile(targetPath, effectiveWs);
       if (inspected.status === 'skipped') {
         return { ...a, driftStatus: 'skipped' };
       }
@@ -880,10 +905,13 @@ export class MemoryStore {
       }
       return { ...a, driftStatus: 'fresh' };
     });
+    const hasUnverifiedDriftAnchor = anchors.some(
+      (a) => a.driftStatus === 'missing' || a.driftStatus === 'skipped',
+    );
     const enriched: MemoryItem = {
       ...item,
       anchors,
-      drifted: anyDrifted,
+      drifted: anyDrifted || (item.drifted === true && hasUnverifiedDriftAnchor),
       confidence,
       source,
       ttlDays,
@@ -898,6 +926,7 @@ export class MemoryStore {
   list(
     opts: {
       workspacePath?: string;
+      workspaceRoot?: string;
       kind?: MemoryKind;
       pinnedOnly?: boolean;
       includeExpired?: boolean;
@@ -907,7 +936,8 @@ export class MemoryStore {
     } = {},
   ): MemoryItem[] {
     const nowMs = resolveNowMs(opts.now);
-    let items = this.readRaw().map((m) => this.evaluateDrift(m, nowMs));
+    const fallbackWs = opts.workspaceRoot ?? opts.workspacePath;
+    let items = this.readRaw().map((m) => this.evaluateDrift(m, nowMs, fallbackWs));
     if (opts.workspacePath) {
       const target = path.resolve(opts.workspacePath);
       items = items.filter(
@@ -926,20 +956,44 @@ export class MemoryStore {
     );
   }
 
-  getHygieneSummary(opts: { workspacePath?: string; now?: Date | number } = {}): MemoryHygieneSummary {
+  getHygieneSummary(
+    opts: { workspacePath?: string; workspaceRoot?: string; now?: Date | number } = {},
+  ): MemoryHygieneSummary {
     const nowMs = resolveNowMs(opts.now);
-    const items = this.list({ workspacePath: opts.workspacePath, includeExpired: true, now: nowMs });
+    const items = this.list({
+      workspacePath: opts.workspacePath,
+      workspaceRoot: opts.workspaceRoot,
+      includeExpired: true,
+      now: nowMs,
+    });
     return computeHygieneSummary(items, nowMs);
   }
 
   batchHygieneMemories(
     ids: string[],
     action: MemoryHygieneAction,
-    opts: { ttlDays?: number | null; workspacePath?: string; now?: Date | number } = {},
-  ): BatchHygieneResult {
+    optsOrWorkspaceRoot:
+      | string
+      | {
+          ttlDays?: number | null;
+          workspacePath?: string;
+          workspaceRoot?: string;
+          now?: Date | number;
+        } = {},
+  ): BatchHygieneVerifyResult {
     if (action !== 'verify' && action !== 'refresh_ttl' && action !== 'prune') {
       throw new Error(`Invalid hygiene action: "${String(action)}" (expected verify | refresh_ttl | prune)`);
     }
+    const opts =
+      typeof optsOrWorkspaceRoot === 'string'
+        ? { workspaceRoot: optsOrWorkspaceRoot }
+        : (optsOrWorkspaceRoot ?? {});
+    const explicitWorkspaceRoot =
+      typeof opts.workspaceRoot === 'string' && opts.workspaceRoot.trim()
+        ? opts.workspaceRoot.trim()
+        : typeof opts.workspacePath === 'string' && opts.workspacePath.trim()
+          ? opts.workspacePath.trim()
+          : undefined;
     const requestedIds = Array.from(
       new Set((ids ?? []).map((id) => (typeof id === 'string' ? id.trim() : '')).filter(Boolean)),
     );
@@ -953,7 +1007,11 @@ export class MemoryStore {
         affectedIds: [],
         updatedCount: 0,
         deletedCount: 0,
-        summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs }),
+        summary: this.getHygieneSummary({
+          workspacePath: opts.workspacePath,
+          workspaceRoot: explicitWorkspaceRoot,
+          now: nowMs,
+        }),
       };
     }
 
@@ -979,19 +1037,91 @@ export class MemoryStore {
         affectedIds,
         updatedCount: 0,
         deletedCount: affectedIds.length,
-        summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs }),
+        summary: this.getHygieneSummary({
+          workspacePath: opts.workspacePath,
+          workspaceRoot: explicitWorkspaceRoot,
+          now: nowMs,
+        }),
       };
     }
 
     if (action === 'verify') {
       const explicitTtl =
         opts.ttlDays !== undefined ? normalizeTtlDays(opts.ttlDays) ?? null : null;
+      const verifyWorkspaceRoot = explicitWorkspaceRoot ?? this.getDefaultWorkspaceRoot();
+      let reverifiedAnchorCount = 0;
+      let reverifiedItemCount = 0;
+      let unresolvedAnchorCount = 0;
+      const unresolvedDriftIds: string[] = [];
+
       const nextItems = rawItems.map((item) => {
         if (!idSet.has(item.id)) return item;
         affectedIds.push(item.id);
         const nextTtlDays = explicitTtl;
+
+        if (this.demoMode && item.id.startsWith('mem_demo_')) {
+          const nextAnchors = item.anchors.map((a) => ({ ...a, driftStatus: 'fresh' as const }));
+          if (nextAnchors.length > 0) {
+            reverifiedAnchorCount += nextAnchors.length;
+            reverifiedItemCount += 1;
+          }
+          return {
+            ...item,
+            anchors: nextAnchors,
+            drifted: false,
+            confidence: 'verified' as MemoryConfidence,
+            verifiedAt: nowIso,
+            updatedAt: nowIso,
+            ttlDays: nextTtlDays,
+            expiresAt: computeExpiresAt(nowIso, nextTtlDays),
+          };
+        }
+
+        if (verifyWorkspaceRoot && item.anchors.length > 0) {
+          let hasUnresolvedAnchor = false;
+          const nextAnchors: CodeAnchor[] = item.anchors.map((a) => {
+            const targetPath = path.isAbsolute(a.filePath)
+              ? a.filePath
+              : path.resolve(verifyWorkspaceRoot, a.filePath);
+            const inspected = inspectAnchorFile(targetPath, verifyWorkspaceRoot);
+            if (inspected.status === 'ok' && inspected.sha256) {
+              reverifiedAnchorCount += 1;
+              return { ...a, sha256: inspected.sha256, driftStatus: 'fresh' };
+            }
+            hasUnresolvedAnchor = true;
+            unresolvedAnchorCount += 1;
+            if (inspected.status === 'missing') {
+              return { ...a, driftStatus: 'missing' };
+            }
+            return { ...a, driftStatus: 'skipped' };
+          });
+
+          if (hasUnresolvedAnchor) {
+            unresolvedDriftIds.push(item.id);
+            return {
+              ...item,
+              anchors: nextAnchors,
+              drifted: true,
+              updatedAt: nowIso,
+            };
+          }
+
+          reverifiedItemCount += 1;
+          return {
+            ...item,
+            anchors: nextAnchors,
+            drifted: false,
+            confidence: 'verified' as MemoryConfidence,
+            verifiedAt: nowIso,
+            updatedAt: nowIso,
+            ttlDays: nextTtlDays,
+            expiresAt: computeExpiresAt(nowIso, nextTtlDays),
+          };
+        }
+
         return {
           ...item,
+          ...(item.anchors.length === 0 ? { drifted: false } : {}),
           confidence: 'verified' as MemoryConfidence,
           verifiedAt: nowIso,
           updatedAt: nowIso,
@@ -1008,7 +1138,15 @@ export class MemoryStore {
         affectedIds,
         updatedCount: affectedIds.length,
         deletedCount: 0,
-        summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs }),
+        reverifiedAnchorCount,
+        reverifiedItemCount,
+        unresolvedDriftIds,
+        unresolvedAnchorCount,
+        summary: this.getHygieneSummary({
+          workspacePath: opts.workspacePath,
+          workspaceRoot: verifyWorkspaceRoot,
+          now: nowMs,
+        }),
       };
     }
 
@@ -1039,7 +1177,11 @@ export class MemoryStore {
       affectedIds,
       updatedCount: affectedIds.length,
       deletedCount: 0,
-      summary: this.getHygieneSummary({ workspacePath: opts.workspacePath, now: nowMs }),
+      summary: this.getHygieneSummary({
+        workspacePath: opts.workspacePath,
+        workspaceRoot: explicitWorkspaceRoot,
+        now: nowMs,
+      }),
     };
   }
 
@@ -1061,13 +1203,14 @@ export class MemoryStore {
     const items = this.readRaw();
     const now = new Date().toISOString();
     const requestedWorkspace = input.workspacePath ? path.resolve(input.workspacePath) : undefined;
+    const defaultWorkspaceRoot = this.getDefaultWorkspaceRoot();
     // Enforce defaultWorkspaceRoot security boundary when configured: never allow model-supplied workspacePath to widen anchor inspection outside workspaceRoot.
-    let inspectWorkspace = this.defaultWorkspaceRoot
-      ? path.resolve(this.defaultWorkspaceRoot)
+    let inspectWorkspace = defaultWorkspaceRoot
+      ? path.resolve(defaultWorkspaceRoot)
       : requestedWorkspace;
     let resolvedWorkspace = inspectWorkspace;
-    if (requestedWorkspace && this.defaultWorkspaceRoot) {
-      const trustedRoot = path.resolve(this.defaultWorkspaceRoot);
+    if (requestedWorkspace && defaultWorkspaceRoot) {
+      const trustedRoot = path.resolve(defaultWorkspaceRoot);
       const realTrusted = (() => {
         try {
           return canonicalRealpathSync(trustedRoot);
@@ -1216,7 +1359,7 @@ export class MemoryStore {
     if (this.demoMode && items[idx].id.startsWith('mem_demo_')) {
       items[idx].anchors = items[idx].anchors.map((a) => ({ ...a, driftStatus: 'fresh' }));
     } else {
-      const ws = items[idx].workspacePath ?? this.defaultWorkspaceRoot;
+      const ws = items[idx].workspacePath ?? this.getDefaultWorkspaceRoot();
       items[idx].anchors = items[idx].anchors.map((a) => {
         const inspected = inspectAnchorFile(a.filePath, ws);
         if (inspected.status === 'ok' && inspected.sha256) {

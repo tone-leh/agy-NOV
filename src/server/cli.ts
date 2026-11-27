@@ -37,7 +37,7 @@ import {
 } from '../core/utils.js';
 import { executeSafeCompactRun, loadTurboPrefsReadOnly } from '../modules/turbo/auto-rtk.js';
 
-const CLI_VERSION = '1.0.1';
+const CLI_VERSION = '1.0.2';
 const MAX_READ_JSON_BYTES = 2 * 1024 * 1024; // 2 MiB hard cap for silent read-only JSON loading
 const DEFAULT_CONTEXT_WINDOW_TOKENS = 200_000;
 
@@ -70,6 +70,12 @@ Usage:
   agy-nov recommend [--workspace=<dir>] [--json] [--export-preset [--confirm] [--force]]  Read-only project scanner & .agy-nov.json scaffold
   agy-nov doctor [--data-dir=<dir>]                                                   Verify plugin bundle, manifests & config health (read-only)
   agy-nov compact-run --payload=<b64> [--data-dir=<dir>]                              Auto-RTK whitelisted shell-free compact command runner
+
+Tip:
+  When installed via "agy plugin install", invoke directly with:
+    node ~/.gemini/config/plugins/agy-nov/dist/cli.cjs <command>
+  (or run "npm link" inside the plugin directory once to register the global "agy-nov" binary).
+  Without --data-dir, agy-NOV automatically detects an existing Antigravity plugin_data/agy-nov directory before falling back to ~/.agy-nov-data.
 `);
 }
 

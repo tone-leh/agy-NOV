@@ -49,12 +49,12 @@ export function registerGuardModule(
   _uiResourceUri: string,
 ): ModuleRegistrationResult {
   const moduleDataDir = getModuleDataDir(opts.dataDir, 'guard');
-  const workspaceRoot = opts.workspaceRoot;
+  const getWorkspaceRoot = () => opts.workspaceRoot;
   const isDemo = opts.demoMode === true;
 
   // Demo mode runs 100% in-memory with strictly zero disk writes.
   // Live mode also keeps disk untouched until an actual guard operation occurs.
-  const demoStore: DemoGuardSeed | null = isDemo ? createDemoGuardSeed(workspaceRoot) : null;
+  const demoStore: DemoGuardSeed | null = isDemo ? createDemoGuardSeed(getWorkspaceRoot()) : null;
   let lastScan: WorkspaceScanReport | null = null;
 
   const readCurrentPolicy = (): GuardPolicy =>
@@ -67,7 +67,7 @@ export function registerGuardModule(
     demoStore
       ? buildDashboardStateFromMemory({
           dataDir: moduleDataDir,
-          workspaceRoot,
+          workspaceRoot: getWorkspaceRoot(),
           mode: 'demo',
           policy: demoStore.policy,
           snapshots: demoStore.snapshots,
@@ -76,7 +76,7 @@ export function registerGuardModule(
         })
       : buildDashboardState({
           dataDir: moduleDataDir,
-          workspaceRoot,
+          workspaceRoot: getWorkspaceRoot(),
           mode: 'live',
           lastScan,
         });
@@ -305,10 +305,11 @@ export function registerGuardModule(
     async ({ files, reason }) => {
       try {
         const policy = readCurrentPolicy();
-        const realRoot = assertInsideWorkspace(workspaceRoot, workspaceRoot);
+        const currentWorkspaceRoot = getWorkspaceRoot();
+        const realRoot = assertInsideWorkspace(currentWorkspaceRoot, currentWorkspaceRoot);
         const validatedPaths: string[] = [];
         for (const f of files) {
-          const safePath = assertInsideWorkspace(workspaceRoot, f);
+          const safePath = assertInsideWorkspace(currentWorkspaceRoot, f);
           const rawCheck = isSensitivePath(f, policy.customProtectedPaths);
           const realCheck = isSensitivePath(safePath, policy.customProtectedPaths);
           if (rawCheck.sensitive || realCheck.sensitive) {
@@ -378,7 +379,7 @@ export function registerGuardModule(
               toolName: 'guard_create_checkpoint',
               reason: reason ?? 'Manual safety checkpoint',
               policy,
-              workspaceRoot,
+              workspaceRoot: currentWorkspaceRoot,
               turnKey: checkpointTurnKey,
             });
             if (snap) created.push({ id: snap.id, relPath: snap.relPath, lineCount: snap.lineCount });
@@ -411,9 +412,10 @@ export function registerGuardModule(
     async ({ directory }) => {
       try {
         const policy = readCurrentPolicy();
-        const realRoot = assertInsideWorkspace(workspaceRoot, workspaceRoot);
-        const rawTarget = directory ? path.resolve(workspaceRoot, directory) : workspaceRoot;
-        const safeTargetDir = assertInsideWorkspace(workspaceRoot, rawTarget);
+        const currentWorkspaceRoot = getWorkspaceRoot();
+        const realRoot = assertInsideWorkspace(currentWorkspaceRoot, currentWorkspaceRoot);
+        const rawTarget = directory ? path.resolve(currentWorkspaceRoot, directory) : currentWorkspaceRoot;
+        const safeTargetDir = assertInsideWorkspace(currentWorkspaceRoot, rawTarget);
         if (directory) {
           const rawCheck = isSensitivePath(directory, policy.customProtectedPaths);
           const realCheck = isSensitivePath(safeTargetDir, policy.customProtectedPaths);
@@ -486,13 +488,14 @@ export function registerGuardModule(
     },
     async ({ snapshotId }) => {
       try {
+        const currentWorkspaceRoot = getWorkspaceRoot();
         const diff = demoStore
           ? (() => {
               const rec = demoStore.snapshots.find((s) => s.id === snapshotId);
               if (!rec) throw new Error(`Snapshot not found: ${snapshotId}`);
-              return diffSnapshotRecord(rec, moduleDataDir, workspaceRoot, demoStore.policy);
+              return diffSnapshotRecord(rec, moduleDataDir, currentWorkspaceRoot, demoStore.policy);
             })()
-          : diffSnapshot(moduleDataDir, snapshotId, workspaceRoot);
+          : diffSnapshot(moduleDataDir, snapshotId, currentWorkspaceRoot);
         return {
           content: [{ type: 'text', text: 'ok' }],
           structuredContent: { ...diff },
@@ -520,7 +523,7 @@ export function registerGuardModule(
       try {
         const result = demoStore
           ? restoreDemoSnapshot(snapshotId)
-          : restoreSnapshot({ dataDir: moduleDataDir, snapshotId, workspaceRoot });
+          : restoreSnapshot({ dataDir: moduleDataDir, snapshotId, workspaceRoot: getWorkspaceRoot() });
         const state = getCurrentState();
         return {
           content: [{ type: 'text', text: result.message }],
@@ -548,15 +551,16 @@ export function registerGuardModule(
     },
     async ({ turnKey }) => {
       try {
+        const currentWorkspaceRoot = getWorkspaceRoot();
         const diff = demoStore
           ? computeTurnCheckpointDiffFromRecords(
               demoStore.snapshots,
               turnKey,
               moduleDataDir,
-              workspaceRoot,
+              currentWorkspaceRoot,
               demoStore.policy,
             )
-          : getTurnCheckpointDiff(moduleDataDir, turnKey, workspaceRoot);
+          : getTurnCheckpointDiff(moduleDataDir, turnKey, currentWorkspaceRoot);
         return {
           content: [{ type: 'text', text: 'ok' }],
           structuredContent: { ...diff },
@@ -585,7 +589,7 @@ export function registerGuardModule(
       try {
         const result = demoStore
           ? restoreDemoTurn(turnKey)
-          : restoreTurnCheckpoint(moduleDataDir, turnKey, workspaceRoot, loadPolicy(moduleDataDir));
+          : restoreTurnCheckpoint(moduleDataDir, turnKey, getWorkspaceRoot(), loadPolicy(moduleDataDir));
         const state = getCurrentState();
         return {
           content: [{ type: 'text', text: result.message }],
@@ -655,7 +659,8 @@ export function registerGuardModule(
     async () => {
       try {
         const policy = readCurrentPolicy();
-        const safeWorkspace = assertInsideWorkspace(workspaceRoot, workspaceRoot);
+        const currentWorkspaceRoot = getWorkspaceRoot();
+        const safeWorkspace = assertInsideWorkspace(currentWorkspaceRoot, currentWorkspaceRoot);
         const report = scanWorkspaceForSecrets(safeWorkspace, 250, policy.customProtectedPaths);
         lastScan = report;
         const auditPayload = {
@@ -663,7 +668,7 @@ export function registerGuardModule(
           toolName: 'app_guard_scan_workspace',
           decision: (report.findings.length > 0 ? 'ask' : 'allow') as 'ask' | 'allow',
           category: 'secret-scan',
-          target: path.basename(workspaceRoot),
+          target: path.basename(currentWorkspaceRoot),
           summary: `Scanned ${report.scannedFiles} source files — ${report.findings.length} masked finding(s)`,
         };
         if (demoStore) {

@@ -434,6 +434,7 @@ describe('v0.8.0 Turbo 3.0 — MCP Protocol Contract, Toggle Enforcement & Zero 
         workspaceRoot: workspace,
         demoMode: false,
         configPollMs: 0,
+        exposeAppToolsWithoutUiCapability: true,
       });
       const [cTrans, sTrans] = InMemoryTransport.createLinkedPair();
       const client = new Client({ name: 'v08-mcp-client', version: '0.8.0' });

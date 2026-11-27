@@ -64,7 +64,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
   onNotify,
   incomingEvent,
 }) => {
-  const { dict } = useNovI18n();
+  const { dict, t } = useNovI18n();
   const x = dict.panels.xray;
 
   const loadedOnceRef = useRef(false);
@@ -472,13 +472,13 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
       if (outcome.mode === 'new_conversation') {
         notify(
           outcome.conversationId
-            ? `Clean Fork started in fresh session (${outcome.conversationId})`
-            : 'Clean Fork started in fresh session',
+            ? t(dict.hub.cleanForkStartedIdToast, { id: outcome.conversationId })
+            : dict.hub.cleanForkStartedToast,
         );
       } else if (outcome.mode === 'context') {
-        notify('Clean Fork pack attached to model context (fallback)');
+        notify(dict.hub.cleanForkContextToast);
       } else {
-        notify(`${dict.common.copied} · Clean Fork Pack`);
+        notify(`${dict.common.copied} · ${dict.hub.cleanForkPackLabel}`);
       }
     } catch (err) {
       notify(err instanceof Error ? err.message : String(err));
@@ -493,7 +493,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
       notify(dict.common.empty);
       return;
     }
-    await deliverExportPayload(pack.promptMarkdown, 'Clean Fork Pack', false);
+    await deliverExportPayload(pack.promptMarkdown, dict.hub.cleanForkPackLabel, false);
   };
 
   const canOpenFile = caps.isWorkbench || caps.message || caps.updateModelContext;
@@ -520,14 +520,14 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
   const renderCleanForkCard = () => {
     const sec = cleanForkPack?.sections;
     const capabilityHint = caps.message
-      ? 'Host supports message target="new" — launches a fresh background conversation directly.'
-      : 'Host surface lacks direct new-session messaging — falls back to model context attachment or clipboard copy.';
+      ? dict.hub.cleanForkHintReady
+      : dict.hub.cleanForkHintFallback;
     return (
-      <section className="xr-card" aria-label="Clean Fork (Fresh Session)">
+      <section className="xr-card" aria-label={dict.hub.cleanForkTitle}>
         <div className="xr-section-title">
-          <span>Clean Fork (Fresh Session)</span>
+          <span>{dict.hub.cleanForkTitle}</span>
           <span className={`xr-badge ${caps.message ? 'xr-sev-good' : 'xr-sev-warn'}`}>
-            {caps.message ? 'New Session Ready' : 'Context / Copy Fallback'}
+            {caps.message ? dict.hub.cleanForkReadyBadge : dict.hub.cleanForkFallbackBadge}
           </span>
         </div>
         <div className="xr-kpi-sub" style={{ marginTop: 4, marginBottom: 8 }}>
@@ -535,21 +535,23 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
         </div>
         <div className="xr-step-badges" style={{ flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           <span className={`xr-badge ${sec?.hasHandoff ? 'xr-sev-info' : ''}`}>
-            Handoff: {sec ? (sec.hasHandoff ? 'Ready' : 'None') : '—'}
+            {dict.hub.cleanForkHandoffLabel}:{' '}
+            {sec ? (sec.hasHandoff ? dict.hub.cleanForkReadyVal : dict.hub.cleanForkNoneVal) : '—'}
           </span>
           <span className={`xr-badge ${sec?.activeSpecTitle ? 'xr-sev-good' : ''}`}>
-            Spec: {sec?.activeSpecTitle ? sec.activeSpecTitle : 'None'}
+            {dict.modules.spec.shortLabel}:{' '}
+            {sec?.activeSpecTitle ? sec.activeSpecTitle : dict.hub.cleanForkNoneVal}
           </span>
           <span className="xr-badge xr-mono">
-            Ready Tasks: {sec ? sec.readyTasksCount : '—'}
+            {dict.hub.cleanForkReadyTasksLabel}: {sec ? sec.readyTasksCount : '—'}
           </span>
           <span className="xr-badge xr-mono">
-            Mem Anchors: {sec ? sec.memAnchorsCount : '—'}
+            {dict.hub.cleanForkMemAnchorsLabel}: {sec ? sec.memAnchorsCount : '—'}
           </span>
           {cleanForkPack && (
             <span className="xr-badge xr-mono">
               ~{fmtTokens(cleanForkPack.estimatedTokens)} tok · {cleanForkPack.totalBytes} B
-              {cleanForkPack.truncated ? ' (Truncated)' : ''}
+              {cleanForkPack.truncated ? ` (${dict.common.truncated})` : ''}
             </span>
           )}
         </div>
@@ -560,7 +562,11 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
             disabled={cleanForkLaunching || cleanForkLoading}
             onClick={() => void handleLaunchCleanFork()}
           >
-            {cleanForkLaunching ? dict.common.loading : 'Clean Fork (Fresh Session)'}
+            {cleanForkLaunching
+              ? dict.common.loading
+              : caps.message
+                ? dict.hub.cleanForkTitle
+                : dict.hub.cleanForkCopyPackBtn}
           </button>
           <button
             type="button"
@@ -573,7 +579,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
               setShowCleanForkPreview((prev) => !prev);
             }}
           >
-            {showCleanForkPreview ? 'Hide Preview' : 'Preview Pack'}
+            {showCleanForkPreview ? dict.hub.cleanForkHidePreviewBtn : dict.hub.cleanForkPreviewBtn}
           </button>
           <button
             type="button"
@@ -581,7 +587,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
             disabled={cleanForkLoading}
             onClick={() => void handleCopyCleanFork()}
           >
-            Copy Pack
+            {dict.hub.cleanForkCopyPackBtn}
           </button>
           <button
             type="button"
@@ -594,7 +600,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
         </div>
         {lastForkResult && (
           <div className="xr-kpi-sub xr-mono" style={{ marginTop: 6 }}>
-            Last Fork: {lastForkResult.mode}
+            {dict.hub.cleanForkLastLabel}: {lastForkResult.mode}
             {lastForkResult.conversationId ? ` · ${lastForkResult.conversationId}` : ''}
           </div>
         )}
@@ -796,7 +802,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
           <span className="xr-logo-dot">XR</span>
           <span>{x.title}</span>
           <span className="xr-badge xr-sev-info">
-            {caps.isWorkbench ? 'Workbench' : 'MCP App'}
+            {caps.isWorkbench ? x.modeWorkbench : x.modeMcpApp}
           </span>
         </div>
 
@@ -1084,7 +1090,9 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
                             {tn}
                           </span>
                         ))}
-                        {st.truncated && <span className="xr-badge xr-sev-warn">TRUNC</span>}
+                        {st.truncated && (
+                          <span className="xr-badge xr-sev-warn">{x.truncatedBadge}</span>
+                        )}
                         {st.inputTokens != null && (
                           <span className="xr-kpi-sub xr-mono">
                             IN {fmtTokens(st.inputTokens)} · CACHE{' '}

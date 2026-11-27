@@ -386,7 +386,7 @@ describe('v1.0.1 Cross-Platform Core Utils (src/core/utils.ts)', () => {
 });
 
 describe('v1.0.1 Hook Manifest, CLI Entrypoint, LF Line Endings & Test Runner Hygiene', () => {
-  it('quotes "${PLUGIN_ROOT}/dist/hook.cjs" and "${PLUGIN_DATA}" in all 5 hooks.json commands', () => {
+  it('uses cross-platform plugin-root relative commands in all 5 hooks.json entries (no unexpanded ${PLUGIN_ROOT}/${PLUGIN_DATA})', () => {
     const hooksPath = path.join(REPO_ROOT, 'hooks.json');
     const parsed = JSON.parse(fs.readFileSync(hooksPath, 'utf8')) as {
       'agy-nov-hooks': Record<
@@ -413,13 +413,15 @@ describe('v1.0.1 Hook Manifest, CLI Entrypoint, LF Line Endings & Test Runner Hy
 
     assert.equal(commands.length, 5, 'Expected exactly 5 hook commands in hooks.json');
     for (const cmd of commands) {
-      assert.ok(
-        cmd.includes('"${PLUGIN_ROOT}/dist/hook.cjs"'),
-        `Hook command must double-quote PLUGIN_ROOT hook path: ${cmd}`,
+      assert.match(
+        cmd,
+        /^node dist\/hook\.cjs --event (?:SessionStart|PreToolUse|PostToolUse|PreInvocation|Stop)$/,
+        `Hook command must use cross-platform relative path for sh -c and cmd /c: ${cmd}`,
       );
-      assert.ok(
-        cmd.includes('--data-dir="${PLUGIN_DATA}"'),
-        `Hook command must double-quote PLUGIN_DATA path: ${cmd}`,
+      assert.equal(
+        cmd.includes('${PLUGIN_ROOT}') || cmd.includes('${PLUGIN_DATA}'),
+        false,
+        `Hook command must not rely on template substitution unavailable in Windows cmd /c: ${cmd}`,
       );
     }
   });

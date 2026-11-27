@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NovBridge } from '../../bridge.js';
-import { useNovI18n } from '../../i18n/index.js';
+import { useNovI18n, type MemPanelI18n } from '../../i18n/index.js';
 import './styles.css';
 
 export interface NovModulePanelProps {
@@ -252,46 +252,71 @@ function computeClientHygieneSummary(memories: MemoryItem[]): MemoryHygieneSumma
   };
 }
 
-function renderConfidenceBadge(confidence: MemoryConfidence): { label: string; className: string } {
+function renderConfidenceBadge(
+  confidence: MemoryConfidence,
+  memDict: MemPanelI18n,
+): { label: string; className: string } {
   if (confidence === 'verified') {
-    return { label: 'Verified', className: 'mem-badge is-good' };
+    return { label: memDict.confidenceVerified, className: 'mem-badge is-good' };
   }
   if (confidence === 'tentative') {
-    return { label: 'Tentative', className: 'mem-badge is-warn' };
+    return { label: memDict.confidenceTentative, className: 'mem-badge is-warn' };
   }
-  return { label: 'Normal', className: 'mem-badge' };
+  return { label: memDict.confidenceNormal, className: 'mem-badge' };
 }
 
-function renderTtlBadge(item: {
-  pinned?: boolean;
-  ttlDays?: number | null;
-  expiresAt?: string | null;
-  hygieneStatus?: MemoryHygieneStatus;
-}): { label: string; className: string } {
+function renderTtlBadge(
+  item: {
+    pinned?: boolean;
+    ttlDays?: number | null;
+    expiresAt?: string | null;
+    hygieneStatus?: MemoryHygieneStatus;
+  },
+  memDict: MemPanelI18n,
+  t: (template: string, params?: Record<string, string | number>) => string,
+): { label: string; className: string } {
   const status = getEffectiveHygieneStatus(item);
   if (item.pinned) {
-    return { label: 'No Expiry', className: 'mem-badge is-info' };
+    return { label: memDict.ttlNoExpiry, className: 'mem-badge is-info' };
   }
   if (!item.expiresAt) {
-    return { label: 'No Expiry', className: 'mem-badge' };
+    return { label: memDict.ttlNoExpiry, className: 'mem-badge' };
   }
   const expiresMs = Date.parse(item.expiresAt);
   if (!Number.isFinite(expiresMs)) {
-    return { label: 'No Expiry', className: 'mem-badge' };
+    return { label: memDict.ttlNoExpiry, className: 'mem-badge' };
   }
   const diffMs = expiresMs - Date.now();
   if (diffMs <= 0 || status === 'stale_ttl') {
     const overdueDays = Math.max(0, Math.floor(-diffMs / MS_PER_DAY));
     return {
-      label: overdueDays > 0 ? `Stale TTL (${overdueDays}d ago)` : 'Stale TTL',
+      label:
+        overdueDays > 0
+          ? t(memDict.ttlStaleDays, { days: overdueDays })
+          : memDict.hygieneStaleTtl,
       className: 'mem-badge is-danger',
     };
   }
   const leftDays = Math.max(1, Math.ceil(diffMs / MS_PER_DAY));
   return {
-    label: `TTL ${leftDays}d left`,
+    label: t(memDict.ttlLeftDays, { days: leftDays }),
     className: leftDays <= 3 ? 'mem-badge is-warn' : 'mem-badge',
   };
+}
+
+function getKindLabel(kind: MemoryKind, memDict: MemPanelI18n): string {
+  switch (kind) {
+    case 'architecture':
+      return memDict.kindArchitecture;
+    case 'decision':
+      return memDict.kindDecision;
+    case 'pitfall':
+      return memDict.kindPitfall;
+    case 'convention':
+      return memDict.kindConvention;
+    case 'preference':
+      return memDict.kindPreference;
+  }
 }
 
 export const MemPanel: React.FC<NovModulePanelProps> = ({
@@ -302,6 +327,17 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
 }) => {
   const { dict, t } = useNovI18n();
   const memDict = dict.panels.mem;
+  const [caps, setCaps] = useState(() => bridge.getCapabilities());
+  useEffect(() => {
+    let mounted = true;
+    void bridge.ready().then(() => {
+      if (mounted) setCaps(bridge.getCapabilities());
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [bridge]);
+  const canUpdateContext = caps.updateModelContext;
 
   const [tab, setTab] = useState<MemSubTab>('cards');
   const [data, setData] = useState<{
@@ -683,16 +719,16 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
           ? res.result?.deletedCount ?? selectedIds.length
           : res.result?.updatedCount ?? selectedIds.length;
       if (action === 'verify') {
-        notify(`Verified ${affected} memory item(s)`);
+        notify(t(memDict.toastBatchVerified, { n: affected }));
       } else if (action === 'refresh_ttl') {
-        notify(`Refreshed TTL (+30d) for ${affected} memory item(s)`);
+        notify(t(memDict.toastBatchTtlRefreshed, { n: affected }));
       } else {
-        notify(`Pruned ${affected} memory item(s)`);
+        notify(t(memDict.toastBatchPruned, { n: affected }));
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setErrorMsg(msg);
-      notify(`Batch hygiene failed: ${msg}`);
+      notify(t(dict.common.actionFailed, { error: msg }));
     } finally {
       setBatchBusy(false);
     }
@@ -703,14 +739,14 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
     const title = newTitle.trim();
     const content = newContent.trim();
     if (title.length < 2 || content.length < 4) {
-      notify('Title (min 2 chars) and content (min 4 chars) are required');
+      notify(memDict.toastTitleContentRequired);
       return;
     }
     let parsedTtlDays: number | null = null;
     if (newTtlDays.trim().length > 0) {
       const n = Number(newTtlDays.trim());
       if (!Number.isInteger(n) || n < 1 || n > 365) {
-        notify('TTL (days) must be an integer between 1 and 365 (or leave blank for no expiry)');
+        notify(memDict.toastInvalidTtl);
         return;
       }
       parsedTtlDays = n;
@@ -745,9 +781,9 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
       setNewConfidence('normal');
       setNewTtlDays('');
       setTab('cards');
-      notify('Saved code-anchored memory');
+      notify(memDict.toastSaved);
     } catch (err) {
-      notify(`Failed to save memory: ${err instanceof Error ? err.message : String(err)}`);
+      notify(t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }));
     }
   };
 
@@ -759,7 +795,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
         await runLayeredRecall(recallMode, query, focusedIds);
       }
     } catch (err) {
-      notify(`Failed to toggle pin: ${err instanceof Error ? err.message : String(err)}`);
+      notify(t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }));
     }
   };
 
@@ -770,9 +806,9 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
       if (recallMode !== 'detail' || searchHits !== null || focusedIds.length > 0) {
         await runLayeredRecall(recallMode, query, focusedIds);
       }
-      notify('Re-verified file anchor hashes');
+      notify(memDict.toastReverified);
     } catch (err) {
-      notify(`Failed to verify anchor: ${err instanceof Error ? err.message : String(err)}`);
+      notify(t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }));
     }
   };
 
@@ -792,24 +828,35 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
         void runLayeredRecall(recallMode, query, []);
       }
       if (selectedNodeId === id) setSelectedNodeId(null);
-      notify('Deleted memory card');
+      notify(memDict.toastDeleted);
     } catch (err) {
-      notify(`Failed to delete memory: ${err instanceof Error ? err.message : String(err)}`);
+      notify(t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }));
     }
   };
 
   const handleOpenAnchor = async (anchor: CodeAnchor) => {
     const target = anchor.uri || anchor.filePath;
     const ok = await bridge.openFile(target);
-    notify(ok ? `Opened ${anchor.basename} in side pane` : 'Open file available in Side Pane mode');
+    if (!ok) {
+      try {
+        await navigator.clipboard?.writeText(anchor.filePath);
+      } catch {
+        // ignore clipboard failure
+      }
+    }
+    notify(
+      ok
+        ? t(memDict.toastOpenedAnchor, { file: anchor.basename })
+        : t(memDict.toastOpenAnchorFallback, { file: anchor.filePath }),
+    );
   };
 
   const handleInjectContext = async (title: string, content: string) => {
     const mode = await bridge.updateModelContext(`[Memory Graph: ${title}]\n${content}`);
     notify(
       mode === 'context'
-        ? `Injected "${title}" into next model context`
-        : `Copied "${title}" to clipboard`,
+        ? t(memDict.toastInjected, { title })
+        : t(memDict.toastCopiedTitle, { title }),
     );
   };
 
@@ -936,15 +983,15 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
 
           {tab === 'cards' && (
             <div className="mem-stack">
-              <div className="mem-hygiene-bar" role="region" aria-label="Memory Hygiene">
-                <div className="mem-hygiene-pills" role="group" aria-label="Filter by hygiene status">
+              <div className="mem-hygiene-bar" role="region" aria-label={memDict.hygieneRegionLabel}>
+                <div className="mem-hygiene-pills" role="group" aria-label={memDict.hygieneFilterLabel}>
                   <button
                     type="button"
                     aria-pressed={hygieneFilter === 'all'}
                     className={`mem-hygiene-pill ${hygieneFilter === 'all' ? 'is-active' : ''}`}
                     onClick={() => handleSelectHygieneFilter('all')}
                   >
-                    All ({hygieneSummary.total})
+                    {dict.categoryAll} ({hygieneSummary.total})
                   </button>
                   <button
                     type="button"
@@ -952,7 +999,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                     className={`mem-hygiene-pill is-good ${hygieneFilter === 'healthy' ? 'is-active' : ''}`}
                     onClick={() => handleSelectHygieneFilter('healthy')}
                   >
-                    Healthy ({hygieneSummary.healthy})
+                    {memDict.hygieneHealthy} ({hygieneSummary.healthy})
                   </button>
                   <button
                     type="button"
@@ -960,7 +1007,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                     className={`mem-hygiene-pill is-warn ${hygieneFilter === 'needs_review' ? 'is-active' : ''}`}
                     onClick={() => handleSelectHygieneFilter('needs_review')}
                   >
-                    Needs Review ({hygieneSummary.needsReview})
+                    {memDict.hygieneNeedsReview} ({hygieneSummary.needsReview})
                   </button>
                   <button
                     type="button"
@@ -968,7 +1015,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                     className={`mem-hygiene-pill is-danger ${hygieneFilter === 'stale_ttl' ? 'is-active' : ''}`}
                     onClick={() => handleSelectHygieneFilter('stale_ttl')}
                   >
-                    Stale TTL ({hygieneSummary.staleTtl})
+                    {memDict.hygieneStaleTtl} ({hygieneSummary.staleTtl})
                   </button>
                   <button
                     type="button"
@@ -976,12 +1023,12 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                     className={`mem-hygiene-pill is-warn ${hygieneFilter === 'drifted' ? 'is-active' : ''}`}
                     onClick={() => handleSelectHygieneFilter('drifted')}
                   >
-                    Drifted ({hygieneSummary.drifted})
+                    {memDict.hygieneDrifted} ({hygieneSummary.drifted})
                   </button>
                 </div>
                 {hygieneSummary.tentative > 0 && (
                   <span className="mem-badge is-warn">
-                    Tentative: {hygieneSummary.tentative}
+                    {memDict.confidenceTentative}: {hygieneSummary.tentative}
                   </span>
                 )}
               </div>
@@ -1023,13 +1070,13 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                   onChange={(e) => setFilterKind(e.target.value)}
                 >
                   <option value="all">{dict.categoryAll}</option>
-                  <option value="pinned">Pinned Only</option>
+                  <option value="pinned">{memDict.filterPinnedOnly}</option>
                   <option value="drifted">{memDict.stale}</option>
-                  <option value="architecture">Architecture</option>
-                  <option value="decision">Decision</option>
-                  <option value="pitfall">Pitfall</option>
-                  <option value="convention">Convention</option>
-                  <option value="preference">Preference</option>
+                  <option value="architecture">{memDict.kindArchitecture}</option>
+                  <option value="decision">{memDict.kindDecision}</option>
+                  <option value="pitfall">{memDict.kindPitfall}</option>
+                  <option value="convention">{memDict.kindConvention}</option>
+                  <option value="preference">{memDict.kindPreference}</option>
                 </select>
               </form>
 
@@ -1081,7 +1128,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                 <div
                   className={`mem-batch-bar ${selectedIds.length > 0 ? 'has-selection' : ''}`}
                   role="toolbar"
-                  aria-label="Batch memory hygiene actions"
+                  aria-label={memDict.batchBarLabel}
                 >
                   <div className="mem-row">
                     <label className="mem-checkbox-row">
@@ -1094,8 +1141,8 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                       />
                       <span>
                         {selectedIds.length > 0
-                          ? `${selectedIds.length} selected`
-                          : `Select visible (${visibleIds.length})`}
+                          ? t(memDict.selectedCount, { n: selectedIds.length })
+                          : t(memDict.selectVisibleCount, { n: visibleIds.length })}
                       </span>
                     </label>
                     {selectedIds.length > 0 && (
@@ -1119,7 +1166,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                       disabled={selectedIds.length === 0 || batchBusy}
                       onClick={() => void handleBatchHygiene('verify')}
                     >
-                      Verify Selected
+                      {memDict.batchVerifyBtn}
                     </button>
                     <button
                       type="button"
@@ -1127,7 +1174,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                       disabled={selectedIds.length === 0 || batchBusy}
                       onClick={() => void handleBatchHygiene('refresh_ttl')}
                     >
-                      Refresh TTL (+30d)
+                      {memDict.batchRefreshTtlBtn}
                     </button>
                     {confirmPrune && selectedIds.length > 0 ? (
                       <>
@@ -1137,7 +1184,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                           disabled={batchBusy}
                           onClick={() => void handleBatchHygiene('prune')}
                         >
-                          Confirm Prune ({selectedIds.length})
+                          {t(memDict.batchConfirmPruneBtn, { n: selectedIds.length })}
                         </button>
                         <button
                           type="button"
@@ -1145,7 +1192,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                           disabled={batchBusy}
                           onClick={() => setConfirmPrune(false)}
                         >
-                          Cancel
+                          {dict.common.cancel}
                         </button>
                       </>
                     ) : (
@@ -1155,7 +1202,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                         disabled={selectedIds.length === 0 || batchBusy}
                         onClick={() => void handleBatchHygiene('prune')}
                       >
-                        Prune Selected
+                        {memDict.batchPruneBtn}
                       </button>
                     )}
                   </div>
@@ -1168,8 +1215,8 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                 ) : (
                   <div className="mem-stack">
                     {indexEntries.map((entry) => {
-                      const confBadge = renderConfidenceBadge(getEffectiveConfidence(entry));
-                      const ttlBadge = renderTtlBadge(entry);
+                      const confBadge = renderConfidenceBadge(getEffectiveConfidence(entry), memDict);
+                      const ttlBadge = renderTtlBadge(entry, memDict, t);
                       const status = getEffectiveHygieneStatus(entry);
                       const isSelected = selectedIdSet.has(entry.id);
                       return (
@@ -1182,7 +1229,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                               <input
                                 type="checkbox"
                                 className="mem-item-checkbox"
-                                aria-label={`Select ${entry.title}`}
+                                aria-label={t(memDict.selectItemAria, { title: entry.title })}
                                 checked={isSelected}
                                 onChange={() => handleToggleSelect(entry.id)}
                               />
@@ -1194,7 +1241,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                                   borderColor: KIND_COLOR[entry.kind],
                                 }}
                               >
-                                {entry.kind.toUpperCase()}
+                                {getKindLabel(entry.kind, memDict)}
                               </span>
                               <strong>{entry.title}</strong>
                               <span className={confBadge.className}>{confBadge.label}</span>
@@ -1243,8 +1290,8 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                 ) : (
                   <div className="mem-stack">
                     {timelineEntries.map((entry) => {
-                      const confBadge = renderConfidenceBadge(getEffectiveConfidence(entry));
-                      const ttlBadge = renderTtlBadge(entry);
+                      const confBadge = renderConfidenceBadge(getEffectiveConfidence(entry), memDict);
+                      const ttlBadge = renderTtlBadge(entry, memDict, t);
                       const status = getEffectiveHygieneStatus(entry);
                       const isSelected = selectedIdSet.has(entry.id);
                       return (
@@ -1257,12 +1304,16 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                               <input
                                 type="checkbox"
                                 className="mem-item-checkbox"
-                                aria-label={`Select ${entry.title}`}
+                                aria-label={t(memDict.selectItemAria, { title: entry.title })}
                                 checked={isSelected}
                                 onChange={() => handleToggleSelect(entry.id)}
                               />
                               <span className="mem-badge">{entry.updatedAt.slice(0, 19).replace('T', ' ')}</span>
-                              {entry.isAnchorHit && <span className="mem-badge is-info">★ HIT</span>}
+                              {entry.isAnchorHit && (
+                                <span className="mem-badge is-info">
+                                  ★ {t(memDict.hitBadge, { n: Math.max(1, entry.recallCount) })}
+                                </span>
+                              )}
                               <span className="mem-badge">{entry.id}</span>
                               <span
                                 className="mem-badge"
@@ -1271,7 +1322,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                                   borderColor: KIND_COLOR[entry.kind],
                                 }}
                               >
-                                {entry.kind.toUpperCase()}
+                                {getKindLabel(entry.kind, memDict)}
                               </span>
                               <strong>{entry.title}</strong>
                               <span className={confBadge.className}>{confBadge.label}</span>
@@ -1297,7 +1348,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                             ))}
                             {entry.sourceConversationId && (
                               <span className="mem-badge is-purple">
-                                session:{entry.sourceConversationId.slice(0, 12)}
+                                #{entry.sourceConversationId.slice(0, 12)}
                               </span>
                             )}
                             {entry.tags.map((tag) => (
@@ -1317,8 +1368,8 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                   <div className="mem-card mem-muted">{memDict.emptyMemories}</div>
                 ) : (
                   filtered.map((m) => {
-                    const confBadge = renderConfidenceBadge(getEffectiveConfidence(m));
-                    const ttlBadge = renderTtlBadge(m);
+                    const confBadge = renderConfidenceBadge(getEffectiveConfidence(m), memDict);
+                    const ttlBadge = renderTtlBadge(m, memDict, t);
                     const status = getEffectiveHygieneStatus(m);
                     const isSelected = selectedIdSet.has(m.id);
                     return (
@@ -1331,7 +1382,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                             <input
                               type="checkbox"
                               className="mem-item-checkbox"
-                              aria-label={`Select ${m.title}`}
+                              aria-label={t(memDict.selectItemAria, { title: m.title })}
                               checked={isSelected}
                               onChange={() => handleToggleSelect(m.id)}
                             />
@@ -1339,7 +1390,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                               className="mem-badge"
                               style={{ color: KIND_COLOR[m.kind], borderColor: KIND_COLOR[m.kind] }}
                             >
-                              {m.kind.toUpperCase()}
+                              {getKindLabel(m.kind, memDict)}
                             </span>
                             <strong>{m.title}</strong>
                             <span className="mem-badge">{m.id}</span>
@@ -1348,7 +1399,9 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                             {typeof m.score === 'number' && (
                               <span className="mem-badge is-good">BM25 {m.score.toFixed(2)}</span>
                             )}
-                            {m.pinned && <span className="mem-badge is-info">★ PINNED</span>}
+                            {m.pinned && (
+                              <span className="mem-badge is-info">★ {memDict.pinnedBadge}</span>
+                            )}
                             {m.drifted ? (
                               <span className="mem-badge is-warn">⚠ {memDict.stale}</span>
                             ) : (
@@ -1361,14 +1414,14 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                               className="mem-btn is-primary"
                               onClick={() => void handleInjectContext(m.title, m.content)}
                             >
-                              {memDict.injectContext}
+                              {canUpdateContext ? memDict.injectContext : dict.common.copyPrompt}
                             </button>
                             <button
                               type="button"
                               className="mem-btn"
                               onClick={() => void handleTogglePin(m.id)}
                             >
-                              {m.pinned ? 'Unpin' : 'Pin'}
+                              {m.pinned ? memDict.unpinBtn : memDict.pinBtn}
                             </button>
                             {m.drifted && (
                               <button
@@ -1376,7 +1429,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                                 className="mem-btn"
                                 onClick={() => void handleReverifyDrift(m.id)}
                               >
-                                Verify
+                                {memDict.verifyBtn}
                               </button>
                             )}
                             <button
@@ -1400,7 +1453,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                                   ? 'is-drifted'
                                   : ''
                               }`}
-                              title={`${a.filePath} (${a.driftStatus ?? 'tracked'}) — click to open in side pane`}
+                              title={t(memDict.anchorOpenTip, { file: a.filePath })}
                               onClick={() => void handleOpenAnchor(a)}
                             >
                               📄 {a.basename}
@@ -1517,7 +1570,7 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                             )
                           }
                         >
-                          {memDict.injectContext}
+                          {canUpdateContext ? memDict.injectContext : dict.common.copyPrompt}
                         </button>
                         {selectedMemoryForNode.anchors.map((a) => (
                           <button
@@ -1557,22 +1610,22 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                 value={newKind}
                 onChange={(e) => setNewKind(e.target.value as MemoryKind)}
               >
-                <option value="architecture">Architecture</option>
-                <option value="decision">Decision</option>
-                <option value="pitfall">Pitfall / Root Cause</option>
-                <option value="convention">Convention</option>
-                <option value="preference">Preference</option>
+                <option value="architecture">{memDict.kindArchitecture}</option>
+                <option value="decision">{memDict.kindDecision}</option>
+                <option value="pitfall">{memDict.kindPitfallFull}</option>
+                <option value="convention">{memDict.kindConvention}</option>
+                <option value="preference">{memDict.kindPreference}</option>
               </select>
               <input
                 className="mem-input"
-                placeholder="Short title (e.g. Redis Pipeline Batching Rule)"
+                placeholder={memDict.formTitlePlaceholder}
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
               />
               <textarea
                 className="mem-textarea"
                 rows={3}
-                placeholder="Concise, actionable truth the agent should always remember..."
+                placeholder={memDict.formContentPlaceholder}
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
               />
@@ -1582,40 +1635,40 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
               </div>
               <input
                 className="mem-input"
-                placeholder="Tags (comma-separated, e.g. redis, checkout)"
+                placeholder={memDict.formTagsPlaceholder}
                 value={newTags}
                 onChange={(e) => setNewTags(e.target.value)}
               />
               <input
                 className="mem-input"
-                placeholder="Anchored file path(s) (comma-separated, optional)"
+                placeholder={memDict.formAnchorPlaceholder}
                 value={newAnchor}
                 onChange={(e) => setNewAnchor(e.target.value)}
               />
               <div className="mem-form-grid">
                 <label className="mem-field">
-                  <span className="mem-field-label">Confidence</span>
+                  <span className="mem-field-label">{memDict.formConfidenceLabel}</span>
                   <select
                     className="mem-select"
-                    aria-label="Confidence"
+                    aria-label={memDict.formConfidenceLabel}
                     value={newConfidence}
                     onChange={(e) => setNewConfidence(e.target.value as MemoryConfidence)}
                   >
-                    <option value="normal">Normal (Default)</option>
-                    <option value="verified">Verified (High Trust)</option>
-                    <option value="tentative">Tentative (Needs Review)</option>
+                    <option value="normal">{memDict.formConfidenceNormal}</option>
+                    <option value="verified">{memDict.formConfidenceVerified}</option>
+                    <option value="tentative">{memDict.formConfidenceTentative}</option>
                   </select>
                 </label>
                 <label className="mem-field">
-                  <span className="mem-field-label">TTL (days, optional 1-365)</span>
+                  <span className="mem-field-label">{memDict.formTtlLabel}</span>
                   <input
                     type="number"
                     min={1}
                     max={365}
                     step={1}
                     className="mem-input"
-                    placeholder="No expiry"
-                    aria-label="TTL (days)"
+                    placeholder={memDict.formTtlPlaceholder}
+                    aria-label={memDict.formTtlLabel}
                     value={newTtlDays}
                     onChange={(e) => setNewTtlDays(e.target.value)}
                   />
@@ -1647,10 +1700,10 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                     type="button"
                     className="mem-btn is-primary"
                     onClick={() =>
-                      void handleInjectContext('SessionStart Injection', indexPreviewText)
+                      void handleInjectContext(memDict.tabInjection, indexPreviewText)
                     }
                   >
-                    {memDict.injectContext}
+                    {canUpdateContext ? memDict.injectContext : dict.common.copyPrompt}
                   </button>
                 )}
               </div>
@@ -1666,7 +1719,10 @@ export const MemPanel: React.FC<NovModulePanelProps> = ({
                 )}
                 {progressiveStats && (
                   <span className="mem-muted">
-                    {progressiveStats.activeCount} active · {progressiveStats.compactIndexChars} chars
+                    {t(memDict.activeCharsSummary, {
+                      n: progressiveStats.activeCount,
+                      chars: progressiveStats.compactIndexChars,
+                    })}
                   </span>
                 )}
               </div>

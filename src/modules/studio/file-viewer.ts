@@ -29,6 +29,7 @@ export const FILE_VIEWER_EXTENSIONS = [
 export type FileViewerExtension = (typeof FILE_VIEWER_EXTENSIONS)[number];
 export type FileViewerTargetTab = 'studio' | 'canvas';
 export type FileViewerKind = 'opaque-uri' | 'svg' | 'data' | 'openapi';
+export type FileViewerOpaqueFileKind = 'csv' | 'tsv' | 'svg' | 'openapi' | 'sqlite' | 'unknown';
 
 const DOUBLE_SUFFIX_EXTENSIONS: readonly FileViewerExtension[] = [
   '.openapi.yaml',
@@ -70,7 +71,7 @@ export interface NativeFileViewerInput {
 }
 
 export interface OpenNativeFileViewerOptions {
-  workspaceRoot: string;
+  workspaceRoot: string | (() => string);
   demoMode?: boolean;
   demoService?: DemoStudioService | null;
 }
@@ -89,6 +90,8 @@ export interface NativeFileViewerResult {
   targetTab: FileViewerTargetTab;
   fileName: string;
   extension: FileViewerExtension;
+  fileKind?: FileViewerOpaqueFileKind;
+  supportsHostResourceRead?: boolean;
   relPath?: string;
   resourceUri?: string;
   bytes?: number;
@@ -98,6 +101,26 @@ export interface NativeFileViewerResult {
   svg?: FileViewerSvgPayload;
   data?: StudioDataResult;
   openApi?: ParsedOpenApiSpec;
+}
+
+export function inferOpaqueFileKind(ext: FileViewerExtension | null): FileViewerOpaqueFileKind {
+  switch (ext) {
+    case '.csv':
+      return 'csv';
+    case '.tsv':
+      return 'tsv';
+    case '.svg':
+      return 'svg';
+    case '.openapi.yaml':
+    case '.openapi.yml':
+      return 'openapi';
+    case '.sqlite':
+    case '.sqlite3':
+    case '.db':
+      return 'sqlite';
+    default:
+      return 'unknown';
+  }
 }
 
 /**
@@ -282,6 +305,8 @@ export async function openNativeFileViewer(
   input: NativeFileViewerInput,
   opts: OpenNativeFileViewerOptions,
 ): Promise<NativeFileViewerResult> {
+  const workspaceRoot =
+    typeof opts.workspaceRoot === 'function' ? opts.workspaceRoot() : opts.workspaceRoot;
   const isDemo = opts.demoMode === true;
   const mode: 'live' | 'demo' = isDemo ? 'demo' : 'live';
   const rawResourceUri = input.file?.resourceUri?.trim() || input.file?.uri?.trim() || '';
@@ -295,6 +320,7 @@ export async function openNativeFileViewer(
   // 1. Opaque host resource URI (e.g. antigravity-file://...) — never read local filesystem
   const uriSchemeMatch = rawResourceUri.match(SCHEME_PREFIX_RE);
   if (uriSchemeMatch && uriSchemeMatch[1].toLowerCase() !== 'file') {
+    const scheme = uriSchemeMatch[1].toLowerCase();
     const fileName = extractOpaqueFileName(rawResourceUri, rawName);
     if (rawName) assertNotSensitiveNameOrPath(rawName);
     assertNotSensitiveNameOrPath(fileName);
@@ -319,16 +345,22 @@ export async function openNativeFileViewer(
       );
     }
 
+    const fileKind = inferOpaqueFileKind(ext);
+    const supportsHostResourceRead = scheme === 'antigravity-file';
     const targetTab = resolveFileViewerTargetTab(ext);
     return {
       kind: 'opaque-uri',
       targetTab,
       fileName,
       extension: ext,
+      fileKind,
+      supportsHostResourceRead,
       resourceUri: rawResourceUri,
       mode,
       readOnly: true,
-      note: 'Opaque host resource URI detected. Showing read-only metadata without local filesystem reads.',
+      note: supportsHostResourceRead
+        ? `Opaque host resource URI detected (${fileKind}). Read-only metadata shown without local filesystem reads; frontend can read real content via host resources/read.`
+        : `Opaque resource URI detected (${fileKind}). Showing read-only metadata without local filesystem reads.`,
     };
   }
 
@@ -389,7 +421,7 @@ export async function openNativeFileViewer(
   if (isDemo) {
     const cleanRel = localCandidate.replace(/\\/g, '/').replace(/^\.\//, '');
     if (path.isAbsolute(localCandidate)) {
-      const normalizedRoot = path.resolve(opts.workspaceRoot);
+      const normalizedRoot = path.resolve(workspaceRoot);
       const normalizedTarget = path.resolve(localCandidate);
       if (isSamePath(normalizedRoot, normalizedTarget) || !isPathInsideDir(normalizedRoot, normalizedTarget)) {
         throw new Error(`Path escapes workspace boundary: ${localCandidate}`);
@@ -463,7 +495,7 @@ export async function openNativeFileViewer(
   }
 
   // 4. Live mode — realpathSync workspace boundary, sensitive guard, and <= 10 MiB cap
-  const resolved = resolveStudioWorkspaceFile(opts.workspaceRoot, localCandidate);
+  const resolved = resolveStudioWorkspaceFile(workspaceRoot, localCandidate);
   if (resolved.stat.size > STUDIO_MAX_FILE_BYTES) {
     throw new Error(
       `File exceeds 10 MiB viewer limit (${resolved.stat.size} bytes > ${STUDIO_MAX_FILE_BYTES} bytes): ${resolved.relPath}`,
@@ -498,7 +530,7 @@ export async function openNativeFileViewer(
   }
 
   if (realExt === '.openapi.yaml' || realExt === '.openapi.yml') {
-    const openApi = parseStudioOpenApiFile(opts.workspaceRoot, resolved.relPath);
+    const openApi = parseStudioOpenApiFile(workspaceRoot, resolved.relPath);
     return {
       kind: 'openapi',
       targetTab: 'studio',
@@ -512,7 +544,7 @@ export async function openNativeFileViewer(
     };
   }
 
-  const data = await inspectStudioData(opts.workspaceRoot, {
+  const data = await inspectStudioData(workspaceRoot, {
     filePath: resolved.relPath,
     limit: boundedLimit,
   });

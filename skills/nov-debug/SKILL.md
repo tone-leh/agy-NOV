@@ -21,7 +21,7 @@ Use this on-demand playbook to diagnose bugs systematically without guess-and-pa
      - Call `turbo_read_outline` with `filePath` (`startLine`, `endLine`) to read targeted symbol outlines and line slices while avoiding full-file context bloat.
      - Call `turbo_read_outline` with `depPackage` (and optional `symbolFilter`) to verify locally locked dependency contracts offline (`node_modules/.d.ts`, Python `.pyi`, `go.mod`, `Cargo.lock`) before assuming external API behavior.
      - Pass noisy stack logs through `turbo_compact_output` (`preset: "test" | "build" | "git" | "auto"`) to retain failing frames cleanly.
-   - When `turbo` is OFF, keep file reads tightly bounded to stack frames and mention `node dist/cli.cjs enable turbo` for large repositories.
+   - When `turbo` is OFF, keep file reads tightly bounded to stack frames and advise enabling `turbo` via `nov_open` (`module: "settings"`) or the plugin CLI (`node "$PLUGIN_ROOT/dist/cli.cjs" enable turbo`) for large repositories.
 
 ## Step 2 — Protect & Isolate
 

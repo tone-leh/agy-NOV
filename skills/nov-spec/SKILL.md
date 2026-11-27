@@ -11,8 +11,8 @@ Use this on-demand playbook to drive structured engineering delivery with **agy-
 
 1. Call `nov_status` to check whether `spec` (and optionally `mem` and `verify`) is enabled.
 2. If `spec` is OFF, pause and tell the user how to enable it:
-   - Interactive UI: call `nov_open` with `module: "modules"` (or `module: "settings"`), or
-   - CLI: `node dist/cli.cjs enable spec` (or `node dist/cli.cjs preset power` for the full offline engineering pipeline).
+   - Interactive UI (recommended): call `nov_open` with `module: "modules"` (or `module: "settings"`), or
+   - CLI (run from the plugin install directory, e.g. `~/.gemini/config/plugins/agy-nov`): `node "$PLUGIN_ROOT/dist/cli.cjs" enable spec` (or `preset power` for the full offline engineering pipeline).
    - Never silently enable `remote` or unrelated modules without explicit user consent.
 3. Once `spec` is ON, call `spec_get_state` to inspect any active spec, current `revision`, `writeLockActive`, `unresolvedAnnotations`, and DAG task readiness.
 

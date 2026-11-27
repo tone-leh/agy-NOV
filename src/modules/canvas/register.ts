@@ -33,7 +33,7 @@ export function registerCanvasModule(
 ): ModuleRegistrationResult {
   const rootDataDir = resolveNovDataDir(opts.dataDir);
   const dataDir = getModuleDataDir(rootDataDir, 'canvas');
-  const workspaceRoot = path.resolve(opts.workspaceRoot || process.cwd());
+  const getWorkspaceRoot = () => path.resolve(opts.workspaceRoot || process.cwd());
   const store = new CanvasStore(dataDir, Boolean(opts.demoMode));
 
   const UI_META = {
@@ -115,7 +115,7 @@ export function registerCanvasModule(
     async ({ filePath, title, boardId }) => {
       let loaded: ReturnType<typeof loadLocalFileContent>;
       try {
-        loaded = loadLocalFileContent(filePath, workspaceRoot);
+        loaded = loadLocalFileContent(filePath, getWorkspaceRoot());
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unable to load local file.';
         return {

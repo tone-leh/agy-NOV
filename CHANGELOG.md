@@ -2,6 +2,49 @@
 
 All notable changes to **agy-NOV** will be documented in this file.
 
+## [1.0.2] - 2026-11-27
+
+### Added
+- **Antigravity CLI 100-Tool Budget Gate & Dynamic Workspace Awareness (`server`, `core`, `test`):**
+  - Inspected `capabilities.extensions["io.modelcontextprotocol/ui"]` during MCP `initialize`: headless CLI clients without UI extension support automatically hide all `app_*` and `nov_app_*` tools, keeping even the full `full` preset strictly capped at **47** exposed model tools well inside Antigravity CLI's 100-tool budget.
+  - Integrated official MCP `roots/list` and `notifications/roots/list_changed` handling in `src/server/index.ts` so cross-project switches immediately refresh the active workspace root in real time.
+  - Added read-only auto-detection in `resolveNovDataDir()` for an existing `~/.gemini/antigravity/plugin_data/agy-nov` directory before falling back to `~/.agy-nov-data`, eliminating split-brain config divergence between CLI invocations and the Antigravity host.
+- **3-OS Real-Process Hook Black-Box & CLI Gate Regression Suites (`test`):**
+  - Added end-to-end 3-OS black-box execution coverage for `hooks.json` + `dist/hook.cjs` alongside Antigravity CLI 47-tool ceiling gate tests, raising total automated verification to **91 test suites / 256 tests**.
+- **Refreshed `v1.0.2` 4+1 IA Workbench Preview (`assets`):**
+  - Recorded an updated `assets/demo-preview.gif` showcasing the `v1.0.2` 4+1 Domain IA, Workflow Hub, 4-tier Settings Hub, and full 8-language workbench UI.
+
+### Changed
+- **Backend Bundle Minification (~45.5% Size Reduction) & Full 755-Key 8-Language Localization (`build`, `ui`):**
+  - Enabled `minify: true` for backend bundles, reducing artifact footprint by **~45.5%**: `dist/server.cjs` **`1,541.9 KB`**, `dist/hook.cjs` **`207.1 KB`**, and `dist/cli.cjs` **`94.5 KB`**.
+  - Expanded the built-in 8-language UI dictionary by **+264 net keys** to **755 core dictionary keys × 8 locales** across all **24 UI components**, removing 110+ leftover hardcoded English strings across 12 components (`dist/ui/app.html` measured **`1,376.3 KB`** / `~1.34 MiB`, well below the 10 MiB resource limit).
+- **Cross-Platform Plugin-Root Relative Hook Commands (`hooks.json`):**
+  - Standardized all 5 lifecycle hooks in `hooks.json` onto plugin-root relative commands (`node dist/hook.cjs --event <Event>`), resolving Windows `cmd /c` failures caused by unexpanded `${PLUGIN_ROOT}` / `${PLUGIN_DATA}` placeholders.
+- **Dual-Star Feed Telemetry & Subagent Tool Alignment (`core`, `agents/`):**
+  - Enriched `<dataDir>/feed-snapshot.json` with `forceAskCount`, `permissionMode`, `snapshotCount`, and `latestSnapshotId` for richer read-only companion visibility.
+  - Aligned specialist read-only subagent manifests (`agents/nov-blind-reviewer.md`, `agents/nov-security-auditor.md`) onto the native Antigravity `read_file` tool name.
+- **Zero-Global-Install CLI Guidance & Docs Alignment (`v1.0.2`):**
+  - Documented direct zero-global-install CLI execution after `agy plugin install` (`node ~/.gemini/config/plugins/agy-nov/dist/cli.cjs <cmd>`, or an optional one-time `npm link` inside the plugin directory for a global `agy-nov` command) across all 8 READMEs, `llms.txt`, `docs/llms-install.md`, and `skills/agy-nov/SKILL.md`.
+  - Preserved all 13 toggleable native modules, 5 presets, 9 CLI commands, 5 official Skills, 2 read-only specialist subagents, 5 official Hooks, and all **47 canonical model tool names** strictly unchanged (`v0.4` -> `v1.0.2`).
+
+### Fixed
+- **Official Antigravity Hook Protocol Alignment (`hooks`, `verify`):**
+  - Aligned `Verify Gate`'s `Stop` hook response with Antigravity's official `decision: "continue"` protocol and added safe pass-through handling for `terminationReason` (`USER_CANCELED`, `ERROR`, `MAX_*`).
+  - Updated `PreToolUse` pass-through responses to return `{ decision: "allow" }` explicitly.
+- **Frontend `NovBridge`, Host File Previews & `global` Surface Fallbacks (`ui`):**
+  - Added first-frame `ontoolresult` cache replay in `NovBridge` to prevent initial render drops when tool payloads arrive before component subscription.
+  - Upgraded `app_nov_file_viewer` to fetch real file contents for `antigravity-file://` URIs via host `resources/read` while keeping strict read-only safeguards.
+  - Added graceful capability degradation across workspace panels when running inside `global` surfaces that omit pane-specific host actions.
+- **Mem 3.0 Batch Verify Anchor Refresh & Auto-RTK Non-ASCII / Parenthesis Paths (`mem`, `turbo`):**
+  - Updated `Mem 3.0` batch `verify` actions to refresh code anchor hashes synchronously alongside confidence upgrades.
+  - Fixed `Auto-RTK` command handling for Chinese / non-ASCII user directory names and filesystem paths containing parentheses.
+
+### Security
+- **Remote 2.5 Same-Origin PIN Lockout DoS & SSE Resource Guardrails (`remote`):**
+  - Hardened `Remote 2.5` authentication with same-origin enforcement against cross-origin PIN lockout DoS attempts, and bounded SSE live streams with strict connection caps and periodic heartbeats while keeping `remote` strictly OFF by default with four-zero isolation.
+- **Protocol, Workspace & Link Integrity Preserved (`v1.0.2`):**
+  - Maintained 100% Zero ASAR / Zero CDP boundaries, 15-asset `agy-nov doctor` verification (`version=1.0.2`), clean companion repository links pointing strictly to `https://github.com/tone-leh/agy-Sag`, and verified all 91 suites / 256 tests across macOS, Windows, and Linux.
+
 ## [1.0.1] - 2026-11-27
 
 ### Added

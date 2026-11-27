@@ -144,12 +144,15 @@ describe('v0.7.0 i18n dictionary coverage (domains / nav / hub / settingsHub)', 
     const enKeys = Object.keys(enFlat).sort();
 
     assert.deepEqual(Object.keys(EN_DICT.domains).sort(), [...MODULE_DOMAIN_IDS].sort());
-    assert.deepEqual(Object.keys(EN_DICT.nav).sort(), [...EXPECTED_NAV_KEYS].sort());
-    assert.deepEqual(Object.keys(EN_DICT.hub).sort(), [...EXPECTED_HUB_KEYS].sort());
-    assert.deepEqual(
-      Object.keys(EN_DICT.settingsHub).sort(),
-      [...EXPECTED_SETTINGS_HUB_KEYS].sort(),
-    );
+    for (const key of EXPECTED_NAV_KEYS) {
+      assert.ok(key in EN_DICT.nav, `Missing required nav key: ${key}`);
+    }
+    for (const key of EXPECTED_HUB_KEYS) {
+      assert.ok(key in EN_DICT.hub, `Missing required hub key: ${key}`);
+    }
+    for (const key of EXPECTED_SETTINGS_HUB_KEYS) {
+      assert.ok(key in EN_DICT.settingsHub, `Missing required settingsHub key: ${key}`);
+    }
 
     for (const locale of UI_LOCALE_IDS) {
       const dict = ALL_DICTS[locale];

@@ -615,6 +615,7 @@ describe('Spec 2.0 — SessionStart hook [DELTA] & annotation reminders + disabl
         workspaceRoot: tmpDir,
         demoMode: false,
         configPollMs: 0,
+        exposeAppToolsWithoutUiCapability: true,
       });
 
       const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

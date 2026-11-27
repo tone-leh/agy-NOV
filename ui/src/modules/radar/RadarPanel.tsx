@@ -53,7 +53,7 @@ export const RadarPanel: React.FC<NovModulePanelProps> = ({
   onNotify,
   onNavigateModule,
 }) => {
-  const { dict } = useNovI18n();
+  const { dict, t } = useNovI18n();
   const [board, setBoard] = useState<RadarBoard | null>(null);
   const [busy, setBusy] = useState(false);
   const [viewMode, setViewMode] = useState<RadarViewMode>('kanban');
@@ -135,7 +135,7 @@ export const RadarPanel: React.FC<NovModulePanelProps> = ({
     return [
       {
         id: 'awaiting_approval',
-        title: `Awaiting Approval (${dict.radar.awaiting})`,
+        title: dict.radar.awaiting,
         accentColor: 'var(--nov-warn)',
         highlightBg: 'var(--nov-warn-soft)',
         priority: true,
@@ -143,7 +143,7 @@ export const RadarPanel: React.FC<NovModulePanelProps> = ({
       },
       {
         id: 'running',
-        title: `Running (${dict.radar.running})`,
+        title: dict.radar.running,
         accentColor: 'var(--nov-accent)',
         highlightBg: undefined,
         priority: false,
@@ -151,7 +151,7 @@ export const RadarPanel: React.FC<NovModulePanelProps> = ({
       },
       {
         id: 'stalled_error',
-        title: `Stalled / Error (${dict.radar.stalled} / ${dict.radar.error})`,
+        title: `${dict.radar.stalled} / ${dict.radar.error}`,
         accentColor: 'var(--nov-danger)',
         highlightBg: undefined,
         priority: false,
@@ -159,7 +159,7 @@ export const RadarPanel: React.FC<NovModulePanelProps> = ({
       },
       {
         id: 'completed',
-        title: `Completed (${dict.radar.completed})`,
+        title: dict.radar.completed,
         accentColor: 'var(--nov-success)',
         highlightBg: undefined,
         priority: false,
@@ -204,7 +204,7 @@ export const RadarPanel: React.FC<NovModulePanelProps> = ({
             disabled={busy}
             onClick={() => onNavigateModule?.('review')}
           >
-            Open Review
+            {t(dict.openModuleBtn, { label: dict.modules.review.shortLabel })}
           </button>
           {s.unread && (
             <button
@@ -234,20 +234,20 @@ export const RadarPanel: React.FC<NovModulePanelProps> = ({
             <p className="nov-hero-sub">{dict.radar.subtitle}</p>
           </div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div className="nov-p-tabs" role="group" aria-label="Board View">
+            <div className="nov-p-tabs" role="group" aria-label={dict.radar.boardViewLabel}>
               <button
                 type="button"
                 className={`nov-preset-btn ${viewMode === 'kanban' ? 'is-active' : ''}`}
                 onClick={() => setViewMode('kanban')}
               >
-                Kanban
+                {dict.radar.viewKanban}
               </button>
               <button
                 type="button"
                 className={`nov-preset-btn ${viewMode === 'list' ? 'is-active' : ''}`}
                 onClick={() => setViewMode('list')}
               >
-                List
+                {dict.radar.viewList}
               </button>
             </div>
             <button type="button" className="nov-p-btn" onClick={() => void loadBoard()}>
@@ -429,7 +429,7 @@ export const RadarPanel: React.FC<NovModulePanelProps> = ({
             >
               {[2, 5, 10, 15, 30].map((m) => (
                 <option key={m} value={m}>
-                  {m} min
+                  {t(dict.radar.minutesUnit, { m })}
                 </option>
               ))}
             </select>

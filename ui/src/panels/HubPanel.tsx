@@ -72,7 +72,7 @@ export const HubPanel: React.FC<HubPanelProps> = ({
   onOpenCommandPalette,
   onNotify,
 }) => {
-  const { dict, prefLocale } = useNovI18n();
+  const { dict, prefLocale, t } = useNovI18n();
   const [hubState, setHubState] = useState<NovHubStatePayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [showQuickStart, setShowQuickStart] = useState(!quickStartDismissedInMemory);
@@ -129,13 +129,13 @@ export const HubPanel: React.FC<HubPanelProps> = ({
       if (res.mode === 'new_conversation') {
         onNotify?.(
           res.conversationId
-            ? `Clean Fork started in fresh session (${res.conversationId})`
-            : 'Clean Fork started in fresh session',
+            ? t(dict.hub.cleanForkStartedIdToast, { id: res.conversationId })
+            : dict.hub.cleanForkStartedToast,
         );
       } else if (res.mode === 'context') {
-        onNotify?.('Clean Fork pack attached to model context (fallback)');
+        onNotify?.(dict.hub.cleanForkContextToast);
       } else {
-        onNotify?.(`${dict.common.copied} · Clean Fork Pack`);
+        onNotify?.(`${dict.common.copied} · ${dict.hub.cleanForkPackLabel}`);
       }
     } catch (err) {
       onNotify?.(err instanceof Error ? err.message : String(err));
@@ -304,7 +304,9 @@ export const HubPanel: React.FC<HubPanelProps> = ({
       if (wt && typeof wt.total === 'number') {
         return (
           <span className="nov-flow-meta">
-            {wt.total} tree{wt.dirty ? ` · ${wt.dirty} dirty` : ''}
+            {wt.dirty
+              ? t(dict.hub.worktreeDirtySummary, { count: wt.total, dirty: wt.dirty })
+              : t(dict.hub.worktreeSummary, { count: wt.total })}
           </span>
         );
       }
@@ -587,14 +589,14 @@ export const HubPanel: React.FC<HubPanelProps> = ({
       </section>
 
       {/* Clean Fork (Fresh Session) Quick Launch */}
-      <section className="nov-p-card" aria-label="Clean Fork (Fresh Session)">
+      <section className="nov-p-card" aria-label={dict.hub.cleanForkTitle}>
         <div className="nov-p-row">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <h3 className="nov-section-title" style={{ margin: 0 }}>
-              Clean Fork (Fresh Session)
+              {dict.hub.cleanForkTitle}
             </h3>
             <span className={`nov-badge ${caps.message ? 'is-offline' : 'is-network'}`}>
-              {caps.message ? 'New Session Ready' : 'Context / Copy Fallback'}
+              {caps.message ? dict.hub.cleanForkReadyBadge : dict.hub.cleanForkFallbackBadge}
             </span>
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -604,7 +606,11 @@ export const HubPanel: React.FC<HubPanelProps> = ({
               disabled={forkLaunching || forkLoading}
               onClick={() => void handleCleanForkLaunch()}
             >
-              {forkLaunching ? dict.common.loading : 'Clean Fork (Fresh Session)'}
+              {forkLaunching
+                ? dict.common.loading
+                : caps.message
+                  ? dict.hub.cleanForkTitle
+                  : dict.hub.cleanForkCopyPackBtn}
             </button>
             <button
               type="button"
@@ -617,37 +623,43 @@ export const HubPanel: React.FC<HubPanelProps> = ({
                 setShowForkPreview((prev) => !prev);
               }}
             >
-              {showForkPreview ? 'Hide Preview' : 'Preview Pack'}
+              {showForkPreview ? dict.hub.cleanForkHidePreviewBtn : dict.hub.cleanForkPreviewBtn}
             </button>
           </div>
         </div>
         <p style={{ margin: '6px 0 8px', fontSize: 12, color: 'var(--nov-text-2)' }}>
-          {caps.message
-            ? 'Launches a clean background Antigravity conversation (target="new") preloaded with redacted Handoff, Spec Ready tasks, and Mem anchors.'
-            : 'Current host surface lacks direct new-session messaging; falls back to attaching the Clean Fork pack to model context or copying it to clipboard.'}
+          {caps.message ? dict.hub.cleanForkHintReady : dict.hub.cleanForkHintFallback}
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
           <span className={`nov-badge ${forkPack?.sections.hasHandoff ? 'is-accent' : ''}`}>
-            Handoff: {forkPack ? (forkPack.sections.hasHandoff ? 'Ready' : 'None') : '—'}
+            {dict.hub.cleanForkHandoffLabel}:{' '}
+            {forkPack
+              ? forkPack.sections.hasHandoff
+                ? dict.hub.cleanForkReadyVal
+                : dict.hub.cleanForkNoneVal
+              : '—'}
           </span>
           <span className={`nov-badge ${forkPack?.sections.activeSpecTitle ? 'is-offline' : ''}`}>
-            Spec: {forkPack?.sections.activeSpecTitle ?? 'None'}
+            {dict.modules.spec.shortLabel}:{' '}
+            {forkPack?.sections.activeSpecTitle ?? dict.hub.cleanForkNoneVal}
           </span>
           <span className="nov-badge">
-            Ready Tasks: {forkPack ? forkPack.sections.readyTasksCount : '—'}
+            {dict.hub.cleanForkReadyTasksLabel}:{' '}
+            {forkPack ? forkPack.sections.readyTasksCount : '—'}
           </span>
           <span className="nov-badge">
-            Mem Anchors: {forkPack ? forkPack.sections.memAnchorsCount : '—'}
+            {dict.hub.cleanForkMemAnchorsLabel}:{' '}
+            {forkPack ? forkPack.sections.memAnchorsCount : '—'}
           </span>
           {forkPack && (
             <span className="nov-badge">
               ~{formatCompactNumber(forkPack.estimatedTokens)} tok · {forkPack.totalBytes} B
-              {forkPack.truncated ? ' (Truncated)' : ''}
+              {forkPack.truncated ? ` (${dict.common.truncated})` : ''}
             </span>
           )}
           {lastFork && (
             <span className="nov-badge is-accent">
-              Last: {lastFork.mode}
+              {dict.hub.cleanForkLastLabel}: {lastFork.mode}
               {lastFork.conversationId ? ` (${lastFork.conversationId})` : ''}
             </span>
           )}

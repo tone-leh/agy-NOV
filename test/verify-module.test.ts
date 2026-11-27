@@ -775,12 +775,12 @@ describe('Verify Gate — PostToolUse + Stop hook enforcement & loop guardrail',
       assert.deepEqual(state.sessions['conv-flow']?.dirtyFiles, ['src/feature.ts']);
       assert.deepEqual(state.sessions['conv-flow']?.emptyFiles, ['src/feature.ts']);
 
-      // Stop #1: Blocked because file is 0 bytes
+      // Stop #1: Blocked because file is 0 bytes (Antigravity Stop protocol uses decision="continue")
       const stopEmpty = await handleVerifyStopHook(
         normalizeHookPayload({ conversationId: 'conv-flow', workspaceRoot: workspace }, 'Stop'),
         dataDir,
       );
-      assert.equal(stopEmpty.decision, 'deny');
+      assert.equal(stopEmpty.decision, 'continue');
       assert.match(stopEmpty.reason ?? '', /\[agy-NOV Verify Gate\]/);
       assert.match(stopEmpty.reason ?? '', /empty \(0-byte\)/i);
 
@@ -807,7 +807,7 @@ describe('Verify Gate — PostToolUse + Stop hook enforcement & loop guardrail',
         normalizeHookPayload({ conversationId: 'conv-flow', workspaceRoot: workspace }, 'Stop'),
         dataDir,
       );
-      assert.equal(stopFail.decision, 'deny');
+      assert.equal(stopFail.decision, 'continue');
       assert.match(stopFail.reason ?? '', /\[agy-NOV Verify Gate\]/);
       assert.match(stopFail.reason ?? '', /exit=2/);
       assert.match(stopFail.reason ?? '', /READY flag missing/);
@@ -908,12 +908,12 @@ describe('Verify Gate — PostToolUse + Stop hook enforcement & loop guardrail',
         dataDir,
       );
 
-      // Stop before manual verify_run_checks -> denied with prompt to run verify_run_checks
+      // Stop before manual verify_run_checks -> continued with prompt to run verify_run_checks
       const blocked = await handleVerifyStopHook(
         normalizeHookPayload({ conversationId: 'conv-manual', workspaceRoot: workspace }, 'Stop'),
         dataDir,
       );
-      assert.equal(blocked.decision, 'deny');
+      assert.equal(blocked.decision, 'continue');
       assert.match(blocked.reason ?? '', /verify_run_checks/);
 
       // Run manual checks -> passes and updates session

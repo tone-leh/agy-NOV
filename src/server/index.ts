@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { RootsListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import {
   applyPresetConfig,
@@ -40,10 +42,11 @@ import {
 import type {
   ModuleRegistrationResult,
   ModuleRuntimeState,
+  ModuleToolHandle,
   NovConfigSnapshotPayload,
   NovRuntimeOptions,
 } from '../core/types.js';
-import { hasCliFlag, parseCliFlag } from '../core/utils.js';
+import { canonicalRealpathSync, hasCliFlag, parseCliFlag } from '../core/utils.js';
 import { registerCanvasModule } from '../modules/canvas/register.js';
 import { registerGuardModule } from '../modules/guard/register.js';
 import { registerMemModule } from '../modules/mem/register.js';
@@ -59,7 +62,43 @@ import { registerWorktreeModule } from '../modules/worktree/register.js';
 import { registerXrayModule } from '../modules/xray/register.js';
 
 export const UI_RESOURCE_URI = 'ui://agy-nov/app.html';
-export const NOV_VERSION = '1.0.1';
+export const NOV_VERSION = '1.0.2';
+
+const MCP_APPS_UI_EXTENSION_ID = 'io.modelcontextprotocol/ui';
+
+function hasMcpAppsUiCapability(capabilities: unknown): boolean {
+  if (!capabilities || typeof capabilities !== 'object') return false;
+  const caps = capabilities as Record<string, unknown>;
+  const extensions = caps.extensions;
+  if (extensions && typeof extensions === 'object' && MCP_APPS_UI_EXTENSION_ID in (extensions as Record<string, unknown>)) {
+    return Boolean((extensions as Record<string, unknown>)[MCP_APPS_UI_EXTENSION_ID]);
+  }
+  const experimental = caps.experimental;
+  if (
+    experimental &&
+    typeof experimental === 'object' &&
+    MCP_APPS_UI_EXTENSION_ID in (experimental as Record<string, unknown>)
+  ) {
+    return Boolean((experimental as Record<string, unknown>)[MCP_APPS_UI_EXTENSION_ID]);
+  }
+  return false;
+}
+
+function resolveLocalRootFileUri(uri: string): string | null {
+  if (typeof uri !== 'string' || !/^file:\/\//i.test(uri.trim())) return null;
+  try {
+    const parsed = new URL(uri.trim());
+    if (parsed.protocol !== 'file:') return null;
+    const host = parsed.hostname.toLowerCase();
+    if (host !== '' && host !== 'localhost') return null;
+    const fsPath = fileURLToPath(parsed);
+    const real = canonicalRealpathSync(fsPath);
+    if (!fs.statSync(real).isDirectory()) return null;
+    return real;
+  } catch {
+    return null;
+  }
+}
 
 const UI_ENTRYPOINT_META = {
   ui: { resourceUri: UI_RESOURCE_URI },
@@ -83,12 +122,13 @@ const OPEN_TAB_ENUM = [...MODULE_IDS, 'modules', 'hub', 'settings'] as [
 
 function resolveUiHtmlPath(override?: string): string {
   const envOverride = process.env.AGY_NOV_APP_HTML;
+  const scriptDir = process.argv[1] ? path.dirname(path.resolve(process.argv[1])) : '';
   const candidates = [
     override,
     envOverride,
+    scriptDir ? path.resolve(scriptDir, 'ui/app.html') : '',
+    scriptDir ? path.resolve(scriptDir, '../dist/ui/app.html') : '',
     path.resolve(process.cwd(), 'dist/ui/app.html'),
-    path.resolve(path.dirname(process.argv[1] || process.cwd()), 'ui/app.html'),
-    path.resolve(path.dirname(process.argv[1] || process.cwd()), '../dist/ui/app.html'),
   ].filter((p): p is string => Boolean(p));
 
   for (const candidate of candidates) {
@@ -109,6 +149,8 @@ export interface NovServerBundle {
   setLocale: (locale: NovLocale) => Promise<NovConfig>;
   setStartupView: (startupView: NovStartupView) => Promise<NovConfig>;
   resetConfig: () => Promise<NovConfig>;
+  setWorkspaceRoot: (dir: string) => boolean;
+  hasUiAppToolsEnabled: () => boolean;
   subscribeSnapshot: (listener: (snapshot: NovConfigSnapshotPayload) => void) => () => void;
   syncConfigFromDisk: () => Promise<boolean>;
   dispose: () => Promise<void>;
@@ -160,14 +202,19 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     brainDir: rawOpts.brainDir,
     uiHtmlPath: rawOpts.uiHtmlPath,
     configPollMs: rawOpts.configPollMs,
+    exposeAppToolsWithoutUiCapability: rawOpts.exposeAppToolsWithoutUiCapability,
   };
 
   let currentConfig: NovConfig = loadOrInitNovConfig(options.dataDir);
   let lastConfigSignature: string | null = getConfigFileSignature(options.dataDir);
   let toggleQueue: Promise<void> = Promise.resolve();
   let disposed = false;
+  let uiAppToolsAllowed = true;
+  let lastSyncedUiAllowed = true;
   const snapshotListeners = new Set<(snapshot: NovConfigSnapshotPayload) => void>();
   const lastSyncedVisibility = new Map<ModuleId, boolean>();
+  const exemptAppOnlyHandles: ModuleToolHandle[] = [];
+  const topLevelAppOnlyHandles: ModuleToolHandle[] = [];
 
   const server = new McpServer(
     { name: 'agy-nov', version: NOV_VERSION },
@@ -259,24 +306,92 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     };
   }
 
-  function syncToolVisibility(cfg: NovConfig): void {
-    for (const id of MODULE_IDS) {
-      const reg = registrations.get(id);
-      if (!reg) continue;
-      const on = Boolean(cfg.modules[id]);
-      const prev = lastSyncedVisibility.get(id);
-      if (prev === on) continue;
-      lastSyncedVisibility.set(id, on);
-      // Freshly registered MCP tools start enabled; skip redundant enable() on initial pass.
-      if (prev === undefined && on) continue;
-      for (const tool of reg.modelTools) {
-        if (on) tool.enable();
-        else tool.disable();
+  const toolEnabledState = new WeakMap<ModuleToolHandle, boolean>();
+  const baseSendToolListChanged = server.sendToolListChanged.bind(server);
+
+  function setHandleEnabled(handle: ModuleToolHandle, targetEnabled: boolean): boolean {
+    const current = toolEnabledState.get(handle) ?? true;
+    if (current === targetEnabled) return false;
+    toolEnabledState.set(handle, targetEnabled);
+    if (targetEnabled) handle.enable();
+    else handle.disable();
+    return true;
+  }
+
+  function syncToolVisibility(cfg: NovConfig, forceResync = false): void {
+    const uiStateChanged = forceResync || lastSyncedUiAllowed !== uiAppToolsAllowed;
+    let anyChanged = false;
+    // Coalesce batch enable/disable calls into at most ONE notifications/tools/list_changed emission
+    server.sendToolListChanged = () => {
+      anyChanged = true;
+    };
+    try {
+      if (uiStateChanged) {
+        lastSyncedUiAllowed = uiAppToolsAllowed;
+        for (const h of [...topLevelAppOnlyHandles, ...exemptAppOnlyHandles]) {
+          if (setHandleEnabled(h, uiAppToolsAllowed)) {
+            anyChanged = true;
+          }
+        }
       }
-      for (const appTool of reg.appTools ?? []) {
-        if (on) appTool.enable();
-        else appTool.disable();
+      for (const id of MODULE_IDS) {
+        const reg = registrations.get(id);
+        if (!reg) continue;
+        const on = Boolean(cfg.modules[id]);
+        const prev = lastSyncedVisibility.get(id);
+        if (!uiStateChanged && prev === on) continue;
+        lastSyncedVisibility.set(id, on);
+        if (!uiStateChanged && prev === undefined && on) continue;
+        for (const tool of reg.modelTools) {
+          if (setHandleEnabled(tool, on)) {
+            anyChanged = true;
+          }
+        }
+        for (const appTool of reg.appTools ?? []) {
+          if (setHandleEnabled(appTool, on && uiAppToolsAllowed)) {
+            anyChanged = true;
+          }
+        }
       }
+    } finally {
+      server.sendToolListChanged = baseSendToolListChanged;
+    }
+    if (anyChanged) {
+      baseSendToolListChanged();
+    }
+  }
+
+  function setWorkspaceRoot(candidateDir: string): boolean {
+    if (typeof candidateDir !== 'string' || !candidateDir.trim()) return false;
+    try {
+      const realDir = canonicalRealpathSync(path.resolve(candidateDir));
+      if (!fs.statSync(realDir).isDirectory()) return false;
+      if (realDir !== options.workspaceRoot) {
+        options.workspaceRoot = realDir;
+        broadcastSnapshot();
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function syncWorkspaceRootFromClientRoots(): Promise<void> {
+    if (disposed) return;
+    try {
+      const clientCaps = server.server.getClientCapabilities();
+      if (!clientCaps?.roots) return;
+      const result = await server.server.listRoots();
+      const roots = Array.isArray(result?.roots) ? result.roots : [];
+      for (const root of roots) {
+        const localDir = resolveLocalRootFileUri(root?.uri);
+        if (localDir) {
+          setWorkspaceRoot(localDir);
+          return;
+        }
+      }
+    } catch {
+      // Client may not support roots/list or may reject during startup; keep current workspaceRoot
     }
   }
 
@@ -447,6 +562,11 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
       ...BASE_READONLY_OFFLINE_EXEMPT,
       ...(result.exemptReadOnlyAppTools ?? []),
     ]);
+    for (const t of capturedAppTools) {
+      if (exempt.has(t.name)) {
+        exemptAppOnlyHandles.push(t);
+      }
+    }
     const filteredAppTools = capturedAppTools.filter((t) => !exempt.has(t.name));
     return {
       ...result,
@@ -564,203 +684,264 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     },
   );
 
-  // Always-on App-only switchboard tools (hidden from model)
-  server.registerTool(
+  function trackTopLevelAppTool(
+    name: string,
+    handle: { enable: () => void; disable: () => void },
+  ): void {
+    topLevelAppOnlyHandles.push({
+      name,
+      enable: () => handle.enable(),
+      disable: () => handle.disable(),
+    });
+  }
+
+  // Always-on App-only switchboard tools (hidden from model; disabled on non-UI CLI clients)
+  trackTopLevelAppTool(
     'nov_app_get_config',
-    {
-      title: 'Get agy-NOV Config',
-      description: 'App-only: read current module toggle state, locale, and runtime metadata.',
-      inputSchema: {},
-      _meta: APP_ONLY_META,
-    },
-    async () => {
-      await syncConfigFromDiskIfChanged();
-      const snapshot = buildConfigSnapshot();
-      return {
-        content: [{ type: 'text', text: JSON.stringify(snapshot) }],
-        structuredContent: { ...snapshot },
-      };
-    },
-  );
-
-  server.registerTool(
-    'nov_app_set_module',
-    {
-      title: 'Toggle agy-NOV Module',
-      description: 'App-only: enable or disable a module and update exposed model tools live.',
-      inputSchema: {
-        module: z.enum(MODULE_IDS),
-        enabled: z.boolean(),
+    server.registerTool(
+      'nov_app_get_config',
+      {
+        title: 'Get agy-NOV Config',
+        description: 'App-only: read current module toggle state, locale, and runtime metadata.',
+        inputSchema: {},
+        _meta: APP_ONLY_META,
       },
-      _meta: APP_ONLY_META,
-    },
-    async ({ module: moduleId, enabled }) => {
-      await applySingleToggle(moduleId, enabled);
-      const snapshot = buildConfigSnapshot();
-      return {
-        content: [{ type: 'text', text: JSON.stringify(snapshot) }],
-        structuredContent: { ...snapshot },
-      };
-    },
-  );
-
-  server.registerTool(
-    'nov_app_apply_preset',
-    {
-      title: 'Apply agy-NOV Preset',
-      description: 'App-only: apply a module preset (core, power, local-all, full, minimal).',
-      inputSchema: {
-        preset: z.enum(PRESET_IDS),
-      },
-      _meta: APP_ONLY_META,
-    },
-    async ({ preset }) => {
-      await applyPresetMutation(preset);
-      const snapshot = buildConfigSnapshot();
-      return {
-        content: [{ type: 'text', text: JSON.stringify(snapshot) }],
-        structuredContent: { ...snapshot },
-      };
-    },
-  );
-
-  server.registerTool(
-    'nov_app_set_locale',
-    {
-      title: 'Set agy-NOV UI Locale',
-      description:
-        'App-only: persist interface language preference (auto, en, zh-CN, zh-TW, ja, ko, es, fr, de).',
-      inputSchema: {
-        locale: z.enum(LOCALE_IDS),
-      },
-      _meta: APP_ONLY_META,
-    },
-    async ({ locale }) => {
-      await applyLocaleMutation(locale);
-      const snapshot = buildConfigSnapshot();
-      return {
-        content: [{ type: 'text', text: JSON.stringify(snapshot) }],
-        structuredContent: { ...snapshot },
-      };
-    },
-  );
-
-  server.registerTool(
-    'nov_app_get_hub_state',
-    {
-      title: 'Get agy-NOV Hub State',
-      description:
-        'App-only: sync disk config and return unified Hub snapshot, dual-star feed summary, and read-only team preset.',
-      inputSchema: {},
-      _meta: APP_ONLY_META,
-    },
-    async () => {
-      await syncConfigFromDiskIfChanged();
-      const snapshot = buildConfigSnapshot();
-      const feed = options.demoMode
-        ? buildDemoFeedSnapshot(currentConfig, { remoteRunning: snapshot.remoteRunning })
-        : buildFeedSnapshot(options.dataDir, currentConfig, { remoteRunning: snapshot.remoteRunning });
-      const teamPreset = loadTeamPresetReadOnly(options.workspaceRoot);
-      const payload = { snapshot, feed, teamPreset };
-      return {
-        content: [{ type: 'text', text: JSON.stringify(payload) }],
-        structuredContent: payload,
-      };
-    },
-  );
-
-  server.registerTool(
-    'nov_app_set_startup_view',
-    {
-      title: 'Set agy-NOV Startup View',
-      description: 'App-only: persist default startup view preference (hub or last).',
-      inputSchema: {
-        startupView: z.enum(STARTUP_VIEW_IDS),
-      },
-      _meta: APP_ONLY_META,
-    },
-    async ({ startupView }) => {
-      await applyStartupViewMutation(startupView);
-      const snapshot = buildConfigSnapshot();
-      return {
-        content: [{ type: 'text', text: JSON.stringify(snapshot) }],
-        structuredContent: { ...snapshot },
-      };
-    },
-  );
-
-  server.registerTool(
-    'nov_app_export_config',
-    {
-      title: 'Export Sanitized agy-NOV Config',
-      description:
-        'App-only: export strictly whitelisted agy-NOV configuration JSON with zero secrets or local paths.',
-      inputSchema: {},
-      _meta: APP_ONLY_META,
-    },
-    async () => {
-      await syncConfigFromDiskIfChanged();
-      const exported = exportSanitizedConfig(currentConfig);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(exported, null, 2) }],
-        structuredContent: { ...exported },
-      };
-    },
-  );
-
-  server.registerTool(
-    'nov_app_import_config',
-    {
-      title: 'Import agy-NOV Config',
-      description:
-        'App-only: validate and apply a sanitized agy-NOV configuration JSON payload with hot tool sync.',
-      inputSchema: {
-        json: z.string().max(MAX_CONFIG_IMPORT_BYTES),
-      },
-      _meta: APP_ONLY_META,
-    },
-    async ({ json }) => {
-      const parsed = parseAndValidateConfigImport(json);
-      if (!parsed.ok) {
+      async () => {
+        await syncConfigFromDiskIfChanged();
+        const snapshot = buildConfigSnapshot();
         return {
-          isError: true,
-          content: [{ type: 'text', text: parsed.error }],
-          structuredContent: { ok: false, error: parsed.error },
+          content: [{ type: 'text', text: JSON.stringify(snapshot) }],
+          structuredContent: { ...snapshot },
         };
-      }
-      await applyImportConfigMutation(parsed.config);
-      const snapshot = buildConfigSnapshot();
-      const payload = {
-        ok: true,
-        warnings: parsed.warnings,
-        snapshot,
-      };
-      return {
-        content: [{ type: 'text', text: JSON.stringify(payload) }],
-        structuredContent: payload,
-      };
-    },
+      },
+    ),
   );
 
-  server.registerTool(
-    'nov_app_reset_config',
-    {
-      title: 'Reset agy-NOV Config',
-      description: 'App-only: reset agy-NOV configuration back to the default core preset.',
-      inputSchema: {
-        confirm: z.literal(true),
+  trackTopLevelAppTool(
+    'nov_app_set_module',
+    server.registerTool(
+      'nov_app_set_module',
+      {
+        title: 'Toggle agy-NOV Module',
+        description: 'App-only: enable or disable a module and update exposed model tools live.',
+        inputSchema: {
+          module: z.enum(MODULE_IDS),
+          enabled: z.boolean(),
+        },
+        _meta: APP_ONLY_META,
       },
-      _meta: APP_ONLY_META,
-    },
-    async () => {
-      await applyResetConfigMutation();
-      const snapshot = buildConfigSnapshot();
-      return {
-        content: [{ type: 'text', text: JSON.stringify(snapshot) }],
-        structuredContent: { ...snapshot },
-      };
-    },
+      async ({ module: moduleId, enabled }) => {
+        await applySingleToggle(moduleId, enabled);
+        const snapshot = buildConfigSnapshot();
+        return {
+          content: [{ type: 'text', text: JSON.stringify(snapshot) }],
+          structuredContent: { ...snapshot },
+        };
+      },
+    ),
   );
+
+  trackTopLevelAppTool(
+    'nov_app_apply_preset',
+    server.registerTool(
+      'nov_app_apply_preset',
+      {
+        title: 'Apply agy-NOV Preset',
+        description: 'App-only: apply a module preset (core, power, local-all, full, minimal).',
+        inputSchema: {
+          preset: z.enum(PRESET_IDS),
+        },
+        _meta: APP_ONLY_META,
+      },
+      async ({ preset }) => {
+        await applyPresetMutation(preset);
+        const snapshot = buildConfigSnapshot();
+        return {
+          content: [{ type: 'text', text: JSON.stringify(snapshot) }],
+          structuredContent: { ...snapshot },
+        };
+      },
+    ),
+  );
+
+  trackTopLevelAppTool(
+    'nov_app_set_locale',
+    server.registerTool(
+      'nov_app_set_locale',
+      {
+        title: 'Set agy-NOV UI Locale',
+        description:
+          'App-only: persist interface language preference (auto, en, zh-CN, zh-TW, ja, ko, es, fr, de).',
+        inputSchema: {
+          locale: z.enum(LOCALE_IDS),
+        },
+        _meta: APP_ONLY_META,
+      },
+      async ({ locale }) => {
+        await applyLocaleMutation(locale);
+        const snapshot = buildConfigSnapshot();
+        return {
+          content: [{ type: 'text', text: JSON.stringify(snapshot) }],
+          structuredContent: { ...snapshot },
+        };
+      },
+    ),
+  );
+
+  trackTopLevelAppTool(
+    'nov_app_get_hub_state',
+    server.registerTool(
+      'nov_app_get_hub_state',
+      {
+        title: 'Get agy-NOV Hub State',
+        description:
+          'App-only: sync disk config and return unified Hub snapshot, dual-star feed summary, and read-only team preset.',
+        inputSchema: {},
+        _meta: APP_ONLY_META,
+      },
+      async () => {
+        await syncConfigFromDiskIfChanged();
+        const snapshot = buildConfigSnapshot();
+        const feed = options.demoMode
+          ? buildDemoFeedSnapshot(currentConfig, { remoteRunning: snapshot.remoteRunning })
+          : buildFeedSnapshot(options.dataDir, currentConfig, { remoteRunning: snapshot.remoteRunning });
+        const teamPreset = loadTeamPresetReadOnly(options.workspaceRoot);
+        const payload = { snapshot, feed, teamPreset };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(payload) }],
+          structuredContent: payload,
+        };
+      },
+    ),
+  );
+
+  trackTopLevelAppTool(
+    'nov_app_set_startup_view',
+    server.registerTool(
+      'nov_app_set_startup_view',
+      {
+        title: 'Set agy-NOV Startup View',
+        description: 'App-only: persist default startup view preference (hub or last).',
+        inputSchema: {
+          startupView: z.enum(STARTUP_VIEW_IDS),
+        },
+        _meta: APP_ONLY_META,
+      },
+      async ({ startupView }) => {
+        await applyStartupViewMutation(startupView);
+        const snapshot = buildConfigSnapshot();
+        return {
+          content: [{ type: 'text', text: JSON.stringify(snapshot) }],
+          structuredContent: { ...snapshot },
+        };
+      },
+    ),
+  );
+
+  trackTopLevelAppTool(
+    'nov_app_export_config',
+    server.registerTool(
+      'nov_app_export_config',
+      {
+        title: 'Export Sanitized agy-NOV Config',
+        description:
+          'App-only: export strictly whitelisted agy-NOV configuration JSON with zero secrets or local paths.',
+        inputSchema: {},
+        _meta: APP_ONLY_META,
+      },
+      async () => {
+        await syncConfigFromDiskIfChanged();
+        const exported = exportSanitizedConfig(currentConfig);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(exported, null, 2) }],
+          structuredContent: { ...exported },
+        };
+      },
+    ),
+  );
+
+  trackTopLevelAppTool(
+    'nov_app_import_config',
+    server.registerTool(
+      'nov_app_import_config',
+      {
+        title: 'Import agy-NOV Config',
+        description:
+          'App-only: validate and apply a sanitized agy-NOV configuration JSON payload with hot tool sync.',
+        inputSchema: {
+          json: z.string().max(MAX_CONFIG_IMPORT_BYTES),
+        },
+        _meta: APP_ONLY_META,
+      },
+      async ({ json }) => {
+        const parsed = parseAndValidateConfigImport(json);
+        if (!parsed.ok) {
+          return {
+            isError: true,
+            content: [{ type: 'text', text: parsed.error }],
+            structuredContent: { ok: false, error: parsed.error },
+          };
+        }
+        await applyImportConfigMutation(parsed.config);
+        const snapshot = buildConfigSnapshot();
+        const payload = {
+          ok: true,
+          warnings: parsed.warnings,
+          snapshot,
+        };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(payload) }],
+          structuredContent: payload,
+        };
+      },
+    ),
+  );
+
+  trackTopLevelAppTool(
+    'nov_app_reset_config',
+    server.registerTool(
+      'nov_app_reset_config',
+      {
+        title: 'Reset agy-NOV Config',
+        description: 'App-only: reset agy-NOV configuration back to the default core preset.',
+        inputSchema: {
+          confirm: z.literal(true),
+        },
+        _meta: APP_ONLY_META,
+      },
+      async () => {
+        await applyResetConfigMutation();
+        const snapshot = buildConfigSnapshot();
+        return {
+          content: [{ type: 'text', text: JSON.stringify(snapshot) }],
+          structuredContent: { ...snapshot },
+        };
+      },
+    ),
+  );
+
+  // Negotiate MCP Apps UI extension & dynamic client roots on initialize.
+  // Clients without `io.modelcontextprotocol/ui` (such as Antigravity CLI) ignore `_meta.ui.visibility`
+  // and would otherwise expose all ~106 app_* tools to the model, exceeding the 100-tool budget.
+  const prevOnInitialized = server.server.oninitialized;
+  server.server.oninitialized = () => {
+    prevOnInitialized?.();
+    const forceExpose =
+      Boolean(options.exposeAppToolsWithoutUiCapability) ||
+      process.env.AGY_NOV_EXPOSE_APP_TOOLS === '1';
+    if (!forceExpose) {
+      const clientCaps = server.server.getClientCapabilities();
+      if (!hasMcpAppsUiCapability(clientCaps)) {
+        uiAppToolsAllowed = false;
+        syncToolVisibility(currentConfig, true);
+      }
+    }
+    void syncWorkspaceRootFromClientRoots();
+  };
+
+  server.server.setNotificationHandler(RootsListChangedNotificationSchema, async () => {
+    await syncWorkspaceRootFromClientRoots();
+  });
 
   async function dispose(): Promise<void> {
     disposed = true;
@@ -792,6 +973,8 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     setLocale: applyLocaleMutation,
     setStartupView: applyStartupViewMutation,
     resetConfig: applyResetConfigMutation,
+    setWorkspaceRoot,
+    hasUiAppToolsEnabled: () => uiAppToolsAllowed,
     subscribeSnapshot,
     syncConfigFromDisk: syncConfigFromDiskIfChanged,
     dispose,

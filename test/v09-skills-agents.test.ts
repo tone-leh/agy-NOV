@@ -31,9 +31,6 @@ const NEW_READONLY_AGENTS = [
 
 const ALLOWED_READONLY_AGENT_TOOLS = new Set([
   'read_file',
-  'grep_search',
-  'find_by_name',
-  'list_dir',
 ]);
 
 const FORBIDDEN_WRITE_OR_EXEC_TOOLS = new Set([
@@ -360,7 +357,7 @@ describe('v0.9.0 read-only specialist subagents', () => {
       assert.deepEqual(
         [...tools].sort(),
         [...ALLOWED_READONLY_AGENT_TOOLS].sort(),
-        `${agentName}: should declare the exact 4 official read-only tools`,
+        `${agentName}: should declare native read-only tools only`,
       );
     }
   });

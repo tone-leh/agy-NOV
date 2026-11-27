@@ -75,8 +75,14 @@ class StdioClient {
   async init(): Promise<void> {
     await this.request('initialize', {
       protocolVersion: '2025-03-26',
-      capabilities: {},
-      clientInfo: { name: 'agy-nov-test', version: '0.2.0' },
+      capabilities: {
+        extensions: {
+          'io.modelcontextprotocol/ui': {
+            mimeTypes: ['text/html;profile=mcp-app'],
+          },
+        },
+      },
+      clientInfo: { name: 'agy-nov-test', version: '1.0.2' },
     });
     this.proc.stdin.write(
       `${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' })}\n`,
@@ -266,7 +272,7 @@ test('unified hook dispatcher respects module switches, turbo SessionStart snaps
       'PreToolUse',
       tmp,
     );
-    assert.deepEqual(preDisabled, {});
+    assert.deepEqual(preDisabled, { decision: 'allow' });
     await dispatchNovHook(
       {
         hookEventName: 'PostToolUse',
@@ -562,7 +568,7 @@ test('security regressions: Guard symlink blocking (H-1), snake_case target_file
       'PreToolUse',
       '${PLUGIN_DATA}',
     );
-    assert.deepEqual(fallbackOut, {});
+    assert.deepEqual(fallbackOut, { decision: 'allow' });
   } finally {
     fs.rmSync(ws, { recursive: true, force: true });
     fs.rmSync(outside, { recursive: true, force: true });
@@ -998,7 +1004,7 @@ test('v0.3.0 verify Stop hook blocks empty writes via unified dispatcher and CLI
       'Stop',
       dataDir,
     );
-    assert.equal(stopDenied.decision, 'deny');
+    assert.equal(stopDenied.decision, 'continue');
     assert.match(stopDenied.reason ?? '', /Verify Gate/i);
 
     // 3. CLI statusline must accurately report Verify:BLOCKED and blockedStops >= 1

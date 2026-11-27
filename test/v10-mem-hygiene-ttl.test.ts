@@ -533,6 +533,7 @@ describe('Mem 3.0 — Memory Hygiene, Confidence & TTL Governance (T10.2)', () =
         workspaceRoot: workspaceDir,
         demoMode: false,
         configPollMs: 0,
+        exposeAppToolsWithoutUiCapability: true,
       });
 
       const { client, close } = await connectInMemoryClient(bundle.server);

@@ -520,7 +520,7 @@ export function registerTurboModule(
 ): ModuleRegistrationResult {
   const rootDataDir = resolveNovDataDir(options.dataDir);
   const moduleDataDir = getModuleDataDir(rootDataDir, 'turbo');
-  const workspaceRoot = options.workspaceRoot;
+  const getWorkspaceRoot = () => options.workspaceRoot;
   const isDemo = options.demoMode === true;
 
   // Strictly in-memory stores: zero disk writes during registration or standard runtime
@@ -580,7 +580,7 @@ export function registerTurboModule(
 
   const buildSnapshotSafe = (): WorkspaceSnapshot | null => {
     try {
-      return buildWorkspaceSnapshot(workspaceRoot);
+      return buildWorkspaceSnapshot(getWorkspaceRoot());
     } catch {
       return null;
     }
@@ -666,7 +666,7 @@ export function registerTurboModule(
     const { prefs, hotspots } = readCurrentPrefsAndHotspots();
     return {
       mode: isDemo ? 'demo' : 'live',
-      workspaceRoot,
+      workspaceRoot: getWorkspaceRoot(),
       stats: {
         searchCount,
         outlineCount,
@@ -721,7 +721,7 @@ export function registerTurboModule(
         if (mode === 'references') {
           const symbol = queries[0]?.trim() ?? '';
           const maxHits = maxMatchesPerQuery ? Math.min(maxMatchesPerQuery * 4, 120) : 120;
-          const refResult = findSymbolReferences(workspaceRoot, symbol, {
+          const refResult = findSymbolReferences(getWorkspaceRoot(), symbol, {
             scope: directory,
             maxHits,
           });
@@ -746,7 +746,7 @@ export function registerTurboModule(
           };
         }
 
-        const result = batchSearchWorkspace(workspaceRoot, queries, {
+        const result = batchSearchWorkspace(getWorkspaceRoot(), queries, {
           directory,
           regex,
           caseSensitive,
@@ -809,7 +809,7 @@ export function registerTurboModule(
     async ({ filePath, depPackage, symbolFilter, startLine, endLine, includeOutline, maxSliceLines }) => {
       try {
         if (depPackage && depPackage.trim()) {
-          const depResult = inspectLockedDepContract(workspaceRoot, depPackage.trim(), {
+          const depResult = inspectLockedDepContract(getWorkspaceRoot(), depPackage.trim(), {
             symbolFilter,
           });
           outlineCount += 1;
@@ -844,7 +844,7 @@ export function registerTurboModule(
           };
         }
 
-        const result = readFileOutlineAndSlice(workspaceRoot, filePath, {
+        const result = readFileOutlineAndSlice(getWorkspaceRoot(), filePath, {
           startLine,
           endLine,
           includeOutline,
@@ -1038,7 +1038,7 @@ export function registerTurboModule(
         if (input.mode === 'references') {
           const symbol = input.queries[0]?.trim() ?? '';
           const maxHits = input.maxMatchesPerQuery ? Math.min(input.maxMatchesPerQuery * 4, 120) : 120;
-          let refResult = findSymbolReferences(workspaceRoot, symbol, {
+          let refResult = findSymbolReferences(getWorkspaceRoot(), symbol, {
             scope: input.directory,
             maxHits,
           });
@@ -1055,7 +1055,7 @@ export function registerTurboModule(
           };
         }
 
-        const result = batchSearchWorkspace(workspaceRoot, input.queries, input);
+        const result = batchSearchWorkspace(getWorkspaceRoot(), input.queries, input);
         searchCount += 1;
         lastSearch = result;
         const guarded = enforceToolTextGuardrail(formatBatchSearchText(result));
@@ -1089,7 +1089,7 @@ export function registerTurboModule(
     },
     async (input) => {
       try {
-        const result = readFileOutlineAndSlice(workspaceRoot, input.filePath, input);
+        const result = readFileOutlineAndSlice(getWorkspaceRoot(), input.filePath, input);
         outlineCount += 1;
         outlineSavedTokens += result.estimatedSavedTokens;
         lastOutline = result;
@@ -1252,7 +1252,7 @@ export function registerTurboModule(
         if (isDemo && cleanPkg.toLowerCase() === 'zod') {
           result = buildDemoZodDepContract(symbolFilter);
         } else {
-          result = inspectLockedDepContract(workspaceRoot, cleanPkg, { symbolFilter });
+          result = inspectLockedDepContract(getWorkspaceRoot(), cleanPkg, { symbolFilter });
         }
         outlineCount += 1;
         lastDepContract = result;
@@ -1290,7 +1290,7 @@ export function registerTurboModule(
       try {
         const result = isDemo
           ? buildDemoContextPack(input.maxTokens ?? CONTEXT_PACK_DEFAULT_MAX_TOKENS, Boolean(input.fromGitDiff))
-          : buildContextPack(workspaceRoot, input);
+          : buildContextPack(getWorkspaceRoot(), input);
         lastContextPack = result;
         return {
           content: [{ type: 'text', text: 'ok' }],

@@ -174,14 +174,13 @@ export function registerVerifyModule(
 ): ModuleRegistrationResult {
   const rootDataDir = resolveNovDataDir(options.dataDir);
   const moduleDataDir = getModuleDataDir(rootDataDir, 'verify');
-  const workspaceRoot = options.workspaceRoot;
+  const getWorkspaceRoot = () => options.workspaceRoot;
   const isDemo = options.demoMode === true;
 
   // In demo mode keep synthetic policy & verification evidence strictly in memory (zero disk writes)
   const demoState: VerifyStateFile | null = isDemo ? createDemoVerifyState() : null;
-  const demoWorktrees: VerifyWorktreeOption[] = isDemo
-    ? buildDemoVerifyWorktrees(workspaceRoot)
-    : [];
+  const getDemoWorktrees = (): VerifyWorktreeOption[] =>
+    isDemo ? buildDemoVerifyWorktrees(getWorkspaceRoot()) : [];
 
   const APP_ONLY_META = {
     ui: {
@@ -197,10 +196,10 @@ export function registerVerifyModule(
     buildVerifyStateView(getCurrentStateFile(), isDemo ? 'demo' : 'live');
 
   const getAvailableWorktrees = (): VerifyWorktreeOption[] =>
-    isDemo ? demoWorktrees.map((w) => ({ ...w })) : listVerifyWorktreesReadOnly(workspaceRoot);
+    isDemo ? getDemoWorktrees() : listVerifyWorktreesReadOnly(getWorkspaceRoot());
 
   const getDetectedStack = (): DetectedWorkspaceVerifyResult =>
-    isDemo ? createDemoVerifyDetection() : detectWorkspaceVerifyCommands(workspaceRoot);
+    isDemo ? createDemoVerifyDetection() : detectWorkspaceVerifyCommands(getWorkspaceRoot());
 
   const applyPolicyPatch = (
     patch: VerifyPolicyPatch,
@@ -228,11 +227,11 @@ export function registerVerifyModule(
     { ok: true; run: VerifyEvidenceRecord; state: VerifyStateView } | { ok: false; error: string }
   > => {
     if (isDemo && demoState) {
-      const demoRes = runDemoChecksInMemory(demoState, demoWorktrees, opts);
+      const demoRes = runDemoChecksInMemory(demoState, getDemoWorktrees(), opts);
       if (!demoRes.ok) return demoRes;
       return { ok: true, run: demoRes.run, state: getStateView() };
     }
-    const liveRes = await runVerifyChecksLive(moduleDataDir, workspaceRoot, opts);
+    const liveRes = await runVerifyChecksLive(moduleDataDir, getWorkspaceRoot(), opts);
     if (!liveRes.ok) return liveRes;
     return {
       ok: true,
@@ -581,9 +580,10 @@ export function registerVerifyModule(
       let resolvedBranch: string | undefined;
       let resolvedWorktree: string | undefined;
 
+      const currentWorkspaceRoot = getWorkspaceRoot();
       if (worktreePath) {
         if (isDemo) {
-          const demoTarget = resolveDemoWorktreeTarget(demoWorktrees, worktreePath);
+          const demoTarget = resolveDemoWorktreeTarget(getDemoWorktrees(), worktreePath);
           if (!demoTarget.ok) {
             return {
               isError: true,
@@ -594,7 +594,7 @@ export function registerVerifyModule(
           resolvedWorktree = demoTarget.worktreePath;
         } else {
           try {
-            const liveTarget = resolveAllowedVerifyTargetRoot(workspaceRoot, worktreePath);
+            const liveTarget = resolveAllowedVerifyTargetRoot(currentWorkspaceRoot, worktreePath);
             resolvedBranch = liveTarget.branch;
             resolvedWorktree = liveTarget.targetRoot;
           } catch (err) {
@@ -611,7 +611,7 @@ export function registerVerifyModule(
         ? createDemoSpecSummaryForPr()
         : loadSpecSummaryForPrReadOnly(rootDataDir);
       const summary = buildPrDeliverySummary(currentState, {
-        workspaceRoot,
+        workspaceRoot: currentWorkspaceRoot,
         worktreePath: resolvedWorktree,
         branch: resolvedBranch,
         specSummary,

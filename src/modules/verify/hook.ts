@@ -216,17 +216,49 @@ export function handleVerifyPostToolHook(
   }
 }
 
+const TERMINATION_REASON_PREFIX = 'EXECUTOR_TERMINATION_REASON_';
+
+function extractNormalizedTerminationReason(payload: NormalizedHookPayload): string | undefined {
+  const rawCandidate =
+    (typeof payload.terminationReason === 'string' && payload.terminationReason) ||
+    (typeof payload.raw?.terminationReason === 'string' && payload.raw.terminationReason) ||
+    (typeof payload.raw?.termination_reason === 'string' && payload.raw.termination_reason) ||
+    undefined;
+  if (!rawCandidate) return undefined;
+  const trimmed = rawCandidate.trim();
+  if (!trimmed) return undefined;
+  const upper = trimmed.toUpperCase();
+  return upper.startsWith(TERMINATION_REASON_PREFIX)
+    ? upper.slice(TERMINATION_REASON_PREFIX.length)
+    : upper;
+}
+
+function isContinuationActive(payload: NormalizedHookPayload): boolean {
+  return (
+    payload.continuationActive === true ||
+    payload.raw?.continuationActive === true ||
+    payload.raw?.continuation_active === true
+  );
+}
+
 /**
  * Stop hook for Verify Gate.
- * Blocks unverified or failing stops when workspace files were modified,
- * with strict loop guardrails (maxConsecutiveBlocks & continuationActive) and redacted evidence logs.
+ * Blocks unverified or failing stops when workspace files were modified using Antigravity's
+ * official Stop hook `continue` protocol, allows non-NO_TOOL_CALL terminations immediately,
+ * and enforces strict loop guardrails (maxConsecutiveBlocks & continuationActive) with redacted evidence logs.
  */
 export async function handleVerifyStopHook(
   payload: NormalizedHookPayload,
   rootDataDir: string,
-): Promise<{ decision: 'allow' | 'deny'; reason?: string }> {
+): Promise<{ decision: 'allow' | 'continue'; reason?: string }> {
   try {
     if (payload.event !== 'Stop') {
+      return { decision: 'allow' };
+    }
+
+    // Never block user cancellation, runtime errors, invocation/token caps, or other non-NO_TOOL_CALL exits
+    const terminationReason = extractNormalizedTerminationReason(payload);
+    if (terminationReason !== undefined && terminationReason !== 'NO_TOOL_CALL') {
       return { decision: 'allow' };
     }
 
@@ -255,8 +287,7 @@ export async function handleVerifyStopHook(
         ...session.dirtyFiles,
         ...session.emptyFiles,
       ]);
-      const continuationNote =
-        payload.continuationActive === true ? ' (continuationActive=true)' : '';
+      const continuationNote = isContinuationActive(payload) ? ' (continuationActive=true)' : '';
 
       const record: VerifyEvidenceRecord = {
         id: createEvidenceId('ver'),
@@ -323,7 +354,7 @@ export async function handleVerifyStopHook(
 
       appendEvidenceToState(state, record);
       saveVerifyState(moduleDataDir, state);
-      return { decision: 'deny', reason };
+      return { decision: 'continue', reason };
     }
 
     // 3. Auto-run enabled checks on Stop within bounded Stop-hook budget (<=8s each, <=14s total)
@@ -427,7 +458,7 @@ export async function handleVerifyStopHook(
 
         appendEvidenceToState(targetState, record);
         saveVerifyState(moduleDataDir, targetState);
-        return { decision: 'deny', reason };
+        return { decision: 'continue', reason };
       }
     } else if (!state.policy.autoRunOnStop && session.dirtyFiles.length > 0) {
       // 4. Manual verification enforcement when autoRunOnStop is disabled
@@ -469,7 +500,7 @@ export async function handleVerifyStopHook(
 
         appendEvidenceToState(state, record);
         saveVerifyState(moduleDataDir, state);
-        return { decision: 'deny', reason };
+        return { decision: 'continue', reason };
       }
     }
 

@@ -165,7 +165,18 @@ interface OpsState {
 }
 
 export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNotify }) => {
-  const { dict } = useNovI18n();
+  const { dict, t } = useNovI18n();
+  const [caps, setCaps] = useState(() => bridge.getCapabilities());
+  useEffect(() => {
+    let mounted = true;
+    void bridge.ready().then(() => {
+      if (mounted) setCaps(bridge.getCapabilities());
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [bridge]);
+  const canSendMessage = caps.message;
   const [tab, setTab] = useState<'prompts' | 'audit'>('prompts');
   const [state, setState] = useState<OpsState | null>(null);
   const [selectedId, setSelectedId] = useState<string>('');
@@ -264,19 +275,33 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
     }
   };
 
-  const opsDictExt = dict.ops as Record<string, string>;
-  const ruleBloatTitle = opsDictExt.ruleBloatTitle ?? 'Rule Bloat Guard (24 KB / 20K Tokens)';
-  const toolBudgetTitle = opsDictExt.toolBudgetTitle ?? '100-Tool Budget Meter';
-  const mcpHealthTitle = opsDictExt.mcpHealthTitle ?? 'MCP Static Health Check';
-  const teamPresetTitle = dict.ops.teamPresetTitle ?? 'Team Preset (.agy-nov.json)';
-  const teamPresetMissing =
-    dict.ops.teamPresetMissing ?? 'No .agy-nov.json found (optional, strictly read-only)';
-  const teamPresetValid = dict.ops.teamPresetValid ?? 'Valid';
-  const teamPresetWarnings = dict.ops.teamPresetWarnings ?? 'Warnings';
-  const crossClientTitle =
-    dict.ops.crossClientTitle ?? 'Cross-Client Compatibility & Pitfall Guard';
-  const crossClientEmpty =
-    dict.ops.crossClientEmpty ?? 'No cross-client config pitfalls detected.';
+  const ops = dict.ops;
+  const categoryLabels: Record<PromptTemplate['category'], string> = {
+    custom: ops.catCustom,
+    review: ops.catReview,
+    debug: ops.catDebug,
+    release: ops.catRelease,
+    security: ops.catSecurity,
+    handoff: ops.catHandoff,
+  };
+
+  const handleSendRendered = async () => {
+    if (!rendered) return;
+    try {
+      const mode = await bridge.sendMessage(rendered);
+      onNotify?.(
+        mode === 'sent'
+          ? dict.common.toastPromptSent
+          : mode === 'context'
+            ? dict.common.toastPromptContext
+            : dict.common.toastPromptCopied,
+      );
+    } catch (err) {
+      onNotify?.(
+        t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }),
+      );
+    }
+  };
 
   return (
     <div className="nov-p-page">
@@ -345,7 +370,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                   {(['custom', 'review', 'debug', 'release', 'security', 'handoff'] as const).map(
                     (c) => (
                       <option key={c} value={c}>
-                        {c}
+                        {categoryLabels[c]}
                       </option>
                     ),
                   )}
@@ -373,7 +398,9 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                   <div className="nov-p-row">
                     <strong>{selected.title}</strong>
                     <div style={{ display: 'flex', gap: '6px' }}>
-                      <span className="nov-badge">{selected.category}</span>
+                      <span className="nov-badge">
+                        {categoryLabels[selected.category] ?? selected.category}
+                      </span>
                       {!selected.builtIn && (
                         <button
                           type="button"
@@ -431,12 +458,9 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                         <button
                           type="button"
                           className="nov-p-btn is-primary"
-                          onClick={() => {
-                            void bridge.sendMessage(rendered);
-                            onNotify?.(dict.ops.sendToAgent);
-                          }}
+                          onClick={() => void handleSendRendered()}
                         >
-                          {dict.ops.sendToAgent}
+                          {canSendMessage ? dict.ops.sendToAgent : dict.common.copyPrompt}
                         </button>
                       </div>
                     )}
@@ -498,7 +522,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                 return (
                   <div className="nov-p-item" style={{ gap: '8px' }}>
                     <div className="nov-p-row">
-                      <strong style={{ fontSize: '12.5px' }}>{ruleBloatTitle}</strong>
+                      <strong style={{ fontSize: '12.5px' }}>{ops.ruleBloatTitle}</strong>
                       <span
                         className="nov-badge"
                         style={{ color: rbColor, background: rbBg, borderColor: rbColor }}
@@ -510,7 +534,8 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <div className="nov-p-row" style={{ fontSize: '11.5px', color: 'var(--nov-text-1)' }}>
                         <span>
-                          Largest file{rb.largestFilePath ? `: ${rb.largestFilePath}` : ''}
+                          {ops.largestFileLabel}
+                          {rb.largestFilePath ? `: ${rb.largestFilePath}` : ''}
                         </span>
                         <span style={{ fontFamily: 'var(--nov-font-mono)' }}>
                           {(rb.largestFileBytes / 1024).toFixed(1)} / {(rb.singleFileLimitBytes / 1024).toFixed(0)} KB
@@ -543,7 +568,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <div className="nov-p-row" style={{ fontSize: '11.5px', color: 'var(--nov-text-1)' }}>
-                        <span>Aggregate rule tokens</span>
+                        <span>{ops.aggregateRuleTokensLabel}</span>
                         <span style={{ fontFamily: 'var(--nov-font-mono)' }}>
                           ~{rb.totalRuleTokens.toLocaleString()} / {rb.aggregateTokenLimit.toLocaleString()}
                         </span>
@@ -597,7 +622,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                 return (
                   <div className="nov-p-item" style={{ gap: '8px' }}>
                     <div className="nov-p-row">
-                      <strong style={{ fontSize: '12.5px' }}>{toolBudgetTitle}</strong>
+                      <strong style={{ fontSize: '12.5px' }}>{ops.toolBudgetTitle}</strong>
                       <span
                         className="nov-badge"
                         style={{ color: tbColor, background: tbBg, borderColor: tbColor }}
@@ -634,9 +659,12 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                         color: 'var(--nov-text-1)',
                       }}
                     >
-                      <span className="nov-badge is-accent">agy-NOV: {tb.agyNovTools} tools</span>
+                      <span className="nov-badge is-accent">
+                        {t(ops.agyNovToolsBadge, { n: tb.agyNovTools })}
+                      </span>
                       <span className="nov-badge">
-                        External MCP: {tb.externalServersCount} server(s) (~{tb.estimatedExternalTools} tools)
+                        {t(ops.externalMcpBadge, { n: tb.estimatedExternalTools })} (
+                        {tb.externalServersCount})
                       </span>
                     </div>
                   </div>
@@ -647,7 +675,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
 
           <div className="nov-p-stat-grid">
             <div className="nov-p-stat">
-              <div className="nov-p-stat-label">Health Score</div>
+              <div className="nov-p-stat-label">{ops.healthScoreLabel}</div>
               <div
                 className="nov-p-stat-val"
                 style={{
@@ -659,19 +687,19 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                         : 'var(--nov-danger)',
                 }}
               >
-                {state.audit.healthScore}/100
+                {t(ops.scoreBadge, { score: state.audit.healthScore })}
               </div>
             </div>
             {typeof state.audit.securityScore === 'number' && (
               <div className="nov-p-stat">
-                <div className="nov-p-stat-label">Security Score</div>
+                <div className="nov-p-stat-label">{ops.securityScoreLabel}</div>
                 <div
                   className="nov-p-stat-val"
                   style={{
                     color: getStatusColor(mapSecurityScoreToStatus(state.audit.securityScore)),
                   }}
                 >
-                  {state.audit.securityScore}/100
+                  {t(ops.scoreBadge, { score: state.audit.securityScore })}
                 </div>
               </div>
             )}
@@ -705,14 +733,14 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                 <div className="nov-p-item" style={{ gap: '8px' }}>
                   <div className="nov-p-row">
                     <strong style={{ fontSize: '12.5px' }}>
-                      Static Security Audit ({secFindings.length})
+                      {ops.staticSecurityTitle} ({secFindings.length})
                     </strong>
                     <div style={{ display: 'inline-flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
                       <span
                         className="nov-badge"
                         style={{ color: scoreColor, background: scoreBg, borderColor: scoreColor }}
                       >
-                        Score {secScore}/100
+                        {t(ops.scoreBadge, { score: secScore })}
                       </span>
                       {highCount > 0 && (
                         <span
@@ -723,7 +751,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                             borderColor: 'var(--nov-danger)',
                           }}
                         >
-                          HIGH {highCount}
+                          {t(ops.severityHighCount, { n: highCount })}
                         </span>
                       )}
                       {medCount > 0 && (
@@ -735,7 +763,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                             borderColor: 'var(--nov-warn)',
                           }}
                         >
-                          MED {medCount}
+                          {t(ops.severityMedCount, { n: medCount })}
                         </span>
                       )}
                       {lowCount > 0 && (
@@ -747,7 +775,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                             borderColor: 'var(--nov-accent)',
                           }}
                         >
-                          LOW {lowCount}
+                          {t(ops.severityLowCount, { n: lowCount })}
                         </span>
                       )}
                     </div>
@@ -774,7 +802,11 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                                   className="nov-badge"
                                   style={{ color, background: bg, borderColor: color }}
                                 >
-                                  {f.severity.toUpperCase()}
+                                  {f.severity === 'high'
+                                    ? dict.panels.review.severityHigh
+                                    : f.severity === 'medium'
+                                      ? dict.panels.review.severityMed
+                                      : dict.panels.review.severityLow}
                                 </span>
                                 <span className="nov-badge is-accent">{f.category}</span>
                                 <code>{f.file}</code>
@@ -785,7 +817,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                               {f.summary}
                             </span>
                             <span style={{ fontSize: '11.5px', color: 'var(--nov-text-2)' }}>
-                              Remediation: {f.remediation}
+                              {ops.remediationLabel}: {f.remediation}
                             </span>
                           </div>
                         );
@@ -793,7 +825,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                     </div>
                   ) : (
                     <span style={{ fontSize: '12px', color: 'var(--nov-success)' }}>
-                      Zero static security risks detected across rules, skills, hooks, and MCP configs.
+                      {ops.securityCleanNote}
                     </span>
                   )}
                 </div>
@@ -811,10 +843,10 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
               <div className="nov-p-item" style={{ gap: '8px' }}>
                 <div className="nov-p-row">
                   <strong style={{ fontSize: '12.5px' }}>
-                    Cross-Client Dedup Preview ({mp.totalFiles})
+                    {ops.dedupPreviewTitle} ({mp.totalFiles})
                   </strong>
                   <div style={{ display: 'inline-flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
-                    <span className="nov-badge">Read-Only Preview</span>
+                    <span className="nov-badge">{ops.readOnlyPreviewBadge}</span>
                     {mp.reclaimableBytes > 0 && (
                       <span
                         className="nov-badge"
@@ -824,8 +856,8 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                           borderColor: 'var(--nov-success)',
                         }}
                       >
-                        Save {(mp.reclaimableBytes / 1024).toFixed(1)} KB (~{savedTokens} tok ·{' '}
-                        {mp.estimatedSavingsPercent}%)
+                        {t(ops.dedupSaveBadge, { tokens: savedTokens })} ·{' '}
+                        {(mp.reclaimableBytes / 1024).toFixed(1)} KB ({mp.estimatedSavingsPercent}%)
                       </span>
                     )}
                   </div>
@@ -840,13 +872,15 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                     color: 'var(--nov-text-1)',
                   }}
                 >
-                  <span className="nov-badge">Files: {mp.totalFiles}</span>
                   <span className="nov-badge">
-                    Total: {(mp.totalBytes / 1024).toFixed(1)} KB (~{totalTokens} tok)
+                    {ops.dedupFilesLabel}: {mp.totalFiles}
+                  </span>
+                  <span className="nov-badge">
+                    {ops.dedupTotalLabel}: {(mp.totalBytes / 1024).toFixed(1)} KB (~{totalTokens} tok)
                   </span>
                   <span className="nov-badge is-accent">
-                    Reclaimable: {(mp.reclaimableBytes / 1024).toFixed(1)} KB (~{savedTokens} tok ·{' '}
-                    {mp.estimatedSavingsPercent}%)
+                    {ops.dedupReclaimableLabel}: {(mp.reclaimableBytes / 1024).toFixed(1)} KB (~
+                    {savedTokens} tok · {mp.estimatedSavingsPercent}%)
                   </span>
                 </div>
 
@@ -862,12 +896,12 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                     >
                       <thead>
                         <tr style={{ borderBottom: '1px solid var(--nov-border)', color: 'var(--nov-text-2)' }}>
-                          <th style={{ padding: '6px 8px' }}>Client</th>
-                          <th style={{ padding: '6px 8px' }}>Source</th>
-                          <th style={{ padding: '6px 8px' }}>Size / Tok</th>
-                          <th style={{ padding: '6px 8px' }}>Overlap</th>
-                          <th style={{ padding: '6px 8px' }}>Target</th>
-                          <th style={{ padding: '6px 8px' }}>Action</th>
+                          <th style={{ padding: '6px 8px' }}>{ops.dedupColClient}</th>
+                          <th style={{ padding: '6px 8px' }}>{ops.dedupColSource}</th>
+                          <th style={{ padding: '6px 8px' }}>{ops.dedupColSizeTok}</th>
+                          <th style={{ padding: '6px 8px' }}>{ops.dedupColOverlap}</th>
+                          <th style={{ padding: '6px 8px' }}>{ops.dedupColTarget}</th>
+                          <th style={{ padding: '6px 8px' }}>{ops.dedupColAction}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -928,7 +962,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                   </div>
                 ) : (
                   <span style={{ fontSize: '12px', color: 'var(--nov-text-2)' }}>
-                    No cross-client config or rule files (.claude/, .cursor/rules/, .codex/) detected.
+                    {ops.dedupEmptyNote}
                   </span>
                 )}
               </div>
@@ -938,7 +972,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
           {Array.isArray(state.audit.mcpHealthFindings) && (
             <>
               <strong style={{ fontSize: '12px' }}>
-                {mcpHealthTitle} ({state.audit.mcpHealthFindings.length})
+                {ops.mcpHealthTitle} ({state.audit.mcpHealthFindings.length})
               </strong>
               {state.audit.mcpHealthFindings.length > 0 ? (
                 <div className="nov-p-list">
@@ -966,7 +1000,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                 </div>
               ) : (
                 <div className="nov-p-item" style={{ fontSize: '12px', color: 'var(--nov-success)' }}>
-                  No MCP configuration issues detected.
+                  {ops.mcpHealthyNote}
                 </div>
               )}
             </>
@@ -986,16 +1020,16 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
             return (
               <div className="nov-p-item" style={{ gap: '8px' }}>
                 <div className="nov-p-row">
-                  <strong style={{ fontSize: '12.5px' }}>{teamPresetTitle}</strong>
+                  <strong style={{ fontSize: '12.5px' }}>{ops.teamPresetTitle}</strong>
                   {!tp.found ? (
-                    <span className="nov-badge">Optional</span>
+                    <span className="nov-badge">{dict.common.optional}</span>
                   ) : (
                     <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
                       <span
                         className="nov-badge"
                         style={{ color: badgeColor, background: badgeBg, borderColor: badgeColor }}
                       >
-                        {tp.valid ? teamPresetValid : 'INVALID'}
+                        {tp.valid ? ops.teamPresetValid : ops.teamPresetInvalid}
                       </span>
                       {tp.warnings.length > 0 && (
                         <span
@@ -1006,7 +1040,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                             borderColor: 'var(--nov-warn)',
                           }}
                         >
-                          {teamPresetWarnings}: {tp.warnings.length}
+                          {ops.teamPresetWarnings}: {tp.warnings.length}
                         </span>
                       )}
                     </div>
@@ -1015,7 +1049,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
 
                 {!tp.found ? (
                   <span style={{ fontSize: '12px', color: 'var(--nov-text-2)' }}>
-                    {teamPresetMissing}
+                    {ops.teamPresetMissing}
                   </span>
                 ) : (
                   <>
@@ -1028,19 +1062,21 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                       }}
                     >
                       {tp.preset && (
-                        <span className="nov-badge is-accent">preset: {tp.preset}</span>
+                        <span className="nov-badge is-accent">
+                          {ops.teamPresetPresetLabel}: {tp.preset}
+                        </span>
                       )}
                       {tp.enableModules.length > 0 && (
                         <span className="nov-badge">
-                          modules: {tp.enableModules.join(', ')}
+                          {ops.teamPresetModulesLabel}: {tp.enableModules.join(', ')}
                         </span>
                       )}
                       <span className="nov-badge">
-                        verifyCommands: {tp.verifyCommands.length}
+                        {ops.teamPresetVerifyCmdsLabel}: {tp.verifyCommands.length}
                       </span>
                       {tp.specTemplatesCount > 0 && (
                         <span className="nov-badge">
-                          specTemplates: {tp.specTemplatesCount}
+                          {ops.teamPresetSpecTemplatesLabel}: {tp.specTemplatesCount}
                         </span>
                       )}
                     </div>
@@ -1061,7 +1097,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                     {tp.warnings.length > 0 && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <strong style={{ fontSize: '11.5px', color: 'var(--nov-warn)' }}>
-                          {teamPresetWarnings} ({tp.warnings.length})
+                          {ops.teamPresetWarnings} ({tp.warnings.length})
                         </strong>
                         {tp.warnings.map((warnMsg, idx) => (
                           <div
@@ -1083,7 +1119,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
             <div className="nov-p-item" style={{ gap: '8px' }}>
               <div className="nov-p-row">
                 <strong style={{ fontSize: '12.5px' }}>
-                  {crossClientTitle} ({state.audit.crossClientFindings.length})
+                  {ops.crossClientTitle} ({state.audit.crossClientFindings.length})
                 </strong>
               </div>
               {state.audit.crossClientFindings.length > 0 ? (
@@ -1117,7 +1153,7 @@ export const OpsPanel: React.FC<NovModulePanelProps> = ({ bridge, active, onNoti
                 </div>
               ) : (
                 <span style={{ fontSize: '12px', color: 'var(--nov-success)' }}>
-                  {crossClientEmpty}
+                  {ops.crossClientEmpty}
                 </span>
               )}
             </div>

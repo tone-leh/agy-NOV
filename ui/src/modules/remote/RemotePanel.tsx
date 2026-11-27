@@ -157,7 +157,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
   onNotify,
   incomingEvent,
 }) => {
-  const { dict } = useNovI18n();
+  const { dict, t } = useNovI18n();
   const rm = dict.panels.remote;
 
   const [tab, setTab] = useState<RemoteSubTab>('hub');
@@ -339,65 +339,94 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
           : { webhookUrl: webhookUrl || undefined, secret: secret || undefined }),
       });
       if (res.ok === false || typeof res.error === 'string') {
-        notify(`Validation failed: ${String(res.error ?? 'invalid channel configuration')}`);
+        notify(
+          t(rm.toastChannelValidationFailed, {
+            error: String(res.error ?? dict.common.invalid),
+          }),
+        );
         return;
       }
       setWebhookUrl('');
       setSecret('');
       setBotToken('');
-      notify(`Saved ${selectedChannel} channel settings (mode 0600)`);
+      notify(t(rm.toastChannelSaved, { name: selectedChannel }));
       await refresh();
     } catch (err) {
-      notify(`Save channel failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(
+        t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }),
+      );
     }
   };
 
   const handleTestChannel = async (id: string) => {
     try {
       const res = await bridge.callTool<{ ok?: boolean; error?: string }>('app_remote_test_channel', { id });
-      notify(res.ok ? `Test ping delivered to ${id}!` : `Ping failed: ${String(res.error ?? 'not configured')}`);
+      notify(
+        res.ok
+          ? t(rm.toastPingDelivered, { name: id })
+          : t(rm.toastPingFailed, { name: id, error: String(res.error ?? dict.common.disabled) }),
+      );
     } catch (err) {
-      notify(`Ping failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(
+        t(rm.toastPingFailed, {
+          name: id,
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
     }
   };
 
   const handleSimulate = async () => {
     try {
       await bridge.callTool('app_remote_simulate_approval', { command: 'git push origin main --force' });
-      notify('Queued simulated risky command approval!');
+      notify(rm.toastSimulated);
       await refresh();
     } catch (err) {
-      notify(`Simulate failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(
+        t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }),
+      );
     }
   };
 
   const handleDecide = async (id: string, decision: 'approved' | 'denied') => {
     try {
       await bridge.callTool('app_remote_decide_approval', { id, decision });
-      notify(`Marked ${id} as ${decision}`);
+      notify(
+        t(rm.toastMarkedDecision, {
+          id,
+          decision: decision === 'approved' ? rm.approveBtn : rm.denyBtn,
+        }),
+      );
       await refresh();
     } catch (err) {
-      notify(`Decision failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(
+        t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }),
+      );
     }
   };
 
   const handleRefreshPin = async () => {
     try {
-      await bridge.callTool('app_remote_refresh_pin', {});
-      notify('Generated fresh 6-digit PIN (valid for 5 min)');
+      const res = await bridge.callTool<{ pairingPin?: string; pin?: string }>('app_remote_refresh_pin', {});
+      const pinVal = res?.pairingPin || res?.pin || '******';
+      notify(t(rm.toastPinRefreshed, { pin: pinVal }));
       await refresh();
     } catch (err) {
-      notify(`Refresh PIN failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(
+        t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }),
+      );
     }
   };
 
   const handleRotatePairing = async () => {
     try {
       await bridge.callTool('app_remote_rotate_pairing', {});
-      notify('Rotated 256-bit token & 6-digit PIN');
+      notify(rm.toastPairingRotated);
       await refresh();
     } catch (err) {
-      notify(`Rotate secret failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(
+        t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }),
+      );
     }
   };
 
@@ -414,7 +443,9 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
         },
       );
       if (res.ok === false || typeof res.error === 'string') {
-        notify(`Settings error: ${String(res.error ?? 'invalid settings')}`);
+        notify(
+          t(dict.common.actionFailed, { error: String(res.error ?? dict.common.invalid) }),
+        );
         return;
       }
       setSettingsDirty(false);
@@ -423,9 +454,11 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
       } else {
         await refresh();
       }
-      notify('Updated Remote gateway policy settings');
+      notify(rm.toastSettingsUpdated);
     } catch (err) {
-      notify(`Update settings failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(
+        t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }),
+      );
     }
   };
 
@@ -438,10 +471,16 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
         model: taskModel,
       });
       setTaskPrompt('');
-      notify('Dispatched new Antigravity conversation!');
+      notify(
+        t(rm.toastDispatched, {
+          mode: data?.conversationApiLive ? rm.liveApiBadge : rm.demoMockBadge,
+        }),
+      );
       await refresh();
     } catch (err) {
-      notify(`Dispatch failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(
+        t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }),
+      );
     }
   };
 
@@ -452,7 +491,9 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
       notify(enable ? rm.startGateway : rm.stopGateway);
       await refresh();
     } catch (err) {
-      notify(`Gateway toggle failed: ${err instanceof Error ? err.message : String(err)}`);
+      notify(
+        t(dict.common.actionFailed, { error: err instanceof Error ? err.message : String(err) }),
+      );
     } finally {
       setTogglingGateway(false);
     }
@@ -465,14 +506,16 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
     try {
       const res = await bridge.callTool<DetectTunnelsPayload>('app_remote_detect_tunnels', {});
       if (res.ok === false || typeof res.error === 'string') {
-        const msg = String(res.error ?? 'Tunnel detection failed');
+        const msg = t(rm.toastTunnelFailed, { error: String(res.error ?? dict.common.invalid) });
         setTunnelError(msg);
         notify(msg);
         return;
       }
       setTunnelReport(res);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = t(rm.toastTunnelFailed, {
+        error: err instanceof Error ? err.message : String(err),
+      });
       setTunnelError(msg);
       notify(msg);
     } finally {
@@ -500,7 +543,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
           ...prev,
           [conversationId]: {
             loading: false,
-            error: String(res.error ?? 'Failed to load live stream'),
+            error: t(rm.toastStreamFailed, { error: String(res.error ?? dict.common.invalid) }),
             data: null,
           },
         }));
@@ -515,7 +558,9 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
         },
       }));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = t(rm.toastStreamFailed, {
+        error: err instanceof Error ? err.message : String(err),
+      });
       setStreamStates((prev) => ({
         ...prev,
         [conversationId]: {
@@ -564,7 +609,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
             onClick={() => void handleSimulate()}
             disabled={!isRunning}
           >
-            Simulate Approval
+            {rm.simulateApprovalBtn}
           </button>
           <button
             type="button"
@@ -637,17 +682,17 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
             <div className="remote-stack">
               <div className="remote-kpi-grid">
                 <div className="remote-card">
-                  <div className="remote-kpi-label">Pending Approvals</div>
+                  <div className="remote-kpi-label">{rm.kpiPendingApprovals}</div>
                   <div className={`remote-kpi-value ${pendingApprovals.length ? 'is-warn' : 'is-good'}`}>
                     {pendingApprovals.length}
                   </div>
                 </div>
                 <div className="remote-card">
-                  <div className="remote-kpi-label">Connected Phones</div>
+                  <div className="remote-kpi-label">{rm.kpiConnectedPhones}</div>
                   <div className="remote-kpi-value">{data.status?.connectedClients ?? 0}</div>
                 </div>
                 <div className="remote-card">
-                  <div className="remote-kpi-label">Pairing PIN</div>
+                  <div className="remote-kpi-label">{rm.kpiPairingPin}</div>
                   <div className="remote-kpi-value remote-mono">
                     {isRunning ? pairingPin : dict.common.disabled}
                   </div>
@@ -681,10 +726,10 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                         className="remote-btn"
                         onClick={async () => {
                           const ok = await bridge.openExternalLink(pairingUrl);
-                          if (!ok) notify('Host blocked external link; use Copy Link instead');
+                          if (!ok) notify(rm.toastExternalLinkBlocked);
                         }}
                       >
-                        Open Link
+                        {dict.common.openLink}
                       </button>
                     )}
                     <button
@@ -693,7 +738,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                       disabled={!isRunning}
                       onClick={() => void handleRefreshPin()}
                     >
-                      Refresh PIN
+                      {rm.refreshPinBtn}
                     </button>
                     <button
                       type="button"
@@ -701,7 +746,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                       disabled={!isRunning}
                       onClick={() => void handleRotatePairing()}
                     >
-                      Rotate Secret
+                      {rm.rotateSecretBtn}
                     </button>
                   </div>
                 </div>
@@ -709,7 +754,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                   {isRunning && pairingUrl ? pairingUrl : rm.offlineNotice}
                 </div>
                 <div className="remote-muted" style={{ marginTop: 6 }}>
-                  Open on your phone over LAN Wi-Fi, Tailscale, or Cloudflare Tunnel — zero cloud middleman.
+                  {rm.pairHint}
                 </div>
               </div>
 
@@ -717,7 +762,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                 <div className="remote-row is-between">
                   <div className="remote-row">
                     <strong>{rm.tunnelGuideTitle}</strong>
-                    <span className="remote-badge is-good">READ-ONLY</span>
+                    <span className="remote-badge is-good">{dict.common.readOnlyBadge}</span>
                   </div>
                   <button
                     type="button"
@@ -742,7 +787,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                       <div className="remote-stack-sm">
                         {tunnelReport.localTargetUrl && (
                           <div className="remote-muted remote-mono">
-                            Target: {tunnelReport.localTargetUrl}
+                            {rm.tunnelTargetLabel}: {tunnelReport.localTargetUrl}
                           </div>
                         )}
                         {tunnelReport.tools.map((tool) => (
@@ -783,7 +828,9 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
               </div>
 
               <div className="remote-card">
-                <strong style={{ display: 'block', marginBottom: 8 }}>Pending Risky Approvals</strong>
+                <strong style={{ display: 'block', marginBottom: 8 }}>
+                  {rm.pendingRiskyTitle}
+                </strong>
                 {pendingApprovals.length === 0 ? (
                   <div className="remote-muted">
                     {isRunning ? dict.common.empty : rm.offlineNotice}
@@ -794,7 +841,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                       <div key={a.id} className="remote-item">
                         <div className="remote-row is-between" style={{ marginBottom: 5 }}>
                           <strong className="remote-mono">{a.toolName}</strong>
-                          <span className="remote-badge is-warn">WAITING</span>
+                          <span className="remote-badge is-warn">{rm.waitingBadge}</span>
                         </div>
                         <div className="remote-codebox" style={{ marginBottom: 8 }}>
                           {a.summary}
@@ -805,14 +852,14 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                             className="remote-btn is-good"
                             onClick={() => void handleDecide(a.id, 'approved')}
                           >
-                            Approve
+                            {rm.approveBtn}
                           </button>
                           <button
                             type="button"
                             className="remote-btn is-danger"
                             onClick={() => void handleDecide(a.id, 'denied')}
                           >
-                            Deny
+                            {rm.denyBtn}
                           </button>
                         </div>
                       </div>
@@ -837,7 +884,9 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                         <span className={`remote-badge ${ch.enabled ? 'is-good' : ''}`}>
                           {ch.enabled ? dict.common.enabled : dict.common.disabled}
                         </span>{' '}
-                        {ch.configured && <span className="remote-badge is-info">CONFIGURED</span>}
+                        {ch.configured && (
+                          <span className="remote-badge is-info">{rm.configuredBadge}</span>
+                        )}
                       </div>
                       <div className="remote-row">
                         <button
@@ -845,7 +894,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                           className="remote-btn"
                           onClick={() => setSelectedChannel(ch.id)}
                         >
-                          Configure
+                          {rm.configureBtn}
                         </button>
                         <button
                           type="button"
@@ -862,19 +911,19 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
               </div>
 
               <div className="remote-card remote-stack-sm">
-                <strong>Edit Channel: {selectedChannel}</strong>
+                <strong>{t(rm.editChannelTitle, { name: selectedChannel })}</strong>
                 {selectedChannel === 'telegram' ? (
                   <>
                     <input
                       className="remote-input"
                       type="password"
-                      placeholder="Telegram Bot Token"
+                      placeholder={rm.telegramTokenPlaceholder}
                       value={botToken}
                       onChange={(e) => setBotToken(e.target.value)}
                     />
                     <input
                       className="remote-input"
-                      placeholder="Target Chat ID"
+                      placeholder={rm.telegramChatIdPlaceholder}
                       value={chatId}
                       onChange={(e) => setChatId(e.target.value)}
                     />
@@ -884,14 +933,14 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                     <input
                       className="remote-input"
                       type="password"
-                      placeholder="Webhook URL (Feishu / DingTalk / WeCom / Slack / Discord)"
+                      placeholder={rm.webhookUrlPlaceholder}
                       value={webhookUrl}
                       onChange={(e) => setWebhookUrl(e.target.value)}
                     />
                     <input
                       className="remote-input"
                       type="password"
-                      placeholder="Optional HMAC Signing Secret (Feishu / DingTalk)"
+                      placeholder={rm.hmacSecretPlaceholder}
                       value={secret}
                       onChange={(e) => setSecret(e.target.value)}
                     />
@@ -928,7 +977,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                 <div className="remote-row is-between">
                   <strong>{rm.dispatchTask}</strong>
                   <span className="remote-badge is-info">
-                    {data.conversationApiLive ? 'LIVE API' : 'DEMO MOCK'}
+                    {data.conversationApiLive ? rm.liveApiBadge : rm.demoMockBadge}
                   </span>
                 </div>
                 <select
@@ -938,9 +987,11 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                     setTaskModel(e.target.value as 'flash' | 'pro' | 'flash_lite')
                   }
                 >
-                  <option value="flash">Model: flash</option>
-                  <option value="pro">Model: pro</option>
-                  <option value="flash_lite">Model: flash_lite</option>
+                  <option value="flash">{t(rm.modelOptionLabel, { name: 'flash' })}</option>
+                  <option value="pro">{t(rm.modelOptionLabel, { name: 'pro' })}</option>
+                  <option value="flash_lite">
+                    {t(rm.modelOptionLabel, { name: 'flash_lite' })}
+                  </option>
                 </select>
                 <textarea
                   className="remote-textarea"
@@ -1009,7 +1060,9 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                             <div className="remote-row is-between">
                               <div className="remote-row">
                                 <strong>{rm.liveStreamTitle}</strong>
-                                <span className="remote-badge is-good">READ-ONLY</span>
+                                <span className="remote-badge is-good">
+                                  {dict.common.readOnlyBadge}
+                                </span>
                                 {st?.data && typeof st.data.totalSteps === 'number' && (
                                   <span className="remote-muted remote-mono">
                                     {(st.data.mode ?? 'live').toUpperCase()} · {st.data.totalSteps}
@@ -1078,7 +1131,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                 className="remote-card remote-stack-sm"
                 onSubmit={(e) => void handleSaveSettings(e)}
               >
-                <strong>Gateway &amp; Policy Settings</strong>
+                <strong>{rm.settingsTitle}</strong>
                 <div className="remote-row">
                   <label className="remote-checkbox-row">
                     <input
@@ -1089,7 +1142,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                         setSettingsDirty(true);
                       }}
                     />
-                    Require remote approval on risky commands
+                    {rm.requireApprovalLabel}
                   </label>
                   <label className="remote-checkbox-row">
                     <input
@@ -1100,11 +1153,11 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                         setSettingsDirty(true);
                       }}
                     />
-                    Send IM alert when task stops
+                    {rm.notifyOnStopLabel}
                   </label>
                 </div>
                 <label className="remote-field-label">
-                  Bind Host (default 127.0.0.1; use 0.0.0.0 for LAN Wi-Fi)
+                  {rm.bindHostLabel}
                   <input
                     className="remote-input"
                     value={bindHost}
@@ -1115,7 +1168,7 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
                   />
                 </label>
                 <label className="remote-field-label">
-                  Optional Public Base URL (Tailscale / Cloudflare Tunnel, http(s):// only)
+                  {rm.publicBaseUrlLabel}
                   <input
                     className="remote-input"
                     placeholder="https://my-devbox.ts.net"
@@ -1135,10 +1188,10 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
 
               <div className="remote-card">
                 <strong style={{ display: 'block', marginBottom: 8 }}>
-                  Risky Command Patterns ({riskPatterns.length})
+                  {rm.riskPatternsTitle} ({riskPatterns.length})
                 </strong>
                 <div className="remote-codebox">
-                  {riskPatterns.length > 0 ? riskPatterns.join('\n') : '(No risk patterns configured)'}
+                  {riskPatterns.length > 0 ? riskPatterns.join('\n') : rm.noRiskPatterns}
                 </div>
               </div>
 

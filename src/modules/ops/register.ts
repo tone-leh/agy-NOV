@@ -58,7 +58,7 @@ export function registerOpsModule(
 ): ModuleRegistrationResult {
   const rootDataDir = resolveNovDataDir(options.dataDir);
   const moduleDataDir = getModuleDataDir(rootDataDir, 'ops');
-  const workspaceRoot = options.workspaceRoot;
+  const getWorkspaceRoot = () => options.workspaceRoot;
   const isDemo = options.demoMode === true;
 
   // In demo mode keep custom templates & audit cache strictly in memory (zero disk writes)
@@ -81,6 +81,7 @@ export function registerOpsModule(
     : [];
 
   let cachedAudit: WorkspaceAuditReport | null = null;
+  let cachedAuditWorkspaceRoot: string | null = null;
 
   const APP_ONLY_META = {
     ui: {
@@ -97,18 +98,22 @@ export function registerOpsModule(
   };
 
   const runAudit = (): WorkspaceAuditReport => {
+    const currentWorkspaceRoot = getWorkspaceRoot();
     const cfg = loadNovConfigReadOnly(rootDataDir);
     const enabledNovTools = countEnabledModelTools(cfg.modules);
     const report = isDemo
-      ? createDemoWorkspaceAudit(workspaceRoot, enabledNovTools)
-      : auditWorkspaceReadOnly(workspaceRoot, rootDataDir, { enabledNovTools });
+      ? createDemoWorkspaceAudit(currentWorkspaceRoot, enabledNovTools)
+      : auditWorkspaceReadOnly(currentWorkspaceRoot, rootDataDir, { enabledNovTools });
     cachedAudit = report;
+    cachedAuditWorkspaceRoot = currentWorkspaceRoot;
     return report;
   };
 
   const buildState = () => {
     const prompts = getPrompts();
-    const audit = cachedAudit ?? runAudit();
+    const currentWorkspaceRoot = getWorkspaceRoot();
+    const audit =
+      cachedAudit && cachedAuditWorkspaceRoot === currentWorkspaceRoot ? cachedAudit : runAudit();
     return {
       mode: isDemo ? 'demo' : 'live',
       prompts,

@@ -281,12 +281,17 @@ export const App: React.FC = () => {
           }),
         );
       } catch (err) {
-        notify(`Failed to toggle ${moduleId}: ${err instanceof Error ? err.message : String(err)}`);
+        const localDict = getDictionary(resolveUiLocale(prefLocale, hostLocaleHint));
+        notify(
+          formatMessage(localDict.common.actionFailed, {
+            error: err instanceof Error ? err.message : String(err),
+          }),
+        );
       } finally {
         setBusyKey(null);
       }
     },
-    [activeView, hostLocaleHint, notify],
+    [activeView, hostLocaleHint, notify, prefLocale],
   );
 
   const handleApplyPreset = useCallback(
@@ -307,12 +312,17 @@ export const App: React.FC = () => {
           }),
         );
       } catch (err) {
-        notify(`Failed to apply preset: ${err instanceof Error ? err.message : String(err)}`);
+        const localDict = getDictionary(resolveUiLocale(prefLocale, hostLocaleHint));
+        notify(
+          formatMessage(localDict.common.actionFailed, {
+            error: err instanceof Error ? err.message : String(err),
+          }),
+        );
       } finally {
         setBusyKey(null);
       }
     },
-    [activeView, hostLocaleHint, notify],
+    [activeView, hostLocaleHint, notify, prefLocale],
   );
 
   const handleChangeLocale = useCallback(
@@ -327,12 +337,17 @@ export const App: React.FC = () => {
           nextLocale === 'auto' ? nextDict.langAutoOption : LOCALE_NATIVE_LABELS[resolved];
         notify(formatMessage(nextDict.toastLocaleChanged, { locale: displayName }));
       } catch (err) {
-        notify(`Failed to switch locale: ${err instanceof Error ? err.message : String(err)}`);
+        const localDict = getDictionary(resolveUiLocale(prefLocale, hostLocaleHint));
+        notify(
+          formatMessage(localDict.common.actionFailed, {
+            error: err instanceof Error ? err.message : String(err),
+          }),
+        );
       } finally {
         setBusyKey(null);
       }
     },
-    [hostLocaleHint, notify],
+    [hostLocaleHint, notify, prefLocale],
   );
 
   const handleChangeStartupView = useCallback(
@@ -350,14 +365,17 @@ export const App: React.FC = () => {
           }`,
         );
       } catch (err) {
+        const localDict = getDictionary(resolveUiLocale(prefLocale, hostLocaleHint));
         notify(
-          `Failed to update startup view: ${err instanceof Error ? err.message : String(err)}`,
+          formatMessage(localDict.common.actionFailed, {
+            error: err instanceof Error ? err.message : String(err),
+          }),
         );
       } finally {
         setBusyKey(null);
       }
     },
-    [hostLocaleHint, notify],
+    [hostLocaleHint, notify, prefLocale],
   );
 
   const openCommandPalette = useCallback(() => {
@@ -564,7 +582,7 @@ export const App: React.FC = () => {
 
         {/* Wide Mode (>= 720px, global): 204px grouped sidebar */}
         {isWide && (
-          <aside className="nov-sidebar" aria-label="Primary navigation">
+          <aside className="nov-sidebar" aria-label={dict.nav.primaryNavLabel}>
             <div className="nov-sidebar-top">
               <div className="nov-brand" title={dict.brandTitle}>
                 <span className="nov-brand-mark">N</span>
@@ -591,7 +609,7 @@ export const App: React.FC = () => {
               </button>
             </div>
 
-            <nav className="nov-sidebar-nav" aria-label="Enabled modules by domain">
+            <nav className="nov-sidebar-nav" aria-label={dict.nav.enabledModulesNavLabel}>
               {groupedEnabledDomains.map(({ domainId, modules }) => (
                 <div key={domainId} className="nov-sidebar-group">
                   <div className="nov-sidebar-group-title">{dict.domains[domainId].label}</div>

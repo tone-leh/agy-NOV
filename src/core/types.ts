@@ -40,6 +40,12 @@ export interface NovRuntimeOptions {
   brainDir?: string;
   uiHtmlPath?: string;
   configPollMs?: number;
+  /**
+   * When true, keep `app_*` / `nov_app_*` tools enabled even if the MCP client did not
+   * declare `capabilities.extensions["io.modelcontextprotocol/ui"]`. Default `false` so
+   * CLI clients that ignore `_meta.ui.visibility` never exceed the 100-tool limit.
+   */
+  exposeAppToolsWithoutUiCapability?: boolean;
 }
 
 export interface ModuleRuntimeState {
