@@ -65,6 +65,10 @@ const MAX_PREFS_BYTES = 64 * 1024;
 const MAX_HOTSPOTS_BYTES = 256 * 1024;
 const MAX_HOTSPOTS_ITEMS = 20;
 const MAX_RAW_LOG_BYTES = 128 * 1024;
+const MAX_PRIVATE_DIRTY_CHECK_BYTES = 1024 * 1024;
+const HOTSPOT_SAME_CMD_COALESCE_MS = 2_000;
+const HOTSPOT_PREFIX_COALESCE_MS = 2_000;
+const HOTSPOT_PREFIX_COALESCE_MIN_COUNT = 5;
 const MAX_COMMAND_LENGTH = 512;
 const MAX_COMMAND_ARGS = 24;
 const MAX_PAYLOAD_B64_LENGTH = 4096;
@@ -448,6 +452,36 @@ function readSafeJsonFile(dirPath: string, fileName: string, maxBytes: number): 
 }
 
 function atomicWritePrivateFile(dirPath: string, fileName: string, content: string): string {
+  const payloadBuf = Buffer.from(content, 'utf8');
+  const existingRealDir = resolveSafeExistingDir(dirPath);
+  if (existingRealDir) {
+    const existingTarget = path.join(existingRealDir, fileName);
+    try {
+      const existingStat = fs.lstatSync(existingTarget);
+      if (existingStat.isSymbolicLink() || !existingStat.isFile()) {
+        throw new Error(`Refused to overwrite symlink or non-regular file: ${fileName}`);
+      }
+      const modeOk = process.platform === 'win32' || (existingStat.mode & 0o777) === 0o600;
+      if (
+        modeOk &&
+        existingStat.size === payloadBuf.byteLength &&
+        existingStat.size <= MAX_PRIVATE_DIRTY_CHECK_BYTES
+      ) {
+        const realExistingFile = canonicalRealpathSync(existingTarget);
+        if (isPathInsideDir(existingRealDir, realExistingFile)) {
+          const prevBuf = fs.readFileSync(realExistingFile);
+          if (prevBuf.byteLength === payloadBuf.byteLength && prevBuf.equals(payloadBuf)) {
+            return existingTarget;
+          }
+        }
+      }
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        throw err;
+      }
+    }
+  }
+
   const realDir = ensureSafePrivateDir(dirPath);
   const targetPath = path.join(realDir, fileName);
 
@@ -465,7 +499,7 @@ function atomicWritePrivateFile(dirPath: string, fileName: string, content: stri
   const nonce = crypto.randomBytes(4).toString('hex');
   const tmpPath = path.join(realDir, `.${fileName}.tmp.${process.pid}.${Date.now()}.${nonce}`);
   try {
-    fs.writeFileSync(tmpPath, content, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
+    fs.writeFileSync(tmpPath, payloadBuf, { mode: 0o600, flag: 'wx' });
     try {
       fs.chmodSync(tmpPath, 0o600);
     } catch {
@@ -508,14 +542,72 @@ export function loadTurboPrefsReadOnly(moduleDataDir: string): TurboPrefs {
   };
 }
 
+function readExistingCanonicalTurboPrefs(moduleDataDir: string): TurboPrefs | null {
+  const realDir = resolveSafeExistingDir(moduleDataDir);
+  if (!realDir) return null;
+  const targetPath = path.join(realDir, PREFS_FILENAME);
+  let st: fs.Stats;
+  try {
+    st = fs.lstatSync(targetPath);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException)?.code === 'ENOENT') {
+      return null;
+    }
+    throw err;
+  }
+  if (st.isSymbolicLink() || !st.isFile()) {
+    throw new Error(`Refused to overwrite symlink or non-regular file: ${PREFS_FILENAME}`);
+  }
+  if (st.size <= 0 || st.size > MAX_PREFS_BYTES) {
+    return null;
+  }
+  if (process.platform !== 'win32' && (st.mode & 0o777) !== 0o600) {
+    return null;
+  }
+  try {
+    const realFile = canonicalRealpathSync(targetPath);
+    if (!isPathInsideDir(realDir, realFile)) {
+      return null;
+    }
+    const raw = JSON.parse(fs.readFileSync(realFile, 'utf8')) as unknown;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      return null;
+    }
+    const obj = raw as Record<string, unknown>;
+    if (
+      obj.schemaVersion !== 1 ||
+      typeof obj.autoRtk !== 'boolean' ||
+      typeof obj.updatedAt !== 'string' ||
+      obj.updatedAt.length === 0
+    ) {
+      return null;
+    }
+    return {
+      schemaVersion: 1,
+      autoRtk: obj.autoRtk,
+      updatedAt: obj.updatedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function saveTurboPrefs(
   moduleDataDir: string,
   patch: { autoRtk?: boolean },
 ): TurboPrefs {
-  const current = loadTurboPrefsReadOnly(moduleDataDir);
+  const existingCanonical = readExistingCanonicalTurboPrefs(moduleDataDir);
+  const current = existingCanonical ?? loadTurboPrefsReadOnly(moduleDataDir);
+  const targetAutoRtk = typeof patch.autoRtk === 'boolean' ? patch.autoRtk : current.autoRtk;
+
+  // Skip redundant disk rewrites when prefs.json already exists as a canonical 0600 file with identical semantic value
+  if (existingCanonical && existingCanonical.autoRtk === targetAutoRtk) {
+    return existingCanonical;
+  }
+
   const next: TurboPrefs = {
     schemaVersion: 1,
-    autoRtk: typeof patch.autoRtk === 'boolean' ? patch.autoRtk : current.autoRtk,
+    autoRtk: targetAutoRtk,
     updatedAt: new Date().toISOString(),
   };
   atomicWritePrivateFile(moduleDataDir, PREFS_FILENAME, `${JSON.stringify(next, null, 2)}\n`);
@@ -1459,7 +1551,8 @@ export function recordTurboHotspot(
   if (!parsed.ok) return null;
 
   const existing = loadTurboHotspotsReadOnly(moduleDataDir);
-  const nowIso = new Date().toISOString();
+  const nowMs = Date.now();
+  const nowIso = new Date(nowMs).toISOString();
   const safeLastCommand = redactFeedText(commandLine, 100);
   const wasteIncrement = ESTIMATED_WASTE_BY_PRESET[parsed.preset];
 
@@ -1470,6 +1563,19 @@ export function recordTurboHotspot(
 
   const prev = byPrefix.get(parsed.commandPrefix);
   if (prev) {
+    const prevMs = Date.parse(prev.lastSeenAt);
+    const elapsedMs = Number.isFinite(prevMs) ? nowMs - prevMs : Number.POSITIVE_INFINITY;
+    // Coalesce rapid PostToolUse write storms:
+    // 1. Exact same redacted command repeated within 2s -> skip rewrite immediately.
+    // 2. Established hotspot prefix (count >= 5) burst within 2s -> coalesce even if args vary.
+    if (
+      elapsedMs >= 0 &&
+      ((prev.lastCommand === safeLastCommand && elapsedMs < HOTSPOT_SAME_CMD_COALESCE_MS) ||
+        (prev.count >= HOTSPOT_PREFIX_COALESCE_MIN_COUNT && elapsedMs < HOTSPOT_PREFIX_COALESCE_MS))
+    ) {
+      return existing;
+    }
+
     prev.count += 1;
     prev.lastCommand = safeLastCommand;
     prev.estimatedWasteTokens += wasteIncrement;
@@ -1485,13 +1591,36 @@ export function recordTurboHotspot(
   }
 
   const nextItems = sortHotspots(Array.from(byPrefix.values()));
+  const unchangedTopItems =
+    nextItems.length === existing.length &&
+    nextItems.every((item, idx) => {
+      const prevItem = existing[idx];
+      return (
+        prevItem &&
+        item.commandPrefix === prevItem.commandPrefix &&
+        item.count === prevItem.count &&
+        item.lastCommand === prevItem.lastCommand &&
+        item.estimatedWasteTokens === prevItem.estimatedWasteTokens &&
+        item.lastSeenAt === prevItem.lastSeenAt
+      );
+    });
+  if (unchangedTopItems) {
+    return existing;
+  }
+
+  let payloadItems = nextItems;
+  let serialized = `${JSON.stringify({ schemaVersion: 1, updatedAt: nowIso, items: payloadItems }, null, 2)}\n`;
+  while (payloadItems.length > 1 && Buffer.byteLength(serialized, 'utf8') > MAX_HOTSPOTS_BYTES) {
+    payloadItems = payloadItems.slice(0, payloadItems.length - 1);
+    serialized = `${JSON.stringify({ schemaVersion: 1, updatedAt: nowIso, items: payloadItems }, null, 2)}\n`;
+  }
+  if (Buffer.byteLength(serialized, 'utf8') > MAX_HOTSPOTS_BYTES) {
+    return existing;
+  }
+
   try {
-    atomicWritePrivateFile(
-      moduleDataDir,
-      HOTSPOTS_FILENAME,
-      `${JSON.stringify({ schemaVersion: 1, updatedAt: nowIso, items: nextItems }, null, 2)}\n`,
-    );
-    return nextItems;
+    atomicWritePrivateFile(moduleDataDir, HOTSPOTS_FILENAME, serialized);
+    return payloadItems;
   } catch {
     return null;
   }

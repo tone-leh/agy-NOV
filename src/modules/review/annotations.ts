@@ -3,8 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
-  atomicRenameSync,
-  ensurePrivateDir,
+  atomicWriteJson,
   isPathInsideDir,
 } from '../../core/utils.js';
 import type {
@@ -165,6 +164,10 @@ export class AnnotationStore {
     }
 
     try {
+      const st = fs.lstatSync(filePath);
+      if (st.isSymbolicLink() || !st.isFile() || st.size > 4 * 1024 * 1024) {
+        return empty;
+      }
       const raw = fs.readFileSync(filePath, 'utf8');
       const parsed = JSON.parse(raw) as Partial<RepoStoreFile>;
       if (!parsed || typeof parsed !== 'object' || !parsed.scopes || typeof parsed.scopes !== 'object') {
@@ -198,10 +201,7 @@ export class AnnotationStore {
       return;
     }
     const filePath = this.resolveStorePath(safeKey);
-    ensurePrivateDir(this.sessionsDir);
-    const tmpPath = `${filePath}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
-    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), { encoding: 'utf8', mode: 0o600 });
-    atomicRenameSync(tmpPath, filePath);
+    atomicWriteJson(filePath, data, { ignoreTopLevelKeys: ['updatedAt'] });
   }
 
   private ensureScope(data: RepoStoreFile, scope: ReviewScope): ScopeState {
@@ -268,6 +268,15 @@ export class AnnotationStore {
 
     const data = this.loadRepoFile(safeKey);
     const state = this.ensureScope(data, input.scope);
+    const MAX_ANNOTATIONS_PER_SCOPE = 500;
+    if (state.annotations.length >= MAX_ANNOTATIONS_PER_SCOPE) {
+      const oldestResolvedIdx = state.annotations.findIndex((a) => a.resolved);
+      if (oldestResolvedIdx >= 0) {
+        state.annotations.splice(oldestResolvedIdx, 1);
+      } else {
+        state.annotations.shift();
+      }
+    }
     state.annotations.push(record);
     this.saveRepoFile(data);
     return record;

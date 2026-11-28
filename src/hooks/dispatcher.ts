@@ -422,15 +422,123 @@ function buildPostInvocationSummaryParts(rootDataDir: string, config: NovConfig)
   return parts;
 }
 
-function refreshFeedSnapshotBestEffort(rootDataDir: string, config: NovConfig): void {
+const POST_TOOL_FEED_COALESCE_MS = 3000;
+const MAX_HOOK_REASON_BYTES = 4096;
+const MAX_HOOK_INJECT_BYTES = 24 * 1024;
+const HOOK_TRUNCATION_SUFFIX = '… [truncated]';
+
+function truncateUtf8Safe(input: string, maxBytes: number): string {
+  if (Buffer.byteLength(input, 'utf8') <= maxBytes) {
+    return input;
+  }
+  const suffixBytes = Buffer.byteLength(HOOK_TRUNCATION_SUFFIX, 'utf8');
+  const budget = Math.max(0, maxBytes - suffixBytes);
+  if (budget === 0) {
+    return HOOK_TRUNCATION_SUFFIX.slice(0, maxBytes);
+  }
+  // Binary search UTF-16 code-unit length so we never exceed UTF-8 byte budget or split surrogate pairs
+  let lo = 0;
+  let hi = input.length;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    let end = mid;
+    if (end > 0 && end < input.length) {
+      const code = input.charCodeAt(end - 1);
+      if (code >= 0xd800 && code <= 0xdbff) {
+        end -= 1;
+      }
+    }
+    if (Buffer.byteLength(input.slice(0, end), 'utf8') <= budget) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  let end = lo;
+  if (end > 0 && end < input.length) {
+    const code = input.charCodeAt(end - 1);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      end -= 1;
+    }
+  }
+  return `${input.slice(0, end)}${HOOK_TRUNCATION_SUFFIX}`;
+}
+
+export function clampHookResult(result: UnifiedHookResult): UnifiedHookResult {
+  const out: UnifiedHookResult = { ...result };
+  if (typeof out.reason === 'string' && Buffer.byteLength(out.reason, 'utf8') > MAX_HOOK_REASON_BYTES) {
+    out.reason = truncateUtf8Safe(out.reason, MAX_HOOK_REASON_BYTES);
+  }
+  if (
+    typeof out.errorMessage === 'string' &&
+    Buffer.byteLength(out.errorMessage, 'utf8') > MAX_HOOK_REASON_BYTES
+  ) {
+    out.errorMessage = truncateUtf8Safe(out.errorMessage, MAX_HOOK_REASON_BYTES);
+  }
+  if (Array.isArray(out.injectSteps) && out.injectSteps.length > 0) {
+    try {
+      const rawBytes = Buffer.byteLength(JSON.stringify(out.injectSteps), 'utf8');
+      if (rawBytes > MAX_HOOK_INJECT_BYTES) {
+        const noticeStep = {
+          systemMessage: {
+            systemMessage: '[agy-NOV] Hook context truncated to stay within 24 KiB safety budget.',
+          },
+        };
+        const noticeBytes = Buffer.byteLength(JSON.stringify(noticeStep), 'utf8') + 1;
+        const kept: unknown[] = [];
+        let accBytes = 2;
+        let truncatedAny = false;
+        for (const step of out.injectSteps) {
+          const stepBytes = Buffer.byteLength(JSON.stringify(step), 'utf8') + 1;
+          if (accBytes + stepBytes <= MAX_HOOK_INJECT_BYTES) {
+            kept.push(step);
+            accBytes += stepBytes;
+          } else {
+            // Preserve step ordering: stop at the first step that exceeds budget rather than skipping ahead
+            truncatedAny = true;
+            break;
+          }
+        }
+        if (kept.length === 0) {
+          kept.push(noticeStep);
+        } else if (truncatedAny && accBytes + noticeBytes <= MAX_HOOK_INJECT_BYTES) {
+          kept.push(noticeStep);
+        }
+        out.injectSteps = kept;
+      }
+    } catch {
+      out.injectSteps = [];
+    }
+  }
+  return out;
+}
+
+function refreshFeedSnapshotBestEffort(
+  rootDataDir: string,
+  config: NovConfig,
+  minIntervalMs = 0,
+): void {
   try {
-    writeFeedSnapshotIfDataDirExists(rootDataDir, config);
+    writeFeedSnapshotIfDataDirExists(
+      rootDataDir,
+      config,
+      minIntervalMs > 0 ? { minIntervalMs } : {},
+    );
   } catch {
     // Best-effort only: never impact hook result or latency
   }
 }
 
 export async function dispatchNovHook(
+  rawInput: unknown,
+  fallbackEvent: HookEventName,
+  cliDataDir?: string,
+  overrides?: DispatchNovHookOverrides,
+): Promise<UnifiedHookResult> {
+  return clampHookResult(await dispatchNovHookInner(rawInput, fallbackEvent, cliDataDir, overrides));
+}
+
+async function dispatchNovHookInner(
   rawInput: unknown,
   fallbackEvent: HookEventName,
   cliDataDir?: string,
@@ -479,7 +587,7 @@ export async function dispatchNovHook(
       }
     }
 
-    return injectSteps.length > 0 ? { injectSteps } : {};
+    return injectSteps.length > 0 ? clampHookResult({ injectSteps }) : {};
   }
 
   if (payload.event === 'PreInvocation') {
@@ -709,7 +817,7 @@ export async function dispatchNovHook(
         // isolate module error
       }
     }
-    refreshFeedSnapshotBestEffort(rootDataDir, config);
+    refreshFeedSnapshotBestEffort(rootDataDir, config, POST_TOOL_FEED_COALESCE_MS);
     return {};
   }
 

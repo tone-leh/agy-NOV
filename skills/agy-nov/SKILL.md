@@ -1,11 +1,11 @@
 ---
 name: agy-nov
-description: Open and manage agy-NOV (v1.2.1), the 100% native 4-layer modular super-workbench for Google Antigravity 2.0 (Zero ASAR, Zero CDP). Manage 13 toggleable modules, 5 presets, 47 canonical model tools, 6 official hooks, 4 zero-tax MCP context resources, 11 CLI commands, and the opt-in read-only audit sidecar.
+description: Open and manage agy-NOV (v1.2.2), the 100% native 4-layer modular super-workbench for Google Antigravity 2.0 (Zero ASAR, Zero CDP). Manage 13 toggleable modules, 5 presets, 47 canonical model tools, 6 official hooks, 4 zero-tax MCP context resources, 11 CLI commands, and the opt-in read-only audit sidecar.
 ---
 
-# agy-NOV — 100% Native Modular Super-Workbench (v1.2.1)
+# agy-NOV — 100% Native Modular Super-Workbench (v1.2.2)
 
-`agy-NOV` unifies 13 Google Antigravity 2.0 engineering workflows into one official native plugin (Zero ASAR, Zero CDP, cross-platform macOS / Windows / Linux) organized across **4+1 functional domains** (Core Essentials `core` / Engineering Pipeline `pipeline` / On-Demand Toolbox `toolbox` / Opt-In Connectivity `connectivity` + **L0 Workflow Hub**), with 8-language UI (`755` keys × 8 locales, `< 1.4 MiB`), strict **47** canonical model tools max, and zero token tax when modules are off.
+`agy-NOV` unifies 13 Google Antigravity 2.0 engineering workflows into one official native plugin (Zero ASAR, Zero CDP, cross-platform macOS / Windows / Linux) organized across **4+1 functional domains** (Core Essentials `core` / Engineering Pipeline `pipeline` / On-Demand Toolbox `toolbox` / Opt-In Connectivity `connectivity` + **L0 Workflow Hub**), with 8-language UI (`758` keys × 8 locales, `< 1.4 MiB`), strict **47** canonical model tools max, and zero token tax when modules are off.
 
 ## Core Entry Tools (Always Available — 2 Model Tools)
 
@@ -56,7 +56,7 @@ description: Open and manage agy-NOV (v1.2.1), the 100% native 4-layer modular s
   - `preset <minimal|core|power|local-all|full>` — Apply a module preset.
   - `enable|disable <module>` — Toggle a single module.
   - `locale <auto|en|zh-CN|zh-TW|ja|ko|es|fr|de>` — Set built-in UI language.
-  - `statusline [--compact] [--json] [--segments=<csv>]` — Zero-token CLI status line fusing Antigravity 2.35 stdin JSON across 11 segments (`brand,model,context,burn,quota,cache,spec,verify,guard,radar,network`).
+  - `statusline [--compact] [--json] [--segments=<csv>]` — Zero-token CLI status line fusing Antigravity 2.35+ / 2.36+ stdin JSON across 11 segments (`brand,model,context,burn,quota,cache,spec,verify,guard,radar,network`).
   - `recommend [--workspace=<dir>] [--json] [--export-preset [--confirm] [--force]]` — Read-only stack scan and preview-then-confirm `.agy-nov.json` scaffold.
   - `compile-spec [--spec=<id>] [--format=workflow|swarm|both] [--json]` — Read-only Spec DAG compiler to `/run-workflow` Python & `/swarm` `plan.json`.
   - `audit-once [--workspace=<dir>] [--data-dir=<dir>] [--json] [--write-report]` — Read-only Ops/Mem/Verify/Guard health sweep (`health-sweep.json` only with `--write-report`).

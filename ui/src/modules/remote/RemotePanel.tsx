@@ -275,15 +275,72 @@ export const RemotePanel: React.FC<NovModulePanelProps> = ({
     void refresh();
   }, [active, refresh]);
 
-  // Gate 2: Conditional 3-second polling ONLY when active === true AND gateway running === true
+  // Gate 2: Conditional 3-second polling ONLY when active === true, gateway running === true,
+  // and document is visible/focused (pauses cleanly when sidebar hidden or window blurred).
   const isRunning = resolveRemoteRunning(data);
   useEffect(() => {
     if (!active || !isRunning || pollPausedByError) return;
-    const intervalId = window.setInterval(() => {
-      void refresh({ silent: true });
-    }, 3000);
+    let windowFocused = typeof document === 'undefined' ? true : document.visibilityState !== 'hidden';
+    let intervalId: number | null = null;
+
+    const shouldPoll = () =>
+      windowFocused && (typeof document === 'undefined' || document.visibilityState !== 'hidden');
+
+    const stopPolling = () => {
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const startPolling = () => {
+      if (intervalId !== null || !shouldPoll()) return;
+      intervalId = window.setInterval(() => {
+        if (!shouldPoll()) {
+          stopPolling();
+          return;
+        }
+        void refresh({ silent: true });
+      }, 3000);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        stopPolling();
+      } else {
+        windowFocused = true;
+        void refresh({ silent: true });
+        startPolling();
+      }
+    };
+
+    const handleBlur = () => {
+      windowFocused = false;
+      stopPolling();
+    };
+
+    const handleFocus = () => {
+      windowFocused = true;
+      if (typeof document === 'undefined' || document.visibilityState !== 'hidden') {
+        void refresh({ silent: true });
+        startPolling();
+      }
+    };
+
+    startPolling();
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+
     return () => {
-      window.clearInterval(intervalId);
+      stopPolling();
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
     };
   }, [active, isRunning, pollPausedByError, refresh]);
 

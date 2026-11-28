@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { getModuleDataDir, resolveNovDataDir, sanitizeDataDirCandidate } from '../../core/config.js';
 import {
   atomicRenameSync,
+  atomicWriteJson,
   canonicalRealpathSync,
   isPathInsideDir,
   isSamePath,
@@ -789,6 +790,11 @@ export class MemoryStore {
     if (!fs.existsSync(this.filePath)) return [];
     let rawText: string;
     try {
+      const st = fs.lstatSync(this.filePath);
+      if (st.isSymbolicLink() || !st.isFile() || st.size > 16 * 1024 * 1024) {
+        console.error(`[agy-nov:mem] Refused unsafe or oversized memories file (${st.size} bytes)`);
+        return [];
+      }
       rawText = fs.readFileSync(this.filePath, 'utf8');
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -827,29 +833,22 @@ export class MemoryStore {
   }
 
   private writeAll(items: MemoryItem[]): void {
-    const cleanItems = this.stripEphemeralForPersist(items);
+    const MAX_MEMORIES_STORED = 2000;
+    let bounded = items;
+    if (items.length > MAX_MEMORIES_STORED) {
+      const pinned = items.filter((m) => m.pinned);
+      const unpinned = items
+        .filter((m) => !m.pinned)
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      const room = Math.max(0, MAX_MEMORIES_STORED - pinned.length);
+      bounded = [...pinned, ...unpinned.slice(0, room)];
+    }
+    const cleanItems = this.stripEphemeralForPersist(bounded);
     if (this.demoMode) {
       this.demoItems = cleanItems;
       return;
     }
-    ensurePrivateDir(this.dataDir);
-    const tmp = `${this.filePath}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
-    try {
-      fs.writeFileSync(tmp, JSON.stringify(cleanItems, null, 2), { encoding: 'utf8', mode: 0o600 });
-      try {
-        fs.chmodSync(tmp, 0o600);
-      } catch {
-        // ignore chmod failure
-      }
-      atomicRenameSync(tmp, this.filePath);
-    } catch (err) {
-      try {
-        if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
-      } catch {
-        // ignore cleanup failure
-      }
-      throw err;
-    }
+    atomicWriteJson(this.filePath, cleanItems);
   }
 
   private evaluateDrift(

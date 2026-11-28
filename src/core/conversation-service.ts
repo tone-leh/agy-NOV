@@ -410,9 +410,69 @@ async function invokeConversationServiceRpc(
     };
   }
 
+  const MAX_RPC_RESPONSE_BYTES = 4 * 1024 * 1024;
+  const contentLengthHeader = res.headers?.get?.('content-length');
+  if (contentLengthHeader) {
+    const parsedLen = Number(contentLengthHeader);
+    if (Number.isFinite(parsedLen) && parsedLen > MAX_RPC_RESPONSE_BYTES) {
+      try {
+        await res.body?.cancel?.();
+      } catch {
+        // ignore cancel failure
+      }
+      return {
+        ok: false,
+        available: false,
+        reason: `ConversationService/${method} payload exceeded ${MAX_RPC_RESPONSE_BYTES} byte safety cap`,
+      };
+    }
+  }
+
   let parsed: unknown;
   try {
-    parsed = await res.json();
+    let rawText: string;
+    if (res.body && typeof res.body.getReader === 'function') {
+      const reader = res.body.getReader();
+      const chunks: Buffer[] = [];
+      let totalBytes = 0;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (!value) continue;
+          const chunkBuf = Buffer.isBuffer(value)
+            ? value
+            : Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+          totalBytes += chunkBuf.byteLength;
+          if (totalBytes > MAX_RPC_RESPONSE_BYTES) {
+            await reader.cancel().catch(() => undefined);
+            return {
+              ok: false,
+              available: false,
+              reason: `ConversationService/${method} response exceeded ${MAX_RPC_RESPONSE_BYTES} byte safety cap`,
+            };
+          }
+          chunks.push(chunkBuf);
+        }
+      } finally {
+        try {
+          reader.releaseLock();
+        } catch {
+          // ignore
+        }
+      }
+      rawText = Buffer.concat(chunks, totalBytes).toString('utf8');
+    } else {
+      rawText = await res.text();
+      if (Buffer.byteLength(rawText, 'utf8') > MAX_RPC_RESPONSE_BYTES) {
+        return {
+          ok: false,
+          available: false,
+          reason: `ConversationService/${method} response exceeded ${MAX_RPC_RESPONSE_BYTES} byte safety cap`,
+        };
+      }
+    }
+    parsed = JSON.parse(rawText);
   } catch (err) {
     return {
       ok: false,

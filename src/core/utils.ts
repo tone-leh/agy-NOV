@@ -11,9 +11,17 @@ export {
   isSamePath,
   normalizePathForCompare,
   safeReadJsonReadOnly,
+  type AtomicWriteJsonOptions,
 } from './fs-safe.js';
-export { resolveSafeSpawnTarget, type ResolvedSafeSpawnTarget } from './process-safe.js';
-export { getDefaultAntigravityBrainDirs } from './brain-paths.js';
+export { isPidAlive, resolveSafeSpawnTarget, type ResolvedSafeSpawnTarget } from './process-safe.js';
+export {
+  discoverUserCustomSkillsReadOnly,
+  getDefaultAntigravityBrainDirs,
+  getDefaultAntigravitySkillDirs,
+  type CustomSkillDiscoverySummary,
+  type CustomSkillRootSpec,
+  type DiscoveredCustomSkill,
+} from './brain-paths.js';
 export {
   detectHighConfidenceSecrets,
   isSensitivePathSegment,

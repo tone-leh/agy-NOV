@@ -847,13 +847,17 @@ export class CompactedChunkStore {
 
     if (opts.persistStats && dataDir) {
       try {
-        atomicWriteJson(path.join(dataDir, 'stats.json'), {
-          schemaVersion: 1,
-          totalCompactions: this.totalCompactions,
-          totalSavedTokens: this.totalSavedTokens,
-          totalRawBytes: this.totalRawBytes,
-          updatedAt: createdAt,
-        });
+        atomicWriteJson(
+          path.join(dataDir, 'stats.json'),
+          {
+            schemaVersion: 1,
+            totalCompactions: this.totalCompactions,
+            totalSavedTokens: this.totalSavedTokens,
+            totalRawBytes: this.totalRawBytes,
+            updatedAt: createdAt,
+          },
+          { ignoreTopLevelKeys: ['updatedAt'] },
+        );
       } catch {
         // best-effort optional persistence
       }

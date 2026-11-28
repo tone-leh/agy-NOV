@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNovI18n } from '../../i18n/index.js';
 import type { AnnotationCategory, ReviewAnnotation } from './types';
 
@@ -81,10 +81,24 @@ export const ReviewCart: React.FC<ReviewCartProps> = ({
     counts[a.category] = (counts[a.category] ?? 0) + 1;
   }
 
+  const toastTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current !== null && typeof window !== 'undefined') {
+        window.clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
   const notify = (msg: string) => {
     setInlineToast(msg);
     onNotify?.(msg);
-    window.setTimeout(() => {
+    if (toastTimerRef.current !== null) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = window.setTimeout(() => {
+      toastTimerRef.current = null;
       setInlineToast((curr) => (curr === msg ? null : curr));
     }, 2600);
   };

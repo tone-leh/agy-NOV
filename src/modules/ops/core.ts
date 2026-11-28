@@ -345,6 +345,10 @@ export function auditWorkspaceAssets(
       inspectFile(fullPath, 'mcp');
       return;
     }
+    if (entryName.toUpperCase() === 'SKILL.MD') {
+      inspectFile(fullPath, 'skill');
+      return;
+    }
     const ext = path.extname(lowerName);
     if (ALLOWED_AGENT_CONFIG_EXTS.has(ext)) {
       inspectFile(fullPath, 'agent-config');
@@ -352,6 +356,10 @@ export function auditWorkspaceAssets(
   });
 
   walkBounded('.gemini', 4, (fullPath, entryName) => {
+    if (entryName.toUpperCase() === 'SKILL.MD') {
+      inspectFile(fullPath, 'skill');
+      return;
+    }
     const ext = path.extname(entryName).toLowerCase();
     if (ext === '.md' || ext === '.mdx' || ext === '.txt') {
       inspectFile(fullPath, 'rules');

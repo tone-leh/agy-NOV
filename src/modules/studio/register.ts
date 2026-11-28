@@ -67,6 +67,15 @@ function formatSourcesSummary(result: StudioSourcesResult): string {
   return lines.join('\n');
 }
 
+const MAX_STUDIO_DATA_TEXT_CHARS = 16_384;
+const MAX_STUDIO_DOC_TEXT_CHARS = 24_576;
+const MAX_STUDIO_ROW_PREVIEW_CHARS = 600;
+
+function clampStudioText(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, maxChars - 56)}\n… [truncated to stay within ${maxChars} char safety budget]`;
+}
+
 function formatDataSummary(result: StudioDataResult): string {
   const lines: string[] = [result.summary];
   if (result.columns.length > 0) {
@@ -76,12 +85,15 @@ function formatDataSummary(result: StudioDataResult): string {
     lines.push(`Note: ${result.sqlite.note}`);
   }
   for (const row of result.rows.slice(0, 10)) {
-    lines.push(`  ${JSON.stringify(row)}`);
+    const serialized = JSON.stringify(row);
+    lines.push(
+      `  ${serialized.length > MAX_STUDIO_ROW_PREVIEW_CHARS ? `${serialized.slice(0, MAX_STUDIO_ROW_PREVIEW_CHARS - 1)}…` : serialized}`,
+    );
   }
   if (result.rows.length > 10) {
     lines.push(`  … (${result.rows.length - 10} more row(s) in structuredContent)`);
   }
-  return lines.join('\n');
+  return clampStudioText(lines.join('\n'), MAX_STUDIO_DATA_TEXT_CHARS);
 }
 
 function formatDocumentSummary(result: StudioDocumentResult): string {
@@ -102,7 +114,7 @@ function formatDocumentSummary(result: StudioDocumentResult): string {
     );
   }
   lines.push(result.content ? `Content:\n${result.content}` : 'Content: (empty)');
-  return lines.join('\n');
+  return clampStudioText(lines.join('\n'), MAX_STUDIO_DOC_TEXT_CHARS);
 }
 
 function formatHttpProbeSummary(result: StudioHttpProbeResult): string {

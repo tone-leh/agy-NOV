@@ -14,6 +14,7 @@ import {
   type PresetId,
 } from '../../src/core/catalog.js';
 import { novBridge, type NovConfigSnapshot, type ToolResultEvent } from './bridge.js';
+import { ErrorBoundary } from './components/ErrorBoundary.js';
 import {
   formatMessage,
   getDictionary,
@@ -101,12 +102,14 @@ export const App: React.FC = () => {
   const cmdInputRef = useRef<HTMLInputElement | null>(null);
   const initialViewResolvedRef = useRef(false);
   const explicitTargetSeenRef = useRef(false);
+  const mountedRef = useRef(true);
+  const toastSeqRef = useRef(0);
 
   const [snapshot, setSnapshot] = useState<NovConfigSnapshot | null>(null);
   const [activeView, setActiveView] = useState<ActiveView>('hub');
   const [settingsFocusModule, setSettingsFocusModule] = useState<ModuleId | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toastState, setToastState] = useState<{ id: number; text: string } | null>(null);
   const [lastEvent, setLastEvent] = useState<ToolResultEvent | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [hostLocaleHint, setHostLocaleHint] = useState<string>(() => novBridge.getHostLocaleHint());
@@ -130,11 +133,49 @@ export const App: React.FC = () => {
     }
   }, [resolvedLocale]);
 
-  // Dual-mode adaptive layout via ResizeObserver + window resize fallback
+  // Dual-mode adaptive layout via rAF-coalesced ResizeObserver + window resize fallback
+  // Ignores transient 0x0 collapsed states (e.g., Antigravity v2.36 sidebar maximize/restore transitions)
   useEffect(() => {
+    let disposed = false;
+    let rafId: number | null = null;
+    let pendingWidth: number | null = null;
+
+    const commitWidth = (rawW: number) => {
+      if (disposed || !Number.isFinite(rawW) || rawW <= 0) return;
+      const rounded = Math.round(rawW);
+      setContainerWidth((prev) => (Math.abs(prev - rounded) < 2 ? prev : rounded));
+    };
+
+    const scheduleWidth = (w: number, h?: number) => {
+      if (disposed || !Number.isFinite(w) || w <= 0) return;
+      if (typeof h === 'number' && h <= 0) return;
+      pendingWidth = w;
+      if (rafId !== null) return;
+      const flush = () => {
+        rafId = null;
+        if (disposed) return;
+        if (pendingWidth !== null) {
+          const nextW = pendingWidth;
+          pendingWidth = null;
+          commitWidth(nextW);
+        }
+      };
+      if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        rafId = window.requestAnimationFrame(flush);
+      } else {
+        flush();
+      }
+    };
+
     const updateFromWindow = () => {
+      if (disposed) return;
       if (typeof window !== 'undefined') {
-        setContainerWidth(shellRef.current?.clientWidth || window.innerWidth);
+        const elRect = shellRef.current?.getBoundingClientRect();
+        if (elRect && elRect.width > 0 && elRect.height > 0) {
+          scheduleWidth(elRect.width, elRect.height);
+        } else if (window.innerWidth > 0 && window.innerHeight > 0) {
+          scheduleWidth(window.innerWidth, window.innerHeight);
+        }
       }
     };
 
@@ -142,9 +183,10 @@ export const App: React.FC = () => {
     let ro: ResizeObserver | null = null;
     if (el && typeof ResizeObserver !== 'undefined') {
       ro = new ResizeObserver((entries) => {
-        const w = entries[0]?.contentRect?.width;
-        if (typeof w === 'number' && w > 0) {
-          setContainerWidth(w);
+        if (disposed) return;
+        const rect = entries[0]?.contentRect;
+        if (rect && rect.width > 0 && rect.height > 0) {
+          scheduleWidth(rect.width, rect.height);
         }
       });
       ro.observe(el);
@@ -156,6 +198,10 @@ export const App: React.FC = () => {
     }
 
     return () => {
+      disposed = true;
+      if (rafId !== null && typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
+        window.cancelAnimationFrame(rafId);
+      }
       ro?.disconnect();
       if (typeof window !== 'undefined') {
         window.removeEventListener('resize', updateFromWindow);
@@ -164,18 +210,23 @@ export const App: React.FC = () => {
   }, []);
 
   const notify = useCallback((msg: string) => {
-    setToast(msg);
+    const id = ++toastSeqRef.current;
+    setToastState({ id, text: msg });
   }, []);
 
   useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 2600);
+    if (!toastState) return;
+    const activeToastId = toastState.id;
+    const timer = setTimeout(() => {
+      setToastState((curr) => (curr && curr.id === activeToastId ? null : curr));
+    }, 2600);
     return () => clearTimeout(timer);
-  }, [toast]);
+  }, [toastState]);
 
   const loadConfig = useCallback(async () => {
     try {
       const next = await novBridge.getConfig();
+      if (!mountedRef.current) return;
       setSnapshot(next);
       setLoadError(null);
 
@@ -202,18 +253,22 @@ export const App: React.FC = () => {
         });
       }
     } catch (err) {
+      if (!mountedRef.current) return;
       setLoadError(err instanceof Error ? err.message : String(err));
     }
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     void loadConfig();
     const unsubLocale = novBridge.onHostLocaleChange((hint) => setHostLocaleHint(hint));
     const unsubConfig = novBridge.onConfigChange((next) => {
+      if (!mountedRef.current) return;
       setSnapshot(next);
       setLoadError(null);
     });
     const unsub = novBridge.onToolResult((evt) => {
+      if (!mountedRef.current) return;
       setLastEvent(evt);
       const fileViewerTarget = (
         evt.structuredContent?.fileViewer as { targetTab?: unknown } | undefined
@@ -230,6 +285,7 @@ export const App: React.FC = () => {
       }
     });
     return () => {
+      mountedRef.current = false;
       unsub();
       unsubConfig();
       unsubLocale();
@@ -258,9 +314,9 @@ export const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (cmdOpen) {
-      window.setTimeout(() => cmdInputRef.current?.focus(), 10);
-    }
+    if (!cmdOpen) return;
+    const focusTimer = window.setTimeout(() => cmdInputRef.current?.focus(), 10);
+    return () => window.clearTimeout(focusTimer);
   }, [cmdOpen]);
 
   const handleToggleModule = useCallback(
@@ -679,37 +735,55 @@ export const App: React.FC = () => {
           )}
 
           {snapshot && activeView === 'hub' && (
-            <HubPanel
-              bridge={novBridge}
-              snapshot={snapshot}
-              busyKey={busyKey}
-              onOpenModule={(id) => setActiveView(id)}
-              onOpenSettings={() => setActiveView('settings')}
-              onToggleModule={handleToggleModule}
-              onApplyPreset={handleApplyPreset}
-              onChangeLocale={handleChangeLocale}
-              onOpenCommandPalette={openCommandPalette}
-              onNotify={notify}
-            />
+            <ErrorBoundary
+              scopeLabel={dict.nav.hubLabel}
+              title={formatMessage(dict.common.errorBoundaryTitle, { scope: dict.nav.hubLabel })}
+              resetKey={activeView}
+              retryLabel={dict.retry}
+              reloadLabel={dict.common.errorBoundaryReload}
+            >
+              <HubPanel
+                bridge={novBridge}
+                snapshot={snapshot}
+                busyKey={busyKey}
+                onOpenModule={(id) => setActiveView(id)}
+                onOpenSettings={() => setActiveView('settings')}
+                onToggleModule={handleToggleModule}
+                onApplyPreset={handleApplyPreset}
+                onChangeLocale={handleChangeLocale}
+                onOpenCommandPalette={openCommandPalette}
+                onNotify={notify}
+              />
+            </ErrorBoundary>
           )}
 
           {snapshot && activeView === 'settings' && (
-            <SettingsHub
-              bridge={novBridge}
-              snapshot={snapshot}
-              busyKey={busyKey}
-              initialExpandedModule={settingsFocusModule}
-              onToggleModule={handleToggleModule}
-              onApplyPreset={handleApplyPreset}
-              onChangeLocale={handleChangeLocale}
-              onChangeStartupView={handleChangeStartupView}
-              onOpenModule={(id) => {
-                setSettingsFocusModule(null);
-                setActiveView(id);
-              }}
-              onSnapshotReplaced={(next) => setSnapshot(next)}
-              onNotify={notify}
-            />
+            <ErrorBoundary
+              scopeLabel={dict.nav.settingsLabel}
+              title={formatMessage(dict.common.errorBoundaryTitle, { scope: dict.nav.settingsLabel })}
+              resetKey={activeView}
+              retryLabel={dict.retry}
+              returnHomeLabel={dict.common.errorBoundaryReturnHome}
+              reloadLabel={dict.common.errorBoundaryReload}
+              onReturnHome={() => setActiveView('hub')}
+            >
+              <SettingsHub
+                bridge={novBridge}
+                snapshot={snapshot}
+                busyKey={busyKey}
+                initialExpandedModule={settingsFocusModule}
+                onToggleModule={handleToggleModule}
+                onApplyPreset={handleApplyPreset}
+                onChangeLocale={handleChangeLocale}
+                onChangeStartupView={handleChangeStartupView}
+                onOpenModule={(id) => {
+                  setSettingsFocusModule(null);
+                  setActiveView(id);
+                }}
+                onSnapshotReplaced={(next) => setSnapshot(next)}
+                onNotify={notify}
+              />
+            </ErrorBoundary>
           )}
 
           {snapshot &&
@@ -734,17 +808,36 @@ export const App: React.FC = () => {
             )}
 
           {snapshot && ActiveModulePanel && (
-            <ActiveModulePanel
-              bridge={novBridge}
-              active={true}
-              onNotify={notify}
-              incomingEvent={lastEvent}
-              onOpenSettings={(modId) => {
-                setSettingsFocusModule(modId);
-                setActiveView('settings');
-              }}
-              onNavigateModule={handleNavigateModule}
-            />
+            <ErrorBoundary
+              scopeLabel={
+                activeView !== 'hub' && activeView !== 'settings'
+                  ? dict.modules[activeView].name
+                  : dict.nav.hubLabel
+              }
+              title={formatMessage(dict.common.errorBoundaryTitle, {
+                scope:
+                  activeView !== 'hub' && activeView !== 'settings'
+                    ? dict.modules[activeView].name
+                    : dict.nav.hubLabel,
+              })}
+              resetKey={activeView}
+              retryLabel={dict.retry}
+              returnHomeLabel={dict.common.errorBoundaryReturnHome}
+              reloadLabel={dict.common.errorBoundaryReload}
+              onReturnHome={() => setActiveView('hub')}
+            >
+              <ActiveModulePanel
+                bridge={novBridge}
+                active={true}
+                onNotify={notify}
+                incomingEvent={lastEvent}
+                onOpenSettings={(modId) => {
+                  setSettingsFocusModule(modId);
+                  setActiveView('settings');
+                }}
+                onNavigateModule={handleNavigateModule}
+              />
+            </ErrorBoundary>
           )}
         </main>
 
@@ -826,9 +919,9 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {toast && (
+        {toastState && (
           <div className="nov-toast" role="status" aria-live="polite">
-            {toast}
+            {toastState.text}
           </div>
         )}
       </div>

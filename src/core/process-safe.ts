@@ -8,6 +8,24 @@ export interface ResolvedSafeSpawnTarget {
   resolvedViaNodeJs?: boolean;
 }
 
+/**
+ * Pure read-only OS liveness probe for a local PID (`process.kill(pid, 0)`).
+ * Returns `true` when the process exists (including EPERM owned by another user),
+ * and `false` for invalid PIDs or `ESRCH` (stale PID after SIGKILL/crash).
+ */
+export function isPidAlive(pid: number): boolean {
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return false;
+  }
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException | undefined)?.code;
+    return code === 'EPERM';
+  }
+}
+
 const NODE_JS_BIN_MAP: Readonly<
   Record<
     string,

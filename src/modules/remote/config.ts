@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { getModuleDataDir, resolveNovDataDir, sanitizeDataDirCandidate } from '../../core/config.js';
-import { atomicRenameSync } from '../../core/utils.js';
+import { atomicWriteJson, isPidAlive } from '../../core/utils.js';
 import type { ChannelConfig, RemoteConfig, RuntimeInfo, SafeChannelView } from './types.js';
 
 export const DEFAULT_PIN_TTL_MS = 5 * 60 * 1000;
@@ -29,6 +29,10 @@ export const DEFAULT_SENSITIVE_PATH_PATTERNS: Array<{ label: string; regex: RegE
   { label: 'sensitive_path:*.pem', regex: /(?:^|[\\/])[^\\/\s"']+\.pem(?:$|[\\/\s"'])/i },
   { label: 'sensitive_path:*.key', regex: /(?:^|[\\/])[^\\/\s"']+\.key(?:$|[\\/\s"'])/i },
   { label: 'sensitive_path:ssh_key', regex: /(?:^|[\\/])id_(?:rsa|ed25519|ecdsa|dsa)(?:\.pub)?(?:$|[\\/\s"'])/i },
+  { label: 'sensitive_path:.git/config', regex: /(?:^|[\\/])\.git[\\/](?:config(?:$|[\\/\s"'])|hooks(?:$|[\\/\s"']))/i },
+  { label: 'sensitive_path:.gitconfig', regex: /(?:^|[\\/])(?:\.gitconfig|\.git-credentials|\.netrc|\.npmrc|\.pypirc)(?:$|[\\/\s"'])/i },
+  { label: 'sensitive_path:host_agent_cfg', regex: /(?:^|[\\/])(?:\.gemini[\\/](?:settings\.json|oauth_creds\.json|google_accounts\.json|mcp_config\.json|antigravity(?:-(?:cli|ide))?[\\/](?:settings\.json|mcp_config\.json))|\.claude[\\/](?:settings(?:\.local)?\.json|credentials\.json)|\.claude\.json|\.codex[\\/](?:auth\.json|config\.toml))(?:$|[\\/\s"'])/i },
+  { label: 'sensitive_path:cloud_cli_auth', regex: /(?:^|[\\/])(?:\.docker[\\/]config\.json|\.config[\\/]gh[\\/]hosts\.yml|\.config[\\/]gcloud[\\/](?:credentials\.db|access_tokens\.db|application_default_credentials\.json)|\.kube[\\/]config)(?:$|[\\/\s"'])/i },
 ];
 
 const SECRET_REGEXES: Array<[RegExp, string]> = [
@@ -120,14 +124,7 @@ export function ensureSecureDataDir(dataDir: string): void {
 
 function writeSecureAtomicJson(filePath: string, dataDir: string, value: unknown): void {
   ensureSecureDataDir(dataDir);
-  const tmpPath = `${filePath}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
-  fs.writeFileSync(tmpPath, JSON.stringify(value, null, 2), { encoding: 'utf8', mode: 0o600 });
-  atomicRenameSync(tmpPath, filePath);
-  try {
-    fs.chmodSync(filePath, 0o600);
-  } catch {
-    // Windows chmod no-op
-  }
+  atomicWriteJson(filePath, value);
 }
 
 function normalizeRemoteConfig(raw: Partial<RemoteConfig>): RemoteConfig {
@@ -188,17 +185,25 @@ export function writeRuntimeInfo(dataDir: string, info: RuntimeInfo): void {
 
 export function readRuntimeInfo(dataDir: string): RuntimeInfo | null {
   const runtimePath = path.join(dataDir, 'runtime.json');
-  if (!fs.existsSync(runtimePath)) return null;
   try {
+    const st = fs.lstatSync(runtimePath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size <= 0 || st.size > 64 * 1024) {
+      return null;
+    }
     const parsed = JSON.parse(fs.readFileSync(runtimePath, 'utf8')) as Partial<RuntimeInfo>;
     const port = Number(parsed.port);
     if (!Number.isInteger(port) || port < 1 || port > 65535) return null;
     const pid = Number(parsed.pid ?? 0);
+    const validPid = Number.isInteger(pid) ? pid : 0;
+    // Detect stale runtime.json left behind after host SIGKILL / crash without writing to disk
+    if (validPid > 0 && !isPidAlive(validPid)) {
+      return null;
+    }
     return {
       port,
       host: typeof parsed.host === 'string' && parsed.host ? parsed.host : '127.0.0.1',
       url: `http://127.0.0.1:${port}`,
-      pid: Number.isInteger(pid) ? pid : 0,
+      pid: validPid,
       startedAt: typeof parsed.startedAt === 'string' ? parsed.startedAt : '',
     };
   } catch {
@@ -246,10 +251,30 @@ export function matchRiskPattern(text: string, patterns: string[]): string | nul
 }
 
 export function matchSensitivePath(target: string): string | null {
-  const normalized = target.trim();
-  if (!normalized) return null;
-  for (const { label, regex } of DEFAULT_SENSITIVE_PATH_PATTERNS) {
-    if (regex.test(normalized)) return label;
+  const trimmed = target.trim();
+  if (!trimmed) return null;
+  const candidates = [trimmed];
+  const slashNorm = trimmed
+    .replace(/\\/g, '/')
+    .replace(/\/{2,}/g, '/')
+    .replace(/\/\.(?=\/|$)/g, '');
+  if (slashNorm !== trimmed) {
+    candidates.push(slashNorm);
+  }
+  const tokens = trimmed.split(/[\s"'`()\[\]{}<>|&;,=@:]+/).filter(Boolean);
+  for (const tok of tokens) {
+    const cleanTok = tok.replace(/\\/g, '/');
+    const posixNorm = cleanTok.startsWith('~/')
+      ? `~/${path.posix.normalize(cleanTok.slice(2))}`
+      : path.posix.normalize(cleanTok);
+    if (posixNorm && !candidates.includes(posixNorm)) {
+      candidates.push(posixNorm);
+    }
+  }
+  for (const cand of candidates) {
+    for (const { label, regex } of DEFAULT_SENSITIVE_PATH_PATTERNS) {
+      if (regex.test(cand)) return label;
+    }
   }
   return null;
 }

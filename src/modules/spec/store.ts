@@ -399,7 +399,7 @@ export function saveSpecState(moduleDataDir: string, state: SpecStateFile): Spec
     specs: kept,
     updatedAt: new Date().toISOString(),
   };
-  atomicWriteJson(getSpecStatePath(moduleDataDir), next);
+  atomicWriteJson(getSpecStatePath(moduleDataDir), next, { ignoreTopLevelKeys: ['updatedAt'] });
   return next;
 }
 

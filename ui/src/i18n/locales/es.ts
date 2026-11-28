@@ -201,6 +201,9 @@ export const ES_DICT: UiDictionary = {
     invalid: 'NO VÁLIDO',
     truncated: 'TRUNCADO',
     actionFailed: 'Error en la operación: {error}',
+    errorBoundaryTitle: '{scope} encontró un error de renderizado',
+    errorBoundaryReturnHome: 'Volver al Hub',
+    errorBoundaryReload: 'Recargar panel',
   },
   turbo: {
     title: 'Turbo y Control de Salida',

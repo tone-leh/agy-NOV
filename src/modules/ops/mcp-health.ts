@@ -616,14 +616,53 @@ export function inspectMcpConfigSafe(
       });
     } else if (
       (typeof def.accessToken === 'string' && def.accessToken.trim() && !PURE_ENV_REF_RE.test(def.accessToken.trim())) ||
-      (typeof def.refreshToken === 'string' && def.refreshToken.trim() && !PURE_ENV_REF_RE.test(def.refreshToken.trim())) ||
-      (def.oauth && typeof def.oauth === 'object')
+      (typeof def.refreshToken === 'string' && def.refreshToken.trim() && !PURE_ENV_REF_RE.test(def.refreshToken.trim()))
     ) {
       pushFinding({
         severity: 'warn',
         serverName: safeServerName,
         file: relPath,
         message: `Server "${safeServerName}" contains static OAuth/token configuration (values redacted); ensure credentials are not committed and refresh cleanly.`,
+      });
+    } else if (def.oauth && typeof def.oauth === 'object' && !Array.isArray(def.oauth)) {
+      const OAUTH_METADATA_KEY_RE =
+        /(?:url|uri|endpoint|endpoint_auth_method|auth_method|grant_type|response_type|token_type|method|header|prefix|scopes?|issuer|audience|realm|flow)$/i;
+      const OAUTH_INLINE_URL_CRED_RE = /^https?:\/\/[^/\s:@]+:[^/\s@]+@/i;
+      const OAUTH_JWT_LIKE_RE = /^eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}$/;
+      const hasStaticOAuthSecret = (node: unknown, depth = 0): boolean => {
+        if (depth > 4 || !node || typeof node !== 'object') return false;
+        if (Array.isArray(node)) {
+          return node.some((item) => hasStaticOAuthSecret(item, depth + 1));
+        }
+        for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+          if (typeof v === 'string') {
+            const trimmed = v.trim();
+            if (!trimmed || PURE_ENV_REF_RE.test(trimmed)) continue;
+            if (OAUTH_METADATA_KEY_RE.test(k)) {
+              // Standard dynamic OAuth endpoints (e.g. tokenUrl / tokenEndpoint / token_endpoint_auth_method)
+              // are safe unless their value itself embeds inline credentials or a JWT.
+              if (OAUTH_INLINE_URL_CRED_RE.test(trimmed) || OAUTH_JWT_LIKE_RE.test(trimmed)) {
+                return true;
+              }
+              continue;
+            }
+            if (/(?:secret|token|password|credential|private_key|api_?key)/i.test(k)) {
+              return true;
+            }
+          } else if (v && typeof v === 'object') {
+            if (hasStaticOAuthSecret(v, depth + 1)) return true;
+          }
+        }
+        return false;
+      };
+      const hasHardcodedOAuth = hasStaticOAuthSecret(def.oauth);
+      pushFinding({
+        severity: hasHardcodedOAuth ? 'warn' : 'info',
+        serverName: safeServerName,
+        file: relPath,
+        message: hasHardcodedOAuth
+          ? `Server "${safeServerName}" contains static OAuth secret/token fields (values redacted); prefer dynamic OAuth with Antigravity v2.36+ offline refresh tokens instead of hardcoded secrets.`
+          : `Server "${safeServerName}" uses dynamic OAuth configuration (compatible with Antigravity v2.36+ automatic offline refresh tokens).`,
       });
     }
   }

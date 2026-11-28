@@ -2,7 +2,7 @@
   <img src="../../assets/logo.svg" width="88" height="88" alt="agy-NOV Logo" />
   <h1>agy-NOV</h1>
   <p><strong>面向 Google Antigravity 2.0 的 100% 原生模組化超級工作台。</strong></p>
-  <p><em>單一外掛，基於 4 層單向依賴零循環架構與 TypeScript AST 級 Layer 2 跨模組白名單守衛，透過 4+1 功能域整合 13 大可開關原生能力：強化雙星 <code>feed-snapshot.json</code> 即時刷新與精準聚合（<code>PreToolUse</code> 攔截／核准與 CLI 改設定同步刷新）、落實關閉模組硬門控與 <code>PostToolUse</code> 全關 O(1) 短路、精簡 <code>skills/agy-nov/SKILL.md</code> 至 <code>9.5 KB</code>（消除 <code>ops.large-instruction-file</code> 告警）；承接預設關閉的唯讀定時巡檢 Sidecar（<code>sidecars/audit-sidecar.mjs</code>）與第 11 條 CLI 指令 <code>audit-once</code>、Layer 1 共用 <code>ConversationService</code> 嚴格迴環跨會話協同（+0 模型工具）、Antigravity Marketplace 上架認證對齊（<code>plugin.json</code> 10 官方鍵與 <code>doctor</code> 18 項核心資產 + 4 項上架合規健檢）、Spec DAG 原生編排編譯器、4 個零注入稅唯讀 MCP 上下文資源（<code>agy-nov://context/{review,mem,turbo,xray}</code>）、6 類官方生命週期 Hooks、6 個按需 Skills、2 個唯讀專職子代理、11 段融合宿主 stdin JSON 的 <code>statusline</code>、755 詞典鍵 × 8 語種全元件介面（24 元件，1,390.2 KB）、Ops 3.0、Mem 3.0、端到端工程流水線、MCP Apps <code>file</code> 原生檔案檢視器、Remote 2.5 與 macOS / Windows / Linux 全三端原生相容。零 ASAR、零 CDP，跨 <code>v0.4 → v1.2.1</code> 嚴守 47 個規範模型工具零膨脹，關閉模組即零 Token 消耗。</em></p>
+  <p><em>單一外掛，基於 4 層單向依賴零循環架構與 TypeScript AST 級 Layer 2 跨模組白名單守衛，透過 4+1 功能域整合 13 大可開關原生能力：全面強化<strong>高頻寫盤風暴根治</strong>（全倉 Store 接入語意髒檢查 <code>atomicWriteJson</code>、<code>feed-snapshot.json</code>／<code>health-sweep.json</code> 語意雜湊跳過、<code>PostToolUse</code> 3s 合併窗、3 並發會話防乒乓合併與 Guard O(1) 並發安全 GC）、<strong>超長／超大／損壞會話極端容錯</strong>（Hook 4,096 UTF-8 位元組安全截斷與 <code>injectSteps</code> ≤ 24 KiB 保序截斷、X-Ray 頭尾有界採樣與多會話總讀預算、<code>live-stream</code>／<code>mem</code> 尾窗自適應至 2 MiB、<code>ConversationService</code> 4 MiB 流式中斷、SQLite 唯讀批量查表與唯讀 WAL 目錄 <code>immutable=1</code> 零鎖降級）、<strong>MCP Apps 防白屏與 <code>SIGKILL</code> 恢復</strong>（全元件 8 語種 <code>ErrorBoundary</code> 758 鍵、<code>ResizeObserver</code> rAF 與 <code>0×0</code> 忽略、大視圖漸進摺疊、失焦暫停輪詢／SSE、Server 3s 退出 watchdog、<code>isPidAlive</code> 過濾陳舊 <code>runtime.json</code> 與 Sidecar 30s 超時）以及 <strong>Antigravity Desktop v2.36.0 全面相容</strong>（最大化側欄底部 <code>&gt;= 56px</code> 安全底距、<code>~/.gemini &gt; ~/.agents/skills</code> 雙目錄技能發現與軟鏈實體去重、Guard／Remote 專案外敏感設定收緊且放行合法跨倉源碼編輯、動態 OAuth 離線刷新與巢狀靜態密鑰檢測、<code>statusline</code> 相容 NDJSON 與 <code>remaining_percentage</code>）；承接唯讀定時巡檢 Sidecar（<code>sidecars/audit-sidecar.mjs</code>，<code>5.9 KB</code>）與第 11 條 CLI 指令 <code>audit-once</code>、Layer 1 迴環 <code>ConversationService</code>（+0 模型工具）、Marketplace 18+4 項 <code>doctor</code>、Spec DAG 編排編譯器、4 個唯讀 MCP 上下文資源（<code>agy-nov://context/{review,mem,turbo,xray}</code>）、6 類官方 Hooks、6 個按需 Skills（<code>9.5 KB</code> 主入口）、2 個唯讀子代理、758 詞典鍵 × 8 語種全元件介面（24 元件，<code>1,402.1 KB</code>）、Ops 3.0、Mem 3.0、MCP Apps <code>file</code> 檢視器、Remote 2.5 與 macOS / Windows / Linux 全三端原生相容。零 ASAR、零 CDP，跨 <code>v0.4 → v1.2.2</code> 嚴守 47 個規範模型工具零膨脹，關閉模組即零 Token 消耗。</em></p>
 
   <p>
     <a href="../../README.md">English</a> ·
@@ -18,7 +18,7 @@
   <p><sub>本文為英文主文件 <a href="../../README.md">README.md</a> 的繁體中文譯本；指令、模組 ID 與設定規格以英文原版為準。</sub></p>
 
   <p>
-    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v1.2.1"><img src="https://img.shields.io/badge/Version-v1.2.1-0284c7?style=flat-square" alt="版本: v1.2.1" /></a>
+    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v1.2.2"><img src="https://img.shields.io/badge/Version-v1.2.2-0284c7?style=flat-square" alt="版本: v1.2.2" /></a>
     <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tone-leh/agy-NOV/ci.yml?branch=main&style=flat-square&label=CI" alt="CI 狀態" /></a>
     <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/Platform-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-475569?style=flat-square" alt="平台: macOS · Windows · Linux" /></a>
     <a href="../../LICENSE"><img src="https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square" alt="License: MIT" /></a>
@@ -29,15 +29,15 @@
 
   <br />
 
-  <p><strong>實機工作台預覽（v1.2.1 · 4+1 功能域 IA）</strong></p>
-  <img src="../../assets/demo-preview.gif" alt="agy-NOV v1.2.1 實機工作台預覽 —— 雙星 feed-snapshot.json 即時刷新與精準聚合、關閉模組硬門控與 PostToolUse O(1) 短路、TypeScript AST 級 Layer 2 跨模組白名單守衛、9.5 KB 精簡 SKILL.md、預設關閉的唯讀定時巡檢 Sidecar 與 audit-once、Layer 1 ConversationService 迴環跨會話協同、Marketplace 上架合規對齊與 18+4 項 doctor、4+1 IA、Spec DAG 原生編排編譯器、4 個唯讀 MCP 上下文資源、6 類官方 Hooks、6 個官方按需 Skills 與 2 個唯讀子代理、11 指令 CLI、755 詞典鍵 × 8 語種全元件介面、macOS / Windows / Linux 全三端原生相容、Ops 3.0、Mem 3.0、One-Click Clean Fork、MCP Apps file 檔案檢視器與 Remote 2.5" width="100%" />
+  <p><strong>實機工作台預覽（v1.2.2 · 4+1 功能域 IA · 全面相容 Antigravity Desktop v2.36.0）</strong></p>
+  <img src="../../assets/demo-preview.gif" alt="agy-NOV v1.2.2 實機工作台預覽 —— 高頻寫盤風暴根治與語意雜湊跳過、超長超大損壞會話極端容錯、MCP Apps 全元件 8 語種 ErrorBoundary 防白屏與 SIGKILL 恢復、Antigravity Desktop v2.36.0 全面相容（側欄 56px 底距、雙目錄技能發現與軟鏈去重、跨倉安全邊界、動態 OAuth 與 NDJSON statusline）、雙星 feed-snapshot.json 即時刷新、AST 級架構守衛、預設關閉的唯讀巡檢 Sidecar 與 audit-once、Layer 1 ConversationService 迴環跨會話協同、Marketplace 18+4 項 doctor、4+1 IA、Spec DAG 原生編排編譯器、4 個唯讀 MCP 上下文資源、6 類官方 Hooks、6 個官方 Skills 與 2 個唯讀子代理、11 指令 CLI、758 詞典鍵 × 8 語種全元件介面、macOS / Windows / Linux 全三端原生相容、Ops 3.0、Mem 3.0、One-Click Clean Fork、MCP Apps file 檔案檢視器與 Remote 2.5" width="100%" />
 
   <br />
 
   <p>
     <a href="#30-秒零寫入初體驗">30 秒初體驗</a> ·
     <a href="#為什麼選擇-agy-nov">為什麼選擇 agy-NOV</a> ·
-    <a href="#v121-核心修復與加固">v1.2.1 亮點</a> ·
+    <a href="#v122-核心加固與-v2360-全面相容">v1.2.2 亮點</a> ·
     <a href="#10-秒選定你的工作台預設">10 秒選預設</a> ·
     <a href="#13-大可按需啟停的核心能力">13 大模組</a> ·
     <a href="#內建-8-語種外掛-ui-與零-cdp-雙倉生態">8 語種 UI 與雙倉生態</a> ·
@@ -51,7 +51,7 @@
 </div>
 
 > [!NOTE]
-> **獨立開源專案聲明：** `agy-NOV` (`v1.2.1`) 是面向 Google Antigravity 2.0（涵蓋 **macOS / Windows / Linux** 全三端）打造的獨立 MIT 授權社群外掛，與 Google LLC 無隸屬、贊助或背書關係。
+> **獨立開源專案聲明：** `agy-NOV` (`v1.2.2`) 是面向 Google Antigravity 2.0（全面相容 **Antigravity 2.35+ / 2.36+** 與 **Antigravity Desktop v2.36.0**，涵蓋 **macOS / Windows / Linux** 全三端）打造的獨立 MIT 授權社群外掛，與 Google LLC 無隸屬、贊助或背書關係。
 
 ---
 
@@ -65,7 +65,7 @@
 node ~/.gemini/config/plugins/agy-nov/dist/cli.cjs recommend --workspace=. --export-preset
 # 執行一次唯讀全倉健康巡檢（預設零寫盤、零常駐程序、零網路埠）：
 node ~/.gemini/config/plugins/agy-nov/dist/cli.cjs audit-once --workspace=.
-# 或自訂 11 段零 Token 狀態列預覽（支援融合 Antigravity 2.35 CLI stdin JSON 遙測）：
+# 或自訂 11 段零 Token 狀態列預覽（支援融合 Antigravity 2.35+ / 2.36+ CLI stdin JSON / NDJSON 與 remaining_percentage 遙測）：
 node ~/.gemini/config/plugins/agy-nov/dist/cli.cjs statusline --segments=brand,model,context,quota,verify,guard
 # 亦可在外掛目錄執行一次 `npm link` 後使用全域指令 `agy-nov`：
 agy-nov recommend --export-preset
@@ -83,30 +83,42 @@ agy-nov recommend --export-preset
 
 | 比較維度 | ❌ 外掛堆疊（12–13 個獨立工具） | ✅ agy-NOV 超級工作台 |
 | :--- | :--- | :--- |
-| **常駐處理程序** | 12–13 個背景 Node/Python 處理程序爭搶記憶體與啟動時間 | **1 個常駐 MCP 伺服器**（`dist/server.cjs`，`1,584.5 KB` / 約 `1.55 MiB`）統一承載全部已啟用能力、**4 個唯讀 MCP 上下文資源**與 Layer 1 迴環 `ConversationService`，搭配預設關閉的單次唯讀巡檢 Sidecar（`sidecars/audit-sidecar.mjs`，按模組開關門控、零常駐守護程序） |
-| **單輪 Token 稅** | 無論是否用到，每輪對話都會注入 70+ 靜態工具 Schema 並擠壓 100 工具預算 | **動態 `tools/list`** —— 關閉模組立即註銷工具（`0` Token 與工具預算佔用），跨 `v0.4 → v1.2.1` 嚴格維持 **47 個模型工具**零膨脹（+0 膨脹），具備 CLI 47 工具防爆門控、4 個零注入稅唯讀資源（`agy-nov://context/*`）、精簡至 `9.5 KB` 的 `skills/agy-nov/SKILL.md` 與 S4 **Tool-Slot Idle Advisor** |
-| **生命週期 Hook 風暴** | 每次 `SessionStart` / `PreToolUse` / `PostToolUse` / `PreInvocation` / `PostInvocation` / `Stop` 觸發多個衍生 Hook 競態執行 | **1 個統一 Hook 分發器**（`dist/hook.cjs`，`212.8 KB`）覆蓋全部 **6 類官方 Hook**（含 `PreInvocation` 入站密鑰雲端前硬攔截、`PostInvocation` 零 Token 輪次彙整回執、`PreToolUse` `force_ask`/`overwrite` 即時刷新雙星快照、`PostToolUse` 全關 O(1) 短路與 `Stop: continue` 官方協定） |
-| **升級抗碎性與上架合規** | 二進位 `app.asar` 修補、DOM 注入與不合規清單在更新、跨平台或上架審核時易失效 | **100% 官方原生協定**（零 ASAR、零 CDP）+ **4 層單向依賴模組化架構與 TypeScript AST 級 Layer 2 跨模組白名單守衛**（零循環依賴、macOS / Windows / Linux 全三端原生相容與 3-OS CI 矩陣）+ **Antigravity Marketplace 上架合規對齊**（`plugin.json` 10 官方鍵、`doctor` 18 資產 + 4 項上架健檢） |
-| **資訊架構與多語體驗** | 分散的 JSON 設定、擁擠的扁平分頁、風格割裂且中英混排的面板 | **4+1 功能域 IA + 工作流總覽 Hub + 四級統一設定中心 + `⌘K` 指令面板**，搭配 **100% 全元件 8 語種 UI（755 詞典鍵 × 8 語種涵蓋全部 24 個 UI 元件，`1,390.2 KB` / 約 `1.36 MiB`）**、**6 個官方按需 Skills + 2 個唯讀專職子代理**、**5 檔一鍵預設**與 **11 指令零相依 CLI**（`201.2 KB`） |
+| **常駐處理程序** | 12–13 個背景 Node/Python 處理程序爭搶記憶體與啟動時間 | **1 個常駐 MCP 伺服器**（`dist/server.cjs`，`1,604.1 KB` / 約 `1.56 MiB`）統一承載全部已啟用能力、**4 個唯讀 MCP 上下文資源**、Server 3s 退出 watchdog 與 Layer 1 迴環 `ConversationService`（4 MiB 流式中斷），搭配預設關閉的單次唯讀巡檢 Sidecar（`sidecars/audit-sidecar.mjs`，`5.9 KB`，按模組開關門控、30s 超時、零常駐守護程序） |
+| **單輪 Token 稅** | 無論是否用到，每輪對話都會注入 70+ 靜態工具 Schema 並擠壓 100 工具預算 | **動態 `tools/list`** —— 關閉模組立即註銷工具（`0` Token 與工具預算佔用），跨 `v0.4 → v1.2.2` 嚴格維持 **47 個模型工具**零膨脹（+0 膨脹），具備 CLI 47 工具防爆門控、4 個零注入稅唯讀資源（`agy-nov://context/*`）、精簡至 `9.5 KB` 的 `skills/agy-nov/SKILL.md` 與 S4 **Tool-Slot Idle Advisor** |
+| **生命週期 Hook 風暴** | 每次 `SessionStart` / `PreToolUse` / `PostToolUse` / `PreInvocation` / `PostInvocation` / `Stop` 觸發多個衍生 Hook 競態執行 | **1 個統一 Hook 分發器**（`dist/hook.cjs`，`223.5 KB`）覆蓋全部 **6 類官方 Hook**（含 `PreInvocation` 入站密鑰雲端前硬攔截、`PostInvocation` 零 Token 輪次彙整回執、`PreToolUse` 即時刷新雙星快照、`PostToolUse` 3s 合併窗與全關 O(1) 短路、4,096 UTF-8 位元組安全截斷與 `injectSteps` ≤ 24 KiB 保序截斷、以及 `Stop: continue` 官方協定） |
+| **升級抗碎性與上架合規** | 二進位 `app.asar` 修補、DOM 注入與不合規清單在更新、跨平台或上架審核時易失效 | **100% 官方原生協定**（零 ASAR、零 CDP）+ **全面相容 Antigravity 2.35+ / 2.36+ 與 Desktop v2.36.0** + **4 層單向依賴模組化架構與 TypeScript AST 級 Layer 2 跨模組白名單守衛**（零循環依賴、macOS / Windows / Linux 全三端原生相容與 3-OS CI 矩陣）+ **Antigravity Marketplace 上架合規對齊**（`plugin.json` 10 官方鍵、`doctor` 18 資產 + 4 項上架健檢） |
+| **資訊架構與多語體驗** | 分散的 JSON 設定、擁擠的扁平分頁、風格割裂且中英混排的面板 | **4+1 功能域 IA + 工作流總覽 Hub + 四級統一設定中心 + `⌘K` 指令面板**，搭配 **100% 全元件 8 語種 UI（758 詞典鍵 × 8 語種涵蓋全部 24 個 UI 元件與 `ErrorBoundary` 恢復卡，`1,402.1 KB` / 約 `1.37 MiB`，含側欄 `>= 56px` 安全底距）**、**6 個官方按需 Skills + 2 個唯讀專職子代理**、**5 檔一鍵預設**與 **11 指令零相依 CLI**（`209.9 KB`） |
 
 ---
 
-## v1.2.1 核心修復與加固
+## v1.2.2 核心加固與 v2.36.0 全面相容
 
-`v1.2.1`（`2026-11-28`）在 100% 原生零 ASAR / 零 CDP 紅線內聚焦**雙星 `feed-snapshot.json` 即時性與精準聚合**、**關閉模組硬門控與 `PostToolUse` O(1) 短路**，以及 **TypeScript AST 級 Layer 2 跨模組白名單守衛與 `skills/agy-nov/SKILL.md` 瘦身至 `9.5 KB`** —— 跨 `v0.4 → v1.2.1` 嚴格維持 **47 個規範模型工具零膨脹（+0 新增）**，自動化驗證覆蓋 macOS / Windows / Linux 3-OS CI 矩陣並達 **101 個測試套件 / 286 項測試（101 suites / 286 tests）全綠通過**（實測打包體積：`dist/server.cjs` **`1,584.5 KB`** / 約 `1.55 MiB`、`dist/hook.cjs` **`212.8 KB`**、`dist/cli.cjs` **`201.2 KB`**、`dist/ui/app.html` **`1,390.2 KB`** / 約 `1.36 MiB`、`skills/agy-nov/SKILL.md` **`9.5 KB`**）：
+`v1.2.2`（`2026-11-28`）在 100% 原生零 ASAR / 零 CDP 紅線內聚焦**高頻寫盤風暴根治**、**超長／超大／損壞會話極端容錯**、**MCP Apps 防白屏與 `SIGKILL` 恢復**，以及 **Antigravity Desktop v2.36.0 全面相容** —— 跨 `v0.4 → v1.2.2` 嚴格維持 **47 個規範模型工具零膨脹（+0 新增）**，自動化驗證覆蓋 macOS / Windows / Linux 3-OS CI 矩陣並達 **105 個測試套件 / 301 項測試（105 suites / 301 tests）全綠通過**（含 4 層 AST 零循環守衛、8 語種 758 鍵對稱測試與 `v1.2.2` 穩定性／v2.36.0 回歸測試；實測打包體積：`dist/server.cjs` **`1,604.1 KB`** / 約 `1.56 MiB`、`dist/hook.cjs` **`223.5 KB`**、`dist/cli.cjs` **`209.9 KB`**、`dist/ui/app.html` **`1,402.1 KB`** / 約 `1.37 MiB`、`skills/agy-nov/SKILL.md` **`9.5 KB`**、`sidecars/audit-sidecar.mjs` **`5.9 KB`**、`sidecars/README.md` **`4.2 KB`**）：
 
-### 1. 雙星 `feed-snapshot.json` 即時性與精準聚合（`hooks`、`cli`、`server`）
-- **關鍵事件即時刷新快照：** `PreToolUse` 觸發攔截或核准時即時原子刷新 `feed-snapshot.json`；透過 CLI 變更外掛設定時同步刷新已存在的 `feed-snapshot.json`（缺失 `dataDir` 時維持零建目錄、零寫盤）。
-- **聚合欄位精準化修正：** 修正 `latestSnapshotId` 嚴格選取最新快照、`GUARD_BLOCKED` 原因嚴格綁定真實攔截記錄，以及 `verify` 狀態嚴格依據時間戳記選取最新結果，讓 `agy-Sag` 與各消費端取得一致且即時的唯讀狀態。
+### 1. 高頻寫盤風暴根治（`core`、`hooks`、`radar`、`review`、`xray`、`guard`）
+- **語意髒檢查與雜湊跳過：** 全倉 Store 統一接入具內容／語意髒檢查機制的 `atomicWriteJson`，並為 `feed-snapshot.json` 與 `health-sweep.json` 導入語意雜湊跳過策略，資料實質未變動時免除無效原子重寫。
+- **合併窗、防乒乓與 O(1) GC：** 為 `PostToolUse` 建立 3s 合併窗；強化 3 並發會話下 Radar／Review／X-Ray 的防乒乓合併邏輯，並將 Guard 快照回收升級為 O(1) 並發安全 GC，高頻並發下保持低磁碟 I/O。
 
-### 2. 關閉模組硬門控與 O(1) 短路（`spec`、`sidecars/`、`hooks`）
-- **`spec → mem` 歸檔即時硬門控：** 執行規格封存入記憶前即時校驗 `mem` 開關狀態；當 `mem` 處於關閉態時直接拒絕寫入且嚴守零目錄建立。
-- **唯讀巡檢 Sidecar 按模組門控消誤報：** `sidecars/audit-sidecar.mjs` 與 `audit-once` 依 `mem` / `verify` / `guard` 實際開關門控各項統計與建議，徹底消除關閉模組產生的誤報。
-- **`PostToolUse` 全關 O(1) 短路：** 補齊 `PostToolUse` 在全部受影響模組關閉時的首行唯讀 O(1) 短路，維持零多餘開銷與零寫盤。
+### 2. 超長／超大／損壞會話極端容錯（`hooks`、`xray`、`remote`、`mem`、`core`、`studio`）
+- **有界安全截斷與總讀預算：** Hook 輸出依 4,096 UTF-8 位元組安全截斷（零半字元截斷），`injectSteps` 實施 `<= 24 KiB` 保序截斷；X-Ray 採用頭尾有界採樣與多會話總讀取預算，避免超大記錄檔拖慢分析。
+- **尾窗自適應、流式中斷與 SQLite 零鎖降級：** `live-stream` 與 `mem` 尾窗自適應至 `2 MiB`；`ConversationService` 實作 `4 MiB` 流式中斷保護；SQLite 採用唯讀批量查表，於唯讀 WAL 目錄自動切換 `immutable=1` 零鎖降級。
 
-### 3. TypeScript AST 級 Layer 2 跨模組白名單守衛與 `SKILL.md` 瘦身（`test`、`skills/`）
-- **AST 級架構邊界守衛：** 強化架構衛生測試為 TypeScript AST 級 Layer 2 跨模組匯入白名單守衛，自動化攔截越界依賴與循環匯入，並新增 `v1.2.1` 雙星一致性回歸測試，將自動化測試推升至 **101 suites / 286 tests**（3-OS CI 矩陣）。
-- **`skills/agy-nov/SKILL.md` 瘦身至 `9.5 KB`：** 將主入口技能文件由約 `30 KB` 精煉至 **`9.5 KB`**，徹底消除 `ops.large-instruction-file` 告警，同步降低指令載入負擔。
+### 3. MCP Apps 防白屏與 `SIGKILL` 恢復（`ui`、`server`、`sidecars/`）
+- **全元件 8 語種 `ErrorBoundary` 與效能防護：** 前端詞典同步擴充至 **758 詞典鍵 × 8 語種**，全面在地化 `ErrorBoundary` 恢復卡片；`ResizeObserver` 結合 rAF 節流並忽略 `0×0` 瞬態；大 Diff / X-Ray / Spec 預設漸進摺疊，面板失焦隱藏時自動暫停輪詢與 SSE。
+- **異常退出回收與超時保護：** MCP Server 增設 3s 退出 watchdog，啟動與讀取時以 `isPidAlive` 過濾 `SIGKILL` 殘留的陳舊 `runtime.json`；唯讀巡檢 Sidecar 強制 30s 超時兜底。
+
+### 4. Antigravity Desktop v2.36.0 全面相容（`ui`、`ops`、`guard`、`remote`、`cli`）
+- **最大化側欄安全底距與雙目錄技能發現：** 為最大化側欄底部浮動輸入框預留 **`>= 56px`** 安全底距；實作 `~/.gemini > ~/.agents/skills` 雙目錄唯讀技能發現與軟鏈實體路徑去重。
+- **跨倉邊界精準保護、憑證檢測與 NDJSON 狀態列：** Guard 檔案／Shell 與 Remote 三端同步收緊專案外敏感設定保護，同時放行合法跨倉源碼編輯；新增動態 OAuth 離線刷新與巢狀靜態密鑰檢測；`statusline` 完整相容 Antigravity `2.35+ / 2.36+` 的 NDJSON 格式與 `remaining_percentage` 欄位。
+
+<details>
+<summary><strong>承接 v1.2.1 雙星快照即時性、關閉模組硬門控、AST 架構守衛與 <code>9.5 KB</code> 精簡 <code>SKILL.md</code></strong></summary>
+
+- **雙星 `feed-snapshot.json` 即時刷新與精準聚合（`v1.2.1`）：** `PreToolUse` 攔截或核准時即時原子刷新 `feed-snapshot.json`，CLI 變更設定亦同步刷新既有快照（缺失 `dataDir` 維持零建目錄、零寫盤）；修正 `latestSnapshotId` 依時間選取最新、`GUARD_BLOCKED` 嚴格綁定真實攔截記錄與 `verify` 依時間戳記選取最新結果。
+- **關閉模組硬門控與 `PostToolUse` O(1) 短路（`v1.2.1`）：** `spec → mem` 歸檔即時校驗 `mem` 開關並於關閉態拒絕寫入與建目錄；巡檢 Sidecar／`audit-once` 依 `mem`／`verify`／`guard` 開關門控徹底消除誤報；補齊 `PostToolUse` 全關 O(1) 短路。
+- **TypeScript AST 級 Layer 2 白名單守衛與 `SKILL.md` 瘦身（`v1.2.1`）：** 架構衛生測試升級為 TypeScript AST 級 Layer 2 跨模組匯入白名單守衛，並將主入口 `skills/agy-nov/SKILL.md` 精簡至 **`9.5 KB`** 消除 `ops.large-instruction-file` 告警。
+
+</details>
 
 <details>
 <summary><strong>承接 v1.2.0 唯讀巡檢 Sidecar、Layer 1 迴環 <code>ConversationService</code> 與 Antigravity Marketplace 上架認證基座</strong></summary>
@@ -123,15 +135,15 @@ agy-nov recommend --export-preset
 - **4 層單向依賴模組化架構與零循環依賴守護（`v1.1.0`）：** 抽離 Layer 1 共用內核（`fs-safe.ts`、`process-safe.ts`、`brain-paths.ts`、`sanitize.ts`、`module-contract.ts`），完成 **8 個巨石模組拆分** 與 CLI 子領域模組化，發布 [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) 與 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)，並以 `test/architecture-hygiene.test.ts` 自動守護零循環依賴與分層邊界。
 - **Spec DAG 原生編排編譯器（+0 模型工具，3 端一致入口）：** 以 Kahn 拓撲分層將已核准 Spec 任務圖編譯為 Antigravity `/run-workflow` Python 腳本（自動串接 `nov-blind-reviewer`、`nov-security-auditor` 與 Verify Gate）與 `/swarm` `plan.json` 藍圖；提供 Spec UI 一鍵預覽（`app_spec_compile_workflow`）、CLI `compile-spec` 與第 6 個官方按需 Skill `/nov-workflow`。
 - **確定性安全與零注入稅上下文 2.0：** 推出 `PreInvocation` 入站私鑰／API Key 雲端前本地硬攔截（`terminationBehavior: "terminate"`，零明文回顯）、第 6 類官方 Hook `PostInvocation` 零 Token 輪次彙整回執（O(1) 短路），以及 **4 個零注入稅唯讀 MCP 上下文資源**（`agy-nov://context/{review,mem,turbo,xray}`，受模組開關管控、`<= 32 KiB`、全量線性脫敏、零寫盤）。
-- **Antigravity 2.35 CLI `statusLine` stdin JSON 融合（11 段）：** `agy-nov statusline` 支援有界非同步讀取宿主 stdin JSON（上限 `256 KiB`、`120ms` 超時保護），新增 `model` 與 `quota` 分段構成 11 段自由組合（`brand,model,context,burn,quota,cache,spec,verify,guard,radar,network`）。
+- **Antigravity 2.35+ / 2.36+ CLI `statusLine` stdin JSON / NDJSON 融合（11 段）：** `agy-nov statusline` 支援有界非同步讀取宿主 stdin JSON 與 NDJSON（上限 `256 KiB`、`120ms` 超時保護，完整支援 `remaining_percentage`），新增 `model` 與 `quota` 分段構成 11 段自由組合（`brand,model,context,burn,quota,cache,spec,verify,guard,radar,network`）。
 - **既有 v0.7–v1.0.2 全量原生能力基座：** 完整保留 `Spec → Worktree → Two-Stage Review → Verify → Mem` 端到端閉環、One-Click Clean Fork、Ops 3.0（`securityScore`、`migrationPreview`、S4 Tool-Slot Idle Advisor）、Mem 3.0（信賴度與 TTL 治理）、MCP Apps `file` 原生檔案檢視器（`app_nov_file_viewer`）、Remote 2.5 結構化風險核准卡、`.agy-nov.json` 預覽確認式團隊預設、CLI 47 工具防爆門控、`roots/list` 動態同步與 macOS / Windows / Linux 全三端原生相容。
 
 </details>
 
 ### 100% 原生控制面板理念
 
-1. **單一原生執行期與精實產物：** 1 個 MCP 伺服器（`dist/server.cjs`，實測 **`1,584.5 KB`** / 約 `1.55 MiB`，承載 47 工具、4 個唯讀資源與 Layer 1 迴環 `ConversationService`）+ 1 個覆蓋全部 **6 類官方 Hook**（`SessionStart`、`PreToolUse`、`PostToolUse`、`PreInvocation`、`PostInvocation`、`Stop`）的統一分發器（`dist/hook.cjs`，實測 **`212.8 KB`**）+ 1 份自包含全元件 8 語種 UI（`dist/ui/app.html`，實測 **`1,390.2 KB`** / 約 `1.36 MiB`，遠低於 10 MiB 資源上限，**755 詞典鍵 × 8 語種**完整涵蓋全部 **24 個 UI 元件**）+ 1 個含 **11 條指令**的零相依 CLI（`dist/cli.cjs`，實測 **`201.2 KB`**，`doctor` 核驗全部 **18 項**核心資產與 **4 項** Marketplace 上架健檢）+ 1 個預設關閉的唯讀定時巡檢 Sidecar（`sidecars/audit-sidecar.mjs`）+ **6 個官方按需 Skills**（主入口 `skills/agy-nov/SKILL.md` 精簡至 **`9.5 KB`**，消除 `ops.large-instruction-file` 告警）與 **2 個唯讀專職子代理**。
-2. **關閉即零 Token 稅：** 每個模組透過 `RegisteredTool.enable()` / `.disable()` 管理模型工具並即時推送 `tools/list_changed`。關閉模組後，對應工具 Schema、唯讀上下文資源與 `spec → mem` 歸檔門控同步生效，結合 S4 **Tool-Slot Idle Advisor** 與 CLI `io.modelcontextprotocol/ui` 47 工具防爆門控輕鬆避開 100 工具硬上限；跨 `v0.4 → v1.2.1` 全數 **47 個規範模型工具名**嚴格維持零膨脹、完全相容（Spec DAG 編譯預覽、Clean Fork 直創會話 `app_xray_fork_via_service`、Radar 跨會話對帳 `app_radar_reconcile_conversations`、Hub、設定中心、PR 證據摘要、`app_nov_file_viewer`、Mem 3.0 批次衛生治理、Turn Rewind 與 Context Pack 動作全數歸屬 App-only，不佔任何模型工具槽位）。
+1. **單一原生執行期與精實產物：** 1 個 MCP 伺服器（`dist/server.cjs`，實測 **`1,604.1 KB`** / 約 `1.56 MiB`，承載 47 工具、4 個唯讀資源、3s 退出 watchdog 與 Layer 1 迴環 `ConversationService`）+ 1 個覆蓋全部 **6 類官方 Hook**（`SessionStart`、`PreToolUse`、`PostToolUse`、`PreInvocation`、`PostInvocation`、`Stop`）的統一分發器（`dist/hook.cjs`，實測 **`223.5 KB`**）+ 1 份自包含全元件 8 語種 UI（`dist/ui/app.html`，實測 **`1,402.1 KB`** / 約 `1.37 MiB`，遠低於 10 MiB 資源上限，**758 詞典鍵 × 8 語種**完整涵蓋全部 **24 個 UI 元件**與 `ErrorBoundary` 恢復卡）+ 1 個含 **11 條指令**的零相依 CLI（`dist/cli.cjs`，實測 **`209.9 KB`**，`doctor` 核驗全部 **18 項**核心資產與 **4 項** Marketplace 上架健檢）+ 1 個預設關閉的唯讀定時巡檢 Sidecar（`sidecars/audit-sidecar.mjs`，實測 **`5.9 KB`**，指南 `sidecars/README.md` **`4.2 KB`**，30s 超時保護）+ **6 個官方按需 Skills**（主入口 `skills/agy-nov/SKILL.md` 精簡至 **`9.5 KB`**，消除 `ops.large-instruction-file` 告警）與 **2 個唯讀專職子代理**。
+2. **關閉即零 Token 稅：** 每個模組透過 `RegisteredTool.enable()` / `.disable()` 管理模型工具並即時推送 `tools/list_changed`。關閉模組後，對應工具 Schema、唯讀上下文資源與 `spec → mem` 歸檔門控同步生效，結合 S4 **Tool-Slot Idle Advisor** 與 CLI `io.modelcontextprotocol/ui` 47 工具防爆門控輕鬆避開 100 工具硬上限；跨 `v0.4 → v1.2.2` 全數 **47 個規範模型工具名**嚴格維持零膨脹、完全相容（Spec DAG 編譯預覽、Clean Fork 直創會話 `app_xray_fork_via_service`、Radar 跨會話對帳 `app_radar_reconcile_conversations`、Hub、設定中心、PR 證據摘要、`app_nov_file_viewer`、Mem 3.0 批次衛生治理、Turn Rewind 與 Context Pack 動作全數歸屬 App-only，不佔任何模型工具槽位）。
 3. **12 個本機離線模組優先：** 核心護航（`review`、`guard` 2.5、`xray`）、工程閉環（`spec` 2.0 + DAG 編譯器、`worktree`、`verify`、`turbo` 3.0、`mem` 3.0）與按需工具箱（`radar`、`studio`、`canvas`、`ops` 3.0）100% 在本機執行，零對外網路請求、零 ASAR 修改、零 CDP 掛鉤。
 4. **1 個嚴格按需啟用的遠端模組（Remote 2.5）：** 歸屬於隔離外連域的 `remote`（行動端 PWA + IM Webhook）預設徹底關閉 —— 未明確啟用前零埠監聽、零背景輪詢、零磁碟寫入、零對外網路請求；啟用後提供手機 PWA 唯讀脫敏實況步驟流、結構化風險核准卡（`HIGH`/`MED`/`LOW`）與按需唯讀偵測 `tailscale` / `cloudflared` 安全穿透指令引導（絕不自動啟動公網通道）。
 
@@ -149,7 +161,7 @@ agy-nov recommend --export-preset
 | **`local-all`** | *全量離線工作室* —— 啟用含 Workspace Studio（支援 OpenAPI 2.0/3.x 與原生 `file` 檢視器聯動）、視覺化畫布與 Mem 3.0（信賴度／TTL 記憶衛生治理、`agy-nov://context/mem` 與三層揭露圖譜）在內的全部本機能力 | 全部 12 個離線原生模組 | **43** | 100% 離線 |
 | **`full`** | *離桌指揮官* —— 完整工作台加按需啟用的 Remote 2.5 手機 PWA 唯讀實況流與結構化風險 IM 核准卡 | 全部 13 個原生模組（含按需 `remote`） | **47** | 按需聯網 |
 
-<sub>*精確模型工具數 = `2` 個常駐入口工具（`nov_open`、`nov_status`）+ 已啟用模組的工具數總和（`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47；跨 `v0.4 → v1.2.1` 全數 47 個規範模型工具名零膨脹完全不變，Spec DAG 編譯器預覽、`app_xray_fork_via_service`、`app_radar_reconcile_conversations`、`app_nov_file_viewer`、Clean Fork、PR 證據摘要、Mem 3.0 批次衛生與 S4 Tool-Slot Idle Advisor 皆為 App-only，4 個 MCP 上下文資源、6 個官方按需 Skills 與 2 個唯讀子代理佔用 0 模型工具槽位）。</sub>
+<sub>*精確模型工具數 = `2` 個常駐入口工具（`nov_open`、`nov_status`）+ 已啟用模組的工具數總和（`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47；跨 `v0.4 → v1.2.2` 全數 47 個規範模型工具名零膨脹完全不變，Spec DAG 編譯器預覽、`app_xray_fork_via_service`、`app_radar_reconcile_conversations`、`app_nov_file_viewer`、Clean Fork、PR 證據摘要、Mem 3.0 批次衛生與 S4 Tool-Slot Idle Advisor 皆為 App-only，4 個 MCP 上下文資源、6 個官方按需 Skills 與 2 個唯讀子代理佔用 0 模型工具槽位）。</sub>
 
 ```bash
 # 唯讀掃描專案並以 --export-preset 零磁碟寫入預覽 .agy-nov.json 團隊預設
@@ -195,7 +207,7 @@ node ~/.gemini/config/plugins/agy-nov/dist/cli.cjs preset power
 - **MCP Apps `file` 原生檔案檢視器（`app_nov_file_viewer`）：** 註冊官方 `com.google.antigravity/ui` `file` 入口，點擊工作區 `.sqlite` / `.sqlite3` / `.db` / `.csv` / `.tsv` / `.svg` / `.openapi.yaml` / `.openapi.yml` 即可原生檢視；對模型完全隱藏（零工具稅），內建 `realpath` 邊界、SVG 安全清洗，並支援透過宿主 `resources/read` 安全預覽 `antigravity-file://` 資源（附唯讀降級兜底）。
 
 <details>
-<summary><strong>試著這樣對你的 Agent 提問……（第一層離線模組與 v1.2.1 能力 12 條實戰提示詞）</strong></summary>
+<summary><strong>試著這樣對你的 Agent 提問……（第一層離線模組與 v1.2.2 能力 12 條實戰提示詞）</strong></summary>
 
 - **Review：** *「在 agy-NOV Diff Review 中切換至我的功能 Worktree 分支，自動載入活躍 Spec 驗收清單，執行 Stage 1 合規檢核與 Stage 2 `file:line` 程式碼品質批註，再配合 `-w` 檢視行級風險預標註。」*
 - **Guard 2.5：** *「掃描工作區密鑰並切換至 `strict-gate` 權限模式；確認 `PreInvocation` 入站密鑰硬攔截處於開啟狀態，重構驗證模組後先在 Guard 2.5 檢視本輪分組快照的整輪 Diff，必要時一鍵整組 Rewind 還原。」*
@@ -224,9 +236,9 @@ node ~/.gemini/config/plugins/agy-nov/dist/cli.cjs preset power
 
 ## 內建 8 語種外掛 UI 與零 CDP 雙倉生態
 
-### 100% 全元件 8 語種外掛 UI（覆蓋全部 24 元件 · 零重啟）
+### 100% 全元件 8 語種外掛 UI（覆蓋全部 24 元件 · 零重啟 · 防白屏）
 
-`agy-NOV` `v1.2.1` 在外掛套件內實現 **100% 全元件 8 語種覆蓋（755 詞典鍵 × 8 語種，徹底清零殘留硬編碼英文）** —— 完整涵蓋全部 **24 個 UI 元件**（包含工作流總覽 Hub 與 Clean Fork、四級統一設定中心與 S4 **Tool-Slot Idle Advisor**、Spec 2.0 與 DAG 原生編排編譯預覽、Ops 3.0 `securityScore` 安全健檢與 `migrationPreview` 去重預覽、Mem 3.0 衛生篩選與批次 Verify/Refresh TTL/Prune、寬窄雙態導覽與 `⌘K` 指令面板、Worktree `.worktreeinclude` 預覽、Diff Review 雙階段審閱、Verify PR 交付證據摘要、Radar Kanban 4 泳道、原生 `file` 檔案檢視器、Turbo 3.0、Guard 2.5 與 Remote 2.5，單檔 `dist/ui/app.html` 約 `1.36 MiB`，實測 **`1,390.2 KB`**，遠低於 10 MiB 限制），與 8 語種文件（`docs/i18n/README.*.md`）完整對齊：
+`agy-NOV` `v1.2.2` 在外掛套件內實現 **100% 全元件 8 語種覆蓋（758 詞典鍵 × 8 語種，全面在地化 `ErrorBoundary` 恢復卡片並清零殘留硬編碼英文）** —— 完整涵蓋全部 **24 個 UI 元件**（包含工作流總覽 Hub 與 Clean Fork、四級統一設定中心與 S4 **Tool-Slot Idle Advisor**、Spec 2.0 與 DAG 原生編排編譯預覽、Ops 3.0 `securityScore` 安全健檢與 `migrationPreview` 去重預覽、Mem 3.0 衛生篩選與批次 Verify/Refresh TTL/Prune、寬窄雙態導覽與 `⌘K` 指令面板、Worktree `.worktreeinclude` 預覽、Diff Review 雙階段審閱、Verify PR 交付證據摘要、Radar Kanban 4 泳道、原生 `file` 檔案檢視器、Turbo 3.0、Guard 2.5 與 Remote 2.5，單檔 `dist/ui/app.html` 約 `1.37 MiB`，實測 **`1,402.1 KB`**，遠低於 10 MiB 限制，內建 `ResizeObserver` rAF + `0×0` 忽略、大視圖漸進摺疊、失焦暫停輪詢／SSE 與 Antigravity Desktop v2.36.0 最大化側欄 `>= 56px` 安全底距），與 8 語種文件（`docs/i18n/README.*.md`）完整對齊：
 
 - **頂欄原生語言切換器：** 於工作台頂部下拉選單或統一設定中心直接切換任意語言，介面文案與 `<html lang>` 即時更新，無需重新載入。
 - **自動 BCP-47 宿主語言偵測（`auto`）：** 預設採用 `auto` 自動跟隨 Antigravity 宿主語系，同時支援手動指定全部 8 種內建語言：
@@ -247,9 +259,9 @@ node ~/.gemini/config/plugins/agy-nov/dist/cli.cjs locale zh-TW
 | 比較維度 | **`agy-NOV`**（本倉庫） | **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)**（配套倉庫） |
 | :--- | :--- | :--- |
 | **協定邊界** | **100% 官方原生協定**（MCP Apps SEP-1865 含 `file` 入口 + 4 個唯讀 MCP 上下文資源 + 6 類 Lifecycle Hooks + 6 Skills + 2 唯讀子代理 + Layer 1 迴環 `ConversationService` + 預設關閉的唯讀巡檢 Sidecar；**零 ASAR · 零 CDP**） | **零 ASAR 本機 CDP 伴侶** + Watch Sidecar + Storage CLI |
-| **升級抗碎性與上架規格** | 免疫 Antigravity 用戶端 DOM 與二進位結構異動（完整支援 macOS / Windows / Linux 全三端），對齊 Antigravity Marketplace 上架規範（`doctor` 18 資產 + 4 上架健檢） | 專注深度宿主視窗掛鉤與進階桌面客製化 |
-| **在地化範圍** | **100% 全元件 8 語種外掛 UI**（755 鍵 × 8 語種涵蓋全部 24 個元件，`1,390.2 KB`）與 8 語種文件 | **Antigravity 宿主介面就地翻譯**與原生 `Settings` 注入 |
-| **核心能力** | 4 大域 13 模組原生工程工作台（預設關閉的唯讀定時巡檢 Sidecar & `audit-once`、Layer 1 `ConversationService` 驅動 Clean Fork 直創會話與 Radar 跨會話對帳、Spec DAG 原生編排編譯器、4 個零注入稅唯讀上下文資源、6 類官方 Hooks、Ops 3.0 `securityScore` 與 S4 **Tool-Slot Idle Advisor**、Mem 3.0 信賴度／TTL 衛生治理、`Spec → Worktree → Two-Stage Review → Verify → Mem` 端到端閉環、`.worktreeinclude`、PR 證據摘要、Radar Kanban 4 泳道、`app_nov_file_viewer`、6 Skills 與 2 唯讀子代理、Auto-RTK、Turbo 3.0、Guard 2.5、Spec 2.0、Remote 2.5）、`feed-snapshot.json` 雙星契約與 11 指令 CLI | 主動 `/compact` 自動壓縮護航、Draft Vault、Prompt Queue、對話書籤、Optical Theme Studio、策略門控安全自動放行與宿主 DOM 控制 |
+| **升級抗碎性與上架規格** | 免疫 Antigravity 用戶端 DOM 與二進位結構異動（全面相容 Antigravity 2.35+ / 2.36+、Desktop v2.36.0 與 macOS / Windows / Linux 全三端），對齊 Antigravity Marketplace 上架規範（`doctor` 18 資產 + 4 上架健檢） | 專注深度宿主視窗掛鉤與進階桌面客製化 |
+| **在地化範圍** | **100% 全元件 8 語種外掛 UI**（758 鍵 × 8 語種涵蓋全部 24 個元件與 `ErrorBoundary` 恢復卡，`1,402.1 KB`）與 8 語種文件 | **Antigravity 宿主介面就地翻譯**與原生 `Settings` 注入 |
+| **核心能力** | 4 大域 13 模組原生工程工作台（高頻寫盤風暴根治、超長／超大／損壞會話極端容錯、防白屏與 `SIGKILL` 恢復、Antigravity Desktop v2.36.0 全面相容、預設關閉的唯讀定時巡檢 Sidecar & `audit-once`、Layer 1 `ConversationService` 驅動 Clean Fork 直創會話與 Radar 跨會話對帳、Spec DAG 原生編排編譯器、4 個零注入稅唯讀上下文資源、6 類官方 Hooks、Ops 3.0 `securityScore` 與 S4 **Tool-Slot Idle Advisor**、Mem 3.0 信賴度／TTL 衛生治理、`Spec → Worktree → Two-Stage Review → Verify → Mem` 端到端閉環、`.worktreeinclude`、PR 證據摘要、Radar Kanban 4 泳道、`app_nov_file_viewer`、6 Skills 與 2 唯讀子代理、Auto-RTK、Turbo 3.0、Guard 2.5、Spec 2.0、Remote 2.5）、`feed-snapshot.json` 雙星契約與 11 指令 CLI | 主動 `/compact` 自動壓縮護航、Draft Vault、Prompt Queue、對話書籤、Optical Theme Studio、策略門控安全自動放行與宿主 DOM 控制 |
 
 ```bash
 # 並排安裝兩個零功能重疊的配套外掛
@@ -263,28 +275,28 @@ agy plugin install https://github.com/tone-leh/agy-Sag
 
 > 完整系統架構、巡檢 Sidecar 指南、貢獻規範、資訊架構與雙星純檔案契約文件：[`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) · [`sidecars/README.md`](../../sidecars/README.md) · [`CONTRIBUTING.md`](../../CONTRIBUTING.md) · [`docs/PRODUCT-IA.md`](../PRODUCT-IA.md) · [`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md)
 
-`v1.2.1` 在既有 **4 層單向依賴模組化架構**之上，將架構衛生檢核升級為 **TypeScript AST 級 Layer 2 跨模組白名單守衛**，強化 `PreToolUse` 與 CLI 設定變更時的雙星 `feed-snapshot.json` 即時刷新與精準聚合、落實 `spec → mem` 歸檔與 Sidecar 按模組開關硬門控並補齊 `PostToolUse` 全關 O(1) 短路，同時將 `skills/agy-nov/SKILL.md` 精簡至 `9.5 KB`（消除 `ops.large-instruction-file` 告警）；`test/architecture-hygiene.test.ts` 與雙星一致性回歸套件（共 **101 suites / 286 tests**）自動化守護全倉零循環依賴與分層邊界。
+`v1.2.2` 在既有 **4 層單向依賴模組化架構**與 **TypeScript AST 級 Layer 2 跨模組白名單守衛**之上，全面補齊高頻寫盤風暴根治（語意髒檢查 `atomicWriteJson`、語意雜湊跳過、`PostToolUse` 3s 合併窗、3 並發防乒乓與 Guard O(1) GC）、超長／超大／損壞會話極端容錯（UTF-8 位元組截斷、有界採樣、2 MiB 尾窗、4 MiB 流式中斷與 SQLite `immutable=1` 零鎖降級）、MCP Apps 防白屏（758 鍵 8 語種 `ErrorBoundary`、rAF + `0×0` 忽略、漸進摺疊與失焦暫停）與 `SIGKILL` 恢復（3s 退出 watchdog、`isPidAlive` 過濾與 Sidecar 30s 超時），並達成 **Antigravity Desktop v2.36.0** 全面相容；全倉自動化回歸驗證達 **105 suites / 301 tests**（3-OS CI 矩陣，含 4 層 AST 零循環守衛、8 語種 758 鍵對稱與穩定性／v2.36.0 回歸測試）。
 
 ```mermaid
 flowchart TB
-  subgraph L1["第一層 · Google Antigravity 2.0 宿主 (Desktop / CLI / IDE · macOS / Windows / Linux)"]
-    Host["100% 官方原生協定 (零 ASAR · 零 CDP)\nMCP Apps SEP-1865 (aux_pane / global / file) · 4 個唯讀資源 · 6 類 Lifecycle Hooks · /run-workflow & /swarm · 11 段 CLI statusLine · 迴環 ConversationService · /schedule"]
-    Sag["可選配套伴侶 · agy-Sag\nconfig.json 原子熱同步 · feed-snapshot.json 即時唯讀聚合快照"]
+  subgraph L1["第一層 · Google Antigravity 2.0 宿主 (2.35+ / 2.36+ · Desktop v2.36.0 / CLI / IDE · macOS / Windows / Linux)"]
+    Host["100% 官方原生協定 (零 ASAR · 零 CDP)\nMCP Apps SEP-1865 (aux_pane 56px 底距 / global / file) · 4 個唯讀資源 · 6 類 Hooks · /run-workflow & /swarm · 11 段 statusLine (JSON/NDJSON) · 迴環 ConversationService · /schedule"]
+    Sag["可選配套伴侶 · agy-Sag\nconfig.json 原子熱同步 · feed-snapshot.json 語意雜湊跳過與即時唯讀聚合快照"]
   end
 
-  subgraph L2["第二層 · agy-NOV v1.2.1 純原生執行期、按需擴展與唯讀 Sidecar (4 層單向依賴 · AST 白名單守衛)"]
-    MCP["單一 MCP 伺服器 (dist/server.cjs · 1,584.5 KB / ~1.55 MiB)\n動態 tools/list: 6 / 12 / 32 / 43 / 47 (+0 膨脹) · CLI 47 工具門控 · roots/list · 4 個唯讀資源 agy-nov://context/* · 迴環 ConversationService"]
-    Hook["統一 Hook 分發器 (dist/hook.cjs · 212.8 KB)\n6 類官方 Hook · PreInvocation 入站硬攔截 · PreToolUse 即時刷新快照 · PostToolUse/PostInvocation 全關 O(1) 短路 · Stop: continue"]
-    UI["單檔 8 語種統一 UI (dist/ui/app.html)\n4+1 IA · Hub · Spec DAG 編譯預覽 · S4 閒置顧問 · 755 鍵 × 8 語種 · 24 元件 · ~1.36 MiB (1,390.2 KB)"]
-    Ext["原生按需擴展 (零模型工具槽位佔用)\n6 Skills: agy-nov (SKILL.md 9.5 KB), /nov-spec, /nov-workflow, /nov-debug, /nov-review, /nov-handoff\n2 唯讀子代理: nov-blind-reviewer, nov-security-auditor"]
-    CLI["零相依模組化 CLI (dist/cli.cjs · 201.2 KB)\n11 條指令 · 改設定同步刷新既有快照 · audit-once · compile-spec · statusline (11 段 + stdin JSON) · doctor 18+4 · recommend --export-preset"]
-    Sidecar["預設關閉的唯讀定時巡檢 Sidecar (sidecars/audit-sidecar.mjs)\n零常駐 · 零埠 · 按 mem/verify/guard 開關門控消誤報 · 顯式 --write-report 原子輸出 health-sweep.json"]
+  subgraph L2["第二層 · agy-NOV v1.2.2 純原生執行期、按需擴展與唯讀 Sidecar (4 層單向依賴 · AST 白名單守衛)"]
+    MCP["單一 MCP 伺服器 (dist/server.cjs · 1,604.1 KB / ~1.56 MiB)\n動態 tools/list: 6 / 12 / 32 / 43 / 47 (+0 膨脹) · 3s 退出 watchdog · isPidAlive 過濾 runtime.json · 4 個唯讀資源 · 迴環 ConversationService (4 MiB 流式中斷)"]
+    Hook["統一 Hook 分發器 (dist/hook.cjs · 223.5 KB)\n6 類官方 Hook · 4,096 UTF-8 位元組安全截斷 · injectSteps <= 24 KiB · PostToolUse 3s 合併窗與全關 O(1) 短路 · PreInvocation 入站硬攔截 · Stop: continue"]
+    UI["單檔 8 語種防白屏 UI (dist/ui/app.html)\n4+1 IA · 全元件 ErrorBoundary · rAF+0×0 忽略 · 漸進摺疊 · 失焦暫停 · 56px 安全底距 · 758 鍵 × 8 語種 · 24 元件 · ~1.37 MiB (1,402.1 KB)"]
+    Ext["原生按需擴展 (零模型工具槽位佔用 · ~/.gemini > ~/.agents/skills 雙目錄去重)\n6 Skills: agy-nov (SKILL.md 9.5 KB), /nov-spec, /nov-workflow, /nov-debug, /nov-review, /nov-handoff\n2 唯讀子代理: nov-blind-reviewer, nov-security-auditor"]
+    CLI["零相依模組化 CLI (dist/cli.cjs · 209.9 KB)\n11 條指令 · statusline (11 段 + JSON/NDJSON + remaining_percentage) · audit-once · compile-spec · doctor 18+4 · recommend --export-preset"]
+    Sidecar["預設關閉的唯讀定時巡檢 Sidecar (sidecars/audit-sidecar.mjs · 5.9 KB)\n零常駐 · 零埠 · 30s 超時保護 · 按模組開關門控 · --write-report 語意雜湊跳過原子輸出 health-sweep.json"]
   end
 
   subgraph L3["第三層 · 4 大功能域 13 隔離模組與 Layer 1 共用安全核心 (sanitize.ts / fs-safe.ts / conversation-service.ts)"]
-    T1["離線三大域 · 12 個本機離線模組 (0 埠 · 0 外發 · 至多 43 工具)\n核心: review (雙階段) · guard 2.5 (入站硬攔截) · xray (Clean Fork + 直創會話) | 閉環: spec 2.0 (DAG 編譯) · worktree · verify · turbo 3.0 · mem 3.0\n工具箱: radar (Kanban 4 泳道 + 跨會話對帳) · studio · canvas · ops 3.0 (securityScore / migrationPreview)"]
-    T2R["隔離外連域 · 1 個按需模組 (預設關閉 · 四零隔離)\nremote 2.5：結構化風險核准卡 (HIGH/MED/LOW) · 唯讀 PWA 實況流 · 6 路 IM 通知"]
-    Store["模組級隔離儲存 (0700 / 0600)\nconfig.json · feed-snapshot.json (<=64KB) · health-sweep.json (<=64KB, 顯式寫入) · modules/<id>/ · realpath 邊界"]
+    T1["離線三大域 · 12 個本機離線模組 (0 埠 · 0 外發 · 至多 43 工具)\n核心: review (雙階段+防乒乓) · guard 2.5 (O(1) GC+跨倉邊界+OAuth/巢狀密鑰) · xray (頭尾採樣+Clean Fork) | 閉環: spec 2.0 · worktree · verify · turbo 3.0 · mem 3.0 (2 MiB 尾窗)\n工具箱: radar (3 並發防乒乓+跨會話對帳) · studio (SQLite 批量+immutable=1 零鎖) · canvas · ops 3.0 (雙目錄技能發現)"]
+    T2R["隔離外連域 · 1 個按需模組 (預設關閉 · 四零隔離)\nremote 2.5：專案外敏感設定保護 · 2 MiB 自適應 live-stream · 結構化風險核准卡 (HIGH/MED/LOW) · 6 路 IM 通知"]
+    Store["模組級隔離儲存 (0700 / 0600 · 語意髒檢查 atomicWriteJson)\nconfig.json · feed-snapshot.json (<=64KB) · health-sweep.json (<=64KB, 顯式寫入) · modules/<id>/ · realpath 邊界"]
   end
 
   Host --> MCP
@@ -292,7 +304,7 @@ flowchart TB
   Host --> Ext
   Host -. "CLI statusLine / audit-once / compile-spec / recommend / compact-run" .-> CLI
   Host -. "/schedule 或 OS 排程 (預設關閉 · 按需單次喚起)" .-> Sidecar
-  Sidecar -. "shell: false 調用 audit-once" .-> CLI
+  Sidecar -. "shell: false 調用 audit-once (30s 超時)" .-> CLI
   Sag -. "config.json 熱同步 / feed-snapshot.json" .-> MCP
   MCP --> UI
   MCP --> T1
@@ -309,19 +321,19 @@ flowchart TB
 
 ### 縱深安全核查清單
 
-- **零 ASAR 與零 CDP：** 僅透過 Antigravity 2.0 官方文件化的 MCP Apps（`ui://agy-nov/app.html` 含 `file` 入口）、4 個唯讀 MCP 上下文資源、6 類 Lifecycle Hooks、6 個 Skills、2 個唯讀子代理、迴環 `ConversationService` 與 CLI `statusLine` 協定執行，零二進位修補、零遠端偵錯埠、零宿主 DOM 注入。
-- **雙星 `feed-snapshot.json` 即時刷新與精準聚合（`v1.2.1`）：** `PreToolUse` 攔截或核准時即時原子刷新快照，CLI 修改設定同步刷新既有快照（缺失 `dataDir` 嚴守零建目錄零寫盤）；`latestSnapshotId` 嚴格取最新、`GUARD_BLOCKED` 原因嚴格綁定真實攔截、`verify` 嚴格依時間戳記選取最新紀錄。
-- **關閉模組硬門控與 `PostToolUse` 全關 O(1) 短路（`v1.2.1`）：** `spec → mem` 歸檔即時校驗 `mem` 開關並於關閉態直接拒寫且零建目錄；唯讀巡檢 Sidecar / `audit-once` 依 `mem`、`verify`、`guard` 開關門控清零關閉模組誤報；`PostToolUse` 補齊全關 O(1) 短路。
-- **TypeScript AST 級 Layer 2 白名單守衛與 `SKILL.md` 瘦身（`v1.2.1`）：** 以 TypeScript AST 級 Layer 2 跨模組匯入白名單守衛結合零循環依賴檢核自動化把關分層邊界；將 `skills/agy-nov/SKILL.md` 由約 30 KB 精簡至 **`9.5 KB`**，消除 `ops.large-instruction-file` 告警。
-- **預設關閉的唯讀定時巡檢 Sidecar 與 `audit-once` 防線：** `sidecars/audit-sidecar.mjs` 絕不於安裝後自動背景常駐，零監聽埠、零外發請求、零程式碼改動，以 `spawnSync(..., { shell: false })` 搭配白名單旗標調用 `dist/cli.cjs`；預設零磁碟寫入，僅顯式傳入 `--write-report` 且目標為既有安全非符號連結 `dataDir` 時才以 `0600`、`O_CREAT | O_EXCL` 與 `<= 64 KiB` 上限原子寫入 `health-sweep.json`，並拒讀符號連結或逾 `2 MiB` 之檔案、隱藏主機絕對路徑。
-- **Layer 1 `ConversationService` 嚴格迴環防 SSRF 與零 CSRF 回顯：** `src/core/conversation-service.ts` 僅接受裸 `127.0.0.1:<port>`、`localhost:<port>`、`[::1]:<port>`（拒絕任何外部主機名、協議、路徑、使用者資訊或控制字元），強制 `<= 4,000ms` 超時、全量欄位脫敏與 `<private>` 剝離；錯誤訊息強制清除 CSRF Token 零明文回顯，無服務時平滑降級。`app_xray_fork_via_service` 預設採 `dryRun` 預覽並僅於顯式 `confirmCreate: true` 建立會話，`app_radar_reconcile_conversations` 全程唯讀零寫盤。
+- **零 ASAR 與零 CDP：** 僅透過 Antigravity 2.0（相容 `2.35+ / 2.36+` 與 Desktop `v2.36.0`）官方文件化的 MCP Apps（`ui://agy-nov/app.html` 含 `file` 入口）、4 個唯讀 MCP 上下文資源、6 類 Lifecycle Hooks、6 個 Skills、2 個唯讀子代理、迴環 `ConversationService` 與 CLI `statusLine` 協定執行，零二進位修補、零遠端偵錯埠、零宿主 DOM 注入。
+- **高頻寫盤風暴根治與雙星快照一致性：** 全倉 Store 統一採用帶內容／語意髒檢查的 `atomicWriteJson`，`feed-snapshot.json` 與 `health-sweep.json` 以語意雜湊跳過無效寫盤；`PostToolUse` 具備 3s 合併窗與全關 O(1) 短路，3 並發會話下 Radar／Review／X-Ray 採防乒乓合併、Guard 執行 O(1) 並發安全 GC；`PreToolUse` 攔截／核准與 CLI 變更設定即時同步刷新既有快照（缺失 `dataDir` 維持零建目錄零寫盤）。
+- **超長／超大／損壞會話極端容錯：** Hook 輸出依 4,096 UTF-8 位元組安全截斷並對 `injectSteps` 實施 `<= 24 KiB` 保序截斷；X-Ray 採頭尾有界採樣與多會話總讀預算；`live-stream` 與 `mem` 尾窗自適應至 `2 MiB`；`ConversationService` 實作 `4 MiB` 流式中斷保護；SQLite 採唯讀批量查表且在唯讀 WAL 目錄自動切換 `immutable=1` 零鎖降級。
+- **MCP Apps 防白屏與 `SIGKILL` 恢復：** 全元件整合 8 語種 `ErrorBoundary` 恢復卡（758 鍵）、`ResizeObserver` rAF + `0×0` 忽略、大 Diff / X-Ray / Spec 漸進摺疊與失焦隱藏暫停輪詢／SSE；Server 配備 3s 退出 watchdog 並以 `isPidAlive` 過濾 `SIGKILL` 遺留的陳舊 `runtime.json`；唯讀巡檢 Sidecar 強制 30s 超時兜底。
+- **Antigravity Desktop v2.36.0 跨倉安全邊界、憑證檢測與技能發現：** 最大化側欄預留 `>= 56px` 安全底距；實作 `~/.gemini > ~/.agents/skills` 雙目錄唯讀技能發現與軟鏈實體去重；Guard 檔案／Shell 與 Remote 三端同步收緊專案外敏感設定保護並放行合法跨倉源碼編輯；新增動態 OAuth 離線刷新與巢狀靜態密鑰檢測；`statusline` 支援 NDJSON 與 `remaining_percentage`。
+- **關閉模組硬門控與 AST 級架構邊界守衛：** `spec → mem` 歸檔即時校驗 `mem` 開關並於關閉態拒寫與零建目錄；Sidecar／`audit-once` 依 `mem`／`verify`／`guard` 開關門控消除誤報；`test/architecture-hygiene.test.ts` 以 TypeScript AST 級 Layer 2 跨模組白名單守衛結合零循環依賴檢核自動化把關，主入口 `skills/agy-nov/SKILL.md` 維持 **`9.5 KB`** 消除規則膨脹告警。
+- **預設關閉的唯讀定時巡檢 Sidecar 與 `audit-once` 防線：** `sidecars/audit-sidecar.mjs`（**`5.9 KB`**，指南 `sidecars/README.md` **`4.2 KB`**）絕不於安裝後自動背景常駐，零監聽埠、零外發請求、零程式碼改動，以 `spawnSync(..., { shell: false })` 搭配白名單旗標與 30s 超時調用 `dist/cli.cjs`；預設零磁碟寫入，僅顯式傳入 `--write-report` 且目標為既有安全非符號連結 `dataDir` 時以 `0600`、`O_CREAT | O_EXCL`、`<= 64 KiB` 與語意雜湊跳過原子寫入 `health-sweep.json`。
+- **Layer 1 `ConversationService` 嚴格迴環防 SSRF 與零 CSRF 回顯：** `src/core/conversation-service.ts` 僅接受裸 `127.0.0.1:<port>`、`localhost:<port>`、`[::1]:<port>`（拒絕任何外部主機名、協議、路徑、使用者資訊或控制字元），強制 `<= 4,000ms` 超時、4 MiB 流式中斷、全量欄位脫敏與 `<private>` 剝離；錯誤訊息強制清除 CSRF Token 零明文回顯，無服務時平滑降級。`app_xray_fork_via_service` 預設採 `dryRun` 預覽並僅於顯式 `confirmCreate: true` 建立會話，`app_radar_reconcile_conversations` 全程唯讀零寫盤。
 - **Antigravity Marketplace 上架合規與 18+4 項 `doctor` 健檢：** `plugin.json` 嚴格僅保留 10 個官方頂層鍵（148 字元精煉描述、3 條非空推薦提示、相對路徑 128×128 `assets/logo.svg`）；`agy-nov doctor` 唯讀核驗全部 **18 項核心資產**與 **4 項上架合規條件**（含確認無常駐 `rules/AGENTS.md` 及 `logo` 非符號連結防越界）。
-- **4 層單向依賴與安全核心共用：** `src/core/sanitize.ts`、`src/core/fs-safe.ts` 與 `src/core/conversation-service.ts` 統一承載線性 O(n) 脫敏、`<private>` 剝離、`canonicalRealpathSync`、NTFS 原子重新命名重試與迴環防 SSRF；`test/architecture-hygiene.test.ts` 以 AST 級規則自動化驗證全倉零循環依賴與分層白名單邊界。
-- **`PreInvocation` 入站私鑰／API Key 雲端前硬攔截與 `PostInvocation` 零 Token 彙整：** `PreInvocation` 在 `guard` 啟用時於提示詞發往雲端前偵測高信賴度憑證並以 `terminationBehavior: "terminate"` 強制中斷（零明文回顯），正常情況下維持 `systemMessage: ""` 輸出零 Token 視覺回執；第 6 類 Hook `PostInvocation` 嚴守 `systemMessage: ""` 與唯讀零寫盤，於 `guard`/`turbo`/`verify` 全關時 O(1) 短路。
+- **`PreInvocation` 入站私鑰／API Key 雲端前硬攔截與 `PostInvocation` 零 Token 彙整：** `PreInvocation` 在 `guard` 啟用時於提示詞發往雲端前偵測高信賴度憑證（含巢狀靜態密鑰）並以 `terminationBehavior: "terminate"` 強制中斷（零明文回顯），正常情況下維持 `systemMessage: ""` 輸出零 Token 視覺回執；第 6 類 Hook `PostInvocation` 嚴守 `systemMessage: ""` 與唯讀零寫盤，於 `guard`/`turbo`/`verify` 全關時 O(1) 短路。
 - **4 個零注入稅唯讀 MCP 上下文資源與 Spec DAG 編譯器護欄：** `agy-nov://context/{review,mem,turbo,xray}` 受模組開關即時管控、拒絕符號連結、線性脫敏並強制 `<= 32 KiB` 上限且全程零寫盤；`compile-spec` 與 UI 編譯預覽先經 Kahn 攔截依賴循環與未知任務並安全轉義 Python 字串。
-- **Ops 3.0 靜態安全健檢與 Mem 3.0 衛生／TTL 治理防線：** `ops_audit_workspace` 唯讀掃描 Prompt Injection、過度寬鬆放行、高危 Hook 與明文憑證（`securityScore` 0–100，零密鑰回顯、零合規誤報）；Mem 3.0 `Stop` 自動擷取預設 `tentative` + `14` 天 TTL，批次 Prune 強制行內二次確認並搭配 O(n) `<private>` 剝離。
-- **11 段 `statusline` 宿主遙測解析、`.worktreeinclude` 與預覽確認式 `--export-preset` 防線：** `statusline` 有界解析 Antigravity 2.35 stdin JSON（`<= 256 KiB`、`120ms` 超時、零寫盤）；`recommend --export-preset` 僅顯式 `--confirm` 才原子落盤且永不寫入 `remote`；`.worktreeinclude` 嚴拒 `.env`、私鑰、符號連結與越界路徑，零自動 RCE 腳本。
-- **MCP Apps `file` 檢視器、6 Skills / 2 唯讀子代理、Auto-RTK、Guard 2.5 與 Remote 2.5：** `app_nov_file_viewer` 對模型隱藏並強制 `realpath` 邊界與 SVG 清洗；`nov-blind-reviewer` 與 `nov-security-auditor` 嚴限唯讀工具（`read_file`）；Auto-RTK 預設關閉且遵循 `Guard` > `Spec` > `Remote` > `Turbo` 與 `shell: false`；Remote 2.5 嚴守零 `innerHTML`、同源防 PIN 鎖定 DoS、SSE 連線上限／心跳與關閉態四零隔離。實測打包體積：`dist/server.cjs 1,584.5 KB`（~1.55 MiB）/ `dist/hook.cjs 212.8 KB` / `dist/cli.cjs 201.2 KB` / `dist/ui/app.html 1,390.2 KB`（~1.36 MiB，遠低於 10 MiB 上限）/ `skills/agy-nov/SKILL.md 9.5 KB`。
+- **Ops 3.0 靜態安全健檢、Mem 3.0 衛生／TTL 治理、`.worktreeinclude` 與 `--export-preset` 防線：** `ops_audit_workspace` 唯讀掃描 Prompt Injection、過度寬鬆放行、高危 Hook 與明文憑證（`securityScore` 0–100，零密鑰回顯、零合規誤報）；Mem 3.0 `Stop` 自動擷取預設 `tentative` + `14` 天 TTL，批次 Prune 強制行內二次確認；`statusline` 有界解析 Antigravity 2.35+ / 2.36+ stdin JSON／NDJSON（`<= 256 KiB`、`120ms` 超時、零寫盤）；`recommend --export-preset` 僅顯式 `--confirm` 才原子落盤且永不寫入 `remote`；`.worktreeinclude` 嚴拒 `.env`、私鑰、符號連結與越界路徑。
+- **MCP Apps `file` 檢視器、6 Skills / 2 唯讀子代理、Auto-RTK、Guard 2.5 與 Remote 2.5：** `app_nov_file_viewer` 對模型隱藏並強制 `realpath` 邊界與 SVG 清洗；`nov-blind-reviewer` 與 `nov-security-auditor` 嚴限唯讀工具（`read_file`）；Auto-RTK 預設關閉且遵循 `Guard` > `Spec` > `Remote` > `Turbo` 與 `shell: false`；Remote 2.5 嚴守零 `innerHTML`、同源防 PIN 鎖定 DoS、SSE 連線上限／心跳與關閉態四零隔離。實測打包體積：`dist/server.cjs 1,604.1 KB`（~1.56 MiB）/ `dist/hook.cjs 223.5 KB` / `dist/cli.cjs 209.9 KB` / `dist/ui/app.html 1,402.1 KB`（~1.37 MiB，遠低於 10 MiB 上限）/ `skills/agy-nov/SKILL.md 9.5 KB` / `sidecars/audit-sidecar.mjs 5.9 KB` / `sidecars/README.md 4.2 KB`。
 
 </details>
 
@@ -370,7 +382,7 @@ agy-nov enable spec                                                             
 agy-nov disable studio                                                                   # 關閉模組（立即註銷工具、停用對應資源並短路 Hook）
 agy-nov preset power                                                                     # 套用預設 (minimal|core|power|local-all|full)
 agy-nov locale zh-TW                                                                     # 設定介面語系 (auto|en|zh-CN|zh-TW|ja|ko|es|fr|de)
-agy-nov statusline [--json] [--compact] [--segments=<csv>]                               # 零 LLM Token 唯讀狀態列；融合 Antigravity 2.35 stdin JSON 遙測，支援 11 段 (brand,model,context,burn,quota,cache,spec,verify,guard,radar,network)
+agy-nov statusline [--json] [--compact] [--segments=<csv>]                               # 零 LLM Token 唯讀狀態列；融合 Antigravity 2.35+ / 2.36+ stdin JSON / NDJSON 與 remaining_percentage 遙測，支援 11 段 (brand,model,context,burn,quota,cache,spec,verify,guard,radar,network)
 agy-nov recommend [--workspace=<dir>] [--json] [--export-preset [--confirm] [--force]]   # 唯讀掃描並校驗 .agy-nov.json；--export-preset 預設零磁碟寫入預覽，顯式 --confirm 才原子寫入（永不寫 remote、拒符號連結）
 agy-nov doctor                                                                           # 唯讀核驗全部 18 項核心資產 + 4 項 Marketplace 上架合規健檢、plugin.json 與 10 MiB 上限
 agy-nov compact-run --payload=<base64url>                                                # Auto-RTK 無 Shell 白名單指令安全壓縮執行器（保留原始結束碼與脫敏日誌）
@@ -411,9 +423,9 @@ agy-nov audit-once [--workspace=<dir>] [--data-dir=<dir>] [--json] [--write-repo
 | 「直接唯讀檢視 `.sqlite`/`.csv`/`.tsv`/`.svg`/`.openapi.yaml` 且不消耗任何模型工具配額。」 | `app_nov_file_viewer` + `studio` | 官方 MCP Apps `file` 原生檔案檢視器（對模型隱藏零工具稅、`realpath` + SVG 清洗 + `antigravity-file://` 宿主讀取），進階文件切片與迴環 HTTP 探測再按需開啟 `studio` |
 | 「需要按需結構化除錯、無偏見獨立程式碼盲審或紅隊安全稽核，且不增加 MCP 工具數或預設規則長度。」 | `/nov-debug` + `nov-blind-reviewer` + `nov-security-auditor` | 官方按需斜線 Playbook 與嚴格唯讀專職子代理（原生 `read_file`），佔用 0 工具槽位、零預設 `rules/AGENTS.md` 膨脹 |
 | 「靜態掃描規則/Skill/Hook/MCP、安排每日零常駐唯讀健康巡檢，並驗證外掛 Marketplace 上架合規狀態。」 | `ops`（`power` 預設）+ `audit-once` / `sidecars/audit-sidecar.mjs` + `doctor` | **Ops 3.0** + 預設關閉的唯讀定時巡檢 Sidecar（零常駐、零埠、零寫盤；`--write-report` 原子輸出 `health-sweep.json`）+ `doctor` 18 項資產與 4 項 Marketplace 上架合規健檢 |
-| 「客製化融合 Antigravity 2.35 遙測的零 Token 狀態列欄位，或以零風險先預覽再確認方式產生 `.agy-nov.json` 團隊設定檔。」 | CLI `statusline --segments` + `recommend --export-preset` | 11 段可自訂狀態列（含 `model` 與 `quota`，融合 stdin JSON 遙測）+ 預設零磁碟寫入預覽、`--confirm` 原子寫入磁碟之團隊鷹架 |
-| 「在手機檢視唯讀實況流，並在核准高危指令前看到風險分級、影響檔案數與最近 Verify 狀態。」 | `remote`（`full` 預設） | **Remote 2.5**：結構化風險核准卡（`HIGH`/`MED`/`LOW`、影響檔案數、脫敏指令摘要、最近唯讀 `Verify` 狀態）+ 唯讀 PWA 實況流（零 `innerHTML`）+ 6 路 IM Webhook |
-| 「以 100% 繁中或簡中/日/韓/西/法/德語操作全部外掛面板且零 CDP。」 | 內建 `locale` 切換器（`auto` + 8 語種） | 頂欄下拉選單與 `locale <lang>` CLI，**755 詞典鍵 × 8 語種**完整覆蓋全部 **24 個 UI 元件**（`1,390.2 KB`） |
+| 「客製化融合 Antigravity 2.35+ / 2.36+ 遙測的零 Token 狀態列欄位，或以零風險先預覽再確認方式產生 `.agy-nov.json` 團隊設定檔。」 | CLI `statusline --segments` + `recommend --export-preset` | 11 段可自訂狀態列（含 `model` 與 `quota`，融合 stdin JSON / NDJSON 與 `remaining_percentage` 遙測）+ 預設零磁碟寫入預覽、`--confirm` 原子寫入磁碟之團隊鷹架 |
+| 「在手機檢視唯讀實況流，並在核准高危指令前看到風險分級、影響檔案數與最近 Verify 狀態。」 | `remote`（`full` 預設） | **Remote 2.5**：結構化風險核准卡（`HIGH`/`MED`/`LOW`、影響檔案數、脫敏指令摘要、最近唯讀 `Verify` 狀態）+ 唯讀 PWA 實況流（零 `innerHTML`、2 MiB 自適應尾窗）+ 6 路 IM Webhook |
+| 「以 100% 繁中或簡中/日/韓/西/法/德語操作全部外掛面板且零 CDP。」 | 內建 `locale` 切換器（`auto` + 8 語種） | 頂欄下拉選單與 `locale <lang>` CLI，**758 詞典鍵 × 8 語種**完整覆蓋全部 **24 個 UI 元件**與 `ErrorBoundary` 恢復卡（`1,402.1 KB`） |
 
 ### 完整 47 個規範模型工具清單（2 個常駐入口 + 45 個模組工具）
 
@@ -452,7 +464,7 @@ agy-nov audit-once [--workspace=<dir>] [--data-dir=<dir>] [--json] [--write-repo
 
 ```bash
 npm run typecheck
-npm test                                                      # 101 個測試套件 / 286 項測試 (101 suites / 286 tests)
+npm test                                                      # 105 個測試套件 / 301 項測試 (105 suites / 301 tests)
 node dist/cli.cjs status
 node dist/cli.cjs statusline --json
 node dist/cli.cjs statusline --segments=brand,model,context,quota,verify,guard
@@ -474,11 +486,11 @@ node dist/cli.cjs doctor                                      # 核驗全部 18 
 同時安裝零重疊的雙星外掛，兼得 **100% 純原生 MCP App 工程工作台** 與 **Antigravity Desktop 宿主深度增強**：
 
 - **原生設定頁即時調控，且 `agy-NOV` 保持 100% 零 CDP：** 當同時安裝 **`agy-NOV`** 與 **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** 時，可直接透過 `agy-Sag` 內嵌在 Antigravity 原生 **Settings（設定）** 頁面中的控制面板，即時開關 `agy-NOV` 的全部 13 大模組並切換 5 套預設。
-- **100% 純原生 `config.json` 熱同步 + `feed-snapshot.json` 雙星即時唯讀快照契約：** `agy-NOV` 始終堅持 **Zero ASAR / Zero CDP**、零新增網路埠、零提前寫入磁碟；MCP 服務透過微秒級唯讀 `config.json` 簽章檢測自動差量推送 `tools/list_changed`，並在 `PreToolUse` 攔截／核准、CLI 設定變更及模組關鍵狀態異動時於既有目錄原子刷新單檔脫敏唯讀快照 `feed-snapshot.json`（`<= 64 KiB`，確保 `latestSnapshotId` 取最新、`GUARD_BLOCKED` 嚴格綁定真實攔截且 `verify` 依時間戳記選取最新結果，完整規範見 [`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md)）供 `agy-Sag` 單次 I/O 消費。
+- **100% 純原生 `config.json` 熱同步 + `feed-snapshot.json` 雙星即時唯讀快照契約：** `agy-NOV` 始終堅持 **Zero ASAR / Zero CDP**、零新增網路埠、零提前寫入磁碟；MCP 服務透過微秒級唯讀 `config.json` 簽章檢測自動差量推送 `tools/list_changed`，並在 `PreToolUse` 攔截／核准、CLI 設定變更及模組關鍵狀態異動時透過語意雜湊跳過與語意髒檢查原子刷新單檔脫敏唯讀快照 `feed-snapshot.json`（`<= 64 KiB`，確保 `latestSnapshotId` 取最新、`GUARD_BLOCKED` 嚴格綁定真實攔截且 `verify` 依時間戳記選取最新結果，完整規範見 [`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md)）供 `agy-Sag` 單次 I/O 消費。
 
 | 外掛 | 架構邊界 | 核心能力 |
 | :--- | :--- | :--- |
-| **`agy-NOV`** *（本倉庫）* | **100% 官方原生協議**（MCP Apps SEP-1865 含 `file` 入口 + 4 個唯讀 MCP 上下文資源 + 6 類生命週期 Hooks + 6 Skills + 2 唯讀子代理 + 迴環 `ConversationService` + 預設關閉的唯讀巡檢 Sidecar；**Zero ASAR · Zero CDP**） | 4+1 功能域 13 個原生工程模組（預設關閉的唯讀定時巡檢 Sidecar & `audit-once`、Layer 1 `ConversationService` 驅動 Clean Fork 直創會話與 Radar 跨會話對帳、Marketplace 18+4 項 `doctor` 合規健檢、Spec DAG 原生編排編譯器、4 個零注入稅唯讀資源、6 類官方 Hooks 含 `PreInvocation` 入站硬攔截與 `PostInvocation` 輪次彙整、4 層單向依賴架構與零循環依賴守護、Ops 3.0 `securityScore` 與 S4 **Tool-Slot Idle Advisor**、Mem 3.0 信賴度／TTL 記憶衛生治理、`Spec → Worktree → Two-Stage Review → Verify → Mem` 端到端閉環、`.worktreeinclude`、PR 證據摘要、Radar Kanban 4 泳道、`app_nov_file_viewer`、Auto-RTK、Turbo 3.0、Guard 2.5、Spec 2.0、按需 Remote 2.5 結構化風險核准卡）、6 個按需 Skills、2 個唯讀專職子代理、`feed-snapshot.json` 雙星契約、100% 全元件 8 語種 UI（755 詞典鍵 × 8 語種，24 元件，`~1.36 MiB` / `1,390.2 KB`）、5 套預設與 11 條 CLI 指令。 |
+| **`agy-NOV`** *（本倉庫）* | **100% 官方原生協議**（MCP Apps SEP-1865 含 `file` 入口 + 4 個唯讀 MCP 上下文資源 + 6 類生命週期 Hooks + 6 Skills + 2 唯讀子代理 + 迴環 `ConversationService` + 預設關閉的唯讀巡檢 Sidecar；**Zero ASAR · Zero CDP**） | 4+1 功能域 13 個原生工程模組（全面相容 Antigravity Desktop v2.36.0、高頻寫盤風暴根治、超長／超大／損壞會話極端容錯、MCP Apps 防白屏與 `SIGKILL` 恢復、預設關閉的唯讀定時巡檢 Sidecar & `audit-once`、Layer 1 `ConversationService` 驅動 Clean Fork 直創會話與 Radar 跨會話對帳、Marketplace 18+4 項 `doctor` 合規健檢、Spec DAG 原生編排編譯器、4 個零注入稅唯讀資源、6 類官方 Hooks 含 `PreInvocation` 入站硬攔截與 `PostInvocation` 輪次彙整、4 層單向依賴架構與零循環依賴守護、Ops 3.0 `securityScore` 與 S4 **Tool-Slot Idle Advisor**、Mem 3.0 信賴度／TTL 記憶衛生治理、`Spec → Worktree → Two-Stage Review → Verify → Mem` 端到端閉環、`.worktreeinclude`、PR 證據摘要、Radar Kanban 4 泳道、`app_nov_file_viewer`、Auto-RTK、Turbo 3.0、Guard 2.5、Spec 2.0、按需 Remote 2.5 結構化風險核准卡）、6 個按需 Skills、2 個唯讀專職子代理、`feed-snapshot.json` 雙星契約、100% 全元件 8 語種 UI（758 詞典鍵 × 8 語種，24 元件與 `ErrorBoundary` 恢復卡，`~1.37 MiB` / `1,402.1 KB`）、5 套預設與 11 條 CLI 指令。 |
 | **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** | **Zero-ASAR 本機 CDP 深度增強套件 + Watch 側車 + 儲存巡檢 CLI** | Antigravity 原生 **Settings** 嵌入式控制面板（支援即時調控 `agy-NOV` 並消費 `feed-snapshot.json`）、**10 語種宿主介面翻譯**、自訂 `/compact` 自動壓縮護航、**Draft Vault**、**Prompt Queue**、單輪書籤與跨工作階段檔案庫、策略門控 **Safe Auto-Accept**、零 `:has()` **Optical Theme Studio**、唯讀 **Quota Pulse** 與離線 **Storage Doctor**。 |
 
 ```bash

@@ -92,6 +92,13 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
   const [lastForkResult, setLastForkResult] = useState<CleanForkLaunchResult | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [localToast, setLocalToast] = useState<string | null>(null);
+  const [stepsRenderLimit, setStepsRenderLimit] = useState<number>(60);
+
+  // Reset progressive steps budget whenever the inspected session changes
+  const activeDetailId = detail?.summary.id ?? null;
+  useEffect(() => {
+    setStepsRenderLimit(60);
+  }, [activeDetailId]);
 
   const notify = useCallback(
     (msg: string) => {
@@ -1075,7 +1082,7 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
                 <span className="xr-kpi-sub">{detail.recentSteps.length}</span>
               </div>
               <div className="xr-list">
-                {detail.recentSteps.map((st) => (
+                {detail.recentSteps.slice(0, stepsRenderLimit).map((st) => (
                   <div key={st.stepIndex} className="xr-file-row">
                     <div className="xr-file-meta">
                       <div className="xr-step-badges">
@@ -1106,6 +1113,17 @@ export const XrayPanel: React.FC<NovModulePanelProps> = ({
                   </div>
                 ))}
               </div>
+              {detail.recentSteps.length > stepsRenderLimit && (
+                <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    className="xr-btn"
+                    onClick={() => setStepsRenderLimit((prev) => prev + 60)}
+                  >
+                    +{Math.min(60, detail.recentSteps.length - stepsRenderLimit)} / {detail.recentSteps.length}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </main>

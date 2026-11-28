@@ -253,6 +253,15 @@ async function main(): Promise<void> {
       console.log(
         `  Stacks:      ${rec.detectedStacks.length > 0 ? rec.detectedStacks.join(', ') : 'Generic'}`,
       );
+      if (rec.userCustomSkills.total > 0) {
+        const shadowedSuffix =
+          rec.userCustomSkills.shadowedByGeminiCount > 0
+            ? `, ${rec.userCustomSkills.shadowedByGeminiCount} shadowed by ~/.gemini`
+            : '';
+        console.log(
+          `  Skills:      ${rec.userCustomSkills.total} discovered (${rec.userCustomSkills.geminiCount} ~/.gemini, ${rec.userCustomSkills.agentsCount} ~/.agents/skills${shadowedSuffix})`,
+        );
+      }
       if (rec.teamPreset.found) {
         console.log(
           `  Team Preset: .agy-nov.json (${rec.teamPreset.valid ? 'valid' : 'invalid'}${rec.teamPreset.preset ? ` · preset=${rec.teamPreset.preset}` : ''} · ${rec.teamPreset.verifyCommandCount} verify cmd(s) · ${rec.teamPreset.warningCount} warn(s))`,

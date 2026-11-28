@@ -164,6 +164,8 @@ function main() {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
+      timeout: 30_000,
+      maxBuffer: 4 * 1024 * 1024,
     },
   );
 
@@ -175,9 +177,12 @@ function main() {
   }
 
   if (child.error) {
-    process.stderr.write(
-      `[agy-NOV sidecar] Failed to launch dist/cli.cjs: ${child.error.message}\n`,
-    );
+    const errCode = child.error.code;
+    const reason =
+      errCode === 'ETIMEDOUT'
+        ? 'audit-once exceeded 30s execution timeout and was terminated cleanly'
+        : child.error.message;
+    process.stderr.write(`[agy-NOV sidecar] Failed to launch dist/cli.cjs: ${reason}\n`);
     process.exit(1);
   }
 

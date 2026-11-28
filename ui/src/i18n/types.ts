@@ -635,6 +635,9 @@ export interface UiDictionary {
     invalid: string;
     truncated: string;
     actionFailed: string;
+    errorBoundaryTitle: string;
+    errorBoundaryReturnHome: string;
+    errorBoundaryReload: string;
   };
   turbo: {
     title: string;

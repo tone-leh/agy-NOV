@@ -578,7 +578,7 @@
 
 .mod-guard .gd-toast {
   position: fixed;
-  bottom: 16px;
+  bottom: calc(16px + var(--nov-safe-bottom, 0px));
   right: 16px;
   z-index: 85;
   background: var(--nov-bg-1);

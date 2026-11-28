@@ -31,6 +31,15 @@ import { redactSecrets } from './sanitize.js';
 import { searchSessions } from './search.js';
 import { formatCompactTokens, renderRedactedBrief } from './transcript.js';
 
+const MAX_XRAY_MODEL_TEXT_CHARS = 16_384;
+const MAX_XRAY_EXPORT_MODEL_TEXT_CHARS = 24_576;
+const MAX_XRAY_MODEL_FILE_LINES = 80;
+
+function clampModelToolText(text: string, maxChars = MAX_XRAY_MODEL_TEXT_CHARS): string {
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, maxChars - 48)}\n… [truncated to stay within ${maxChars} char budget]`;
+}
+
 function wrapModelTool(name: string, tool: RegisteredTool): ModuleToolHandle {
   return {
     name,
@@ -101,17 +110,19 @@ export function registerXrayModule(
         content: [
           {
             type: 'text',
-            text: [
-              `Context X-Ray — ${s.title}`,
-              `• Peak Window: ${formatCompactTokens(s.peakContextTokens)} | Total Input: ${formatCompactTokens(s.totalInputTokens)} | Output: ${formatCompactTokens(s.totalOutputTokens)}`,
-              `• Prefix Cache Hit: ${(s.cacheHitRate * 100).toFixed(1)}% (${formatCompactTokens(s.totalCacheReadTokens)} cached)`,
-              `• Est. Cost (USD): ~${formatUsd(s.estimatedUsd)} | Cache Savings: ~${formatUsd(s.cacheSavingsUsd)} (offline ref. pricing)`,
-              `• Top Tool Consumers: ${topTools || 'none'}`,
-              ...(swarmAndModelParts.length > 0
-                ? [`• Swarm & Models: ${swarmAndModelParts.join(' | ')}`]
-                : []),
-              ...detail.diagnostics.map((d) => `• [${d.severity.toUpperCase()}] ${d.title}: ${d.detail}`),
-            ].join('\n'),
+            text: clampModelToolText(
+              [
+                `Context X-Ray — ${s.title}`,
+                `• Peak Window: ${formatCompactTokens(s.peakContextTokens)} | Total Input: ${formatCompactTokens(s.totalInputTokens)} | Output: ${formatCompactTokens(s.totalOutputTokens)}`,
+                `• Prefix Cache Hit: ${(s.cacheHitRate * 100).toFixed(1)}% (${formatCompactTokens(s.totalCacheReadTokens)} cached)`,
+                `• Est. Cost (USD): ~${formatUsd(s.estimatedUsd)} | Cache Savings: ~${formatUsd(s.cacheSavingsUsd)} (offline ref. pricing)`,
+                `• Top Tool Consumers: ${topTools || 'none'}`,
+                ...(swarmAndModelParts.length > 0
+                  ? [`• Swarm & Models: ${swarmAndModelParts.join(' | ')}`]
+                  : []),
+                ...detail.diagnostics.map((d) => `• [${d.severity.toUpperCase()}] ${d.title}: ${d.detail}`),
+              ].join('\n'),
+            ),
           },
         ],
         structuredContent: {
@@ -144,8 +155,15 @@ export function registerXrayModule(
       const files = modifiedOnly
         ? detail.fileActivity.filter((f) => f.editCount + f.writeCount > 0)
         : detail.fileActivity;
-      const text = files.length
-        ? files.map((f) => `- [${f.ops.join('/').toUpperCase()}] ${f.path} (${f.totalTouches}x)`).join('\n')
+      const shownFiles = files.slice(0, MAX_XRAY_MODEL_FILE_LINES);
+      const hiddenCount = Math.max(0, files.length - shownFiles.length);
+      const text = shownFiles.length
+        ? clampModelToolText(
+            [
+              ...shownFiles.map((f) => `- [${f.ops.join('/').toUpperCase()}] ${f.path} (${f.totalTouches}x)`),
+              ...(hiddenCount > 0 ? [`… (+${hiddenCount} more file(s) omitted from text summary)`] : []),
+            ].join('\n'),
+          )
         : 'No workspace file activity recorded in this session.';
       return {
         content: [{ type: 'text', text }],
@@ -173,12 +191,14 @@ export function registerXrayModule(
     async ({ query, limit }) => {
       const hits = searchSessions(query, { ...discoveryOpts, limit: limit ?? 10 });
       const text = hits.length
-        ? hits
-            .map(
-              (h, i) =>
-                `${i + 1}. [${h.sourceKind}:${h.sourceLabel}] ${h.sessionTitle} (score ${h.score})\n   ${h.snippet}`,
-            )
-            .join('\n')
+        ? clampModelToolText(
+            hits
+              .map(
+                (h, i) =>
+                  `${i + 1}. [${h.sourceKind}:${h.sourceLabel}] ${h.sessionTitle} (score ${h.score})\n   ${h.snippet}`,
+              )
+              .join('\n'),
+          )
         : `No local sessions or artifacts matched "${query}".`;
       return {
         content: [{ type: 'text', text }],
@@ -207,7 +227,7 @@ export function registerXrayModule(
         const analytics = computeCostAnalytics(discoveryOpts);
         const csv = renderUsageCsv(analytics);
         return {
-          content: [{ type: 'text', text: csv }],
+          content: [{ type: 'text', text: clampModelToolText(csv, MAX_XRAY_EXPORT_MODEL_TEXT_CHARS) }],
           structuredContent: {
             format: 'csv',
             csv,
@@ -224,7 +244,7 @@ export function registerXrayModule(
       if (effectiveFormat === 'handoff') {
         const markdown = renderHandoffSnapshot(detail);
         return {
-          content: [{ type: 'text', text: markdown }],
+          content: [{ type: 'text', text: clampModelToolText(markdown, MAX_XRAY_EXPORT_MODEL_TEXT_CHARS) }],
           structuredContent: {
             sessionId: detail.summary.id,
             format: 'handoff',
@@ -238,7 +258,7 @@ export function registerXrayModule(
         const otlp = buildOtlpUsagePayload(detail, analytics);
         const json = JSON.stringify(otlp, null, 2);
         return {
-          content: [{ type: 'text', text: json }],
+          content: [{ type: 'text', text: clampModelToolText(json, MAX_XRAY_EXPORT_MODEL_TEXT_CHARS) }],
           structuredContent: {
             sessionId: detail.summary.id,
             format: 'otlp',
@@ -250,7 +270,7 @@ export function registerXrayModule(
 
       const markdown = renderRedactedBrief(detail);
       return {
-        content: [{ type: 'text', text: markdown }],
+        content: [{ type: 'text', text: clampModelToolText(markdown, MAX_XRAY_EXPORT_MODEL_TEXT_CHARS) }],
         structuredContent: { sessionId: detail.summary.id, markdown },
       };
     },

@@ -86,8 +86,18 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerWidth >= 720 : true,
   );
+  const compactRef = useRef<boolean>(compact);
+  const hostNoticeTimerRef = useRef<number | null>(null);
 
   const [previewMarkdown, setPreviewMarkdown] = useState('');
+
+  useEffect(() => {
+    return () => {
+      if (hostNoticeTimerRef.current !== null && typeof window !== 'undefined') {
+        window.clearTimeout(hostNoticeTimerRef.current);
+      }
+    };
+  }, []);
 
   // Sync theme and host capabilities with shared NovBridge
   useEffect(() => {
@@ -106,33 +116,77 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
     };
   }, [bridge]);
 
-  // Responsive container observer for Aux Pane (~460-480px) vs wide sidebar
+  // Responsive container observer for Aux Pane (~460-480px) vs wide sidebar.
+  // Coalesces via rAF and ignores transient 0x0 collapses during maximize/restore transitions.
   useEffect(() => {
-    const updateWidth = (w: number) => {
+    let disposed = false;
+    let rafId: number | null = null;
+    let pendingWidth: number | null = null;
+
+    const applyWidth = (w: number) => {
+      if (disposed || !Number.isFinite(w) || w <= 0) return;
       const nextCompact = w < 720;
-      setCompact((prev) => {
-        if (prev !== nextCompact) {
-          setSidebarOpen(!nextCompact);
+      if (compactRef.current !== nextCompact) {
+        compactRef.current = nextCompact;
+        setCompact(nextCompact);
+        setSidebarOpen(!nextCompact);
+      }
+    };
+
+    const scheduleWidth = (w: number, h?: number) => {
+      if (disposed || !Number.isFinite(w) || w <= 0) return;
+      if (typeof h === 'number' && h <= 0) return;
+      pendingWidth = w;
+      if (rafId !== null) return;
+      const flush = () => {
+        rafId = null;
+        if (disposed) return;
+        if (pendingWidth !== null) {
+          const nextW = pendingWidth;
+          pendingWidth = null;
+          applyWidth(nextW);
         }
-        return nextCompact;
-      });
+      };
+      if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        rafId = window.requestAnimationFrame(flush);
+      } else {
+        flush();
+      }
     };
 
     const el = rootRef.current;
     if (el && typeof ResizeObserver !== 'undefined') {
       const ro = new ResizeObserver((entries) => {
-        const width = entries[0]?.contentRect.width;
-        if (typeof width === 'number' && width > 0) {
-          updateWidth(width);
+        if (disposed) return;
+        const rect = entries[0]?.contentRect;
+        if (rect && rect.width > 0 && rect.height > 0) {
+          scheduleWidth(rect.width, rect.height);
         }
       });
       ro.observe(el);
-      return () => ro.disconnect();
+      return () => {
+        disposed = true;
+        if (rafId !== null && typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
+          window.cancelAnimationFrame(rafId);
+        }
+        ro.disconnect();
+      };
     }
 
-    const onResize = () => updateWidth(window.innerWidth);
+    const onResize = () => {
+      if (disposed) return;
+      if (window.innerWidth > 0 && window.innerHeight > 0) {
+        scheduleWidth(window.innerWidth, window.innerHeight);
+      }
+    };
     window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    return () => {
+      disposed = true;
+      if (rafId !== null && typeof window !== 'undefined' && typeof window.cancelAnimationFrame === 'function') {
+        window.cancelAnimationFrame(rafId);
+      }
+      window.removeEventListener('resize', onResize);
+    };
   }, []);
 
   const loadDiff = useCallback(
@@ -647,7 +701,11 @@ export const ReviewPanel: React.FC<NovModulePanelProps> = ({
     const msg = t(r.openFileUnavailable, { file: fileLabel });
     setHostNotice(msg);
     onNotify?.(msg);
-    window.setTimeout(() => {
+    if (hostNoticeTimerRef.current !== null) {
+      window.clearTimeout(hostNoticeTimerRef.current);
+    }
+    hostNoticeTimerRef.current = window.setTimeout(() => {
+      hostNoticeTimerRef.current = null;
       setHostNotice((curr) => (curr === msg ? null : curr));
     }, 3500);
   };

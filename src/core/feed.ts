@@ -22,8 +22,9 @@ import {
   hasUnsafeSymlinkAncestor,
   isPathInsideDir,
 } from './fs-safe.js';
+import { isPidAlive } from './process-safe.js';
 
-export const FEED_SNAPSHOT_VERSION = '1.2.1' as const;
+export const FEED_SNAPSHOT_VERSION = '1.2.2' as const;
 export const FEED_SNAPSHOT_FILENAME = 'feed-snapshot.json' as const;
 export const MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
 export const MAX_FEED_ALERTS = 6;
@@ -164,6 +165,10 @@ export interface BuildFeedSnapshotOptions {
   remoteRunning?: boolean;
   now?: Date;
   estimatedTotalTools?: number;
+  /** Minimum interval (ms) between rewrites when feed-snapshot.json already exists. */
+  minIntervalMs?: number;
+  /** Force rewrite even when semantic payload hash matches existing feed-snapshot.json. */
+  force?: boolean;
 }
 
 export function getFeedSnapshotPath(rootDataDir: string): string {
@@ -648,7 +653,17 @@ function extractRemoteRunningReadOnly(
   if (typeof overrideRunning === 'boolean') return overrideRunning;
   const runtime = asRecord(readSafeModuleJson(rootDataDir, 'remote', 'runtime.json'));
   const port = Number(runtime?.port);
-  return Number.isInteger(port) && port >= 1 && port <= 65535;
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    return false;
+  }
+  const rawPid = runtime?.pid;
+  if (rawPid !== undefined && rawPid !== null) {
+    const pid = Number(rawPid);
+    if (Number.isInteger(pid) && pid > 0 && !isPidAlive(pid)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 const ALERT_PRIORITY: Record<NovFeedAlert['level'], number> = {
@@ -1017,10 +1032,36 @@ export function buildDemoFeedSnapshot(
   });
 }
 
+function computeFeedSemanticHash(snapshot: Record<string, unknown>): string {
+  const { generatedAt: _ignoredGeneratedAt, ...semantic } = snapshot;
+  return crypto.createHash('sha256').update(JSON.stringify(semantic)).digest('hex');
+}
+
+function readExistingFeedSemanticHash(targetPath: string): string | null {
+  try {
+    const st = fs.lstatSync(targetPath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size <= 0 || st.size > MAX_FEED_SNAPSHOT_BYTES) {
+      return null;
+    }
+    if (process.platform !== 'win32' && (st.mode & 0o777) !== 0o600) {
+      return null;
+    }
+    const parsed = JSON.parse(fs.readFileSync(targetPath, 'utf8')) as unknown;
+    const rec = asRecord(parsed);
+    if (!rec) return null;
+    return computeFeedSemanticHash(rec);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Atomically persists `feed-snapshot.json` (mode 0600, tmp + rename) ONLY when `rootDataDir`
  * already exists as a real non-symlink directory. Strictly zero dir creation and zero writes
  * when `rootDataDir` is missing or unsafe.
+ *
+ * Includes semantic content-hash dirty checking (ignoring `generatedAt`) and optional
+ * `minIntervalMs` coalescing to prevent high-frequency disk write storms under busy hooks.
  */
 export function writeFeedSnapshotIfDataDirExists(
   rootDataDir: string,
@@ -1036,6 +1077,8 @@ export function writeFeedSnapshotIfDataDirExists(
   if (path.relative(realRoot, targetPath) !== FEED_SNAPSHOT_FILENAME) {
     return false;
   }
+
+  let existingStat: fs.Stats | null = null;
   try {
     const existing = fs.lstatSync(targetPath);
     if (existing.isSymbolicLink() || !existing.isFile()) {
@@ -1045,13 +1088,39 @@ export function writeFeedSnapshotIfDataDirExists(
     if (!isWithinRealBase(realTarget, realRoot)) {
       return false;
     }
+    existingStat = existing;
   } catch (err) {
     if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
       return false;
     }
   }
 
+  const nowMs = (options.now ?? new Date()).getTime();
+  const minIntervalMs =
+    typeof options.minIntervalMs === 'number' && Number.isFinite(options.minIntervalMs)
+      ? Math.max(0, options.minIntervalMs)
+      : 0;
+  const existingHasStrictMode =
+    existingStat !== null &&
+    (process.platform === 'win32' || (existingStat.mode & 0o777) === 0o600);
+  if (!options.force && existingStat && existingHasStrictMode && minIntervalMs > 0) {
+    const ageMs = nowMs - Math.floor(existingStat.mtimeMs);
+    if (ageMs >= -50 && ageMs < minIntervalMs) {
+      return false;
+    }
+  }
+
   const snapshot = buildFeedSnapshot(realRoot, config, options);
+
+  // Content-hash dirty check: skip rewriting identical semantic snapshots
+  if (!options.force && existingStat) {
+    const prevHash = readExistingFeedSemanticHash(targetPath);
+    const nextHash = computeFeedSemanticHash(snapshot as unknown as Record<string, unknown>);
+    if (prevHash && prevHash === nextHash) {
+      return false;
+    }
+  }
+
   let serialized = `${JSON.stringify(snapshot, null, 2)}\n`;
   if (Buffer.byteLength(serialized, 'utf8') > MAX_FEED_SNAPSHOT_BYTES) {
     serialized = `${JSON.stringify(snapshot)}\n`;

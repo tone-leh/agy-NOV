@@ -1,6 +1,6 @@
 # agy-NOV Read-Only Audit Sidecar
 
-`sidecars/audit-sidecar.mjs` is an **opt-in, one-shot, read-only health sweep runner** for Google Antigravity 2.35+ workflows and local scheduled checks.
+`sidecars/audit-sidecar.mjs` is an **opt-in, one-shot, read-only health sweep runner** for Google Antigravity 2.35+ / 2.36+ workflows and local scheduled checks.
 
 ## Zero Idle Daemon by Default
 

@@ -228,6 +228,8 @@ function normalizeSessionRecord(id: string, raw: unknown): RadarSessionRecord | 
   };
 }
 
+const MAX_RADAR_BOARD_BYTES = 4 * 1024 * 1024;
+
 /**
  * Pure read-only load. Never creates directories or files on disk.
  */
@@ -237,6 +239,10 @@ export function loadRadarBoardReadOnly(moduleDataDir: string): RadarBoardFile {
     return createEmptyBoard();
   }
   try {
+    const st = fs.lstatSync(boardPath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_RADAR_BOARD_BYTES) {
+      return createEmptyBoard();
+    }
     const raw = JSON.parse(fs.readFileSync(boardPath, 'utf8')) as Record<string, unknown>;
     const prefs = normalizeRadarPrefs(raw.prefs);
     const sessions: Record<string, RadarSessionRecord> = {};
@@ -274,9 +280,10 @@ export function saveRadarBoard(moduleDataDir: string, board: RadarBoardFile): Ra
     sessions: pruned,
     updatedAt: new Date().toISOString(),
   };
-  atomicWriteJson(getRadarBoardPath(moduleDataDir), next);
+  atomicWriteJson(getRadarBoardPath(moduleDataDir), next, { ignoreTopLevelKeys: ['updatedAt'] });
+  const capsulePath = getRadarStatusCapsulePath(moduleDataDir);
   const capsule = buildRadarStatusCapsule(computeRadarBoardView(next, { mode: 'live' }));
-  atomicWriteJson(getRadarStatusCapsulePath(moduleDataDir), capsule);
+  atomicWriteJson(capsulePath, capsule, { ignoreTopLevelKeys: ['updatedAt'] });
   return next;
 }
 
@@ -381,6 +388,8 @@ export interface RadarEventUpdate {
   errorMessage?: string;
   summary?: string;
   timestampIso?: string;
+  /** Optional coalesce window (ms) to suppress high-frequency running heartbeat rewrites. */
+  coalesceWindowMs?: number;
 }
 
 export function cleanBriefText(raw: string | undefined, maxLen = 160): string | undefined {
@@ -445,6 +454,46 @@ export function recordRadarSessionEvent(
     completedAt = nowIso;
   }
 
+  const cleanedSummary = cleanBriefText(input.summary, 140);
+  const coalesceMs =
+    typeof input.coalesceWindowMs === 'number' && Number.isFinite(input.coalesceWindowMs)
+      ? Math.max(0, input.coalesceWindowMs)
+      : 0;
+  if (
+    coalesceMs > 0 &&
+    existing &&
+    input.event !== 'Stop' &&
+    !input.awaitingApproval &&
+    existing.status === 'running' &&
+    nextStatus === 'running' &&
+    existing.unread === nextUnread &&
+    existing.parentConversationId === parentConversationId &&
+    existing.agentRole === agentRole &&
+    existing.isSubagent === isSubagent &&
+    (!cleanedSummary || cleanedSummary === existing.summary) &&
+    (!input.workspaceRoot || workspaceName === existing.workspaceName)
+  ) {
+    const prevActiveMs = Date.parse(existing.lastActiveAt);
+    const nowMs = Date.parse(nowIso);
+    // Keep the initial stepCount 1 -> 2 transition accurate when tool changes (e.g. cold-start verification),
+    // then coalesce all rapid PreToolUse/PostToolUse bursts for an already-active running session within coalesceMs.
+    const withinRunningBurst =
+      existing.stepCount >= 2 ||
+      existing.lastEvent === input.event ||
+      (existing.lastEvent === 'PreToolUse' &&
+        input.event === 'PostToolUse' &&
+        (!input.toolName || input.toolName === existing.lastToolName));
+    if (
+      withinRunningBurst &&
+      Number.isFinite(prevActiveMs) &&
+      Number.isFinite(nowMs) &&
+      nowMs - prevActiveMs >= 0 &&
+      nowMs - prevActiveMs < coalesceMs
+    ) {
+      return { board, session: existing };
+    }
+  }
+
   const nextSession: RadarSessionRecord = {
     conversationId: convId,
     ...(parentConversationId ? { parentConversationId } : {}),
@@ -457,7 +506,7 @@ export function recordRadarSessionEvent(
     lastEvent: input.event,
     stepCount: (existing?.stepCount ?? 0) + 1,
     unread: nextUnread,
-    summary: cleanBriefText(input.summary, 140) ?? existing?.summary,
+    summary: cleanedSummary ?? existing?.summary,
     errorMessage,
     startedAt: existing?.startedAt ?? nowIso,
     lastActiveAt: nowIso,

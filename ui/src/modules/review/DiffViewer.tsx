@@ -512,14 +512,61 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
   const [composerPreset, setComposerPreset] = useState<ComposerPreset | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const INITIAL_DIFF_LINE_BUDGET = 400;
+  const [lineRenderBudget, setLineRenderBudget] = useState<number>(INITIAL_DIFF_LINE_BUDGET);
   const highlightLang = useMemo(() => detectHighlightLanguage(file?.path), [file?.path]);
 
   React.useEffect(() => {
     setSelection(null);
     setComposerPreset(null);
+    setLineRenderBudget(INITIAL_DIFF_LINE_BUDGET);
   }, [file?.path]);
 
-  const { byAnchor, unanchored } = useMemo(() => {
+  const { visibleHunks, totalDiffLines, renderedDiffLines, visibleAnchors } = useMemo(() => {
+    if (!file) {
+      return {
+        visibleHunks: [],
+        totalDiffLines: 0,
+        renderedDiffLines: 0,
+        visibleAnchors: new Set<string>(),
+      };
+    }
+    let total = 0;
+    let remaining = lineRenderBudget;
+    let rendered = 0;
+    const anchors = new Set<string>();
+    const slicedHunks: Array<{ hunk: typeof file.hunks[number]; originalIndex: number }> = [];
+    for (let i = 0; i < file.hunks.length; i += 1) {
+      const h = file.hunks[i];
+      total += h.lines.length;
+      if (remaining <= 0) continue;
+      const keptLines = h.lines.length <= remaining ? h.lines : h.lines.slice(0, remaining);
+      for (const l of keptLines) {
+        if (l.newLine !== null) anchors.add(`new:${l.newLine}`);
+        if (l.oldLine !== null) anchors.add(`old:${l.oldLine}`);
+      }
+      if (h.lines.length <= remaining) {
+        slicedHunks.push({ hunk: h, originalIndex: i });
+        rendered += h.lines.length;
+        remaining -= h.lines.length;
+      } else {
+        slicedHunks.push({
+          hunk: { ...h, lines: keptLines },
+          originalIndex: i,
+        });
+        rendered += remaining;
+        remaining = 0;
+      }
+    }
+    return {
+      visibleHunks: slicedHunks,
+      totalDiffLines: total,
+      renderedDiffLines: rendered,
+      visibleAnchors: anchors,
+    };
+  }, [file, lineRenderBudget]);
+
+  const { byAnchor, unanchored, hiddenAnnotationsCount } = useMemo(() => {
     const validAnchors = new Set<string>();
     if (file) {
       for (const h of file.hunks) {
@@ -531,18 +578,22 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
     }
     const map = new Map<string, ReviewAnnotation[]>();
     const orphans: ReviewAnnotation[] = [];
+    let hidden = 0;
     for (const ann of annotations) {
       const key = `${ann.side}:${ann.endLine}`;
       if (validAnchors.has(key)) {
         const list = map.get(key) ?? [];
         list.push(ann);
         map.set(key, list);
+        if (!visibleAnchors.has(key)) {
+          hidden += 1;
+        }
       } else {
         orphans.push(ann);
       }
     }
-    return { byAnchor: map, unanchored: orphans };
-  }, [annotations, file]);
+    return { byAnchor: map, unanchored: orphans, hiddenAnnotationsCount: hidden };
+  }, [annotations, file, visibleAnchors]);
 
   if (!file) {
     return (
@@ -721,7 +772,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
         </div>
       ) : (
         <div className="rv-diff-scroll">
-          {file.hunks.map((hunk, hIdx) => {
+          {visibleHunks.map(({ hunk, originalIndex: hIdx }) => {
             const prevHunk = hIdx > 0 ? file.hunks[hIdx - 1] : null;
             const hiddenLines = prevHunk
               ? Math.max(0, hunk.newStart - (prevHunk.newStart + prevHunk.newCount))
@@ -928,6 +979,32 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
               </div>
             );
           })}
+          {renderedDiffLines < totalDiffLines && (
+            <div className="rv-diff-progressive-bar">
+              <span>
+                {dict.common.truncated} · {renderedDiffLines} / {totalDiffLines}
+                {hiddenAnnotationsCount > 0
+                  ? ` · ${hiddenAnnotationsCount} ${r.annotations}`
+                  : ''}
+              </span>
+              <div className="rv-diff-progressive-actions">
+                <button
+                  type="button"
+                  className="rv-btn"
+                  onClick={() => setLineRenderBudget((prev) => prev + INITIAL_DIFF_LINE_BUDGET)}
+                >
+                  +{Math.min(INITIAL_DIFF_LINE_BUDGET, totalDiffLines - renderedDiffLines)}
+                </button>
+                <button
+                  type="button"
+                  className="rv-btn"
+                  onClick={() => setLineRenderBudget(totalDiffLines)}
+                >
+                  100% ({totalDiffLines})
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </section>

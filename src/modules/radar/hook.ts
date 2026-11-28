@@ -69,6 +69,8 @@ function formatErrorValue(err: unknown): string | undefined {
   return String(err);
 }
 
+const RADAR_HOOK_COALESCE_MS = 2000;
+
 /**
  * Lifecycle hook for Session Radar (PreToolUse / PostToolUse / Stop).
  * Fail-open: never throws or disrupts agent tool execution.
@@ -114,6 +116,7 @@ export function handleRadarHook(
       awaitingApproval,
       errorMessage,
       summary,
+      coalesceWindowMs: RADAR_HOOK_COALESCE_MS,
     });
 
     if (payload.event === 'Stop') {

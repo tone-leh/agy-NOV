@@ -103,6 +103,12 @@ export const SpecPlanReviewView: React.FC<SpecPlanReviewViewProps> = ({
 }) => {
   const { dict } = useNovI18n();
   const sDict = dict.panels.spec;
+  const INITIAL_PLAN_LINE_BUDGET = 400;
+  const [planLineLimit, setPlanLineLimit] = React.useState<number>(INITIAL_PLAN_LINE_BUDGET);
+
+  React.useEffect(() => {
+    setPlanLineLimit(INITIAL_PLAN_LINE_BUDGET);
+  }, [activeSpec?.id]);
 
   if (!activeSpec) {
     return (
@@ -422,7 +428,7 @@ export const SpecPlanReviewView: React.FC<SpecPlanReviewViewProps> = ({
             <p style={SPEC_STYLES.mutedParagraph}>{actions.emptyPlanHint}</p>
           ) : (
             <div style={SPEC_STYLES.codeBox}>
-              {planLines.map((lineText, idx) => {
+              {planLines.slice(0, planLineLimit).map((lineText, idx) => {
                 const lineNum = idx + 1;
                 const normStart =
                   selStart !== null && selEnd !== null
@@ -681,6 +687,37 @@ export const SpecPlanReviewView: React.FC<SpecPlanReviewViewProps> = ({
                   </React.Fragment>
                 );
               })}
+              {planLines.length > planLineLimit && (
+                <div
+                  className="nov-p-row"
+                  style={{
+                    padding: '10px 12px',
+                    borderTop: '1px dashed var(--nov-border)',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: '12px', color: 'var(--nov-text-1)' }}>
+                    {dict.common.truncated} · {planLineLimit} / {planLines.length}
+                  </span>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      type="button"
+                      className="nov-p-btn"
+                      onClick={() => setPlanLineLimit((prev) => prev + INITIAL_PLAN_LINE_BUDGET)}
+                    >
+                      +{Math.min(INITIAL_PLAN_LINE_BUDGET, planLines.length - planLineLimit)}
+                    </button>
+                    <button
+                      type="button"
+                      className="nov-p-btn"
+                      onClick={() => setPlanLineLimit(planLines.length)}
+                    >
+                      100% ({planLines.length})
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

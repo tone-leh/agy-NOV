@@ -173,8 +173,10 @@ export function handleVerifyPostToolHook(
     const nowIso = new Date().toISOString();
 
     const existing = state.sessions[conversationId];
-    const dirtySet = new Set<string>(existing?.dirtyFiles ?? []);
-    const emptySet = new Set<string>(existing?.emptyFiles ?? []);
+    const prevDirty = existing?.dirtyFiles ?? [];
+    const prevEmpty = existing?.emptyFiles ?? [];
+    const dirtySet = new Set<string>(prevDirty);
+    const emptySet = new Set<string>(prevEmpty);
     let resolvedWorkspaceRoot = existing?.workspaceRoot;
 
     for (const check of validChecks) {
@@ -190,8 +192,33 @@ export function handleVerifyPostToolHook(
     }
 
     const lastVerifiedMs = existing?.lastVerifiedAt ? Date.parse(existing.lastVerifiedAt) : Number.NaN;
+    const nowMs = Date.parse(nowIso);
+    const existingEditMs = existing?.lastEditAt ? Date.parse(existing.lastEditAt) : Number.NaN;
+    const existingUpdatedMs = existing?.updatedAt ? Date.parse(existing.updatedAt) : Number.NaN;
+
+    // Coalesce repeated edits to already-dirty files within 2s when dirty/empty sets are unchanged
+    const sameDirty =
+      dirtySet.size === prevDirty.length && prevDirty.every((f) => dirtySet.has(f));
+    const sameEmpty =
+      emptySet.size === prevEmpty.length && prevEmpty.every((f) => emptySet.has(f));
+    const alreadyStaleAfterVerify =
+      !Number.isFinite(lastVerifiedMs) ||
+      (Number.isFinite(existingEditMs) && existingEditMs > lastVerifiedMs);
+    if (
+      existing &&
+      sameDirty &&
+      sameEmpty &&
+      existing.lastVerifiedPassed === false &&
+      alreadyStaleAfterVerify &&
+      Number.isFinite(existingUpdatedMs) &&
+      nowMs - existingUpdatedMs >= 0 &&
+      nowMs - existingUpdatedMs < 2000
+    ) {
+      return;
+    }
+
     const editIso =
-      Number.isFinite(lastVerifiedMs) && Date.parse(nowIso) <= lastVerifiedMs
+      Number.isFinite(lastVerifiedMs) && nowMs <= lastVerifiedMs
         ? new Date(lastVerifiedMs + 1).toISOString()
         : nowIso;
 

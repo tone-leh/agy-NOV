@@ -175,11 +175,137 @@ export function ensurePrivateDir(dirPath: string): void {
   }
 }
 
-export function atomicWriteJson(filePath: string, data: unknown): void {
+export interface AtomicWriteJsonOptions {
+  /**
+   * Optional top-level object keys (e.g. `['updatedAt']`) ignored when checking whether
+   * an existing regular 0600 JSON file already holds semantically identical data.
+   */
+  ignoreTopLevelKeys?: readonly string[];
+}
+
+const MAX_DIRTY_CHECK_BYTES = 4 * 1024 * 1024;
+
+function stableCanonicalJson(value: unknown, depth = 0): string {
+  if (depth > 32) return JSON.stringify(value);
+  if (value === null || typeof value !== 'object') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableCanonicalJson(item, depth + 1)).join(',')}]`;
+  }
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  const entries: string[] = [];
+  for (const key of keys) {
+    if (obj[key] === undefined) continue;
+    entries.push(`${JSON.stringify(key)}:${stableCanonicalJson(obj[key], depth + 1)}`);
+  }
+  return `{${entries.join(',')}}`;
+}
+
+function stripTopLevelKeys(
+  obj: Record<string, unknown>,
+  ignoreKeys: ReadonlySet<string>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (!ignoreKeys.has(k)) {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
+function isExistingJsonSemanticallyEqual(
+  filePath: string,
+  payloadBuf: Buffer,
+  serializedText: string,
+  ignoreTopLevelKeys?: readonly string[],
+): boolean {
+  try {
+    const st = fs.lstatSync(filePath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_DIRTY_CHECK_BYTES) {
+      return false;
+    }
+    if (process.platform !== 'win32' && (st.mode & 0o777) !== 0o600) {
+      return false;
+    }
+
+    const hasIgnoreKeys = Boolean(ignoreTopLevelKeys && ignoreTopLevelKeys.length > 0);
+    if (!hasIgnoreKeys && st.size !== payloadBuf.byteLength) {
+      return false;
+    }
+
+    const existingBuf = fs.readFileSync(filePath);
+    if (existingBuf.byteLength === payloadBuf.byteLength && existingBuf.equals(payloadBuf)) {
+      return true;
+    }
+
+    if (!hasIgnoreKeys) {
+      return false;
+    }
+
+    const existingParsed = JSON.parse(existingBuf.toString('utf8')) as unknown;
+    const nextParsed = JSON.parse(serializedText) as unknown;
+    if (
+      !existingParsed ||
+      typeof existingParsed !== 'object' ||
+      Array.isArray(existingParsed) ||
+      !nextParsed ||
+      typeof nextParsed !== 'object' ||
+      Array.isArray(nextParsed)
+    ) {
+      return false;
+    }
+
+    const ignoreSet = new Set(ignoreTopLevelKeys);
+    return (
+      stableCanonicalJson(stripTopLevelKeys(existingParsed as Record<string, unknown>, ignoreSet)) ===
+      stableCanonicalJson(stripTopLevelKeys(nextParsed as Record<string, unknown>, ignoreSet))
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function atomicWriteJson(
+  filePath: string,
+  data: unknown,
+  options?: AtomicWriteJsonOptions,
+): boolean {
+  const serialized = `${JSON.stringify(data, null, 2)}\n`;
+  const payloadBuf = Buffer.from(serialized, 'utf8');
+
+  if (
+    isExistingJsonSemanticallyEqual(
+      filePath,
+      payloadBuf,
+      serialized,
+      options?.ignoreTopLevelKeys,
+    )
+  ) {
+    return false;
+  }
+
   ensurePrivateDir(path.dirname(filePath));
   const tmpPath = `${filePath}.tmp.${process.pid}.${Date.now()}.${crypto.randomBytes(4).toString('hex')}`;
-  fs.writeFileSync(tmpPath, `${JSON.stringify(data, null, 2)}\n`, { mode: 0o600 });
-  atomicRenameSync(tmpPath, filePath);
+  try {
+    fs.writeFileSync(tmpPath, payloadBuf, { mode: 0o600 });
+    try {
+      fs.chmodSync(tmpPath, 0o600);
+    } catch {
+      // ignore on platforms without POSIX mode bits
+    }
+    atomicRenameSync(tmpPath, filePath);
+    return true;
+  } catch (err) {
+    try {
+      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+    } catch {
+      // best-effort cleanup
+    }
+    throw err;
+  }
 }
 
 /**

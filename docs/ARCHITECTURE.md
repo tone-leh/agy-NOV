@@ -9,7 +9,7 @@
 ```mermaid
 flowchart TB
   subgraph L4["Layer 4 · Sandboxed Presentation (ui/src/* -> dist/ui/app.html)"]
-    UI["App + HubPanel + SettingsHub + 13 Module Panels + 8-Locale i18n (755 keys)"]
+    UI["App + ErrorBoundary + HubPanel + SettingsHub + 13 Module Panels + 8-Locale i18n (758 keys)"]
     Bridge["NovBridge (MCP Apps JSON-RPC, resources/read, capabilities)"]
     UI --> Bridge
   end
@@ -115,10 +115,11 @@ agy-NOV/
 │       └── cli/                 # Modular CLI sub-domains (statusline, recommend, doctor, io, helpers)
 ├── ui/src/                      # Layer 4: Single-file 8-language React MCP App UI
 │   ├── bridge.ts                # MCP Apps JSON-RPC client, first-frame cache & resources/read
-│   ├── App.tsx                  # Adaptive 4+1 IA shell (<= 720px switcher / >= 720px sidebar)
+│   ├── components/              # Self-contained 8-locale ErrorBoundary (root & per-panel)
+│   ├── App.tsx                  # Adaptive 4+1 IA shell (<= 720px switcher / >= 720px sidebar, rAF 0x0 guard)
 │   ├── panels/                  # HubPanel (L0) & SettingsHub (S1-S4)
-│   ├── modules/<id>/            # Per-module UI panels + zero-DOM helpers (e.g. svg-safety.ts)
-│   └── i18n/                    # 8 strictly key-symmetric locale dictionaries (755 keys each)
+│   ├── modules/<id>/            # Per-module UI panels + progressive rendering & zero-DOM helpers
+│   └── i18n/                    # 8 strictly key-symmetric locale dictionaries (758 keys each)
 ├── workbench/server.mjs         # Zero-touch offline browser simulator (--smoke / --demo / --local)
 ├── scripts/                     # Build (esbuild minify) & cross-platform test runner
 └── test/                        # 3-OS automated unit, integration, security & black-box suites
@@ -134,6 +135,7 @@ agy-NOV/
 4. **Zero-Write & Four-Zero Off Isolation**: Read-only queries, disabled hooks (`PreToolUse`/`PostToolUse`/`PostInvocation` O(1) short-circuit), disabled module cross-writes (e.g., `archiveSpecToMemory` enforcing live `cfg.modules.mem`), sidecar sweeps, and missing `dataDir` states never create directories or write files. Opt-in `remote` stays completely inert while OFF (0 ports, 0 writes, 0 polling, 0 outbound requests).
 5. **Single-Pass Linear Security Primitives**: All `<private>` stripping, PEM/token redaction, and SVG/path validation run in bounded linear time (`O(n)`) with zero catastrophic backtracking.
 6. **Enforced Layer 2 Cross-Module Allowlist**: `test/architecture-hygiene.test.ts` parses AST imports via TypeScript to enforce zero circular dependencies and strictly restricts Layer 2 horizontal imports to the explicit allowlist (`src/modules/spec/archive.ts -> src/modules/mem/store.ts`, guarded at runtime by `loadNovConfigReadOnly(rootDataDir)`, plus type-only `src/modules/spec/types.ts -> src/modules/mem/types.ts`).
+7. **Write-Storm Suppression, Bounded I/O & UI Resilience (v1.2.2)**: All JSON stores use `atomicWriteJson` with semantic dirty checks (`ignoreTopLevelKeys`), hooks coalesce concurrent multi-session bursts and clamp UTF-8 output (`<= 4 KiB` reasons / `<= 24 KiB` injectSteps), transcript/SQLite/RPC readers enforce strict memory caps (`immutable=1` read-only fallback for WAL directories without `-shm`), and MCP Apps panels isolate errors via 8-locale `ErrorBoundary` with `0×0` rAF resize guards and v2.36+ maximized sidebar safe bottom clearance.
 
 ---
 

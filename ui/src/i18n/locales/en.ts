@@ -202,6 +202,9 @@ export const EN_DICT: UiDictionary = {
     invalid: 'INVALID',
     truncated: 'TRUNC',
     actionFailed: 'Action failed: {error}',
+    errorBoundaryTitle: '{scope} encountered a render error',
+    errorBoundaryReturnHome: 'Back to Hub',
+    errorBoundaryReload: 'Reload Panel',
   },
   turbo: {
     title: 'Turbo & Output Guard',

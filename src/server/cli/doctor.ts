@@ -3,6 +3,7 @@ import path from 'node:path';
 import { getModuleDataDir, loadNovConfigReadOnly } from '../../core/config.js';
 import { getFeedSnapshotPath, MAX_FEED_SNAPSHOT_BYTES } from '../../core/feed.js';
 import { canonicalRealpathSync, isPathInsideDir } from '../../core/fs-safe.js';
+import { discoverUserCustomSkillsReadOnly } from '../../core/utils.js';
 import { loadTurboPrefsReadOnly } from '../../modules/turbo/auto-rtk.js';
 import { CLI_VERSION, resolvePluginRootDir } from './helpers.js';
 
@@ -242,6 +243,18 @@ export function runDoctor(dataDir: string): number {
     }
   }
   console.log(`  ${feedStatusTag} Feed Snapshot: ${feedPath} (${feedNote})`);
+
+  // Read-only Antigravity v2.36+ dual-root custom skill discovery (~/.gemini precedence over ~/.agents/skills)
+  const customSkills = discoverUserCustomSkillsReadOnly();
+  const geminiSkillsCount = customSkills.skills.filter((s) => s.source === 'gemini').length;
+  const agentsSkillsCount = customSkills.skills.filter((s) => s.source === 'agents').length;
+  const shadowedNote =
+    customSkills.shadowedByGemini.length > 0
+      ? `, ${customSkills.shadowedByGemini.length} shadowed by ~/.gemini precedence`
+      : '';
+  console.log(
+    `  OK   Custom Skills (~/.gemini > ~/.agents/skills): ${customSkills.skills.length} discovered (${geminiSkillsCount} ~/.gemini, ${agentsSkillsCount} ~/.agents/skills${shadowedNote})`,
+  );
 
   return ok ? 0 : 1;
 }

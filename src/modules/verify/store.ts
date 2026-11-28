@@ -277,7 +277,7 @@ export function saveVerifyState(moduleDataDir: string, state: VerifyStateFile): 
     blockedStops: Math.max(0, Math.floor(state.blockedStops)),
     updatedAt: new Date().toISOString(),
   };
-  atomicWriteJson(getVerifyStatePath(moduleDataDir), next);
+  atomicWriteJson(getVerifyStatePath(moduleDataDir), next, { ignoreTopLevelKeys: ['updatedAt'] });
   return next;
 }
 

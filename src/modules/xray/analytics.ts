@@ -19,6 +19,8 @@ import type {
 
 export const MAX_ANALYTICS_SESSIONS = 60;
 export const MAX_ANALYTICS_TRANSCRIPT_BYTES = 20 * 1024 * 1024; // 20 MiB
+const MAX_ANALYTICS_SAMPLE_THRESHOLD_BYTES = 4 * 1024 * 1024; // sample transcripts > 4 MiB
+const MAX_ANALYTICS_TOTAL_READ_BYTES = 32 * 1024 * 1024; // total sync read budget across all sessions
 export const FIVE_HOUR_WINDOW_HOURS = 5 as const;
 const FIVE_HOUR_MS = FIVE_HOUR_WINDOW_HOURS * 3_600_000;
 const DAY_MS = 24 * 3_600_000;
@@ -260,16 +262,24 @@ export function computeCostAnalytics(
   let sessionsAnalyzed = 0;
   let totalEstimatedUsdRaw = 0;
   let totalCacheSavingsUsdRaw = 0;
+  let totalReadBytes = 0;
 
   for (const entry of entries) {
+    if (totalReadBytes >= MAX_ANALYTICS_TOTAL_READ_BYTES) {
+      break;
+    }
+    let fileSize = 0;
     try {
       const st = fs.statSync(entry.transcriptPath);
       if (!st.isFile() || st.size === 0 || st.size > MAX_ANALYTICS_TRANSCRIPT_BYTES) {
         continue;
       }
+      fileSize = st.size;
     } catch {
       continue;
     }
+
+    totalReadBytes += Math.min(fileSize, MAX_ANALYTICS_SAMPLE_THRESHOLD_BYTES);
 
     let detail: SessionDetail;
     try {
@@ -279,6 +289,7 @@ export function computeCostAnalytics(
         source: entry.source,
         brainDir: entry.brainDir,
         pricingOverrides,
+        maxFullBytes: MAX_ANALYTICS_SAMPLE_THRESHOLD_BYTES,
       });
     } catch {
       continue;

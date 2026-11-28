@@ -202,6 +202,9 @@ export const KO_DICT: UiDictionary = {
     invalid: '유효하지 않음',
     truncated: '잘림',
     actionFailed: '작업 실패: {error}',
+    errorBoundaryTitle: '{scope} 렌더링 중 오류가 발생했습니다',
+    errorBoundaryReturnHome: '허브로 돌아가기',
+    errorBoundaryReload: '패널 새로고침',
   },
   turbo: {
     title: 'Turbo 및 출력 가드',

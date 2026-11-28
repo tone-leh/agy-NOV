@@ -1,4 +1,4 @@
-# agy-NOV × agy-Sag 双星零端口文件契约（v1.2.1）
+# agy-NOV × agy-Sag 双星零端口文件契约（v1.2.2）
 
 本文档定义 `agy-NOV` 与 `agy-Sag` 之间的零重叠、零端口、纯文件原子协作契约，涵盖 `<NOV_DATA_DIR>` 跨客户端探测、配置真源 `config.json`、聚合只读快照 `feed-snapshot.json`、可选只读巡检快照 `health-sweep.json`、全部 `modules/<id>/` 标准落盘路径，以及 `agy-Sag` 联机接入核查要点。
 
@@ -13,7 +13,7 @@
 
 ```mermaid
 flowchart LR
-  subgraph NOV["agy-NOV v1.2.1 (MCP Server + 6 Hooks + 11-Cmd CLI + Opt-In Sidecar)"]
+  subgraph NOV["agy-NOV v1.2.2 (MCP Server + 6 Hooks + 11-Cmd CLI + Opt-In Sidecar)"]
     S["src/server/index.ts\nstatSync 热同步 + 串行队列"]
     H["src/hooks/dispatcher.ts\nPreToolUse 拦截 + PostToolUse/Stop 刷新"]
     C["src/server/cli.ts\n配置变更同步刷新已有快照"]
@@ -115,21 +115,21 @@ flowchart LR
 ### 4.1 写入与读取保证
 
 - `buildFeedSnapshot(rootDataDir, config, options?)`：100% 纯只读内存聚合，绝不创建目录或写盘，读取各 `modules/<id>/` 文件时跳过符号链接与超限文件（`> 2 MiB`）。
-- `writeFeedSnapshotIfDataDirExists(rootDataDir, config, options?)`：通过 `lstatSync(rootDataDir)` 确认目录已存在且为真实目录、目标文件非符号链接后才执行原子写入；目录缺失时返回 `false` 且零写盘。
+- `writeFeedSnapshotIfDataDirExists(rootDataDir, config, options?)`：通过 `lstatSync(rootDataDir)` 确认目录已存在且为真实目录、目标文件非符号链接后才执行原子写入；目录缺失时返回 `false` 且零写盘；内置忽略 `generatedAt` 的 SHA-256 语义脏检查与可选 `minIntervalMs` 合并窗（无变化自动跳过重写，杜绝高频写盘风暴）。
 - 触发时机：
   1. `agy-NOV` MCP Server 配置变更（模块切换、预设、语言、启动视图、导入、重置、外部热同步）；
   2. `PreToolUse` Hook 返回 `deny`、`force_ask` 或 `ask` 之前即时刷新；
-  3. `PostToolUse` 与 `Stop` Hook 末尾 best-effort 刷新；
+  3. `PostToolUse`（3 秒合并窗防写放大）与 `Stop` Hook 末尾 best-effort 刷新；
   4. `agy-nov` CLI `enable` / `disable` / `preset` / `locale` 写盘后刷新已存在的 `feed-snapshot.json`。
 
-### 4.2 完整嵌套 Schema（`schemaVersion: 1`，`version: "1.2.1"`）
+### 4.2 完整嵌套 Schema（`schemaVersion: 1`，`version: "1.2.2"`）
 
 > **重要**：全部模块摘要位于顶层 **`summary.*`** 嵌套对象内（消费端应先解包 `const s = snap.summary ?? snap;`）。
 
 ```json
 {
   "schemaVersion": 1,
-  "version": "1.2.1",
+  "version": "1.2.2",
   "generatedAt": "2026-11-28T12:00:00.000Z",
   "preset": "local-all",
   "locale": "zh-CN",
@@ -260,7 +260,7 @@ flowchart LR
 }
 ```
 
-### 4.3 关键字段语义与排序约定（v1.2.1 固化）
+### 4.3 关键字段语义与排序约定（v1.2.1+ 固化）
 
 - `summary.guard`：
   - `blockedCount`：最近 200 条审计记录中 `decision` 为 `deny` 或 `blocked` 的次数；
@@ -275,6 +275,9 @@ flowchart LR
   - `writeLockActive` 为 `status === 'draft' && enforcePlanBeforeWrite === true`（仅草稿态且启用写前计划锁时生效）。
 - `summary.mem`：
   - `staleCount` 统计顶层布尔 `stale === true || drifted === true`，或代码锚点 `driftStatus` 为 `'drifted'` 或 `'missing'` 的记忆条数（`CodeAnchor.driftStatus` 枚举为 `'fresh' | 'drifted' | 'missing' | 'untracked' | 'skipped'`）。
+
+- `summary.remote`（v1.2.2 加固）：
+  - `running` 在从 `modules/remote/runtime.json` 推导时，会对记录的 `pid` 执行只读 `isPidAlive` 判活（宿主 5 秒 `SIGKILL` 强杀残留的陈旧 `runtime.json` 不再误报 `running: true`）。
 
 ### 4.4 告警分级与预算策略
 
@@ -295,7 +298,7 @@ flowchart LR
 路径：`<NOV_DATA_DIR>/health-sweep.json`（权限 `0600`，硬上限 `<= 64 KiB`）。
 
 - **默认不生成**：仅当用户显式运行 `agy-nov audit-once --write-report` 或启用只读 Sidecar `sidecars/audit-sidecar.mjs --write-report` 且 `<NOV_DATA_DIR>` 已存在安全真目录时才原子写入；
-- **模块门控（v1.2.1）**：巡检严格按 `config.json` 中 `mem`、`verify`、`guard` 开启状态门控，关闭的模块输出空态，避免残留历史文件触发误报；
+- **模块门控与语义脏检查（v1.2.1 / v1.2.2）**：巡检严格按 `config.json` 中 `mem`、`verify`、`guard` 开启状态门控，关闭的模块输出空态，避免残留历史文件触发误报；`writeHealthSweepReportIfPermitted` 内置忽略 `generatedAt` 的 SHA-256 语义脏检查，巡检结果无变化时自动跳过写盘；
 - **只读消费约定**：`agy-Sag` 若需展示健康分，应与 `feed-snapshot.json` 一样先校验非符号链接、体积 `<= 64 KiB` 与无原型污染键，缺失时静默忽略。
 
 ## 6. 全量 `modules/<id>/` 标准路径与排序约定

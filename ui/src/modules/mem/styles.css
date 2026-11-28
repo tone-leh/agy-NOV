@@ -488,7 +488,7 @@
 
 .mod-mem .mem-toast {
   position: fixed;
-  bottom: 14px;
+  bottom: calc(14px + var(--nov-safe-bottom, 0px));
   right: 14px;
   background: var(--nov-bg-1);
   color: var(--nov-text-0);

@@ -19,6 +19,8 @@
   --nov-font-sans: var(--font-sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif);
   --nov-font-mono: ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
   --nov-radius: 10px;
+  /* Antigravity v2.36+ maximized sidebar floating composer safe bottom inset */
+  --nov-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--antigravity-composer-inset, 0px), 0px);
 }
 
 [data-theme='light'] {
@@ -744,7 +746,7 @@ body,
 .nov-toast {
   position: fixed;
   right: 14px;
-  bottom: 14px;
+  bottom: calc(14px + var(--nov-safe-bottom, 0px));
   z-index: 90;
   background: var(--nov-bg-1);
   color: var(--nov-text-0);
@@ -943,7 +945,7 @@ body,
 
 .nov-sidebar-footer {
   border-top: 1px solid var(--nov-border);
-  padding: 8px;
+  padding: 8px 8px calc(8px + var(--nov-safe-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1044,10 +1046,46 @@ body,
 .nov-settings-page {
   max-width: 980px;
   margin: 0 auto;
-  padding: 14px 16px 24px;
+  padding: 14px 16px calc(32px + var(--nov-safe-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* Antigravity v2.36+ maximized sidebar floating composer clearance for scrollable module views, bottom cart, sidebar footer & toasts */
+.nov-shell.is-wide {
+  --nov-wide-composer-clearance: max(var(--nov-safe-bottom, 0px), 56px);
+}
+
+.nov-shell.is-wide .nov-hub-page,
+.nov-shell.is-wide .nov-settings-page,
+.nov-shell.is-wide .nov-modules-page {
+  padding-bottom: calc(20px + var(--nov-wide-composer-clearance));
+}
+
+.nov-shell.is-wide .nov-stage:not(.is-full-height) {
+  padding-bottom: var(--nov-wide-composer-clearance);
+}
+
+.nov-shell.is-wide .nov-sidebar-footer {
+  padding-bottom: calc(8px + var(--nov-wide-composer-clearance));
+}
+
+.nov-shell.is-wide .nov-toast,
+.nov-shell.is-wide .mod-canvas .canvas-toast,
+.nov-shell.is-wide .mod-guard .gd-toast,
+.nov-shell.is-wide .mod-mem .mem-toast,
+.nov-shell.is-wide .mod-remote .remote-toast,
+.nov-shell.is-wide .mod-xray .xr-toast {
+  bottom: calc(14px + var(--nov-wide-composer-clearance));
+}
+
+.nov-shell.is-wide .mod-review .rv-review-cart {
+  padding-bottom: var(--nov-wide-composer-clearance);
+}
+
+.nov-shell.is-wide .mod-canvas .canvas-workspace {
+  padding-bottom: var(--nov-wide-composer-clearance);
 }
 
 .nov-quickstart-strip {
@@ -1678,4 +1716,72 @@ body,
   .nov-flow-arrow {
     display: none;
   }
+}
+
+/* ErrorBoundary Recovery Card */
+.nov-error-boundary {
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px calc(24px + var(--nov-safe-bottom, 0px));
+}
+
+.nov-error-boundary-card {
+  max-width: 520px;
+  width: 100%;
+  background: var(--nov-bg-1);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nov-error-boundary-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nov-error-boundary-head h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--nov-text-0);
+}
+
+.nov-error-boundary-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--nov-danger-soft);
+  color: var(--nov-danger);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  font-weight: 700;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nov-error-boundary-msg {
+  margin: 0;
+  font-family: var(--nov-font-mono);
+  font-size: 11.5px;
+  color: var(--nov-text-1);
+  background: var(--nov-bg-0);
+  border: 1px solid var(--nov-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  word-break: break-word;
+}
+
+.nov-error-boundary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }

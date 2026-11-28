@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   atomicRenameSync,
+  atomicWriteJson,
   canonicalRealpathSync,
   isPathInsideDir,
   isSamePath,
@@ -45,15 +46,7 @@ export function ensureDir(dir: string): void {
 }
 
 function writePrivateJson(filePath: string, data: unknown): void {
-  ensureDir(path.dirname(filePath));
-  const tmp = `${filePath}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
-  fs.writeFileSync(tmp, `${JSON.stringify(data, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
-  try {
-    fs.chmodSync(tmp, 0o600);
-  } catch {
-    // Ignore on platforms where chmod is unsupported
-  }
-  atomicRenameSync(tmp, filePath);
+  atomicWriteJson(filePath, data);
 }
 
 function writeFileWithWinReadonlyFallback(targetPath: string, content: string): void {
@@ -170,9 +163,14 @@ function assertNotSensitive(
   }
 }
 
+const MAX_GUARD_STORE_JSON_BYTES = 16 * 1024 * 1024;
+
 function readJsonSafe<T>(filePath: string, fallback: T): T {
   try {
-    if (!fs.existsSync(filePath)) return fallback;
+    const st = fs.lstatSync(filePath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_GUARD_STORE_JSON_BYTES) {
+      return fallback;
+    }
     return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
   } catch {
     return fallback;
@@ -334,6 +332,42 @@ export function readSnapshotContent(dataDir: string, record: SnapshotRecord): st
   return fs.readFileSync(p, 'utf8');
 }
 
+function resolveSafeBlobsDir(dataDir: string, createIfMissing: boolean): string | null {
+  try {
+    if (createIfMissing) {
+      ensureDir(dataDir);
+    }
+    const dataStat = fs.lstatSync(dataDir);
+    if (dataStat.isSymbolicLink() || !dataStat.isDirectory()) {
+      return null;
+    }
+    const realDataDir = canonicalRealpathSync(dataDir);
+    const blobsDir = path.join(realDataDir, 'blobs');
+    try {
+      const st = fs.lstatSync(blobsDir);
+      if (st.isSymbolicLink() || !st.isDirectory()) {
+        return null;
+      }
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT' || !createIfMissing) {
+        return null;
+      }
+      ensureDir(blobsDir);
+      const st = fs.lstatSync(blobsDir);
+      if (st.isSymbolicLink() || !st.isDirectory()) {
+        return null;
+      }
+    }
+    const realBlobsDir = canonicalRealpathSync(blobsDir);
+    if (!isPathInsideDir(realDataDir, realBlobsDir)) {
+      return null;
+    }
+    return realBlobsDir;
+  } catch {
+    return null;
+  }
+}
+
 export function capturePreEditSnapshot(params: {
   dataDir: string;
   filePath: string;
@@ -369,14 +403,43 @@ export function capturePreEditSnapshot(params: {
     sizeBytes = raw.byteLength;
     lineCount = raw.toString('utf8').split(/\r?\n/).length;
 
-    const targetBlob = blobPath(dataDir, sha256);
-    if (!fs.existsSync(targetBlob)) {
-      ensureDir(path.dirname(targetBlob));
-      fs.writeFileSync(targetBlob, raw, { mode: 0o600 });
+    const safeBlobsDir = resolveSafeBlobsDir(dataDir, true);
+    if (!safeBlobsDir) {
+      throw new Error('Refused unsafe or symlinked Guard snapshot blobs directory');
+    }
+    const targetBlob = path.join(safeBlobsDir, `${sha256}.blob`);
+    let blobExists = false;
+    try {
+      const existingSt = fs.lstatSync(targetBlob);
+      if (existingSt.isSymbolicLink() || !existingSt.isFile()) {
+        throw new Error('Refused unsafe or symlinked Guard snapshot blob target');
+      }
+      blobExists = true;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        throw err;
+      }
+    }
+    if (!blobExists) {
+      const tmpBlob = path.join(
+        safeBlobsDir,
+        `${sha256}.blob.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`,
+      );
       try {
-        fs.chmodSync(targetBlob, 0o600);
-      } catch {
-        // Ignore on platforms where chmod is unsupported
+        fs.writeFileSync(tmpBlob, raw, { mode: 0o600, flag: 'wx' });
+        try {
+          fs.chmodSync(tmpBlob, 0o600);
+        } catch {
+          // Ignore on platforms where chmod is unsupported
+        }
+        atomicRenameSync(tmpBlob, targetBlob);
+      } catch (err) {
+        try {
+          if (fs.existsSync(tmpBlob)) fs.unlinkSync(tmpBlob);
+        } catch {
+          // ignore cleanup
+        }
+        throw err;
       }
     }
   }
@@ -430,6 +493,46 @@ export function capturePreEditSnapshot(params: {
     .slice(0, 300);
 
   saveSnapshots(dataDir, next);
+
+  // O(1) targeted GC: unlink ONLY blobs belonging to snapshots explicitly evicted from `all`
+  // whose content hash is no longer referenced by either `next` OR the freshest disk snapshot list,
+  // strictly inside a verified non-symlink `blobs/` directory (safe under concurrent sessions).
+  const keptIds = new Set(next.map((s) => s.id));
+  const evicted = all.filter((s) => !keptIds.has(s.id));
+  if (evicted.length > 0) {
+    try {
+      const safeBlobsDir = resolveSafeBlobsDir(dataDir, false);
+      if (safeBlobsDir) {
+        const latestDisk = loadSnapshots(dataDir);
+        const activeHashes = new Set<string>([
+          ...next.map((s) => s.sha256),
+          ...latestDisk.map((s) => s.sha256),
+        ]);
+        const candidateHashes = new Set<string>();
+        for (const snap of evicted) {
+          if (snap.sha256 && /^[a-f0-9]{64}$/i.test(snap.sha256) && !activeHashes.has(snap.sha256)) {
+            candidateHashes.add(snap.sha256);
+          }
+        }
+        for (const hash of candidateHashes) {
+          const orphanPath = path.join(safeBlobsDir, `${hash}.blob`);
+          try {
+            const st = fs.lstatSync(orphanPath);
+            if (!st.isSymbolicLink() && st.isFile()) {
+              const realOrphan = canonicalRealpathSync(orphanPath);
+              if (isPathInsideDir(safeBlobsDir, realOrphan)) {
+                fs.unlinkSync(realOrphan);
+              }
+            }
+          } catch {
+            // ignore missing or concurrent unlink
+          }
+        }
+      }
+    } catch {
+      // Best-effort cleanup only
+    }
+  }
   appendAuditEvent(dataDir, {
     event: isManualCheckpoint ? 'Checkpoint' : 'PreToolUse',
     toolName,

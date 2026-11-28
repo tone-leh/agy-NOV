@@ -15,6 +15,7 @@ import {
 import {
   atomicRenameSync,
   canonicalRealpathSync,
+  discoverUserCustomSkillsReadOnly,
   isPathInsideDir,
 } from '../../core/utils.js';
 import { asPlainRecord, CLI_VERSION, readJsonSilent } from './helpers.js';
@@ -39,6 +40,13 @@ interface TeamPresetRecommendationSummary {
   errorCount: number;
 }
 
+export interface UserCustomSkillsSummary {
+  total: number;
+  geminiCount: number;
+  agentsCount: number;
+  shadowedByGeminiCount: number;
+}
+
 export interface WorkspaceRecommendation {
   version: string;
   workspaceRoot: string;
@@ -49,6 +57,7 @@ export interface WorkspaceRecommendation {
     hasDataOrOpenApi: boolean;
     hasMultipleTestsOrScripts: boolean;
   };
+  userCustomSkills: UserCustomSkillsSummary;
   teamPreset: TeamPresetRecommendationSummary;
   recommendedPreset: SafeRecommendedPreset;
   suggestedExtraModules: string[];
@@ -106,7 +115,19 @@ export function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRe
     exists('CLAUDE.md') ||
     exists('.mcp.json') ||
     exists('mcp_config.json') ||
-    exists('.agents/rules');
+    exists('.gemini/mcp_config.json') ||
+    exists('.agents/rules') ||
+    exists('.agents/skills') ||
+    exists('.agents/hooks.json') ||
+    exists('.gemini/skills');
+
+  const discoveredSkills = discoverUserCustomSkillsReadOnly();
+  const userCustomSkills: UserCustomSkillsSummary = {
+    total: discoveredSkills.skills.length,
+    geminiCount: discoveredSkills.skills.filter((s) => s.source === 'gemini').length,
+    agentsCount: discoveredSkills.skills.filter((s) => s.source === 'agents').length,
+    shadowedByGeminiCount: discoveredSkills.shadowedByGemini.length,
+  };
 
   let hasDataOrOpenApi = false;
   try {
@@ -222,6 +243,7 @@ export function buildWorkspaceRecommendation(workspaceRoot: string): WorkspaceRe
       hasDataOrOpenApi,
       hasMultipleTestsOrScripts,
     },
+    userCustomSkills,
     teamPreset: teamPresetSummary,
     recommendedPreset,
     suggestedExtraModules,

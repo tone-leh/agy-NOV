@@ -1292,7 +1292,29 @@
   flex: 0 0 auto;
   background: var(--nov-bg-1);
   border-top: 1px solid var(--nov-border);
+  padding-bottom: var(--nov-safe-bottom, 0px);
   z-index: 20;
+}
+
+.mod-review .rv-diff-progressive-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  margin-top: 8px;
+  background: var(--nov-bg-1);
+  border: 1px dashed var(--nov-border-strong);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--nov-text-1);
+}
+
+.mod-review .rv-diff-progressive-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .mod-review .rv-cart-preview-drawer {

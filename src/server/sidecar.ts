@@ -95,6 +95,7 @@ export interface HealthSweepReport {
 
 export interface WriteHealthSweepReportResult {
   written: boolean;
+  unchanged?: boolean;
   path?: string;
   bytes?: number;
   reason?: string;
@@ -642,10 +643,34 @@ function enforceReportSizeCap(report: HealthSweepReport): HealthSweepReport {
   return trimmed;
 }
 
+function computeHealthSweepSemanticHash(reportObj: Record<string, unknown>): string {
+  const { generatedAt: _ignoredGeneratedAt, ...semantic } = reportObj;
+  return crypto.createHash('sha256').update(JSON.stringify(semantic)).digest('hex');
+}
+
+function readExistingHealthSweepSemanticHash(targetPath: string): string | null {
+  try {
+    const st = fs.lstatSync(targetPath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size <= 0 || st.size > MAX_HEALTH_SWEEP_BYTES) {
+      return null;
+    }
+    if (process.platform !== 'win32' && (st.mode & 0o777) !== 0o600) {
+      return null;
+    }
+    const parsed = JSON.parse(fs.readFileSync(targetPath, 'utf8')) as unknown;
+    const rec = asRecord(parsed);
+    if (!rec) return null;
+    return computeHealthSweepSemanticHash(rec);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Atomically writes `health-sweep.json` (mode `0600`, `flag: 'wx'` tmp + atomic rename)
  * ONLY when `dataDir` already exists as a safe non-symlink directory and the serialized
- * JSON stays within the 64 KiB ceiling. Never creates any directory.
+ * JSON stays within the 64 KiB ceiling. Never creates any directory, and skips redundant
+ * rewrites when the semantic report payload (excluding `generatedAt`) is unchanged.
  */
 export function writeHealthSweepReportIfPermitted(
   dataDir: string,
@@ -713,6 +738,20 @@ export function writeHealthSweepReportIfPermitted(
   const bytes = Buffer.byteLength(serialized, 'utf8');
   if (bytes > MAX_HEALTH_SWEEP_BYTES) {
     return { written: false, reason: 'serialized health-sweep report exceeds 64 KiB cap' };
+  }
+
+  // Semantic content-hash dirty check (ignores generatedAt) so scheduled sidecar sweeps
+  // skip redundant atomic rewrites when nothing changed.
+  const prevHash = readExistingHealthSweepSemanticHash(targetPath);
+  const nextHash = computeHealthSweepSemanticHash(capped as unknown as Record<string, unknown>);
+  if (prevHash && prevHash === nextHash) {
+    return {
+      written: false,
+      unchanged: true,
+      path: targetPath,
+      bytes,
+      reason: 'health-sweep.json is semantically unchanged (skipped redundant write)',
+    };
   }
 
   const tmpPath = path.join(

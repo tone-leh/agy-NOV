@@ -218,18 +218,53 @@ function extractFilePathsFromArgs(args: Record<string, unknown> | undefined): st
   return results;
 }
 
+const MAX_ARTIFACT_PREVIEW_READ_BYTES = 4096;
+const MAX_ARTIFACTS_PER_SESSION = 100;
+const MAX_FULL_TRANSCRIPT_BYTES = 16 * 1024 * 1024;
+const OVERSIZED_TRANSCRIPT_HEAD_BYTES = 256 * 1024;
+const OVERSIZED_TRANSCRIPT_TAIL_BYTES = 4 * 1024 * 1024;
+const MAX_RETURNED_TURNS = 200;
+const MAX_RETURNED_FILE_ACTIVITY = 300;
+
+function readBoundedHeadUtf8(filePath: string, maxBytes: number): string {
+  let fd: number | undefined;
+  try {
+    fd = fs.openSync(filePath, 'r');
+    const st = fs.fstatSync(fd);
+    if (!st.isFile() || st.size <= 0) return '';
+    const toRead = Math.min(st.size, maxBytes);
+    const buf = Buffer.alloc(toRead);
+    let offset = 0;
+    while (offset < toRead) {
+      const n = fs.readSync(fd, buf, offset, toRead - offset, offset);
+      if (n <= 0) break;
+      offset += n;
+    }
+    return buf.subarray(0, offset).toString('utf8');
+  } finally {
+    if (fd !== undefined) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        // ignore close failure
+      }
+    }
+  }
+}
+
 function listArtifactsInBrainDir(brainDir: string): ArtifactSummary[] {
   if (!brainDir || !fs.existsSync(brainDir)) return [];
   const artifacts: ArtifactSummary[] = [];
   try {
     for (const entry of fs.readdirSync(brainDir, { withFileTypes: true })) {
+      if (artifacts.length >= MAX_ARTIFACTS_PER_SESSION) break;
       if (!entry.isFile()) continue;
       if (!/\.(md|txt|json|html|svg)$/i.test(entry.name)) continue;
       if (entry.name.startsWith('.')) continue;
       const fullPath = path.join(brainDir, entry.name);
       try {
         const stat = fs.statSync(fullPath);
-        const content = fs.readFileSync(fullPath, 'utf8').slice(0, 800);
+        const content = readBoundedHeadUtf8(fullPath, MAX_ARTIFACT_PREVIEW_READ_BYTES).slice(0, 800);
         artifacts.push({
           name: entry.name,
           path: fullPath,
@@ -586,6 +621,96 @@ function hasRetrySignalInStep(step: RawTranscriptStep): boolean {
   return parts.some((part) => Boolean(part) && RETRY_SIGNAL_RE.test(part));
 }
 
+function readBoundedTranscriptLines(
+  transcriptPath: string,
+  maxFullBytes = MAX_FULL_TRANSCRIPT_BYTES,
+): { lines: string[]; sampledOversized: boolean; fileSizeBytes: number; sampledTailBytes: number } {
+  let fd: number | undefined;
+  try {
+    const lst = fs.lstatSync(transcriptPath);
+    if (lst.isSymbolicLink() || !lst.isFile()) {
+      return { lines: [], sampledOversized: false, fileSizeBytes: 0, sampledTailBytes: 0 };
+    }
+    fd = fs.openSync(transcriptPath, 'r');
+    const st = fs.fstatSync(fd);
+    if (!st.isFile() || st.size === 0) {
+      return { lines: [], sampledOversized: false, fileSizeBytes: st.size, sampledTailBytes: 0 };
+    }
+    const effectiveMaxFullBytes = Math.max(4096, Math.floor(maxFullBytes));
+    if (st.size <= effectiveMaxFullBytes) {
+      const buf = Buffer.alloc(st.size);
+      let off = 0;
+      while (off < st.size) {
+        const n = fs.readSync(fd, buf, off, st.size - off, off);
+        if (n <= 0) break;
+        off += n;
+      }
+      return {
+        lines: buf.subarray(0, off).toString('utf8').split(/\r?\n/),
+        sampledOversized: false,
+        fileSizeBytes: st.size,
+        sampledTailBytes: st.size,
+      };
+    }
+
+    // Oversized transcript (> effectiveMaxFullBytes, e.g., 60-95 MB session): read bounded head + tail slices
+    // while strictly honoring effectiveMaxFullBytes so listSessions never exceeds its read budget.
+    const headBudget = Math.min(OVERSIZED_TRANSCRIPT_HEAD_BYTES, Math.max(4096, Math.floor(effectiveMaxFullBytes / 4)));
+    const headLen = Math.min(headBudget, st.size);
+    const headBuf = Buffer.alloc(headLen);
+    let headOff = 0;
+    while (headOff < headLen) {
+      const n = fs.readSync(fd, headBuf, headOff, headLen - headOff, headOff);
+      if (n <= 0) break;
+      headOff += n;
+    }
+    let headText = headBuf.subarray(0, headOff).toString('utf8');
+    const lastHeadNl = headText.lastIndexOf('\n');
+    if (lastHeadNl >= 0) {
+      headText = headText.slice(0, lastHeadNl);
+    }
+
+    const tailBudget = Math.min(
+      OVERSIZED_TRANSCRIPT_TAIL_BYTES,
+      Math.max(4096, effectiveMaxFullBytes - headLen),
+    );
+    const tailLen = Math.min(tailBudget, Math.max(0, st.size - headOff));
+    const tailStart = st.size - tailLen;
+    const tailBuf = Buffer.alloc(tailLen);
+    let tailOff = 0;
+    while (tailOff < tailLen) {
+      const n = fs.readSync(fd, tailBuf, tailOff, tailLen - tailOff, tailStart + tailOff);
+      if (n <= 0) break;
+      tailOff += n;
+    }
+    let tailSliceStart = 0;
+    while (tailSliceStart < tailOff && (tailBuf[tailSliceStart] & 0xc0) === 0x80) {
+      tailSliceStart += 1;
+    }
+    let tailText = tailBuf.subarray(tailSliceStart, tailOff).toString('utf8');
+    if (tailStart > 0) {
+      const firstTailNl = tailText.indexOf('\n');
+      tailText = firstTailNl >= 0 ? tailText.slice(firstTailNl + 1) : '';
+    }
+
+    const combinedLines = [...headText.split(/\r?\n/), ...tailText.split(/\r?\n/)];
+    return {
+      lines: combinedLines,
+      sampledOversized: true,
+      fileSizeBytes: st.size,
+      sampledTailBytes: tailLen,
+    };
+  } finally {
+    if (fd !== undefined) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        // ignore close failure
+      }
+    }
+  }
+}
+
 export function parseTranscriptFile(
   transcriptPath: string,
   opts: {
@@ -594,10 +719,15 @@ export function parseTranscriptFile(
     brainDir?: string;
     siblingBrainRoot?: string;
     pricingOverrides?: PricingOverrideMap;
+    maxFullBytes?: number;
   } = {},
 ): SessionDetail {
-  const rawText = fs.readFileSync(transcriptPath, 'utf8');
-  return parseTranscriptLines(rawText.split(/\r?\n/), {
+  const effectiveMaxFullBytes = opts.maxFullBytes ?? MAX_FULL_TRANSCRIPT_BYTES;
+  const { lines, sampledOversized, fileSizeBytes, sampledTailBytes } = readBoundedTranscriptLines(
+    transcriptPath,
+    effectiveMaxFullBytes,
+  );
+  const detail = parseTranscriptLines(lines, {
     transcriptPath,
     brainDir: opts.brainDir ?? path.resolve(path.dirname(transcriptPath), '..', '..'),
     sessionId: opts.sessionId ?? path.basename(path.resolve(path.dirname(transcriptPath), '..', '..')),
@@ -605,6 +735,23 @@ export function parseTranscriptFile(
     siblingBrainRoot: opts.siblingBrainRoot,
     pricingOverrides: opts.pricingOverrides,
   });
+  if (sampledOversized) {
+    const sizeMb = (fileSizeBytes / (1024 * 1024)).toFixed(1);
+    const limitLabel =
+      effectiveMaxFullBytes >= 1024 * 1024
+        ? `${(effectiveMaxFullBytes / (1024 * 1024)).toFixed(0)} MiB`
+        : `${Math.round(effectiveMaxFullBytes / 1024)} KiB`;
+    const tailLabel =
+      sampledTailBytes >= 1024 * 1024
+        ? `${(sampledTailBytes / (1024 * 1024)).toFixed(1)} MiB`
+        : `${Math.round(sampledTailBytes / 1024)} KiB`;
+    detail.diagnostics.unshift({
+      severity: 'info',
+      title: `Large Transcript Bounded Sampling (${sizeMb} MB)`,
+      detail: `Transcript exceeded ${limitLabel} safety limit; sampled head + recent ${tailLabel} tail to keep memory bounded and prevent UI stalls.`,
+    });
+  }
+  return detail;
 }
 
 export function parseTranscriptLines(
@@ -1254,9 +1401,12 @@ export function parseTranscriptLines(
   return {
     summary,
     composition,
-    turns,
+    turns: turns.length > MAX_RETURNED_TURNS ? turns.slice(-MAX_RETURNED_TURNS) : turns,
     toolHotspots,
-    fileActivity,
+    fileActivity:
+      fileActivity.length > MAX_RETURNED_FILE_ACTIVITY
+        ? fileActivity.slice(0, MAX_RETURNED_FILE_ACTIVITY)
+        : fileActivity,
     artifacts,
     recentSteps: recentSteps.slice(-60).reverse(),
     diagnostics,

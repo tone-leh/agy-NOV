@@ -82,7 +82,7 @@ class StdioClient {
           },
         },
       },
-      clientInfo: { name: 'agy-nov-test', version: '1.2.1' },
+      clientInfo: { name: 'agy-nov-test', version: '1.2.2' },
     });
     this.proc.stdin.write(
       `${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' })}\n`,

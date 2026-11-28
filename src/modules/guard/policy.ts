@@ -140,11 +140,16 @@ const SENSITIVE_BASENAMES = new Set([
   '.npmrc',
   '.netrc',
   '.pypirc',
+  '.gitconfig',
+  '.git-credentials',
+  '.vault-token',
   'id_rsa',
   'id_ed25519',
   'id_dsa',
   'id_ecdsa',
   'credentials',
+  'credentials.json',
+  'application_default_credentials.json',
   'secrets.yaml',
   'secrets.yml',
   'secrets.json',
@@ -159,16 +164,36 @@ const SHELL_SENSITIVE_BASENAMES = new Set([
   '.netrc',
   '.npmrc',
   '.pypirc',
+  '.gitconfig',
+  '.git-credentials',
+  '.vault-token',
+  'credentials.json',
+  'application_default_credentials.json',
 ]);
 
 const SENSITIVE_EXTENSIONS = new Set(['.pem', '.key', '.p12', '.pfx', '.jks', '.keystore']);
 
 const SENSITIVE_PATH_REGEXES: Array<{ ruleId: string; regex: RegExp; label: string }> = [
   { ruleId: 'path.ssh-dir', regex: /(?:^|[/\\])\.ssh(?:[/\\]|$)/i, label: 'SSH key directory (~/.ssh)' },
-  { ruleId: 'path.aws-dir', regex: /(?:^|[/\\])\.aws[/\\](?:credentials|config)(?:[/\\]|$)/i, label: 'AWS credentials directory' },
+  { ruleId: 'path.aws-dir', regex: /(?:^|[/\\])\.aws[/\\](?:credentials|config|sso[/\\]cache)(?:[/\\]|$)/i, label: 'AWS credentials directory' },
   { ruleId: 'path.kube-config', regex: /(?:^|[/\\])\.kube[/\\]config$/i, label: 'Kubernetes config' },
   { ruleId: 'path.gcp-sa', regex: /service[-_]?account.*\.json$/i, label: 'GCP service account JSON' },
   { ruleId: 'path.gnupg', regex: /(?:^|[/\\])\.gnupg(?:[/\\]|$)/i, label: 'GPG private keyring' },
+  { ruleId: 'path.git-config', regex: /(?:^|[/\\])\.git[/\\]config$/i, label: 'Git repository config (.git/config)' },
+  { ruleId: 'path.git-hooks', regex: /(?:^|[/\\])\.git[/\\]hooks(?:[/\\]|$)/i, label: 'Git repository hooks (.git/hooks)' },
+  { ruleId: 'path.docker-config', regex: /(?:^|[/\\])\.docker[/\\]config\.json$/i, label: 'Docker registry auth config (~/.docker/config.json)' },
+  { ruleId: 'path.gh-hosts', regex: /(?:^|[/\\])\.config[/\\]gh[/\\]hosts\.yml$/i, label: 'GitHub CLI OAuth hosts (~/.config/gh/hosts.yml)' },
+  { ruleId: 'path.gcloud-creds', regex: /(?:^|[/\\])\.config[/\\]gcloud[/\\](?:credentials\.db|access_tokens\.db|application_default_credentials\.json)$/i, label: 'Google Cloud CLI credentials' },
+  {
+    ruleId: 'path.agent-host-config',
+    regex: /(?:^|[/\\])\.gemini[/\\](?:settings\.json|oauth_creds\.json|google_accounts\.json|mcp_config\.json|antigravity(?:-(?:cli|ide))?[/\\](?:settings\.json|mcp_config\.json))$/i,
+    label: 'Host Antigravity/Gemini sensitive configuration',
+  },
+  {
+    ruleId: 'path.claude-codex-config',
+    regex: /(?:^|[/\\])(?:\.claude\.json|\.claude[/\\](?:settings(?:\.local)?\.json|credentials\.json)|\.codex[/\\](?:auth\.json|config\.toml))$/i,
+    label: 'Host AI CLI sensitive configuration/auth',
+  },
 ];
 
 const WIN_CATASTROPHIC_TARGET_SOURCE = [
@@ -568,6 +593,21 @@ function isSafeEnvBasename(lowerBase: string): boolean {
   return lowerBase.startsWith('.env.') && SAFE_ENV_SUFFIXES.some((s) => lowerBase.endsWith(s));
 }
 
+function normalizePathVariantsForSecurity(rawPath: string): string[] {
+  const cleaned = rawPath.replace(/\\/g, '/').trim().replace(/\/+$/, '');
+  if (!cleaned) return [];
+  let canonical: string;
+  if (cleaned === '~') {
+    canonical = '~';
+  } else if (cleaned.startsWith('~/')) {
+    const rest = path.posix.normalize(cleaned.slice(2)).replace(/\/+$/, '');
+    canonical = rest && rest !== '.' ? `~/${rest}` : '~';
+  } else {
+    canonical = path.posix.normalize(cleaned).replace(/\/+$/, '') || '/';
+  }
+  return canonical !== cleaned ? [cleaned, canonical] : [cleaned];
+}
+
 function detectCommandSensitiveAccess(
   commandLine: string,
   customProtectedPaths: string[],
@@ -575,76 +615,90 @@ function detectCommandSensitiveAccess(
   const rawTokens = commandLine.split(/[\s"'`()\[\]{}<>|&;,=@:]+/).filter(Boolean);
 
   for (const rawTok of rawTokens) {
-    const norm = rawTok.replace(/\\/g, '/').replace(/\/+$/, '');
-    if (!norm || norm === '-' || norm === '--') continue;
-    const base = path.posix.basename(norm);
-    const lowerBase = base.toLowerCase();
+    const variants = normalizePathVariantsForSecurity(rawTok);
+    for (const norm of variants) {
+      if (!norm || norm === '-' || norm === '--') continue;
+      const base = path.posix.basename(norm);
+      const lowerBase = base.toLowerCase();
 
-    if (
-      lowerBase === '.env' ||
-      lowerBase === '.envrc' ||
-      lowerBase.startsWith('.env.') ||
-      /^\.env[*?[]/.test(lowerBase)
-    ) {
-      if (!isSafeEnvBasename(lowerBase)) {
+      if (
+        lowerBase === '.env' ||
+        lowerBase === '.envrc' ||
+        lowerBase.startsWith('.env.') ||
+        /^\.env[*?[]/.test(lowerBase)
+      ) {
+        if (!isSafeEnvBasename(lowerBase)) {
+          return {
+            ruleId: 'cmd.read-env-secret',
+            category: 'sensitive-file',
+            label: `Shell access/exfiltration of .env file (${base})`,
+          };
+        }
+        continue;
+      }
+
+      if (/(?:^|\/)\.ssh(?:\/|$)/i.test(norm)) {
         return {
-          ruleId: 'cmd.read-env-secret',
+          ruleId: 'cmd.read-ssh-aws',
           category: 'sensitive-file',
-          label: `Shell access/exfiltration of .env file (${base})`,
+          label: 'Shell access/exfiltration of SSH directory',
         };
       }
-      continue;
-    }
 
-    if (/(?:^|\/)\.ssh(?:\/|$)/i.test(norm)) {
-      return {
-        ruleId: 'cmd.read-ssh-aws',
-        category: 'sensitive-file',
-        label: 'Shell access/exfiltration of SSH directory',
-      };
-    }
-
-    if (/(?:^|\/)\.aws\/(?:credentials|config)(?:\/|$)/i.test(norm)) {
-      return {
-        ruleId: 'cmd.read-ssh-aws',
-        category: 'sensitive-file',
-        label: 'Shell access/exfiltration of AWS credentials',
-      };
-    }
-
-    if (/(?:^|\/)\.gnupg(?:\/|$)/i.test(norm)) {
-      return {
-        ruleId: 'cmd.read-ssh-aws',
-        category: 'sensitive-file',
-        label: 'Shell access/exfiltration of GPG private keyring',
-      };
-    }
-
-    if (/(?:^|\/)\.kube\/config$/i.test(norm)) {
-      return {
-        ruleId: 'cmd.read-ssh-aws',
-        category: 'sensitive-file',
-        label: 'Shell access/exfiltration of Kubernetes config',
-      };
-    }
-
-    if (SHELL_SENSITIVE_BASENAMES.has(lowerBase)) {
-      return {
-        ruleId: 'cmd.read-ssh-aws',
-        category: 'sensitive-file',
-        label: `Shell access/exfiltration of credential file (${base})`,
-      };
-    }
-
-    for (const rawPat of customProtectedPaths) {
-      const pat = rawPat.trim();
-      if (!pat) continue;
-      if (norm.toLowerCase().includes(pat.toLowerCase())) {
+      if (/(?:^|\/)\.aws\/(?:credentials|config)(?:\/|$)/i.test(norm)) {
         return {
-          ruleId: 'custom.path',
-          category: 'custom',
-          label: `Custom protected path rule (${pat})`,
+          ruleId: 'cmd.read-ssh-aws',
+          category: 'sensitive-file',
+          label: 'Shell access/exfiltration of AWS credentials',
         };
+      }
+
+      if (/(?:^|\/)\.gnupg(?:\/|$)/i.test(norm)) {
+        return {
+          ruleId: 'cmd.read-ssh-aws',
+          category: 'sensitive-file',
+          label: 'Shell access/exfiltration of GPG private keyring',
+        };
+      }
+
+      if (/(?:^|\/)\.kube\/config$/i.test(norm)) {
+        return {
+          ruleId: 'cmd.read-ssh-aws',
+          category: 'sensitive-file',
+          label: 'Shell access/exfiltration of Kubernetes config',
+        };
+      }
+
+      // Keep shell command protection strictly aligned with file-tool SENSITIVE_PATH_REGEXES
+      // (including Antigravity v2.36+ cross-repo sensitive config files and .git/hooks).
+      for (const rule of SENSITIVE_PATH_REGEXES) {
+        if (rule.regex.test(norm)) {
+          return {
+            ruleId: `cmd.${rule.ruleId}`,
+            category: 'sensitive-file',
+            label: `Shell access/modification of ${rule.label}`,
+          };
+        }
+      }
+
+      if (SHELL_SENSITIVE_BASENAMES.has(lowerBase)) {
+        return {
+          ruleId: 'cmd.read-ssh-aws',
+          category: 'sensitive-file',
+          label: `Shell access/exfiltration of credential file (${base})`,
+        };
+      }
+
+      for (const rawPat of customProtectedPaths) {
+        const pat = rawPat.trim();
+        if (!pat) continue;
+        if (norm.toLowerCase().includes(pat.toLowerCase())) {
+          return {
+            ruleId: 'custom.path',
+            category: 'custom',
+            label: `Custom protected path rule (${pat})`,
+          };
+        }
       }
     }
   }
@@ -733,39 +787,44 @@ export function scanTextForSecrets(text: string): SecretFinding[] {
 
 export function isSensitivePath(filePath: string, customPatterns: string[] = []): { sensitive: boolean; ruleId?: string; label?: string } {
   if (!filePath) return { sensitive: false };
-  const normalized = filePath.replace(/\\/g, '/').trim().replace(/\/+$/, '');
-  if (!normalized) return { sensitive: false };
-  const base = path.posix.basename(normalized);
-  const lowerBase = base.toLowerCase();
+  const variants = normalizePathVariantsForSecurity(filePath);
+  if (variants.length === 0) return { sensitive: false };
 
-  for (const rule of SENSITIVE_PATH_REGEXES) {
-    if (rule.regex.test(normalized)) {
-      return { sensitive: true, ruleId: rule.ruleId, label: rule.label };
+  for (const normalized of variants) {
+    for (const rule of SENSITIVE_PATH_REGEXES) {
+      if (rule.regex.test(normalized)) {
+        return { sensitive: true, ruleId: rule.ruleId, label: rule.label };
+      }
+    }
+
+    for (const rawPat of customPatterns) {
+      const pat = rawPat.trim();
+      if (!pat) continue;
+      if (normalized.toLowerCase().includes(pat.toLowerCase())) {
+        return { sensitive: true, ruleId: 'custom.path', label: `Custom protected path rule (${pat})` };
+      }
     }
   }
 
-  for (const rawPat of customPatterns) {
-    const pat = rawPat.trim();
-    if (!pat) continue;
-    if (normalized.toLowerCase().includes(pat.toLowerCase())) {
-      return { sensitive: true, ruleId: 'custom.path', label: `Custom protected path rule (${pat})` };
+  for (const normalized of variants) {
+    const base = path.posix.basename(normalized);
+    const lowerBase = base.toLowerCase();
+
+    if (isSafeEnvBasename(lowerBase)) {
+      continue;
     }
-  }
 
-  if (isSafeEnvBasename(lowerBase)) {
-    return { sensitive: false };
-  }
+    if (lowerBase === '.env' || lowerBase === '.envrc' || lowerBase.startsWith('.env.')) {
+      return { sensitive: true, ruleId: 'path.dotenv', label: `Environment secrets file (${base})` };
+    }
+    if (SENSITIVE_BASENAMES.has(lowerBase)) {
+      return { sensitive: true, ruleId: 'path.sensitive-file', label: `Protected credential file (${base})` };
+    }
 
-  if (lowerBase === '.env' || lowerBase === '.envrc' || lowerBase.startsWith('.env.')) {
-    return { sensitive: true, ruleId: 'path.dotenv', label: `Environment secrets file (${base})` };
-  }
-  if (SENSITIVE_BASENAMES.has(lowerBase)) {
-    return { sensitive: true, ruleId: 'path.sensitive-file', label: `Protected credential file (${base})` };
-  }
-
-  const ext = path.posix.extname(lowerBase);
-  if (SENSITIVE_EXTENSIONS.has(ext)) {
-    return { sensitive: true, ruleId: 'path.private-key-ext', label: `Private key / certificate file (${base})` };
+    const ext = path.posix.extname(lowerBase);
+    if (SENSITIVE_EXTENSIONS.has(ext)) {
+      return { sensitive: true, ruleId: 'path.private-key-ext', label: `Private key / certificate file (${base})` };
+    }
   }
 
   return { sensitive: false };

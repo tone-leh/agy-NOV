@@ -77,7 +77,7 @@ class StdioMcpClient {
           },
         },
       },
-      clientInfo: { name: 'agy-nov-workbench', version: '1.2.1' },
+      clientInfo: { name: 'agy-nov-workbench', version: '1.2.2' },
     });
     this.proc.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' })}\n`);
   }
@@ -120,7 +120,7 @@ const hostShell = () => `<!doctype html>
 </head>
 <body>
   <div class="bar">
-    <div><strong>agy-NOV v1.2.1 Offline Workbench</strong> · Mode: <code>${useLocal ? 'Local Workspace' : 'Synthetic Demo'}</code> · Zero ASAR / Zero CDP · Daily Antigravity untouched</div>
+    <div><strong>agy-NOV v1.2.2 Offline Workbench</strong> · Mode: <code>${useLocal ? 'Local Workspace' : 'Synthetic Demo'}</code> · Zero ASAR / Zero CDP · Daily Antigravity untouched</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
       <button onclick="setWidth('480px')">Aux Pane (480px)</button>
       <button onclick="setWidth('1160px')">Global (1160px)</button>

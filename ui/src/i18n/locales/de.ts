@@ -202,6 +202,9 @@ export const DE_DICT: UiDictionary = {
     invalid: 'UNGÜLTIG',
     truncated: 'GEKÜRZT',
     actionFailed: 'Aktion fehlgeschlagen: {error}',
+    errorBoundaryTitle: 'Renderfehler in {scope}',
+    errorBoundaryReturnHome: 'Zurück zum Hub',
+    errorBoundaryReload: 'Panel neu laden',
   },
   turbo: {
     title: 'Turbo & Ausgabeschutz',

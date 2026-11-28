@@ -199,6 +199,9 @@ export const ZH_CN_DICT: UiDictionary = {
     invalid: '无效',
     truncated: '已截断',
     actionFailed: '操作失败：{error}',
+    errorBoundaryTitle: '{scope} 渲染异常',
+    errorBoundaryReturnHome: '返回工作台',
+    errorBoundaryReload: '重载面板',
   },
   turbo: {
     title: '极速批处理与大输出防刷屏',

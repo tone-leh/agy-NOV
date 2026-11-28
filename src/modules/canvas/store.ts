@@ -4,7 +4,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { getModuleDataDir, resolveNovDataDir, sanitizeDataDirCandidate } from '../../core/config.js';
 import {
-  atomicRenameSync,
+  atomicWriteJson,
   canonicalRealpathSync,
   isPathInsideDir,
   isSamePath,
@@ -263,6 +263,9 @@ export class CanvasStore {
     return path.join(this.boardsDir, `${slugifyId(id)}.json`);
   }
 
+  private static readonly MAX_BOARD_FILE_BYTES = 8 * 1024 * 1024;
+  private static readonly MAX_ANNOTATIONS_PER_BOARD = 500;
+
   private readBoardById(boardId: string): CanvasBoard | null {
     if (typeof boardId !== 'string' || !BOARD_ID_RE.test(boardId)) {
       return null;
@@ -272,6 +275,10 @@ export class CanvasStore {
       return null;
     }
     try {
+      const st = fs.lstatSync(p);
+      if (st.isSymbolicLink() || !st.isFile() || st.size > CanvasStore.MAX_BOARD_FILE_BYTES) {
+        return null;
+      }
       const parsed = JSON.parse(fs.readFileSync(p, 'utf8')) as CanvasBoard;
       if (!parsed || typeof parsed.id !== 'string') return null;
       return parsed;
@@ -283,18 +290,18 @@ export class CanvasStore {
   private writeBoard(board: CanvasBoard): void {
     this.ensureStorageDirs();
     const file = this.boardPath(board.id);
-    const tmp = `${file}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(board, null, 2), { encoding: 'utf8', mode: 0o600 });
-    chmodSafe(tmp, 0o600);
-    atomicRenameSync(tmp, file);
-    chmodSafe(file, 0o600);
+    atomicWriteJson(file, board);
   }
 
   listBoards(): CanvasBoardSummary[] {
     this.ensureDemoSeeded();
     const out: CanvasBoardSummary[] = [];
-    for (const file of this.listBoardFiles()) {
+    for (const file of this.listBoardFiles().slice(0, 200)) {
       try {
+        const st = fs.lstatSync(file);
+        if (st.isSymbolicLink() || !st.isFile() || st.size > CanvasStore.MAX_BOARD_FILE_BYTES) {
+          continue;
+        }
         const b = JSON.parse(fs.readFileSync(file, 'utf8')) as CanvasBoard;
         out.push({
           id: b.id,
@@ -411,6 +418,14 @@ export class CanvasStore {
       status: 'open',
       createdAt: new Date().toISOString(),
     };
+    if (board.annotations.length >= CanvasStore.MAX_ANNOTATIONS_PER_BOARD) {
+      const oldestResolvedIdx = board.annotations.findIndex((a) => a.status === 'resolved');
+      if (oldestResolvedIdx >= 0) {
+        board.annotations.splice(oldestResolvedIdx, 1);
+      } else {
+        board.annotations.shift();
+      }
+    }
     board.annotations.push(pin);
     board.updatedAt = new Date().toISOString();
     this.writeBoard(board);

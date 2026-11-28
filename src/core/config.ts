@@ -209,16 +209,77 @@ export function normalizeConfig(raw: unknown): NovConfig {
   };
 }
 
+const MAX_CONFIG_FILE_BYTES = 1024 * 1024; // 1 MiB safety cap
+
 export function loadNovConfigReadOnly(rootDataDir: string): NovConfig {
   const cfgPath = getConfigPath(rootDataDir);
   if (!fs.existsSync(cfgPath)) {
     return createDefaultConfig();
   }
   try {
+    const st = fs.lstatSync(cfgPath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_CONFIG_FILE_BYTES) {
+      return createDefaultConfig();
+    }
     const raw = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
     return normalizeConfig(raw);
   } catch {
     return createDefaultConfig();
+  }
+}
+
+function isConfigSemanticallyEqual(a: NovConfig, b: NovConfig): boolean {
+  if (
+    a.schemaVersion !== b.schemaVersion ||
+    a.preset !== b.preset ||
+    a.defaultTab !== b.defaultTab ||
+    a.startupView !== b.startupView ||
+    a.locale !== b.locale
+  ) {
+    return false;
+  }
+  return MODULE_IDS.every((id) => Boolean(a.modules[id]) === Boolean(b.modules[id]));
+}
+
+function readExistingCanonicalConfig(cfgPath: string): NovConfig | null {
+  try {
+    const st = fs.lstatSync(cfgPath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size <= 0 || st.size > MAX_CONFIG_FILE_BYTES) {
+      return null;
+    }
+    if (process.platform !== 'win32' && (st.mode & 0o777) !== 0o600) {
+      return null;
+    }
+    const raw = JSON.parse(fs.readFileSync(cfgPath, 'utf8')) as unknown;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      return null;
+    }
+    const obj = raw as Record<string, unknown>;
+    const rawMods =
+      obj.modules && typeof obj.modules === 'object' && !Array.isArray(obj.modules)
+        ? (obj.modules as Record<string, unknown>)
+        : null;
+    if (!rawMods || typeof obj.updatedAt !== 'string' || !obj.updatedAt) {
+      return null;
+    }
+    const normalized = normalizeConfig(obj);
+    // Require persisted JSON to already be canonical so malformed/legacy configs still rewrite cleanly
+    const modsAlreadyCanonical = MODULE_IDS.every(
+      (id) => typeof rawMods[id] === 'boolean' && rawMods[id] === normalized.modules[id],
+    );
+    if (
+      !modsAlreadyCanonical ||
+      obj.schemaVersion !== normalized.schemaVersion ||
+      obj.preset !== normalized.preset ||
+      obj.defaultTab !== normalized.defaultTab ||
+      obj.startupView !== normalized.startupView ||
+      obj.locale !== normalized.locale
+    ) {
+      return null;
+    }
+    return normalized;
+  } catch {
+    return null;
   }
 }
 
@@ -227,17 +288,36 @@ export function saveNovConfig(rootDataDir: string, config: NovConfig): NovConfig
     ...config,
     updatedAt: new Date().toISOString(),
   });
+  const cfgPath = getConfigPath(rootDataDir);
+  const existing = readExistingCanonicalConfig(cfgPath);
+  if (existing && isConfigSemanticallyEqual(existing, normalized)) {
+    return existing;
+  }
+
   fs.mkdirSync(rootDataDir, { recursive: true, mode: 0o700 });
   try {
     fs.chmodSync(rootDataDir, 0o700);
   } catch {
     // ignore
   }
-  const cfgPath = getConfigPath(rootDataDir);
   const tmpPath = `${cfgPath}.tmp.${process.pid}.${Date.now()}.${crypto.randomBytes(4).toString('hex')}`;
-  fs.writeFileSync(tmpPath, `${JSON.stringify(normalized, null, 2)}\n`, { mode: 0o600 });
-  atomicRenameSync(tmpPath, cfgPath);
-  return normalized;
+  try {
+    fs.writeFileSync(tmpPath, `${JSON.stringify(normalized, null, 2)}\n`, { mode: 0o600 });
+    try {
+      fs.chmodSync(tmpPath, 0o600);
+    } catch {
+      // ignore
+    }
+    atomicRenameSync(tmpPath, cfgPath);
+    return normalized;
+  } catch (err) {
+    try {
+      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+    } catch {
+      // ignore
+    }
+    throw err;
+  }
 }
 
 export function loadOrInitNovConfig(rootDataDir: string): NovConfig {
@@ -246,6 +326,10 @@ export function loadOrInitNovConfig(rootDataDir: string): NovConfig {
     return createDefaultConfig();
   }
   try {
+    const st = fs.lstatSync(cfgPath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_CONFIG_FILE_BYTES) {
+      return createDefaultConfig();
+    }
     const raw = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
     return normalizeConfig(raw);
   } catch {

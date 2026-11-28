@@ -1,3 +1,4 @@
+import os from 'node:os';
 import path from 'node:path';
 import { getModuleDataDir } from '../../core/config.js';
 import type { NormalizedHookPayload } from '../../core/types.js';
@@ -42,7 +43,15 @@ export function handleGuardPreToolHook(
   let resolvedTargetPath: string | undefined;
   let symlinkLoopBlocked = false;
   if (targetPath) {
-    const absTarget = path.isAbsolute(targetPath) ? targetPath : path.resolve(workspaceRoot, targetPath);
+    const expandedTarget =
+      targetPath === '~'
+        ? os.homedir()
+        : /^~[/\\]/.test(targetPath)
+          ? path.join(os.homedir(), targetPath.slice(2))
+          : targetPath;
+    const absTarget = path.isAbsolute(expandedTarget)
+      ? expandedTarget
+      : path.resolve(workspaceRoot, expandedTarget);
     try {
       resolvedTargetPath = resolveRealPathWithMissingTail(absTarget);
     } catch {

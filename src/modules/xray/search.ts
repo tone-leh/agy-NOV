@@ -56,17 +56,96 @@ function extractSnippet(text: string, query: string, maxLen = 220): string {
   return `${start > 0 ? '…' : ''}${clean.slice(start, end)}${end < clean.length ? '…' : ''}`;
 }
 
+const MAX_SEARCH_TRANSCRIPT_SLICE_BYTES = 512 * 1024;
+const MAX_SEARCH_ARTIFACT_BYTES = 64 * 1024;
+const MAX_SEARCH_ARTIFACTS_PER_SESSION = 20;
+const MAX_TOTAL_SEARCH_READ_BYTES = 32 * 1024 * 1024;
+
+function readBoundedSearchSlice(
+  filePath: string,
+  maxBytes: number,
+  includeTailIfOversized: boolean,
+): { text: string; bytesRead: number } {
+  let fd: number | undefined;
+  try {
+    fd = fs.openSync(filePath, 'r');
+    const st = fs.fstatSync(fd);
+    if (!st.isFile() || st.size <= 0) {
+      return { text: '', bytesRead: 0 };
+    }
+    if (st.size <= maxBytes) {
+      const buf = Buffer.alloc(st.size);
+      let off = 0;
+      while (off < st.size) {
+        const n = fs.readSync(fd, buf, off, st.size - off, off);
+        if (n <= 0) break;
+        off += n;
+      }
+      return { text: buf.subarray(0, off).toString('utf8'), bytesRead: off };
+    }
+
+    const headBuf = Buffer.alloc(maxBytes);
+    let headOff = 0;
+    while (headOff < maxBytes) {
+      const n = fs.readSync(fd, headBuf, headOff, maxBytes - headOff, headOff);
+      if (n <= 0) break;
+      headOff += n;
+    }
+    let headText = headBuf.subarray(0, headOff).toString('utf8');
+    if (!includeTailIfOversized) {
+      return { text: headText, bytesRead: headOff };
+    }
+
+    const lastHeadNl = headText.lastIndexOf('\n');
+    if (lastHeadNl >= 0) headText = headText.slice(0, lastHeadNl);
+
+    const tailLen = Math.min(maxBytes, Math.max(0, st.size - headOff));
+    const tailStart = st.size - tailLen;
+    const tailBuf = Buffer.alloc(tailLen);
+    let tailOff = 0;
+    while (tailOff < tailLen) {
+      const n = fs.readSync(fd, tailBuf, tailOff, tailLen - tailOff, tailStart + tailOff);
+      if (n <= 0) break;
+      tailOff += n;
+    }
+    let tailText = tailBuf.subarray(0, tailOff).toString('utf8');
+    const firstTailNl = tailText.indexOf('\n');
+    if (firstTailNl >= 0) tailText = tailText.slice(firstTailNl + 1);
+
+    return {
+      text: `${headText}\n${tailText}`,
+      bytesRead: headOff + tailOff,
+    };
+  } finally {
+    if (fd !== undefined) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        // ignore close failure
+      }
+    }
+  }
+}
+
 function collectDocuments(opts: DiscoveryOptions & { maxSessions?: number }): IndexedDocument[] {
   const entries = discoverTranscriptEntries(opts).slice(0, opts.maxSessions ?? 80);
   const docs: IndexedDocument[] = [];
+  let totalReadBytes = 0;
 
   for (const entry of entries) {
+    if (totalReadBytes >= MAX_TOTAL_SEARCH_READ_BYTES) break;
     let sessionTitle = `Session ${entry.id.slice(0, 8)}`;
     const updatedAt = new Date(entry.mtimeMs).toISOString();
     const transcriptChunks: string[] = [];
 
     try {
-      const lines = fs.readFileSync(entry.transcriptPath, 'utf8').split(/\r?\n/);
+      const slice = readBoundedSearchSlice(
+        entry.transcriptPath,
+        MAX_SEARCH_TRANSCRIPT_SLICE_BYTES,
+        true,
+      );
+      totalReadBytes += slice.bytesRead;
+      const lines = slice.text.split(/\r?\n/);
       for (const line of lines) {
         if (!line.trim()) continue;
         try {
@@ -77,8 +156,9 @@ function collectDocuments(opts: DiscoveryOptions & { maxSessions?: number }): In
             tool_calls?: Array<{ name?: string; args?: Record<string, unknown> }>;
           };
           if (obj.type === 'USER_INPUT' && obj.content) {
-            const match = obj.content.match(/<USER_REQUEST>\s*([\s\S]*?)\s*<\/USER_REQUEST>/i);
-            const body = (match ? match[1] : obj.content).replace(/\s+/g, ' ').trim();
+            const boundedContent = obj.content.slice(0, 8192);
+            const match = boundedContent.match(/<USER_REQUEST>\s*([\s\S]*?)\s*<\/USER_REQUEST>/i);
+            const body = (match ? match[1] : boundedContent).replace(/\s+/g, ' ').trim();
             if (body && sessionTitle.startsWith('Session ')) {
               sessionTitle = body.slice(0, 72) + (body.length > 72 ? '…' : '');
             }
@@ -86,9 +166,21 @@ function collectDocuments(opts: DiscoveryOptions & { maxSessions?: number }): In
           } else if (obj.type === 'PLANNER_RESPONSE') {
             if (obj.content) transcriptChunks.push(obj.content.slice(0, 1200));
             if (obj.tool_calls) {
-              for (const tc of obj.tool_calls) {
+              for (const tc of obj.tool_calls.slice(0, 20)) {
                 if (tc.name) transcriptChunks.push(tc.name);
-                if (tc.args) transcriptChunks.push(JSON.stringify(tc.args).slice(0, 400));
+                if (tc.args && typeof tc.args === 'object') {
+                  const argPreviewParts: string[] = [];
+                  for (const [k, v] of Object.entries(tc.args).slice(0, 8)) {
+                    if (typeof v === 'string') {
+                      argPreviewParts.push(`${k}=${v.slice(0, 120)}`);
+                    } else if (typeof v === 'number' || typeof v === 'boolean') {
+                      argPreviewParts.push(`${k}=${String(v)}`);
+                    }
+                  }
+                  if (argPreviewParts.length > 0) {
+                    transcriptChunks.push(argPreviewParts.join(' ').slice(0, 400));
+                  }
+                }
               }
             }
           }
@@ -116,21 +208,31 @@ function collectDocuments(opts: DiscoveryOptions & { maxSessions?: number }): In
     }
 
     try {
+      let artCount = 0;
       for (const dirent of fs.readdirSync(entry.brainDir, { withFileTypes: true })) {
+        if (artCount >= MAX_SEARCH_ARTIFACTS_PER_SESSION) break;
+        if (totalReadBytes >= MAX_TOTAL_SEARCH_READ_BYTES) break;
         if (!dirent.isFile() || !/\.md$/i.test(dirent.name) || dirent.name.startsWith('.')) continue;
         const artPath = path.join(entry.brainDir, dirent.name);
-        const content = fs.readFileSync(artPath, 'utf8').slice(0, 40_000);
-        docs.push({
-          sessionId: entry.id,
-          sessionTitle,
-          updatedAt: fs.statSync(artPath).mtime.toISOString(),
-          sourceKind: 'artifact',
-          sourceLabel: dirent.name,
-          filePath: artPath,
-          uri: pathToFileURL(artPath).href,
-          text: `${dirent.name}\n${content}`,
-          tokens: tokenize(`${dirent.name} ${content}`),
-        });
+        try {
+          const slice = readBoundedSearchSlice(artPath, MAX_SEARCH_ARTIFACT_BYTES, false);
+          totalReadBytes += slice.bytesRead;
+          const content = slice.text.slice(0, 40_000);
+          artCount += 1;
+          docs.push({
+            sessionId: entry.id,
+            sessionTitle,
+            updatedAt: fs.statSync(artPath).mtime.toISOString(),
+            sourceKind: 'artifact',
+            sourceLabel: dirent.name,
+            filePath: artPath,
+            uri: pathToFileURL(artPath).href,
+            text: `${dirent.name}\n${content}`,
+            tokens: tokenize(`${dirent.name} ${content}`),
+          });
+        } catch {
+          // ignore unreadable artifact
+        }
       }
     } catch {
       // ignore artifact scan error

@@ -1,7 +1,7 @@
 {
   "name": "agy-nov",
   "displayName": "agy-NOV",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "100% native modular workbench for Antigravity 2.0 (Zero ASAR/CDP): 13 toggleable modules, Spec workflows, Secret Guard, Verify Gate & 8-language UI.",
   "logo": "assets/logo.svg",
   "author": {

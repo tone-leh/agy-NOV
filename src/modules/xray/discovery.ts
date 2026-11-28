@@ -58,6 +58,9 @@ export interface DiscoveredSessionEntry {
   mtimeMs: number;
 }
 
+const MAX_DISCOVER_DIRS_PER_ROOT = 2000;
+const MAX_DISCOVERED_ENTRIES = 500;
+
 export function discoverTranscriptEntries(opts: DiscoveryOptions = {}): DiscoveredSessionEntry[] {
   const roots = opts.brainDirs ?? getDefaultBrainDirs();
   const entries: DiscoveredSessionEntry[] = [];
@@ -71,8 +74,11 @@ export function discoverTranscriptEntries(opts: DiscoveryOptions = {}): Discover
     } catch {
       continue;
     }
+    let scannedDirs = 0;
     for (const child of children) {
       if (!child.isDirectory()) continue;
+      if (scannedDirs >= MAX_DISCOVER_DIRS_PER_ROOT) break;
+      scannedDirs += 1;
       const brainDir = path.join(root.dir, child.name);
       const candidates = [
         path.join(brainDir, '.system_generated', 'logs', 'transcript.jsonl'),
@@ -84,7 +90,7 @@ export function discoverTranscriptEntries(opts: DiscoveryOptions = {}): Discover
         seen.add(transcriptPath);
         try {
           const stat = fs.statSync(transcriptPath);
-          if (stat.size === 0) continue;
+          if (!stat.isFile() || stat.size === 0) continue;
           entries.push({
             id: child.name,
             source: root.source,
@@ -100,8 +106,13 @@ export function discoverTranscriptEntries(opts: DiscoveryOptions = {}): Discover
     }
   }
 
-  return entries.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  return entries
+    .sort((a, b) => b.mtimeMs - a.mtimeMs)
+    .slice(0, MAX_DISCOVERED_ENTRIES);
 }
+
+const MAX_LIST_SESSIONS_FULL_BYTES = 2 * 1024 * 1024;
+const MAX_LIST_SESSIONS_TOTAL_READ_BYTES = 24 * 1024 * 1024;
 
 export function listSessions(
   opts: DiscoveryOptions & { limit?: number } = {},
@@ -113,13 +124,21 @@ export function listSessions(
   const entries = discoverTranscriptEntries(opts).slice(0, limit);
   const pricingOverrides = loadPricingOverrides(opts.dataDir);
   const summaries: SessionSummary[] = [];
+  let totalReadBudget = 0;
   for (const entry of entries) {
+    if (totalReadBudget >= MAX_LIST_SESSIONS_TOTAL_READ_BYTES) break;
     try {
+      const st = fs.statSync(entry.transcriptPath);
+      if (!st.isFile() || st.size === 0) continue;
+      // Only summary metadata is needed here; sample files > 2 MiB to prevent event-loop stalls
+      const estimatedRead = Math.min(st.size, MAX_LIST_SESSIONS_FULL_BYTES);
+      totalReadBudget += estimatedRead;
       const detail = parseTranscriptFile(entry.transcriptPath, {
         sessionId: entry.id,
         source: entry.source,
         brainDir: entry.brainDir,
         pricingOverrides,
+        maxFullBytes: MAX_LIST_SESSIONS_FULL_BYTES,
       });
       summaries.push(detail.summary);
     } catch {
@@ -147,13 +166,17 @@ export function loadSessionDetail(
   if (targetId) {
     const match = entries.find((e) => e.id === targetId || e.id.startsWith(targetId));
     if (match) {
-      return parseTranscriptFile(match.transcriptPath, {
-        sessionId: match.id,
-        source: match.source,
-        brainDir: match.brainDir,
-        siblingBrainRoot: path.dirname(match.brainDir),
-        pricingOverrides,
-      });
+      try {
+        return parseTranscriptFile(match.transcriptPath, {
+          sessionId: match.id,
+          source: match.source,
+          brainDir: match.brainDir,
+          siblingBrainRoot: path.dirname(match.brainDir),
+          pricingOverrides,
+        });
+      } catch {
+        return null;
+      }
     }
   }
 
@@ -163,22 +186,31 @@ export function loadSessionDetail(
       path.basename(parentDir) === 'logs' && path.basename(path.dirname(parentDir)) === '.system_generated'
         ? path.resolve(parentDir, '..', '..')
         : parentDir;
-    return parseTranscriptFile(hookState.activeTranscriptPath, {
-      sessionId: hookState.activeConversationId ?? path.basename(activeBrainDir) ?? 'active',
-      source: 'desktop',
-      brainDir: activeBrainDir,
-      siblingBrainRoot: path.dirname(activeBrainDir),
-      pricingOverrides,
-    });
+    try {
+      return parseTranscriptFile(hookState.activeTranscriptPath, {
+        sessionId: hookState.activeConversationId ?? path.basename(activeBrainDir) ?? 'active',
+        source: 'desktop',
+        brainDir: activeBrainDir,
+        siblingBrainRoot: path.dirname(activeBrainDir),
+        pricingOverrides,
+      });
+    } catch {
+      // fall through to latest readable entry
+    }
   }
 
-  const latest = entries[0];
-  if (!latest) return null;
-  return parseTranscriptFile(latest.transcriptPath, {
-    sessionId: latest.id,
-    source: latest.source,
-    brainDir: latest.brainDir,
-    siblingBrainRoot: path.dirname(latest.brainDir),
-    pricingOverrides,
-  });
+  for (const candidate of entries.slice(0, 5)) {
+    try {
+      return parseTranscriptFile(candidate.transcriptPath, {
+        sessionId: candidate.id,
+        source: candidate.source,
+        brainDir: candidate.brainDir,
+        siblingBrainRoot: path.dirname(candidate.brainDir),
+        pricingOverrides,
+      });
+    } catch {
+      // skip corrupt or vanished transcript and try next recent session
+    }
+  }
+  return null;
 }

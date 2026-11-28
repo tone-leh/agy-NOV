@@ -322,6 +322,24 @@ function assertSafeSqliteCompanionFiles(realRoot: string, realDbPath: string): v
   }
 }
 
+function buildImmutableSqliteUri(realPath: string): string | null {
+  if (!realPath || realPath.includes('\0')) return null;
+  let cleaned = realPath;
+  if (/^\\\\\?\\UNC\\/i.test(cleaned) || /^\\\\[^?]/.test(cleaned)) {
+    return null;
+  }
+  if (/^\\\\\?\\[A-Za-z]:\\/.test(cleaned)) {
+    cleaned = cleaned.slice(4);
+  }
+  const posixPath = cleaned.replace(/\\/g, '/');
+  const prefixed = posixPath.startsWith('/') ? posixPath : `/${posixPath}`;
+  const encoded = prefixed
+    .split('/')
+    .map((seg, idx) => (idx === 1 && /^[A-Za-z]:$/.test(seg) ? seg : encodeURIComponent(seg)))
+    .join('/');
+  return `file:${encoded}?mode=ro&immutable=1`;
+}
+
 function execSqliteJson(
   sqliteBin: string,
   realRoot: string,
@@ -332,11 +350,34 @@ function execSqliteJson(
 
   const runExec = (
     useSafeFlag: boolean,
+    useImmutableUri: boolean,
   ): Promise<{ cliAvailable: boolean; rows: Array<Record<string, unknown>> }> =>
     new Promise((resolve, reject) => {
+      const targetArg = useImmutableUri ? buildImmutableSqliteUri(realPath) ?? realPath : realPath;
       const args = useSafeFlag
-        ? ['-safe', '-readonly', '-json', '-cmd', '.timeout 3000', '--', realPath, sql]
-        : ['-readonly', '-json', '-cmd', '.timeout 3000', '--', realPath, sql];
+        ? [
+            '-safe',
+            '-readonly',
+            '-json',
+            '-cmd',
+            '.timeout 3000',
+            '-cmd',
+            'PRAGMA query_only = ON;',
+            '--',
+            targetArg,
+            sql,
+          ]
+        : [
+            '-readonly',
+            '-json',
+            '-cmd',
+            '.timeout 3000',
+            '-cmd',
+            'PRAGMA query_only = ON;',
+            '--',
+            targetArg,
+            sql,
+          ];
 
       execFile(
         sqliteBin,
@@ -358,7 +399,32 @@ function execSqliteJson(
             // Graceful fallback for older sqlite3 binaries (< 3.42) that do not support -safe;
             // validateReadOnlySqliteQuery has already blocked all dangerous functions/vtables.
             if (useSafeFlag && /unknown option:\s*-{1,2}safe\b/i.test(detail)) {
-              runExec(false).then(resolve, reject);
+              runExec(false, useImmutableUri).then(resolve, reject);
+              return;
+            }
+            // Fallback for WAL-mode SQLite DBs residing in read-only directories where sqlite3 -readonly
+            // cannot create a -shm index file: retry with immutable=1 URI (strictly zero locks & zero disk writes).
+            if (
+              !useImmutableUri &&
+              /unable to open database file|attempt to write a readonly database|SQLITE_CANTOPEN/i.test(detail)
+            ) {
+              runExec(useSafeFlag, true).then(resolve, reject);
+              return;
+            }
+            if (/database disk image is malformed|file is not a database|malformed|corrupt/i.test(detail)) {
+              reject(
+                new Error(
+                  `SQLite database appears corrupted or unreadable (gracefully skipped): ${redactStudioSecrets(detail)}`,
+                ),
+              );
+              return;
+            }
+            if (/database is locked|database table is locked|SQLITE_BUSY|SQLITE_LOCKED/i.test(detail)) {
+              reject(
+                new Error(
+                  `SQLite database is temporarily locked by another writer (read-only query timed out cleanly): ${redactStudioSecrets(detail)}`,
+                ),
+              );
               return;
             }
             reject(new Error(`SQLite query failed: ${redactStudioSecrets(detail)}`));
@@ -405,7 +471,7 @@ function execSqliteJson(
       );
     });
 
-  return runExec(true);
+  return runExec(true, false);
 }
 
 function quoteSqliteIdentifier(ident: string): string {
@@ -469,21 +535,76 @@ export async function inspectSqliteDatabase(
   }
 
   const tables: StudioSqliteTableSchema[] = [];
-  for (const row of masterRes.rows.slice(0, 30)) {
-    const name = typeof row.name === 'string' ? row.name : '';
-    const type = row.type === 'view' ? 'view' : 'table';
-    if (!name || name.includes('\0')) continue;
-    const pragmaSql = `PRAGMA table_info(${quoteSqliteIdentifier(name)})`;
-    const colRes = await execSqliteJson(sqliteBin, realRoot, realPath, pragmaSql);
-    const columns: StudioSqliteColumnInfo[] = colRes.rows.map((c) => ({
-      cid: Number(c.cid ?? 0),
-      name: String(c.name ?? ''),
-      type: String(c.type ?? ''),
-      notnull: Boolean(c.notnull),
-      pk: Boolean(c.pk),
-      dfltValue: c.dflt_value === null || c.dflt_value === undefined ? null : String(c.dflt_value),
-    }));
-    tables.push({ name, type, columns });
+  const tableTargets = masterRes.rows
+    .slice(0, 30)
+    .map((row) => ({
+      name: typeof row.name === 'string' ? row.name : '',
+      type: row.type === 'view' ? ('view' as const) : ('table' as const),
+    }))
+    .filter((t) => Boolean(t.name) && !t.name.includes('\0'));
+
+  // Fast path: fetch all table columns in ONE short-lived read-only sqlite3 process to avoid
+  // spawning 30 sequential subprocesses or prolonging read locks against active WAL writers.
+  let usedBatchedSchema = false;
+  if (tableTargets.length > 0) {
+    try {
+      const batchRes = await execSqliteJson(
+        sqliteBin,
+        realRoot,
+        realPath,
+        "SELECT m.name AS table_name, m.type AS table_type, p.cid, p.name, p.type, p.\"notnull\", p.pk, p.dflt_value FROM sqlite_master AS m JOIN pragma_table_info(m.name) AS p WHERE m.type IN ('table', 'view') AND m.name NOT LIKE 'sqlite_%' ORDER BY m.type, m.name, p.cid LIMIT 1500",
+      );
+      if (batchRes.cliAvailable) {
+        const colsByTable = new Map<string, StudioSqliteColumnInfo[]>();
+        for (const c of batchRes.rows) {
+          const tName = typeof c.table_name === 'string' ? c.table_name : '';
+          if (!tName) continue;
+          const list = colsByTable.get(tName) ?? [];
+          list.push({
+            cid: Number(c.cid ?? 0),
+            name: String(c.name ?? ''),
+            type: String(c.type ?? ''),
+            notnull: Boolean(c.notnull),
+            pk: Boolean(c.pk),
+            dfltValue: c.dflt_value === null || c.dflt_value === undefined ? null : String(c.dflt_value),
+          });
+          colsByTable.set(tName, list);
+        }
+        if (colsByTable.size > 0) {
+          for (const target of tableTargets) {
+            tables.push({
+              name: target.name,
+              type: target.type,
+              columns: colsByTable.get(target.name) ?? [],
+            });
+          }
+          usedBatchedSchema = true;
+        }
+      }
+    } catch {
+      // Fallback for older SQLite builds without table-valued pragma_table_info
+    }
+  }
+
+  if (!usedBatchedSchema) {
+    for (const target of tableTargets) {
+      try {
+        const pragmaSql = `PRAGMA table_info(${quoteSqliteIdentifier(target.name)})`;
+        const colRes = await execSqliteJson(sqliteBin, realRoot, realPath, pragmaSql);
+        const columns: StudioSqliteColumnInfo[] = colRes.rows.map((c) => ({
+          cid: Number(c.cid ?? 0),
+          name: String(c.name ?? ''),
+          type: String(c.type ?? ''),
+          notnull: Boolean(c.notnull),
+          pk: Boolean(c.pk),
+          dfltValue: c.dflt_value === null || c.dflt_value === undefined ? null : String(c.dflt_value),
+        }));
+        tables.push({ name: target.name, type: target.type, columns });
+      } catch {
+        // Gracefully skip unreadable/corrupt individual table schema
+        tables.push({ name: target.name, type: target.type, columns: [] });
+      }
+    }
   }
 
   // No custom query -> return schema overview

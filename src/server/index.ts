@@ -64,7 +64,7 @@ import { NOV_CONTEXT_RESOURCE_URIS, registerNovContextResources } from './contex
 
 export { NOV_CONTEXT_RESOURCE_URIS };
 export const UI_RESOURCE_URI = 'ui://agy-nov/app.html';
-export const NOV_VERSION = '1.2.1';
+export const NOV_VERSION = '1.2.2';
 
 const MCP_APPS_UI_EXTENSION_ID = 'io.modelcontextprotocol/ui';
 
@@ -178,6 +178,10 @@ function readDiskConfigForSync(
   const cfgPath = getConfigPath(rootDataDir);
   let rawText: string;
   try {
+    const st = fs.lstatSync(cfgPath);
+    if (st.isSymbolicLink() || !st.isFile() || st.size > 1024 * 1024) {
+      return { status: 'invalid' };
+    }
     rawText = fs.readFileSync(cfgPath, 'utf8');
   } catch (err) {
     if ((err as NodeJS.ErrnoException)?.code === 'ENOENT') {
@@ -1016,13 +1020,31 @@ async function main(): Promise<void> {
   const shutdown = async () => {
     if (shuttingDown) return;
     shuttingDown = true;
-    await bundle.dispose();
-    process.exit(0);
+    // Guarantee clean self-termination before the host's 5s SIGKILL timeout
+    const forceExitTimer = setTimeout(() => {
+      process.exit(0);
+    }, 3000);
+    forceExitTimer.unref?.();
+    try {
+      await bundle.dispose();
+    } catch {
+      // ignore dispose errors on shutdown
+    } finally {
+      clearTimeout(forceExitTimer);
+      process.exit(0);
+    }
   };
 
   process.on('SIGINT', () => void shutdown());
   process.on('SIGTERM', () => void shutdown());
+  process.on('SIGHUP', () => void shutdown());
   process.stdin.on('close', () => void shutdown());
+  process.stdin.on('end', () => void shutdown());
+  process.stdout.on('error', (err: NodeJS.ErrnoException) => {
+    if (err?.code === 'EPIPE') {
+      void shutdown();
+    }
+  });
 
   await bundle.server.connect(transport);
 }

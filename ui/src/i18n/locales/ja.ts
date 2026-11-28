@@ -202,6 +202,9 @@ export const JA_DICT: UiDictionary = {
     invalid: '無効',
     truncated: '省略',
     actionFailed: '操作に失敗しました: {error}',
+    errorBoundaryTitle: '{scope} の描画でエラーが発生しました',
+    errorBoundaryReturnHome: 'ハブに戻る',
+    errorBoundaryReload: 'パネルを再読み込み',
   },
   turbo: {
     title: 'Turbo＆出力ガード',

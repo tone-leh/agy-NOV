@@ -105,8 +105,21 @@ export function renderMobilePwaHtml(): string {
       let token = urlToken || localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY) || '';
       let eventSource = null;
       let lastConversations = [];
+      let refreshInFlight = false;
       const expandedConvs = Object.create(null);
       const streamStates = Object.create(null);
+      const MAX_CACHED_STREAMS = 20;
+
+      function trimStreamCache() {
+        const keys = Object.keys(streamStates);
+        if (keys.length <= MAX_CACHED_STREAMS) return;
+        for (const key of keys) {
+          if (Object.keys(streamStates).length <= MAX_CACHED_STREAMS) break;
+          if (!expandedConvs[key]) {
+            delete streamStates[key];
+          }
+        }
+      }
 
       if (urlToken) {
         try { localStorage.setItem(STORAGE_KEY, urlToken); } catch {}
@@ -319,6 +332,7 @@ export function renderMobilePwaHtml(): string {
           }
           const payload = await res.json();
           streamStates[convId] = { loading: false, error: '', data: payload };
+          trimStreamCache();
           renderConvs(lastConversations);
         } catch {
           streamStates[convId] = { loading: false, error: 'Network error while loading stream.', data: null };
@@ -468,35 +482,65 @@ export function renderMobilePwaHtml(): string {
       }
 
       async function refreshAll() {
-        const res = await fetch('/api/state', { headers: authHeaders() });
-        if (res.status === 401) {
-          document.getElementById('authCard').style.display = 'block';
-          document.getElementById('statusPill').textContent = 'Locked';
-          return;
+        if (refreshInFlight) return;
+        refreshInFlight = true;
+        try {
+          const res = await fetch('/api/state', { headers: authHeaders() });
+          if (res.status === 401) {
+            document.getElementById('authCard').style.display = 'block';
+            document.getElementById('statusPill').textContent = 'Locked';
+            return;
+          }
+          if (!res.ok) {
+            document.getElementById('statusPill').textContent = 'Error';
+            return;
+          }
+          const data = await res.json();
+          document.getElementById('authCard').style.display = 'none';
+          document.getElementById('statusPill').textContent = 'Connected';
+          renderApprovals(data.approvals);
+          renderConvs(data.conversations);
+        } catch {
+          document.getElementById('statusPill').textContent = 'Offline';
+        } finally {
+          refreshInFlight = false;
         }
-        if (!res.ok) {
-          document.getElementById('statusPill').textContent = 'Error';
-          return;
-        }
-        const data = await res.json();
-        document.getElementById('authCard').style.display = 'none';
-        document.getElementById('statusPill').textContent = 'Connected';
-        renderApprovals(data.approvals);
-        renderConvs(data.conversations);
       }
 
-      function boot() {
-        void refreshAll();
+      function closeEventStream() {
         if (eventSource) {
           eventSource.close();
           eventSource = null;
         }
-        if (token) {
-          eventSource = new EventSource('/api/events?token=' + encodeURIComponent(token));
-          eventSource.onmessage = function () {
+      }
+
+      function connectEventStream() {
+        closeEventStream();
+        if (!token || (typeof document !== 'undefined' && document.visibilityState === 'hidden')) return;
+        eventSource = new EventSource('/api/events?token=' + encodeURIComponent(token));
+        eventSource.onmessage = function () {
+          void refreshAll();
+        };
+      }
+
+      function boot() {
+        void refreshAll();
+        connectEventStream();
+      }
+
+      if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'hidden') {
+            closeEventStream();
+          } else {
             void refreshAll();
-          };
-        }
+            connectEventStream();
+          }
+        });
+      }
+      if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+        window.addEventListener('pagehide', closeEventStream);
+        window.addEventListener('beforeunload', closeEventStream);
       }
 
       document.getElementById('pairBtn').addEventListener('click', function () {

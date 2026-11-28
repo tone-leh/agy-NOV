@@ -632,6 +632,16 @@ export function auditStaticSecurityReadOnly(
     addCandidate(rel, 'skill');
   }
 
+  for (const rel of listFilesStrictNoSymlink(
+    realRoot,
+    '.gemini/skills',
+    2,
+    MAX_SECURITY_SCAN_FILES,
+    (_rel, name) => name.toUpperCase() === 'SKILL.MD',
+  )) {
+    addCandidate(rel, 'skill');
+  }
+
   let scannedCount = 0;
   for (const target of candidates) {
     if (scannedCount >= MAX_SECURITY_SCAN_FILES) break;

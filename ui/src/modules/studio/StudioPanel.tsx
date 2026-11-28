@@ -863,6 +863,15 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
   const hostReadSeqRef = useRef(0);
 
   const [copiedTarget, setCopiedTarget] = useState<string | null>(null);
+  const copyTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current !== null && typeof window !== 'undefined') {
+        window.clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
 
   const loadSources = useCallback(async () => {
     setBusyAction('sources');
@@ -1248,7 +1257,11 @@ export const StudioPanel: React.FC<NovModulePanelProps> = ({
     try {
       await navigator.clipboard?.writeText(text);
       setCopiedTarget(key);
-      window.setTimeout(() => {
+      if (copyTimerRef.current !== null) {
+        window.clearTimeout(copyTimerRef.current);
+      }
+      copyTimerRef.current = window.setTimeout(() => {
+        copyTimerRef.current = null;
         setCopiedTarget((prev) => (prev === key ? null : prev));
       }, 1500);
     } catch {

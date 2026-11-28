@@ -983,7 +983,13 @@ export class RemoteGateway {
         }
 
         if (url.pathname === '/api/state' && req.method === 'GET') {
-          const { conversations } = await this.convClient.listConversations(15);
+          let conversations: Awaited<ReturnType<ConversationClient['listConversations']>>['conversations'] = [];
+          try {
+            const listed = await this.convClient.listConversations(15);
+            conversations = Array.isArray(listed.conversations) ? listed.conversations : [];
+          } catch {
+            conversations = [];
+          }
           this.writeJson(res, 200, {
             status: this.getPublicStatus(),
             approvals: this.getApprovals(),
@@ -1092,7 +1098,15 @@ export class RemoteGateway {
               this.writeJson(res, 400, { error: err.message });
               return;
             }
-            throw err;
+            this.writeJson(res, 200, {
+              conversationId: decodedId,
+              mode: this.demoMode ? 'demo' : 'live',
+              readOnly: true,
+              found: false,
+              totalSteps: 0,
+              events: [],
+              degraded: true,
+            });
           }
           return;
         }

@@ -76,21 +76,35 @@ function sanitizeShortLabel(raw: unknown, maxLen: number): string | undefined {
 }
 
 /**
- * Pure read-only parser for Antigravity 2.35 CLI `statusLine` stdin JSON telemetry.
- * Tolerates partial payloads, nested model/context_window/cost/quota/subagents/workspace shapes,
+ * Pure read-only parser for Antigravity 2.35+ / 2.36+ CLI `statusLine` stdin JSON telemetry.
+ * Tolerates partial payloads, trailing NDJSON lines, nested model/context_window/cost/quota/subagents/workspace shapes,
  * and rejects malformed or oversized text without ever throwing.
  */
 export function parseHostStatusLineStdin(rawText: string): StatusLineHostStdinPayload | undefined {
   if (typeof rawText !== 'string') return undefined;
   const trimmed = rawText.trim();
-  if (!trimmed || trimmed.length > MAX_HOST_STDIN_BYTES || !trimmed.startsWith('{')) {
+  if (!trimmed || trimmed.length > MAX_HOST_STDIN_BYTES) {
     return undefined;
   }
 
   let parsed: unknown;
-  try {
-    parsed = JSON.parse(trimmed);
-  } catch {
+  if (trimmed.startsWith('{')) {
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch {
+      // Fall back to last non-empty JSON object line (tolerates multi-line NDJSON streams)
+      const lines = trimmed
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l.startsWith('{') && l.endsWith('}'));
+      if (lines.length === 0) return undefined;
+      try {
+        parsed = JSON.parse(lines[lines.length - 1]);
+      } catch {
+        return undefined;
+      }
+    }
+  } else {
     return undefined;
   }
   const obj = asPlainRecord(parsed);
@@ -119,9 +133,15 @@ export function parseHostStatusLineStdin(rawText: string): StatusLineHostStdinPa
     obj.context_percent,
     obj.contextPercent,
   );
+  const remainingCtxPct = pickFiniteNonNegNumber(
+    ctxObj?.remaining_percentage,
+    ctxObj?.remainingPercentage,
+  );
   let contextPercent: number | undefined;
   if (explicitCtxPct !== undefined) {
     contextPercent = clampPercent(explicitCtxPct);
+  } else if (remainingCtxPct !== undefined) {
+    contextPercent = clampPercent(100 - remainingCtxPct);
   } else {
     const usedTokens = pickFinitePositiveNumber(
       currentUsage?.input_tokens,

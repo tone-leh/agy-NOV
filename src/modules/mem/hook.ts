@@ -71,21 +71,39 @@ export function extractEditedFilesFromTranscript(
     const stat = fs.fstatSync(fd);
     if (!stat.isFile() || stat.size === 0) return [];
 
-    const bytesToRead = Math.min(stat.size, maxTailBytes);
-    const startOffset = stat.size - bytesToRead;
-    const buf = Buffer.alloc(bytesToRead);
-    let totalRead = 0;
+    const maxAdaptiveBytes = Math.max(maxTailBytes, 2 * 1024 * 1024);
+    let windowBytes = Math.min(stat.size, Math.max(4096, maxTailBytes));
+    let text = '';
 
-    while (totalRead < bytesToRead) {
-      const n = fs.readSync(fd, buf, totalRead, bytesToRead - totalRead, startOffset + totalRead);
-      if (n <= 0) break;
-      totalRead += n;
-    }
+    while (true) {
+      const startOffset = stat.size - windowBytes;
+      const buf = Buffer.alloc(windowBytes);
+      let totalRead = 0;
 
-    let text = buf.subarray(0, totalRead).toString('utf8');
-    if (startOffset > 0) {
-      const firstNewline = text.indexOf('\n');
-      text = firstNewline >= 0 ? text.slice(firstNewline + 1) : '';
+      while (totalRead < windowBytes) {
+        const n = fs.readSync(fd, buf, totalRead, windowBytes - totalRead, startOffset + totalRead);
+        if (n <= 0) break;
+        totalRead += n;
+      }
+
+      const rawText = buf.subarray(0, totalRead).toString('utf8');
+      if (startOffset === 0) {
+        text = rawText;
+        break;
+      }
+      const firstNewline = rawText.indexOf('\n');
+      if (firstNewline >= 0) {
+        const afterFirst = rawText.slice(firstNewline + 1);
+        if (afterFirst.trim().length > 0) {
+          text = afterFirst;
+          break;
+        }
+      }
+      if (windowBytes >= stat.size || windowBytes >= maxAdaptiveBytes) {
+        text = '';
+        break;
+      }
+      windowBytes = Math.min(stat.size, maxAdaptiveBytes, windowBytes * 2);
     }
 
     const lines = text.split(/\r?\n/).slice(-120);
