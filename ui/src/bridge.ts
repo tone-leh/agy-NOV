@@ -520,7 +520,7 @@ export class NovBridge {
       return;
     }
 
-    const app = new McpApp({ name: 'agy-NOV', version: '1.2.0' }, {});
+    const app = new McpApp({ name: 'agy-NOV', version: '1.2.1' }, {});
     this.app = app;
 
     app.ontoolinput = (params) => {

@@ -109,7 +109,7 @@ describe('v1.2.0 Opt-In Read-Only Audit Sidecar & CLI audit-once', () => {
 
       // Populate realistic module state (drifted + expired unpinned + pinned expired + blocked verify + guard denies)
       const dataDir = path.join(tmpDir, 'data');
-      applyPresetConfig(dataDir, 'power');
+      applyPresetConfig(dataDir, 'local-all');
 
       const memDir = getModuleDataDir(dataDir, 'mem');
       fs.mkdirSync(memDir, { recursive: true });

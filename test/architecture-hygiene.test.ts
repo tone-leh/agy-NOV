@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
+import ts from 'typescript';
 import { assertValidModuleRegistration } from '../src/core/module-contract.js';
 import {
   detectHighConfidenceSecrets,
@@ -32,17 +33,42 @@ function walkSourceFiles(dir: string, exts: ReadonlySet<string>): string[] {
   return results;
 }
 
-function extractImportSpecifiers(source: string): string[] {
+function extractImportSpecifiers(source: string, fileName: string): string[] {
   const specifiers: string[] = [];
-  const importRe = /(?:import|export)\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?['"]([^'"]+)['"]/g;
-  const dynamicRe = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
-  let m: RegExpExecArray | null;
-  while ((m = importRe.exec(source)) !== null) {
-    if (m[1]) specifiers.push(m[1]);
-  }
-  while ((m = dynamicRe.exec(source)) !== null) {
-    if (m[1]) specifiers.push(m[1]);
-  }
+  const kind = fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, false, kind);
+  const visit = (node: ts.Node): void => {
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      (ts.isStringLiteral(node.moduleSpecifier) || ts.isNoSubstitutionTemplateLiteral(node.moduleSpecifier))
+    ) {
+      specifiers.push(node.moduleSpecifier.text);
+    } else if (
+      ts.isCallExpression(node) &&
+      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      node.arguments.length >= 1 &&
+      (ts.isStringLiteral(node.arguments[0]) || ts.isNoSubstitutionTemplateLiteral(node.arguments[0]))
+    ) {
+      specifiers.push(node.arguments[0].text);
+    } else if (
+      ts.isImportTypeNode(node) &&
+      ts.isLiteralTypeNode(node.argument) &&
+      (ts.isStringLiteral(node.argument.literal) || ts.isNoSubstitutionTemplateLiteral(node.argument.literal))
+    ) {
+      specifiers.push(node.argument.literal.text);
+    } else if (
+      ts.isImportEqualsDeclaration(node) &&
+      ts.isExternalModuleReference(node.moduleReference) &&
+      node.moduleReference.expression &&
+      (ts.isStringLiteral(node.moduleReference.expression) ||
+        ts.isNoSubstitutionTemplateLiteral(node.moduleReference.expression))
+    ) {
+      specifiers.push(node.moduleReference.expression.text);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
   return specifiers;
 }
 
@@ -55,7 +81,7 @@ describe('Architecture Layer Hygiene & Dependency Boundaries', () => {
     const violations: string[] = [];
     for (const file of files) {
       const rel = path.relative(REPO_ROOT, file);
-      const specs = extractImportSpecifiers(fs.readFileSync(file, 'utf8'));
+      const specs = extractImportSpecifiers(fs.readFileSync(file, 'utf8'), file);
       for (const spec of specs) {
         if (!spec.startsWith('.')) continue;
         const resolved = path.resolve(path.dirname(file), spec.replace(/\.js$/, '.ts'));
@@ -82,7 +108,7 @@ describe('Architecture Layer Hygiene & Dependency Boundaries', () => {
     const violations: string[] = [];
     for (const file of files) {
       const rel = path.relative(REPO_ROOT, file);
-      const specs = extractImportSpecifiers(fs.readFileSync(file, 'utf8'));
+      const specs = extractImportSpecifiers(fs.readFileSync(file, 'utf8'), file);
       for (const spec of specs) {
         if (spec.startsWith('node:')) {
           violations.push(`${rel} imports Node built-in ${spec}`);
@@ -104,7 +130,7 @@ describe('Architecture Layer Hygiene & Dependency Boundaries', () => {
     const violations: string[] = [];
     for (const file of files) {
       const rel = path.relative(REPO_ROOT, file);
-      const specs = extractImportSpecifiers(fs.readFileSync(file, 'utf8'));
+      const specs = extractImportSpecifiers(fs.readFileSync(file, 'utf8'), file);
       for (const spec of specs) {
         if (!spec.startsWith('.')) continue;
         const resolved = path.resolve(path.dirname(file), spec.replace(/\.js$/, '.ts'));
@@ -126,6 +152,40 @@ describe('Architecture Layer Hygiene & Dependency Boundaries', () => {
     );
   });
 
+  it('enforces Layer 2 horizontal isolation: cross-module imports stay strictly on explicit allowlist', () => {
+    const ALLOWED_CROSS_MODULE_EDGES = new Set<string>([
+      'src/modules/spec/archive.ts -> src/modules/mem/store.ts',
+      'src/modules/spec/types.ts -> src/modules/mem/types.ts',
+    ]);
+    const modulesDir = path.join(REPO_ROOT, 'src', 'modules');
+    const files = walkSourceFiles(modulesDir, new Set(['.ts', '.tsx']));
+    const unexpected: string[] = [];
+
+    for (const file of files) {
+      const rel = path.relative(REPO_ROOT, file).replace(/\\/g, '/');
+      const srcMod = rel.split('/')[2];
+      for (const spec of extractImportSpecifiers(fs.readFileSync(file, 'utf8'), file)) {
+        if (!spec.startsWith('.')) continue;
+        const resolved = path.resolve(path.dirname(file), spec.replace(/\.js$/, '.ts'));
+        const resolvedRel = path.relative(REPO_ROOT, resolved).replace(/\\/g, '/');
+        if (!resolvedRel.startsWith('src/modules/')) continue;
+        const dstMod = resolvedRel.split('/')[2];
+        if (srcMod && dstMod && srcMod !== dstMod) {
+          const edge = `${rel} -> ${resolvedRel}`;
+          if (!ALLOWED_CROSS_MODULE_EDGES.has(edge)) {
+            unexpected.push(edge);
+          }
+        }
+      }
+    }
+
+    assert.deepEqual(
+      unexpected,
+      [],
+      `Unapproved Layer 2 cross-module imports detected:\n${unexpected.join('\n')}`,
+    );
+  });
+
   it('enforces zero circular dependencies across src/core/*, src/modules/*, src/hooks/*, and src/server/*', () => {
     const roots = [
       path.join(REPO_ROOT, 'src', 'core'),
@@ -139,7 +199,7 @@ describe('Architecture Layer Hygiene & Dependency Boundaries', () => {
 
     for (const file of allFiles) {
       const deps: string[] = [];
-      for (const spec of extractImportSpecifiers(fs.readFileSync(file, 'utf8'))) {
+      for (const spec of extractImportSpecifiers(fs.readFileSync(file, 'utf8'), file)) {
         if (!spec.startsWith('.')) continue;
         const resolved = path.resolve(path.dirname(file), spec.replace(/\.js$/, '.ts'));
         if (fileSet.has(resolved)) {

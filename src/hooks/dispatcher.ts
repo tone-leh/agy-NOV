@@ -581,6 +581,7 @@ export async function dispatchNovHook(
         const guardRes = guardRunner(payload, rootDataDir);
         const guardDecision: PreToolDecision | undefined = guardRes?.decision;
         if (guardDecision === 'deny') {
+          refreshFeedSnapshotBestEffort(rootDataDir, config);
           return { decision: 'deny', reason: guardRes?.reason };
         }
         if (guardDecision === 'force_ask') {
@@ -604,6 +605,7 @@ export async function dispatchNovHook(
       try {
         const specRes = handleSpecPreToolHook(payload, rootDataDir);
         if (specRes.decision === 'deny') {
+          refreshFeedSnapshotBestEffort(rootDataDir, config);
           return { decision: 'deny', reason: specRes.reason };
         }
       } catch {
@@ -618,6 +620,7 @@ export async function dispatchNovHook(
         const remoteRes = await remoteRunner(payload, rootDataDir);
         const remoteDecision: PreToolDecision | undefined = remoteRes?.decision;
         if (remoteDecision === 'deny') {
+          refreshFeedSnapshotBestEffort(rootDataDir, config);
           return { decision: 'deny', reason: remoteRes?.reason };
         }
         if (remoteDecision === 'force_ask') {
@@ -637,12 +640,14 @@ export async function dispatchNovHook(
     }
 
     if (finalDecision === 'force_ask') {
+      refreshFeedSnapshotBestEffort(rootDataDir, config);
       return {
         decision: 'force_ask',
         reason: reasons.join(' | ') || 'Mandatory approval required by agy-NOV Guard',
       };
     }
     if (finalDecision === 'ask') {
+      refreshFeedSnapshotBestEffort(rootDataDir, config);
       return { decision: 'ask', reason: reasons.join(' | ') || 'Approval required by agy-NOV' };
     }
 
@@ -666,6 +671,9 @@ export async function dispatchNovHook(
   }
 
   if (payload.event === 'PostToolUse') {
+    if (!modules.review && !modules.xray && !modules.radar && !modules.verify && !modules.turbo) {
+      return {};
+    }
     if (modules.review) {
       try {
         handleReviewHook(payload, rootDataDir);

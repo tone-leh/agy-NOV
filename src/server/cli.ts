@@ -14,6 +14,7 @@ import {
   setNovLocale,
   TEAM_CONFIG_FILENAME,
 } from '../core/config.js';
+import { getFeedSnapshotPath, writeFeedSnapshotIfDataDirExists } from '../core/feed.js';
 import { canonicalRealpathSync, hasCliFlag, parseCliFlag } from '../core/utils.js';
 import { compileActiveSpecWorkflowReadOnly } from '../modules/spec/core.js';
 import { executeSafeCompactRun } from '../modules/turbo/auto-rtk.js';
@@ -79,6 +80,22 @@ export type {
   WriteHealthSweepReportResult,
 };
 
+function refreshExistingFeedSnapshotBestEffort(
+  dataDir: string,
+  config: ReturnType<typeof setModuleEnabled>,
+): void {
+  try {
+    // Only refresh when feed-snapshot.json already exists so CLI mutations never unexpectedly introduce new files
+    const feedPath = getFeedSnapshotPath(dataDir);
+    const st = fs.lstatSync(feedPath);
+    if (!st.isSymbolicLink() && st.isFile()) {
+      writeFeedSnapshotIfDataDirExists(dataDir, config);
+    }
+  } catch {
+    // ignore when feed-snapshot.json does not exist or cannot be refreshed
+  }
+}
+
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   const cmd = argv.find((a) => !a.startsWith('-')) ?? 'status';
@@ -102,6 +119,7 @@ async function main(): Promise<void> {
       process.exit(2);
     }
     const next = setModuleEnabled(dataDir, target, cmd === 'enable');
+    refreshExistingFeedSnapshotBestEffort(dataDir, next);
     console.log(
       `${cmd === 'enable' ? 'Enabled' : 'Disabled'} module "${target}". Preset is now "${next.preset}".`,
     );
@@ -115,6 +133,7 @@ async function main(): Promise<void> {
       process.exit(2);
     }
     const next = applyPresetConfig(dataDir, target);
+    refreshExistingFeedSnapshotBestEffort(dataDir, next);
     const def = PRESET_DEFINITIONS[target];
     console.log(`Applied preset "${def.label}" (${next.preset}).`);
     printStatus(dataDir);
@@ -128,6 +147,7 @@ async function main(): Promise<void> {
       process.exit(2);
     }
     const next = setNovLocale(dataDir, target);
+    refreshExistingFeedSnapshotBestEffort(dataDir, next);
     console.log(`Updated agy-NOV UI locale to "${next.locale}".`);
     return;
   }

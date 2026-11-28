@@ -1,4 +1,4 @@
-import { getModuleDataDir } from '../../core/config.js';
+import { getModuleDataDir, loadNovConfigReadOnly } from '../../core/config.js';
 import { MemoryStore, redactSecrets, stripPrivateTags } from '../mem/store.js';
 import { buildSpecDocumentView } from './dag.js';
 import { loadSpecStateReadOnly, saveSpecState } from './store.js';
@@ -117,6 +117,16 @@ export function archiveSpecToMemory(
       demoSimulated: true,
       spec: buildSpecDocumentView(updatedSpec),
       state,
+    };
+  }
+
+  // Enforce disabled-module zero-write invariant: never create modules/mem/ when mem is OFF
+  const cfg = loadNovConfigReadOnly(rootDataDir);
+  if (!cfg.modules.mem) {
+    return {
+      ok: false,
+      error:
+        'Memory Graph ("mem") module is disabled. Enable "mem" in agy-NOV settings before archiving specs to memory.',
     };
   }
 

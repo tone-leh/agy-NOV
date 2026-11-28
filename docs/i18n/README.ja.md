@@ -2,7 +2,7 @@
   <img src="../../assets/logo.svg" width="88" height="88" alt="agy-NOV Logo" />
   <h1>agy-NOV</h1>
   <p><strong>Google Antigravity 2.0 向け 100% ネイティブ・モジュラー型スーパーワークベンチ。</strong></p>
-  <p><em>1 つのプラグイン。4 層単方向依存の循環ゼロ設計を土台に、4+1 機能ドメインで 13 モジュールを統合します。デフォルト OFF の読み取り専用定期巡回サイドカー（<code>sidecars/audit-sidecar.mjs</code>）＆ 11 番目の CLI コマンド <code>audit-once</code>、Layer 1 共有 <code>ConversationService</code> による厳格ループバック型のセッション横断連携（X-Ray Clean Fork からの直接新規セッション作成 <code>app_xray_fork_via_service</code> ＆ Radar 読み取り専用照合 <code>app_radar_reconcile_conversations</code>、+0 モデルツール）、Antigravity Marketplace 掲載準拠（<code>plugin.json</code> 公式 10 キー ＆ <code>doctor</code> 全 18 コア資産 + 4 項目の掲載適合チェック）を新搭載。Spec DAG ネイティブオーケストレーション・コンパイラ、4 つのゼロ注入税・読み取り専用 MCP コンテキストリソース（<code>agy-nov://context/{review,mem,turbo,xray}</code>）、6 種類の公式ライフサイクルフック、6 つのオンデマンド Skills、2 つの読み取り専用サブエージェント、11 セグメント <code>statusline</code>、755 辞書キー × 8 言語の全 24 コンポーネント UI（1,390.2 KB）、Ops 3.0、Mem 3.0、MCP Apps <code>file</code> ビューア、Remote 2.5、macOS / Windows / Linux 全 3 OS ネイティブ互換を一体化。ゼロ ASAR・ゼロ CDP、<code>v0.4 → v1.2.0</code> を通じて 47 モデルツール増大ゼロ、無効時はトークン消費ゼロを貫きます。</em></p>
+  <p><em>1 つのプラグイン。4 層単方向依存の循環ゼロ設計および TypeScript AST レベルの Layer 2 モジュール横断ホワイトリスト保護を土台に、4+1 機能ドメインで 13 モジュールを統合します。デュアルスター <code>feed-snapshot.json</code> のリアルタイム更新＆高精度集約（<code>PreToolUse</code> 遮断・承認時および CLI 設定変更時の即時反映）、無効モジュールのハードゲーティング（<code>spec → mem</code> 書き込み拒否＆巡回サイドカーの誤検知ゼロ）と <code>PostToolUse</code> 全 OFF 時 O(1) 短絡、<code>skills/agy-nov/SKILL.md</code> の <code>9.5 KB</code> 軽量化（<code>ops.large-instruction-file</code> 警告解消）を新強化。デフォルト OFF の読み取り専用定期巡回サイドカー（<code>sidecars/audit-sidecar.mjs</code>）＆第 11 CLI コマンド <code>audit-once</code>、Layer 1 共有ループバック <code>ConversationService</code>（+0 モデルツール）、Antigravity Marketplace 掲載準拠（<code>plugin.json</code> 公式 10 キー＆<code>doctor</code> 全 18 資産 + 4 適合診断）、Spec DAG ネイティブオーケストレーション・コンパイラ、4 つのゼロ注入税・読み取り専用 MCP コンテキストリソース（<code>agy-nov://context/{review,mem,turbo,xray}</code>）、6 種類の公式ライフサイクルフック、6 つのオンデマンド Skills、2 つの読み取り専用サブエージェント、11 セグメント <code>statusline</code>、755 辞書キー × 8 言語の全 24 コンポーネント UI（1,390.2 KB）、Ops 3.0、Mem 3.0、MCP Apps <code>file</code> ビューア、Remote 2.5、macOS / Windows / Linux 全 3 OS ネイティブ互換を一体化。ゼロ ASAR・ゼロ CDP、<code>v0.4 → v1.2.1</code> を通じて 47 モデルツール増大ゼロ、無効時はトークン消費ゼロを貫きます。</em></p>
 
   <p>
     <a href="../../README.md">English</a> ·
@@ -18,7 +18,7 @@
   <p><sub>本書は英語の公式ドキュメント <a href="../../README.md">README.md</a> の日本語版です。コマンド・モジュール ID・設定仕様は英語版を正とします。</sub></p>
 
   <p>
-    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v1.2.0"><img src="https://img.shields.io/badge/Version-v1.2.0-0284c7?style=flat-square" alt="バージョン: v1.2.0" /></a>
+    <a href="https://github.com/tone-leh/agy-NOV/releases/tag/v1.2.1"><img src="https://img.shields.io/badge/Version-v1.2.1-0284c7?style=flat-square" alt="バージョン: v1.2.1" /></a>
     <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tone-leh/agy-NOV/ci.yml?branch=main&style=flat-square&label=CI" alt="CI ステータス" /></a>
     <a href="https://github.com/tone-leh/agy-NOV/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/Platform-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-475569?style=flat-square" alt="対応 OS: macOS · Windows · Linux" /></a>
     <a href="../../LICENSE"><img src="https://img.shields.io/badge/License-MIT-3b82f6?style=flat-square" alt="License: MIT" /></a>
@@ -29,15 +29,15 @@
 
   <br />
 
-  <p><strong>ライブワークベンチプレビュー（v1.2.0 · 4+1 ドメイン IA）</strong></p>
-  <img src="../../assets/demo-preview.gif" alt="agy-NOV v1.2.0 ライブワークベンチプレビュー — デフォルト OFF 読み取り専用巡回サイドカー＆audit-once、Layer 1 ConversationService ループバック横断連携、Marketplace 掲載準拠＆18+4 項目 doctor、4+1 IA、Spec DAG ネイティブオーケストレーション・コンパイラ、4 つの読み取り専用 MCP コンテキストリソース、6 種類の公式 Hooks、6 つの公式 Skills ＆ 2 つの読み取り専用サブエージェント、11 コマンド CLI、755 辞書キー × 8 言語の全 24 コンポーネント UI、macOS / Windows / Linux 3 OS 互換、Ops 3.0、Mem 3.0、One-Click Clean Fork、MCP Apps file ビューア、Remote 2.5" width="100%" />
+  <p><strong>ライブワークベンチプレビュー（v1.2.1 · 4+1 ドメイン IA）</strong></p>
+  <img src="../../assets/demo-preview.gif" alt="agy-NOV v1.2.1 ライブワークベンチプレビュー — デュアルスター feed-snapshot.json リアルタイム更新＆高精度集約、無効モジュールハードゲーティング＆PostToolUse O(1) 短絡、TypeScript AST レベル Layer 2 モジュール横断ホワイトリスト保護、9.5 KB 軽量化 SKILL.md、デフォルト OFF 読み取り専用巡回サイドカー＆audit-once、Layer 1 ConversationService ループバック横断連携、Marketplace 掲載準拠＆18+4 項目 doctor、4+1 IA、Spec DAG ネイティブオーケストレーション・コンパイラ、4 つの読み取り専用 MCP コンテキストリソース、6 種類の公式 Hooks、6 つの公式 Skills ＆ 2 つの読み取り専用サブエージェント、11 コマンド CLI、755 辞書キー × 8 言語の全 24 コンポーネント UI、macOS / Windows / Linux 3 OS 互換、Ops 3.0、Mem 3.0、One-Click Clean Fork、MCP Apps file ビューア、Remote 2.5" width="100%" />
 
   <br />
 
   <p>
     <a href="#30-秒読み取り専用ファーストトライ">30 秒初体験</a> ·
     <a href="#なぜ-agy-nov-を選ぶのか">なぜ agy-NOV か</a> ·
-    <a href="#v120-の主要新機能">v1.2.0 新機能</a> ·
+    <a href="#v121-の主な修正と強化">v1.2.1 強化点</a> ·
     <a href="#10-秒で選べるプリセット構成">10 秒プリセット選択</a> ·
     <a href="#オンオフ自在の-13-モジュール">13 モジュール</a> ·
     <a href="#組み込み-8-言語プラグイン-ui-とゼロ-cdp-コンパニオンエコシステム">8 言語 UI とコンパニオン</a> ·
@@ -51,7 +51,7 @@
 </div>
 
 > [!NOTE]
-> **独立オープンソースプロジェクト：** `agy-NOV` (`v1.2.0`) は Google Antigravity 2.0（**macOS / Windows / Linux** 全 3 OS 対応）向けに開発された独立した MIT ライセンスのコミュニティプラグインです。Google LLC との提携・後援・公式認定はありません。
+> **独立オープンソースプロジェクト：** `agy-NOV` (`v1.2.1`) は Google Antigravity 2.0（**macOS / Windows / Linux** 全 3 OS 対応）向けに開発された独立した MIT ライセンスのコミュニティプラグインです。Google LLC との提携・後援・公式認定はありません。
 
 ---
 
@@ -83,31 +83,39 @@ agy-nov recommend --export-preset
 
 | 比較項目 | ❌ プラグイン乱立（12〜13 個の個別ツール） | ✅ agy-NOV スーパーワークベンチ |
 | :--- | :--- | :--- |
-| **常駐プロセス** | 12〜13 個の Node/Python バックグラウンドプロセスがメモリと起動時間を圧迫 | **常駐 MCP サーバー 1 本**（`dist/server.cjs`、`1,583.5 KB`）が有効な全機能・**4 つの読み取り専用 MCP コンテキストリソース**・Layer 1 ループバック `ConversationService` を提供し、定期監査はデフォルト OFF の単発サイドカー（`sidecars/audit-sidecar.mjs`、常駐デーモンゼロ）へ分離 |
-| **ターンごとのトークン税** | 使わない機能も含め 70 以上の静的ツール定義を毎ターン注入し 100 ツール枠を圧迫 | **動的 `tools/list`** — 無効化したモジュールは即座に登録解除（トークン・ツール枠消費 `0`）、`v0.4 → v1.2.0` を通じて **47 モデルツール**不変（+0 増大）、CLI 47 ツール暴発ガード・4 つのゼロ注入税リソース（`agy-nov://context/*`）・S4 **Tool-Slot Idle Advisor** を搭載 |
-| **ライフサイクルフックの競合** | `SessionStart` / `PreToolUse` / `PostToolUse` / `PreInvocation` / `PostInvocation` / `Stop` ごとに複数の個別フックが競合実行 | **統一フックディスパッチャー 1 本**（`dist/hook.cjs`、`211.9 KB`）が全 **6 種類の公式 Hook**（`PreInvocation` 送信前機密ハード遮断・`PostInvocation` ゼロトークン要約レシート・`PreToolUse` `force_ask`/`overwrite`・`Stop: continue` 公式プロトコル対応）を統合し O(1) 短絡 |
-| **アップデート耐性と掲載適合性** | バイナリ `app.asar` パッチ・DOM フック・規格外マニフェストは更新や他 OS・審査で破損 | **100% 公式ネイティブプロトコル**（ゼロ ASAR・ゼロ CDP）＋ **4 層単方向依存モジュラーアーキテクチャ**（循環依存ゼロ自動検証、3 OS ネイティブ互換＆CI）＋ **Antigravity Marketplace 掲載準拠**（`plugin.json` 公式 10 キー、`doctor` 18 資産 + 4 適合診断） |
-| **情報設計と多言語 UX** | 散在する JSON 設定、雑多なタブ配列、英語混在の画面 | **4+1 ドメイン IA + ワークフローハブ + 4 階層統合設定センター + `⌘K` コマンドパレット** + **全 24 コンポーネント 100% 8 言語 UI（755 辞書キー × 8 言語、`1,390.2 KB`）** + **6 公式 Skills ＆ 2 読み取り専用サブエージェント** + **5 プリセット** + **11 コマンド CLI** |
+| **常駐プロセス** | 12〜13 個の Node/Python バックグラウンドプロセスがメモリと起動時間を圧迫 | **常駐 MCP サーバー 1 本**（`dist/server.cjs`、`1,584.5 KB` / 約 `1.55 MiB`）が有効な全機能・**4 つの読み取り専用 MCP コンテキストリソース**・Layer 1 ループバック `ConversationService` を提供し、定期監査はデフォルト OFF の単発サイドカー（`sidecars/audit-sidecar.mjs`、モジュールトグル連動・常駐デーモンゼロ）へ分離 |
+| **ターンごとのトークン税** | 使わない機能も含め 70 以上の静的ツール定義を毎ターン注入し 100 ツール枠を圧迫 | **動的 `tools/list`** — 無効化したモジュールは即座に登録解除（トークン・ツール枠消費 `0`）、`v0.4 → v1.2.1` を通じて **47 モデルツール**不変（+0 増大）、CLI 47 ツール暴発ガード・4 つのゼロ注入税リソース（`agy-nov://context/*`）・`9.5 KB` 軽量化 `skills/agy-nov/SKILL.md`・S4 **Tool-Slot Idle Advisor** を搭載 |
+| **ライフサイクルフックの競合** | `SessionStart` / `PreToolUse` / `PostToolUse` / `PreInvocation` / `PostInvocation` / `Stop` ごとに複数の個別フックが競合実行 | **統一フックディスパッチャー 1 本**（`dist/hook.cjs`、`212.8 KB`）が全 **6 種類の公式 Hook**（`PreInvocation` 送信前機密ハード遮断・`PreToolUse` `force_ask`/`overwrite` 時のデュアルスター即時更新・`PostToolUse` 全 OFF 時 O(1) 短絡・`PostInvocation` ゼロトークン要約レシート・`Stop: continue` 公式プロトコル対応）を統合 |
+| **アップデート耐性と掲載適合性** | バイナリ `app.asar` パッチ・DOM フック・規格外マニフェストは更新や他 OS・審査で破損 | **100% 公式ネイティブプロトコル**（ゼロ ASAR・ゼロ CDP）＋ **4 層単方向依存モジュラーアーキテクチャ＆ TypeScript AST レベル Layer 2 モジュール横断ホワイトリスト保護**（循環依存ゼロ、3 OS ネイティブ互換＆CI）＋ **Antigravity Marketplace 掲載準拠**（`plugin.json` 公式 10 キー、`doctor` 18 資産 + 4 適合診断） |
+| **情報設計と多言語 UX** | 散在する JSON 設定、雑多なタブ配列、英語混在の画面 | **4+1 ドメイン IA + ワークフローハブ + 4 階層統合設定センター + `⌘K` コマンドパレット** + **全 24 コンポーネント 100% 8 言語 UI（755 辞書キー × 8 言語、`1,390.2 KB` / 約 `1.36 MiB`）** + **6 公式 Skills ＆ 2 読み取り専用サブエージェント** + **5 プリセット** + **11 コマンド CLI**（`201.2 KB`） |
 
 ---
 
-## v1.2.0 の主要新機能
+## v1.2.1 の主な修正と強化
 
-`v1.2.0` では 100% ネイティブ（ゼロ ASAR / ゼロ CDP）原則を貫きながら、**デフォルト OFF の読み取り専用定期巡回サイドカー ＆ 11 番目の CLI コマンド `audit-once`**、**Layer 1 共有 `ConversationService` によるループバック限定クロスセッション連携**、および **Antigravity Marketplace 掲載認証準拠** を追加しました。`v0.4 → v1.2.0` を通じて **全 47 標準モデルツールは増大ゼロ（+0）**、ローカル自動検証は **100 テストスイート / 280 テスト（100 suites / 280 tests）全件合格**、実測バンドルサイズは `dist/server.cjs` **`1,583.5 KB`**、`dist/hook.cjs` **`211.9 KB`**、`dist/cli.cjs` **`190.0 KB`**、`dist/ui/app.html` **`1,390.2 KB`** です：
+`v1.2.1`（`2026-11-28`）では 100% ネイティブ（ゼロ ASAR / ゼロ CDP）原則を貫きながら、**デュアルスター `feed-snapshot.json` のリアルタイム更新＆高精度集約**、**無効モジュールのハードゲーティングと `PostToolUse` O(1) 短絡**、および **TypeScript AST レベルの Layer 2 モジュール横断ホワイトリスト保護と `skills/agy-nov/SKILL.md` の `9.5 KB` 軽量化** を実装しました。`v0.4 → v1.2.1` を通じて **全 47 標準モデルツールは増大ゼロ（+0）**、macOS / Windows / Linux 3-OS CI マトリクスを含む自動検証は **101 テストスイート / 286 テスト（101 suites / 286 tests）全件合格**、実測バンドルサイズは `dist/server.cjs` **`1,584.5 KB`**（約 `1.55 MiB`）、`dist/hook.cjs` **`212.8 KB`**、`dist/cli.cjs` **`201.2 KB`**、`dist/ui/app.html` **`1,390.2 KB`**（約 `1.36 MiB`）、`skills/agy-nov/SKILL.md` **`9.5 KB`** です：
 
-### 1. デフォルト OFF の読み取り専用定期巡回サイドカー ＆ 第 11 CLI コマンド `audit-once`（`sidecars/`、`cli`）
-- **常駐ゼロ・ポートゼロ・既定書き込みゼロ：** [`sidecars/audit-sidecar.mjs`](../../sidecars/audit-sidecar.mjs) と専用ガイド [`sidecars/README.md`](../../sidecars/README.md) を新設しました。`agy-NOV` を導入・有効化してもバックグラウンドデーモンやポーリングループは一切起動せず、TCP/HTTP ポートも開きません。Antigravity の `/schedule` や OS の `cron` / `launchd` / Windows タスクスケジューラから単発実行（`--once`）すると、シェル非経由（`shell: false`）で読み取り専用スイープを 1 回実行し、マスク済み JSON を `stdout` へ出力して即終了します。
-- **第 11 のネイティブ CLI コマンド `audit-once`：** `agy-nov audit-once [--workspace=<dir>] [--data-dir=<dir>] [--json] [--write-report]` が **Ops**（`healthScore`・`securityScore`・24KB/20K ルール肥大・100 ツール予算）、**Mem**（ドリフト済み `staleCount`・期限切れ未固定 `expiredUnpinnedCount`）、**Verify**（`verifyLastStatus`・未検証変更 `dirtyFilesCount`）、**Guard**（`guardBlockedCount`）、およびアクティブ設定を読み取り専用で一括集約し、`overallStatus`（`healthy` / `attention` / `action-required`）と最大 6 件の簡潔な推奨アクションを出力します。
-- **制御されたアトミック出力 `--write-report`：** 既定ではディレクトリ作成もファイル書き込みも行いません。明示的に `--write-report` を指定し、かつ `dataDir` が既存の安全な非シンボリックリンクディレクトリである場合のみ、`0600` 権限・`O_CREAT | O_EXCL` 一時ファイル・`<= 64 KiB` 上限・アトミックリネームで `health-sweep.json` を保存します。
+### 1. デュアルスター `feed-snapshot.json` のリアルタイム更新と高精度集約（`hooks`、`cli`、`server`）
+- **主要イベント時の即時スナップショット更新：** `PreToolUse` の遮断・承認タイミングで `feed-snapshot.json` を即時アトミック更新し、CLI からの設定変更時にも既存スナップショットを同期更新します（`dataDir` 未作成時のディレクトリ作成ゼロ・書き込みゼロ原則を維持）。
+- **集約ロジックの精度修正：** `latestSnapshotId` が確実に最新スナップショットを参照するよう修正し、`GUARD_BLOCKED` 理由を実際の遮断イベントに厳密紐付け、`verify` 結果もタイムスタンプ基準で最新記録を選出するよう統一しました。
 
-### 2. Layer 1 共有 `ConversationService` クロスセッション軽量連携（+0 モデルツール）（`src/core/conversation-service.ts`、`xray`、`radar`）
-- **ループバック限定・SSRF 防御コア：** Layer 1 共有カーネルに `src/core/conversation-service.ts` を追加。接続先は素のループバック形式（`127.0.0.1:<port>`・`localhost:<port>`・`[::1]:<port>`）のみを許可し、外部ホスト・スキーム・パス・ユーザー情報・制御文字を厳格拒否します。タイムアウト `<= 4,000ms`、全出力フィールドの線形マスク＆`<private>` 除去、エラー時の CSRF トークン非出力、サービス未接続時の無例外フォールバックを徹底しています。
-- **X-Ray Clean Fork からの直接新規セッション作成（`app_xray_fork_via_service`）：** App-only ツール（+0 モデルツール）。既定は `dryRun` プレビューとして Clean Fork パックと接続可否を確認し、明示確認（`confirmCreate: true`）時にホストの `CreateConversation` へ直接新規クリーンセッションを作成します。サービス利用不可時は公式 `sendMessage` 経路へ自動フォールバックします。
-- **Radar クロスセッション読み取り専用照合（`app_radar_reconcile_conversations`）：** 読み取り専用の App-only ツール（+0 モデルツール）。`ListConversations` でローカルの Radar ボードとホスト上の実稼働セッションを突き合わせ、ホスト側で既にアイドルへ遷移した項目（`driftedToIdle`）やフック未捕捉のバックグラウンド実行セッション（`hostOnlyRunning`）を書き込みゼロで可視化します。
+### 2. 無効モジュールのハードゲーティングと O(1) 短絡（`spec`、`sidecars/`、`hooks`）
+- **`spec → mem` アーカイブのリアルタイム門番：** Spec のメモリへのアーカイブ実行時に `mem` の有効状態を即時検証し、無効時は書き込みを拒否してディレクトリ作成ゼロを厳守します。
+- **読み取り専用巡回サイドカーのモジュール別ゲート制御：** `sidecars/audit-sidecar.mjs` および `audit-once` が `mem`・`verify`・`guard` の有効／無効に連動して集計対象を門番制御し、無効化済みモジュールからの誤検知アラートをゼロにしました。
+- **`PostToolUse` 全モジュール無効時の O(1) 短絡：** 関連モジュールがすべて OFF の場合に先頭行で即座に O(1) 短絡する経路を完備し、不要な処理やディスクアクセスを排除しました。
 
-### 3. Antigravity Marketplace 掲載認証準拠 ＆ 18+4 項目 `doctor` 診断（`plugin.json`、`cli`）
-- **Marketplace 準拠マニフェスト：** `plugin.json` を洗練し、**公式サポート 10 トップレベルキー**、**148 文字の簡潔な説明文**（推奨 60〜200 文字内）、**3 件の推奨プロンプト（`suggestedPrompts`）**、相対パス指定の 128×128 SVG アイコン `assets/logo.svg` を厳格に揃え、常駐 `rules/AGENTS.md` ゼロを維持しています。
-- **`doctor` を全 18 コア資産 + 4 項目の掲載適合チェックへ拡張：** `agy-nov doctor` が `sidecars/audit-sidecar.mjs` と `sidecars/README.md` を含む全 **18 項目**のコア資産に加え、**4 項目の Antigravity Marketplace 掲載適合チェック**（`description` 文字数範囲、`suggestedPrompts` 1〜3 件の非空検証、`logo` 相対パスの実在・シンボリックリンク・越境防御、常駐 `rules/AGENTS.md` 不在確認）を読み取り専用で一括診断します。
+### 3. TypeScript AST レベルの Layer 2 モジュール横断ホワイトリスト保護と `SKILL.md` 軽量化（`test`、`skills/`）
+- **AST レベルのアーキテクチャ衛生ガード：** Layer 2 モジュール間のインポートを TypeScript AST 解析で厳密ホワイトリスト検査する自動ガードへ引き上げ、`v1.2.1` デュアルスター整合性の回帰テストを追加して **101 suites / 286 tests** 体制を確立しました。
+- **`skills/agy-nov/SKILL.md` を `9.5 KB` へスリム化：** 約 `30 KB` あったエントリーポイント Skill を **`9.5 KB`** へ精選圧縮し、`ops.large-instruction-file` 警告を完全に解消しました。
+
+<details>
+<summary><strong>v1.2.0 のネイティブ拡張＆ Marketplace 掲載準拠基盤を継承（読み取り専用巡回サイドカー・Layer 1 ループバック <code>ConversationService</code>・18+4 項目 <code>doctor</code>）</strong></summary>
+
+- **デフォルト OFF の読み取り専用定期巡回サイドカー ＆ 第 11 CLI コマンド `audit-once`（`v1.2.0`）：** [`sidecars/audit-sidecar.mjs`](../../sidecars/audit-sidecar.mjs) と [`sidecars/README.md`](../../sidecars/README.md) により、常駐デーモンゼロ・ポート開放ゼロ・既定書き込みゼロのまま Antigravity `/schedule` や OS スケジューラから単発スイープ（`shell: false`）で Ops / Mem / Verify / Guard を読み取り専用集約；明示的な `--write-report` 指定かつ既存安全非シンボリックリンク `dataDir` の場合のみ `0600`・`O_CREAT | O_EXCL`・`<= 64 KiB` で `health-sweep.json` をアトミック保存します。
+- **Layer 1 共有 `ConversationService` クロスセッション軽量連携（`v1.2.0`、+0 モデルツール）：** `src/core/conversation-service.ts` が素のループバック（`127.0.0.1:<port>`・`localhost:<port>`・`[::1]:<port>`）のみを許可し（`<= 4,000ms` タイムアウト・全量マスク・CSRF 非出力）、X-Ray Clean Fork 直接新規セッション作成（`app_xray_fork_via_service`：既定 `dryRun`、`confirmCreate: true` で作成、未接続時は `sendMessage` フォールバック）および Radar 読み取り専用照合（`app_radar_reconcile_conversations`：`driftedToIdle`・`hostOnlyRunning` を検出）を実現します。
+- **Antigravity Marketplace 掲載準拠＆ 18+4 項目 `doctor`（`v1.2.0`）：** `plugin.json` は公式 10 キー・148 文字説明文・3 件の `suggestedPrompts`・`assets/logo.svg` を厳守し、`agy-nov doctor` が全 **18 コア資産**と **4 項目の Marketplace 掲載適合チェック**（常駐 `rules/AGENTS.md` 不在確認含む）を一括検証します。
+
+</details>
 
 <details>
 <summary><strong>v1.1.0 までのアーキテクチャ＆ネイティブ基盤を継承（4 層単方向依存・Spec DAG コンパイラ・4 読み取り専用 MCP リソース・6 種類 Hook・11 段 stdin JSON <code>statusline</code>）</strong></summary>
@@ -122,8 +130,8 @@ agy-nov recommend --export-preset
 
 ### 100% ネイティブ・スイッチボード設計思想
 
-1. **単一ネイティブランタイムと実測ビルドサイズ：** MCP サーバー 1 本（`dist/server.cjs`、実測 **`1,583.5 KB`**、47 ツール＋4 読み取り専用リソース＋Layer 1 ループバック `ConversationService`）+ 全 **6 種類の公式 Hook**（`SessionStart`・`PreToolUse`・`PostToolUse`・`PreInvocation`・`PostInvocation`・`Stop`）を担うディスパッチャー 1 本（`dist/hook.cjs`、実測 **`211.9 KB`**）+ 自己完結型 100% 8 言語 UI 1 ファイル（`dist/ui/app.html`、実測 **`1,390.2 KB`** / 約 `1.36 MiB`、10 MiB 上限を大幅に下回り **755 辞書キー × 8 言語**で全 **24 UI コンポーネント**を完全網羅）+ **11 コマンド**搭載 CLI（`dist/cli.cjs`、実測 **`190.0 KB`**、`doctor` が全 **18 項目**のコア資産と **4 項目**の Marketplace 適合性を検証）+ デフォルト OFF の読み取り専用巡回サイドカー（`sidecars/audit-sidecar.mjs`）+ **6 公式オンデマンド Skills** ＆ **2 読み取り専用サブエージェント**。
-2. **無効時はトークン消費ゼロ：** 各モジュールはモデルツールを `RegisteredTool.enable()` / `.disable()` でラップし、`tools/list_changed` をリアルタイム通知します。モジュールをオフにするとスキーマと対応コンテキストリソースが即座に停止し、S4 **Tool-Slot Idle Advisor** および CLI `io.modelcontextprotocol/ui` 47 ツール暴発ガードと合わせて 100 ツール上限を余裕を持って回避できます。`v0.4 → v1.2.0` を通じて全 **47 個の標準モデルツール名**は一切膨張せず完全互換を維持しています（Spec DAG コンパイラ UI・`app_xray_fork_via_service`・`app_radar_reconcile_conversations`・Clean Fork 集約・PR 証跡サマリー・`app_nov_file_viewer`・Mem 3.0 一括衛生操作・設定センター・ターン巻き戻し・Context Pack 操作はすべて App-only）。
+1. **単一ネイティブランタイムと実測ビルドサイズ：** MCP サーバー 1 本（`dist/server.cjs`、実測 **`1,584.5 KB`** / 約 `1.55 MiB`、47 ツール＋4 読み取り専用リソース＋Layer 1 ループバック `ConversationService`）+ 全 **6 種類の公式 Hook**（`SessionStart`・`PreToolUse`・`PostToolUse`・`PreInvocation`・`PostInvocation`・`Stop`）を担うディスパッチャー 1 本（`dist/hook.cjs`、実測 **`212.8 KB`**）+ 自己完結型 100% 8 言語 UI 1 ファイル（`dist/ui/app.html`、実測 **`1,390.2 KB`** / 約 `1.36 MiB`、10 MiB 上限を大幅に下回り **755 辞書キー × 8 言語**で全 **24 UI コンポーネント**を完全網羅）+ **11 コマンド**搭載 CLI（`dist/cli.cjs`、実測 **`201.2 KB`**、`doctor` が全 **18 項目**のコア資産と **4 項目**の Marketplace 適合性を検証）+ デフォルト OFF の読み取り専用巡回サイドカー（`sidecars/audit-sidecar.mjs`）+ **6 公式オンデマンド Skills**（エントリーポイント `skills/agy-nov/SKILL.md` は **`9.5 KB`** へ軽量化し `ops.large-instruction-file` 警告を解消）＆ **2 読み取り専用サブエージェント**。
+2. **無効時はトークン消費ゼロ：** 各モジュールはモデルツールを `RegisteredTool.enable()` / `.disable()` でラップし、`tools/list_changed` をリアルタイム通知します。モジュールをオフにするとスキーマ・対応コンテキストリソース・`spec → mem` アーカイブ経路が即座に停止し、S4 **Tool-Slot Idle Advisor** および CLI `io.modelcontextprotocol/ui` 47 ツール暴発ガードと合わせて 100 ツール上限を余裕を持って回避できます。`v0.4 → v1.2.1` を通じて全 **47 個の標準モデルツール名**は一切膨張せず完全互換を維持しています（Spec DAG コンパイラ UI・`app_xray_fork_via_service`・`app_radar_reconcile_conversations`・Clean Fork 集約・PR 証跡サマリー・`app_nov_file_viewer`・Mem 3.0 一括衛生操作・設定センター・ターン巻き戻し・Context Pack 操作はすべて App-only）。
 3. **12 個のローカルオフラインモジュールを主軸に：** コア必須機能（`review`・`guard` 2.5・`xray`）、開発パイプライン（`spec` 2.0 ＋ DAG コンパイラ・`worktree`・`verify`・`turbo` 3.0・`mem` 3.0）、オンデマンド工具箱（`radar`・`studio`・`canvas`・`ops` 3.0）を 100% ローカル実行。外部通信ゼロ、ASAR 改変ゼロ、CDP フックゼロ。
 4. **厳格なオプトイン型リモートモジュール 1 つ（Remote 2.5）：** 隔離リモート接続ドメインの `remote`（モバイル PWA + IM Webhook）はデフォルト完全オフ。明示的に有効化するまで待ち受けポートゼロ、バックグラウンドポーリングゼロ、ディスク書き込みゼロ、外部ネットワーク通信ゼロを維持し、有効化時に読み取り専用ライブストリーム、構造化リスク承認カード（`HIGH`/`MED`/`LOW`）、および `tailscale` / `cloudflared` 安全トンネリング案内を提供します。
 
@@ -141,7 +149,7 @@ agy-nov recommend --export-preset
 | **`local-all`** | *フルローカルスタジオ* — Workspace Studio（OpenAPI 2.0/3.x パーサー＆ネイティブ `file` ビューア連携）・ビジュアルキャンバス・Mem 3.0（信頼度／TTL 衛生ガバナンス・`agy-nov://context/mem`・3 層メモリグラフ）を含む全ローカル機能 | 全 12 オフラインネイティブモジュール | **43** | 100% オフライン |
 | **`full`** | *離席コマンダー* — フルスタジオに加えオプトインの Remote 2.5 スマホ PWA ライブ閲覧＆構造化リスク IM 承認カードを追加 | 全 13 ネイティブモジュール（オプトイン `remote` 含む） | **47** | オプトイン通信 |
 
-<sub>*正確なモデルツール数 = 常駐エントリーツール `2` 個（`nov_open`、`nov_status`）+ 有効モジュールのツール数合計（`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47；`v0.4 → v1.2.0` を通じて全 47 標準モデルツール名は不変、Spec DAG コンパイラ UI・`app_xray_fork_via_service`・`app_radar_reconcile_conversations`・`app_nov_file_viewer`・Clean Fork・PR 証跡サマリー・Mem 3.0 一括衛生・Tool-Slot Idle Advisor はすべて App-only、4 つのコンテキストリソース・6 Skills・2 サブエージェントはモデルツール枠消費 0）。</sub>
+<sub>*正確なモデルツール数 = 常駐エントリーツール `2` 個（`nov_open`、`nov_status`）+ 有効モジュールのツール数合計（`review` 2 + `guard` 4 + `xray` 4 + `turbo` 3 + `radar` 2 + `verify` 4 + `worktree` 4 + `spec` 4 + `studio` 4 + `canvas` 4 + `mem` 3 + `ops` 3 + `remote` 4 = 47；`v0.4 → v1.2.1` を通じて全 47 標準モデルツール名は不変、Spec DAG コンパイラ UI・`app_xray_fork_via_service`・`app_radar_reconcile_conversations`・`app_nov_file_viewer`・Clean Fork・PR 証跡サマリー・Mem 3.0 一括衛生・Tool-Slot Idle Advisor はすべて App-only、4 つのコンテキストリソース・6 Skills・2 サブエージェントはモデルツール枠消費 0）。</sub>
 
 ```bash
 # リポジトリを読み取り専用で診断し、--export-preset で .agy-nov.json を書き込みゼロプレビュー
@@ -180,14 +188,14 @@ node ~/.gemini/config/plugins/agy-nov/dist/cli.cjs preset power
 
 ### 公式オンデマンド Playbook・読み取り専用コンテキストリソース・サブエージェント・巡回サイドカー・ネイティブ `file` ビューア
 
-- **6 つの公式オンデマンド Skills（`skills/`）：** エントリーポイント `agy-nov` に加え、5 つのスラッシュ Playbook —— **`/nov-spec`**、**`/nov-workflow`**（承認済み Spec DAG を `/run-workflow` Python と `/swarm` `plan.json` へコンパイルし並列実行・二重審査・Verify 引き継ぎまで誘導）、**`/nov-debug`**（4 ステップ根本原因法）、**`/nov-review`**（2 段階レビュー）、**`/nov-handoff`** —— を搭載。必要な時だけ呼び出され、既定 `rules/AGENTS.md` を一切肥大化させません。
+- **6 つの公式オンデマンド Skills（`skills/`）：** **`9.5 KB`** へ軽量化し `ops.large-instruction-file` 警告を解消したエントリーポイント `agy-nov`（`skills/agy-nov/SKILL.md`）に加え、5 つのスラッシュ Playbook —— **`/nov-spec`**、**`/nov-workflow`**（承認済み Spec DAG を `/run-workflow` Python と `/swarm` `plan.json` へコンパイルし並列実行・二重審査・Verify 引き継ぎまで誘導）、**`/nov-debug`**（4 ステップ根本原因法）、**`/nov-review`**（2 段階レビュー）、**`/nov-handoff`** —— を搭載。必要な時だけ呼び出され、既定 `rules/AGENTS.md` を一切肥大化させません。
 - **2 つの公式読み取り専用サブエージェント（`agents/`）：** **`nov-blind-reviewer`**（`agents/nov-blind-reviewer.md`：履歴バイアスなしの独立ブラインドレビュー）と **`nov-security-auditor`**（`agents/nov-security-auditor.md`：独立読み取り専用レッドチーム監査）。厳格なネイティブ読み取り専用ツール（`read_file`）に限定され、MCP モデルツール枠を消費しません。
 - **4 つのゼロ注入税・読み取り専用 MCP コンテキストリソース（`agy-nov://context/*`）：** `review`・`mem`・`turbo`・`xray` の 4 リソースをオンデマンド提供。各モジュールの有効状態に厳密連動し、全量線形マスク・書き込みゼロ・上限 `<= 32 KiB` を貫きます。
 - **デフォルト OFF の読み取り専用巡回サイドカー（`sidecars/audit-sidecar.mjs`）：** 詳細は [`sidecars/README.md`](../../sidecars/README.md) を参照。常駐プロセスゼロ・ポート開放ゼロ・既定書き込みゼロで、Antigravity `/schedule` や OS スケジューラから単発ヘルススイープを実行できます。
 - **MCP Apps `file` ネイティブファイルビューア（`app_nov_file_viewer`）：** 公式 `com.google.antigravity/ui` `file` エントリーポイントを登録し、`.sqlite` / `.sqlite3` / `.db` / `.csv` / `.tsv` / `.svg` / `.openapi.yaml` / `.openapi.yml` をワークスペースから直接安全に閲覧可能（モデル非公開・ツール税ゼロ、`realpath` 境界・SVG サニタイズ、およびホスト `resources/read` 経由の `antigravity-file://` 安全プレビュー対応）。
 
 <details>
-<summary><strong>エージェントへの実践プロンプト例…（Tier 1 オフラインモジュール＆v1.2.0 新機能 12 例）</strong></summary>
+<summary><strong>エージェントへの実践プロンプト例…（Tier 1 オフラインモジュール＆v1.2.1 機能 12 例）</strong></summary>
 
 - **Review:** *「agy-NOV Diff Review で対象の Worktree ブランチへ切り替え、アクティブな Spec 受け入れ条件を自動ロードして Stage 1 準拠確認と Stage 2 `file:line` コード品質注釈の 2 段階レビューを実行して。」*
 - **Guard 2.5:** *「ワークスペース内のシークレットをスキャンして `strict-gate` 権限モードへ切り替え、`PreInvocation` 送信前ローカル機密遮断が有効なのを確認して。リファクタ後にターン単位グループ化スナップショットの全体 Diff を確認し、必要なら一括 Rewind できるようにして。」*
@@ -218,7 +226,7 @@ node ~/.gemini/config/plugins/agy-nov/dist/cli.cjs preset power
 
 ### 全コンポーネント 100% 対応 8 言語プラグイン UI（全 24 コンポーネント網羅 · 再起動不要）
 
-`agy-NOV` `v1.2.0` は**全 24 UI コンポーネントの 100% 8 言語ローカライズ（755 辞書キー × 8 言語、残存ハードコード英語ゼロ）**をプラグインバンドル本体に内蔵しています（`dist/ui/app.html` 約 `1.36 MiB`、実測 **`1,390.2 KB`** で 10 MiB 上限を大幅に下回ります）。ワークフローハブ ＆ Clean Fork、4 階層統合設定センターと S4 **Tool-Slot Idle Advisor**、Spec DAG コンパイラプレビュー、Ops 3.0 `securityScore` 監査＆`migrationPreview` 重複削減プレビュー、Mem 3.0 衛生フィルタ＆一括 Verify/Refresh TTL/Prune、適応型ナビ＆`⌘K` パレット、Worktree `.worktreeinclude` プレビュー、Diff Review 2 段階レビュー、Verify PR 証跡サマリー、Radar Kanban 4 レーン、ネイティブ `file` ビューア、Turbo 3.0、Guard 2.5、Spec 2.0、Remote 2.5 まで全画面を 8 言語で統一し、8 言語ドキュメント（`docs/i18n/README.*.md`）と完全に連動します：
+`agy-NOV` `v1.2.1` は**全 24 UI コンポーネントの 100% 8 言語ローカライズ（755 辞書キー × 8 言語、残存ハードコード英語ゼロ）**をプラグインバンドル本体に内蔵しています（`dist/ui/app.html` 約 `1.36 MiB`、実測 **`1,390.2 KB`** で 10 MiB 上限を大幅に下回ります）。ワークフローハブ ＆ Clean Fork、4 階層統合設定センターと S4 **Tool-Slot Idle Advisor**、Spec DAG コンパイラプレビュー、Ops 3.0 `securityScore` 監査＆`migrationPreview` 重複削減プレビュー、Mem 3.0 衛生フィルタ＆一括 Verify/Refresh TTL/Prune、適応型ナビ＆`⌘K` パレット、Worktree `.worktreeinclude` プレビュー、Diff Review 2 段階レビュー、Verify PR 証跡サマリー、Radar Kanban 4 レーン、ネイティブ `file` ビューア、Turbo 3.0、Guard 2.5、Spec 2.0、Remote 2.5 まで全画面を 8 言語で統一し、8 言語ドキュメント（`docs/i18n/README.*.md`）と完全に連動します：
 
 - **トップバーのネイティブ言語スイッチャー：** ワークベンチ上部のドロップダウンまたは統合設定センターから任意の言語を選択すると、UI 表示と `<html lang>` がリロードなしで即座に切り替わります。
 - **BCP-47 ホスト言語の自動検出（`auto`）：** デフォルトの `auto` が Antigravity ホストのロケールに自動追従し、同梱 8 言語すべての明示切替にも対応：
@@ -255,22 +263,22 @@ agy plugin install https://github.com/tone-leh/agy-Sag
 
 > システム設計・巡回サイドカーガイド・コントリビューション規約・製品情報アーキテクチャ・デュアルスター連携契約：[`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) · [`sidecars/README.md`](../../sidecars/README.md) · [`CONTRIBUTING.md`](../../CONTRIBUTING.md) · [`docs/PRODUCT-IA.md`](../PRODUCT-IA.md) · [`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md)
 
-`v1.2.0` では厳格な **4 層単方向依存モジュラーアーキテクチャ**を土台に、Layer 1 共有セキュリティカーネルへループバック限定 SSRF 防御の **`src/core/conversation-service.ts`** を追加して X-Ray・Radar のクロスセッション連携を実現し、さらにデフォルト OFF の読み取り専用巡回サイドカー **`sidecars/audit-sidecar.mjs`** と第 11 CLI コマンド `audit-once` を統合しました。全リポジトリの循環依存ゼロと層境界は `test/architecture-hygiene.test.ts` が継続的に自動検証します。
+`v1.2.1` では厳格な **4 層単方向依存モジュラーアーキテクチャ**を土台に、アーキテクチャ衛生チェックを **TypeScript AST レベルの Layer 2 モジュール横断ホワイトリスト保護** へ強化しました。あわせて `PreToolUse`・CLI 設定変更時のデュアルスター `feed-snapshot.json` 即時更新＆高精度集約、`spec → mem` アーカイブと巡回サイドカーの無効モジュールハードゲーティング、`PostToolUse` 全 OFF 時 O(1) 短絡、および `skills/agy-nov/SKILL.md` の `9.5 KB` 軽量化を実装し、**101 suites / 286 tests** の自動検証で循環依存ゼロと層境界を継続監視します。
 
 ```mermaid
 flowchart TB
   subgraph L1["レイヤー 1 · Google Antigravity 2.0 ホスト (Desktop / CLI / IDE · macOS / Windows / Linux)"]
     Host["100% 公式ネイティブプロトコル (ゼロ ASAR · ゼロ CDP)\nMCP Apps SEP-1865 (file 入口対応) · 4 読み取り専用リソース · 6 種類の Lifecycle Hooks · /run-workflow & /swarm · 11 段 CLI statusLine · ループバック ConversationService · /schedule"]
-    Sag["任意の連携ツール · agy-Sag\nconfig.json アトミックホット同期 · feed-snapshot.json 集約スナップショット"]
+    Sag["任意の連携ツール · agy-Sag\nconfig.json アトミックホット同期 · feed-snapshot.json リアルタイム集約スナップショット"]
   end
 
-  subgraph L2["レイヤー 2 · agy-NOV v1.2.0 純ネイティブ実行コア・拡張・巡回サイドカー (4 層単方向依存 · 循環依存ゼロ)"]
-    MCP["単一 MCP サーバー (dist/server.cjs · 1,583.5 KB)\n動的 tools/list: 6 / 12 / 32 / 43 / 47 (+0 増大) · CLI 47 ツール暴発ガード · roots/list · 4 リソース agy-nov://context/* · ループバック ConversationService"]
-    Hook["統一フックディスパッチャー (dist/hook.cjs · 211.9 KB)\n6 種類の公式 Hook · PreInvocation 送信前機密遮断 · PostInvocation ゼロトークン要約 · Stop: continue · O(1) 短絡"]
+  subgraph L2["レイヤー 2 · agy-NOV v1.2.1 純ネイティブ実行コア・拡張・巡回サイドカー (4 層単方向依存 · AST ホワイトリスト保護)"]
+    MCP["単一 MCP サーバー (dist/server.cjs · 1,584.5 KB / ~1.55 MiB)\n動的 tools/list: 6 / 12 / 32 / 43 / 47 (+0 増大) · CLI 47 ツール暴発ガード · roots/list · 4 リソース agy-nov://context/* · ループバック ConversationService"]
+    Hook["統一フックディスパッチャー (dist/hook.cjs · 212.8 KB)\n6 種類の公式 Hook · PreInvocation 送信前機密遮断 · PreToolUse 即時スナップショット更新 · PostToolUse/PostInvocation 全 OFF O(1) 短絡 · Stop: continue"]
     UI["単一ファイル 8 言語 UI (dist/ui/app.html)\n4+1 IA · Hub · Spec DAG コンパイルプレビュー · S4 遊休アドバイザー · 755 キー × 8 言語 · 24 コンポーネント · ~1.36 MiB (1,390.2 KB)"]
-    Ext["公式オンデマンド拡張 (モデルツール枠消費ゼロ)\n6 Skills: agy-nov, /nov-spec, /nov-workflow, /nov-debug, /nov-review, /nov-handoff\n2 読み取り専用サブエージェント: nov-blind-reviewer, nov-security-auditor"]
-    CLI["ゼロ依存モジュラー CLI (dist/cli.cjs · 190.0 KB)\n11 コマンド · audit-once · compile-spec · statusline (11 段 + stdin JSON) · doctor 18 資産 + 4 掲載診断 · recommend --export-preset"]
-    Sidecar["デフォルト OFF 読み取り専用巡回サイドカー (sidecars/audit-sidecar.mjs)\n常駐ゼロ · ポートゼロ · 単発 --once スイープ · 明示 --write-report で health-sweep.json を原子出力"]
+    Ext["公式オンデマンド拡張 (モデルツール枠消費ゼロ)\n6 Skills: agy-nov (SKILL.md 9.5 KB), /nov-spec, /nov-workflow, /nov-debug, /nov-review, /nov-handoff\n2 読み取り専用サブエージェント: nov-blind-reviewer, nov-security-auditor"]
+    CLI["ゼロ依存モジュラー CLI (dist/cli.cjs · 201.2 KB)\n11 コマンド · 設定変更時の既存スナップショット同期更新 · audit-once · compile-spec · statusline (11 段 + stdin JSON) · doctor 18+4 · recommend --export-preset"]
+    Sidecar["デフォルト OFF 読み取り専用巡回サイドカー (sidecars/audit-sidecar.mjs)\n常駐ゼロ · ポートゼロ · mem/verify/guard 有効連動ゲートで誤検知ゼロ · 明示 --write-report で health-sweep.json を原子出力"]
   end
 
   subgraph L3["レイヤー 3 · 4 ドメイン 13 分離モジュールと Layer 1 共有コア (sanitize.ts / fs-safe.ts / conversation-service.ts)"]
@@ -302,15 +310,18 @@ flowchart TB
 ### 多層防御セキュリティチェックリスト
 
 - **ゼロ ASAR ＆ ゼロ CDP：** 公式に文書化された Antigravity 2.0 MCP Apps（`ui://agy-nov/app.html` ＆ `file` エントリーポイント）、4 つの読み取り専用 MCP コンテキストリソース、6 種類の Lifecycle Hooks、6 Skills、2 読み取り専用サブエージェント、ループバック `ConversationService`、CLI `statusLine` のみで動作。バイナリ改変ゼロ、リモートデバッグポートゼロ、ホスト DOM 注入ゼロ。
-- **デフォルト OFF 読み取り専用巡回サイドカー＆`audit-once` 防壁（`v1.2.0`）：** `sidecars/audit-sidecar.mjs` は導入後に自動常駐せず、待ち受けソケットゼロ・外部通信ゼロ・コード改変ゼロを徹底し、`spawnSync(..., { shell: false })` と明示引数リストで `dist/cli.cjs` を単発実行します。既定では一切書き込まず、`--write-report` 指定かつ既存安全非シンボリックリンク `dataDir` の場合のみ `0600`・`O_CREAT | O_EXCL`・`<= 64 KiB` 上限で `health-sweep.json` をアトミック生成し、シンボリックリンクや `2 MiB` 超のファイルを拒否します。
-- **Layer 1 `ConversationService` ループバック限定 SSRF 防御 ＆ ゼロ CSRF エコー（`v1.2.0`）：** `src/core/conversation-service.ts` は素の `127.0.0.1:<port>`・`localhost:<port>`・`[::1]:<port>` のみを受け付け、外部ホスト・スキーム・パス・認証情報・制御文字を拒否します。タイムアウト `<= 4,000ms`、全フィールド線形マスク＆`<private>` 除去、エラー時 CSRF トークン非出力、未接続時フォールバックを徹底。`app_xray_fork_via_service` は既定 `dryRun`（明示 `confirmCreate: true` で作成）、`app_radar_reconcile_conversations` は完全読み取り専用です。
-- **Antigravity Marketplace 掲載準拠＆18+4 項目 `doctor` 診断（`v1.2.0`）：** `plugin.json` は公式 10 キー（148 文字説明文・3 件の推奨プロンプト・相対パス 128×128 `assets/logo.svg`）のみを保持し、`agy-nov doctor` が全 **18 コア資産**と **4 項目の Marketplace 掲載適合チェック**（常駐 `rules/AGENTS.md` 不在確認・`logo` シンボリックリンク＆越境防止を含む）を自動検証します。
-- **4 層単方向依存と共有セキュリティカーネル：** `src/core/sanitize.ts`・`src/core/fs-safe.ts`・`src/core/conversation-service.ts` に線形 O(n) 秘匿処理・`<private>` 除去・`canonicalRealpathSync`・NTFS アトミックリネーム・ループバック検証を集約し、`test/architecture-hygiene.test.ts` で全リポジトリの循環依存ゼロと層境界を自動検証します。
+- **デュアルスター `feed-snapshot.json` リアルタイム更新＆高精度集約（`v1.2.1`）：** `PreToolUse` の遮断・承認時にスナップショットを即時アトミック更新し、CLI の設定変更時にも既存スナップショットを同期更新（`dataDir` 未存在時はディレクトリ作成・書き込みゼロを維持）。`latestSnapshotId` は最新値を、`GUARD_BLOCKED` 理由は実遮断イベントを、`verify` はタイムスタンプ最新の記録を厳密に採用します。
+- **無効モジュールハードゲーティング＆`PostToolUse` 全 OFF O(1) 短絡（`v1.2.1`）：** `spec → mem` アーカイブは `mem` の有効状態を即時検証し、無効時は書き込み拒否＆ディレクトリ作成ゼロを厳守。巡回サイドカー／`audit-once` は `mem`・`verify`・`guard` の有効状態に応じて門番制御して無効モジュール誤検知をゼロにし、`PostToolUse` に全 OFF 時の O(1) 短絡を完備しました。
+- **TypeScript AST レベル Layer 2 ホワイトリスト保護＆`SKILL.md` 軽量化（`v1.2.1`）：** AST 解析による Layer 2 モジュール横断インポートのホワイトリスト検証で層境界逸脱と循環依存を自動防止し、`skills/agy-nov/SKILL.md` を約 30 KB から **`9.5 KB`** へ精選圧縮して `ops.large-instruction-file` 警告を解消しました。
+- **デフォルト OFF 読み取り専用巡回サイドカー＆`audit-once` 防壁：** `sidecars/audit-sidecar.mjs` は導入後に自動常駐せず、待ち受けソケットゼロ・外部通信ゼロ・コード改変ゼロを徹底し、`spawnSync(..., { shell: false })` と明示引数リストで `dist/cli.cjs` を単発実行します。既定では一切書き込まず、`--write-report` 指定かつ既存安全非シンボリックリンク `dataDir` の場合のみ `0600`・`O_CREAT | O_EXCL`・`<= 64 KiB` 上限で `health-sweep.json` をアトミック生成し、シンボリックリンクや `2 MiB` 超のファイルを拒否します。
+- **Layer 1 `ConversationService` ループバック限定 SSRF 防御 ＆ ゼロ CSRF エコー：** `src/core/conversation-service.ts` は素の `127.0.0.1:<port>`・`localhost:<port>`・`[::1]:<port>` のみを受け付け、外部ホスト・スキーム・パス・認証情報・制御文字を拒否します。タイムアウト `<= 4,000ms`、全フィールド線形マスク＆`<private>` 除去、エラー時 CSRF トークン非出力、未接続時フォールバックを徹底。`app_xray_fork_via_service` は既定 `dryRun`（明示 `confirmCreate: true` で作成）、`app_radar_reconcile_conversations` は完全読み取り専用です。
+- **Antigravity Marketplace 掲載準拠＆18+4 項目 `doctor` 診断：** `plugin.json` は公式 10 キー（148 文字説明文・3 件の推奨プロンプト・相対パス 128×128 `assets/logo.svg`）のみを保持し、`agy-nov doctor` が全 **18 コア資産**と **4 項目の Marketplace 掲載適合チェック**（常駐 `rules/AGENTS.md` 不在確認・`logo` シンボリックリンク＆越境防止を含む）を自動検証します。
+- **4 層単方向依存と共有セキュリティカーネル：** `src/core/sanitize.ts`・`src/core/fs-safe.ts`・`src/core/conversation-service.ts` に線形 O(n) 秘匿処理・`<private>` 除去・`canonicalRealpathSync`・NTFS アトミックリネーム・ループバック検証を集約し、`test/architecture-hygiene.test.ts` が AST 規則で全リポジトリの循環依存ゼロと層境界ホワイトリストを自動検証します。
 - **`PreInvocation` 送信前ローカル機密ハード遮断 ＆ `PostInvocation` ゼロトークン要約レシート：** `guard` 有効時、`PreInvocation` は高信頼度の秘密鍵・API Key をクラウド送信前にローカル検知して `terminationBehavior: "terminate"` で即座に遮断（平文エコーゼロ）。通常時は `systemMessage: ""` で視覚レシートのみ出力。第 6 Hook `PostInvocation` も `systemMessage: ""`・書き込みゼロを厳守し、対象 3 モジュール無効時は O(1) 短絡します。
 - **4 つのゼロ注入税読み取り専用 MCP リソース＆Spec DAG コンパイラの安全性：** `agy-nov://context/{review,mem,turbo,xray}` は対応モジュールの ON/OFF に連動し、シンボリックリンク拒否・線形マスク・上限 **`<= 32 KiB`**・書き込みゼロを強制。`compile-spec` と UI プレビューは Kahn で循環・未知依存を事前拒否し安全な Python リテラルを生成します。
 - **Ops 3.0 静的セキュリティ監査＆Mem 3.0 衛生／TTL 保護：** `ops_audit_workspace` は Prompt Injection・過度に緩い許可・高リスク Hook・平文クレデンシャルを読み取り専用スキャン（`securityScore` 0〜100、シークレット値エコーゼロ・誤検知ゼロ）。Mem 3.0 の `Stop` 自動抽出は既定 `tentative` + `14` 日 TTL、一括 Prune はインライン二重確認を必須とします。
 - **11 セグメント `statusline`・`.worktreeinclude`・`--export-preset` 防壁：** `statusline` は Antigravity 2.35 stdin JSON を `<= 256 KiB`・`120ms` タイムアウト・書き込みゼロで解析；`recommend --export-preset` は明示 `--confirm` 時のみアトミック出力し `remote` 書き込みを禁止；`.worktreeinclude` は `.env`・秘密鍵・シンボリックリンクを `skippedSensitive` に遮断し RCE スクリプトを実行しません。
-- **MCP Apps `file` ビューア・6 Skills / 2 読み取り専用サブエージェント・Auto-RTK・Guard 2.5・Remote 2.5：** `app_nov_file_viewer` はモデル非公開・`realpath` 境界・SVG サニタイズを実施；`nov-blind-reviewer` と `nov-security-auditor` は読み取り専用ツール（`read_file`）に限定；Auto-RTK は既定 OFF・`Guard` > `Spec` > `Remote` > `Turbo`・`shell: false` を厳守；Remote 2.5 は同一オリジン PIN DoS 防御・SSE 上限＆ハートビート・ゼロ `innerHTML`・OFF 時 4 ゼロ隔離を徹底。実測ビルドサイズは `dist/server.cjs 1,583.5 KB` / `dist/hook.cjs 211.9 KB` / `dist/cli.cjs 190.0 KB` / `dist/ui/app.html 1,390.2 KB`（10 MiB 上限を大幅に下回ります）。
+- **MCP Apps `file` ビューア・6 Skills / 2 読み取り専用サブエージェント・Auto-RTK・Guard 2.5・Remote 2.5：** `app_nov_file_viewer` はモデル非公開・`realpath` 境界・SVG サニタイズを実施；`nov-blind-reviewer` と `nov-security-auditor` は読み取り専用ツール（`read_file`）に限定；Auto-RTK は既定 OFF・`Guard` > `Spec` > `Remote` > `Turbo`・`shell: false` を厳守；Remote 2.5 は同一オリジン PIN DoS 防御・SSE 上限＆ハートビート・ゼロ `innerHTML`・OFF 時 4 ゼロ隔離を徹底。実測ビルドサイズは `dist/server.cjs 1,584.5 KB`（~1.55 MiB）/ `dist/hook.cjs 212.8 KB` / `dist/cli.cjs 201.2 KB` / `dist/ui/app.html 1,390.2 KB`（~1.36 MiB、10 MiB 上限を大幅に下回ります）/ `skills/agy-nov/SKILL.md 9.5 KB`。
 
 </details>
 
@@ -441,7 +452,7 @@ AI コーディングアシスタントおよび検索パイプライン向け�
 
 ```bash
 npm run typecheck
-npm test                                                      # 100 テストスイート / 280 テスト (100 suites / 280 tests)
+npm test                                                      # 101 テストスイート / 286 テスト (101 suites / 286 tests)
 node dist/cli.cjs status
 node dist/cli.cjs statusline --json
 node dist/cli.cjs statusline --segments=brand,model,context,quota,verify,guard
@@ -463,7 +474,7 @@ node dist/cli.cjs doctor                                      # 全 18 コア資
 機能重複ゼロのコンパニオンプラグインを両方導入すれば、**100% ネイティブ MCP App エンジニアリング・ワークベンチ**と **Antigravity Desktop ホスト深層強化**の両方を手に入れられます。
 
 - **ネイティブ設定画面から即時制御しつつ、`agy-NOV` は完全ゼロ CDP を維持：** **`agy-NOV`** と **[`agy-Sag`](https://github.com/tone-leh/agy-Sag)** を併用すると、Antigravity 標準の **Settings** ページ内に埋め込まれた `agy-Sag` コントロールパネルから、`agy-NOV` の全 13 モジュール切替と全 5 プリセット切替をリアルタイムに操作できます。
-- **100% 純ネイティブ `config.json` ホット同期 + `feed-snapshot.json` デュアルスター連携契約：** `agy-NOV` は **Zero ASAR ＆ Zero CDP**・追加ポートゼロ・不要な事前書き込みゼロを貫きます。MCP サーバーはマイクロ秒単位の読み取り専用 `config.json` 署名チェックで差分 `tools/list_changed` を自動反映しつつ、既存データディレクトリ配下に単一ファイルのマスク済みスナップショット `feed-snapshot.json`（`<= 64 KiB`、仕様は [`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md)）を原子更新し、`agy-Sag` から 1 回の I/O で参照できます。
+- **100% 純ネイティブ `config.json` ホット同期 + `feed-snapshot.json` デュアルスター即時連携契約：** `agy-NOV` は **Zero ASAR ＆ Zero CDP**・追加ポートゼロ・不要な事前書き込みゼロを貫きます。MCP サーバーはマイクロ秒単位の読み取り専用 `config.json` 署名チェックで差分 `tools/list_changed` を自動反映しつつ、`PreToolUse` の遮断／承認時や CLI 設定変更時にも既存データディレクトリ配下の単一マスク済みスナップショット `feed-snapshot.json`（`<= 64 KiB`、最新の `latestSnapshotId`・実遮断紐付けの `GUARD_BLOCKED`・タイムスタンプ基準の `verify` 集約、仕様は [`docs/DUAL-STAR-CONTRACT.md`](../DUAL-STAR-CONTRACT.md)）を即時原子更新し、`agy-Sag` から 1 回の I/O で参照できます。
 
 | プラグイン | アーキテクチャ | コア機能 |
 | :--- | :--- | :--- |

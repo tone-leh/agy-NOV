@@ -12,7 +12,7 @@ import {
   PRESET_IDS,
 } from '../../core/config.js';
 
-export const CLI_VERSION = '1.2.0';
+export const CLI_VERSION = '1.2.1';
 export const MAX_READ_JSON_BYTES = 2 * 1024 * 1024; // 2 MiB hard cap for silent read-only JSON loading
 
 export function printHelp(): void {

@@ -6,7 +6,7 @@ import { describe, it } from 'node:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { getModuleDataDir, MODULE_CATALOG } from '../src/core/config.js';
+import { getModuleDataDir, MODULE_CATALOG, setModuleEnabled } from '../src/core/config.js';
 import { normalizeHookPayload } from '../src/core/utils.js';
 import { createNovServer } from '../src/server/index.js';
 import {
@@ -408,6 +408,7 @@ describe('Spec 2.0 — Archive to Mem (<private> stripping + live disk vs demo z
   it('writes sanitized memory into memories.json with stripped <private> tags and records archivedMemoryId in live mode', async () => {
     await withTempDir('agy-nov-v07-spec-archive-live-', (tmpDir) => {
       const rootDataDir = path.join(tmpDir, 'nov-data');
+      setModuleEnabled(rootDataDir, 'mem', true);
       const specDataDir = getModuleDataDir(rootDataDir, 'spec');
       const memDataDir = getModuleDataDir(rootDataDir, 'mem');
 
@@ -748,6 +749,14 @@ describe('Spec 2.0 — SessionStart hook [DELTA] & annotation reminders + disabl
           0,
         );
 
+        // While mem is OFF, archiving from Spec must be rejected without writing to mem dir
+        const blockedArchive = await client.callTool({
+          name: 'app_spec_archive_to_mem',
+          arguments: { specId: 'spec-mcp-v07' },
+        });
+        assert.equal(blockedArchive.isError, true);
+
+        await bundle.setModule('mem', true);
         const archiveCall = await client.callTool({
           name: 'app_spec_archive_to_mem',
           arguments: { specId: 'spec-mcp-v07' },

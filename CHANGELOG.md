@@ -2,6 +2,35 @@
 
 All notable changes to **agy-NOV** will be documented in this file.
 
+## [1.2.1] - 2026-11-28
+
+### Fixed
+- **Dual-Star `feed-snapshot.json` Immediate Refresh & Accurate Aggregation (`hooks`, `cli`, `core`, `remote`):**
+  - Updated `PreToolUse` so `guard`, `spec`, and `remote` immediately refresh `<dataDir>/feed-snapshot.json` before returning `deny`, `force_ask`, or `ask` decisions, eliminating stale companion snapshots on blocked or approval-gated turns.
+  - Updated CLI configuration mutators (`enable`, `disable`, `preset`, `locale`) to synchronously refresh an existing `<dataDir>/feed-snapshot.json` immediately after updating `config.json`, while preserving zero-mkdir/zero-write invariants whenever `dataDir` or the snapshot file is absent.
+  - Fixed `latestSnapshotId` resolution in `src/core/feed.ts` by sorting snapshots by `createdAt` and selecting the newest entry (replacing legacy field lookup).
+  - Bound `GUARD_BLOCKED` alert reasons strictly to real `deny` / `blocked` events so non-blocking telemetry entries never surface as Guard blocks.
+  - Unified `verify` summary selection across `src/core/feed.ts` and `src/modules/remote/hook.ts` to consistently select the entry with the latest timestamp.
+- **Disabled-Module Hard Gating & `PostToolUse` O(1) Short-Circuit (`spec`, `mem`, `server`, `hooks`):**
+  - Hard-gated cross-module `spec -> mem` archival (`archiveSpecToMemory`) with live `cfg.modules.mem` validation: whenever `mem` is disabled, archival refuses writes cleanly with zero directory creation.
+  - Gated read-only Audit Sidecar sweeps (`src/server/sidecar.ts`) against `cfg.modules.mem`, `cfg.modules.verify`, and `cfg.modules.guard` so stale historical files left by disabled modules never raise false positives.
+  - Added an all-disabled O(1) short-circuit guard at the top of `PostToolUse` in `dist/hook.cjs`.
+
+### Changed
+- **TypeScript AST Architecture Guard & Entry Skill Slimming (`test`, `skills/`, `docs/`):**
+  - Upgraded `test/architecture-hygiene.test.ts` to parse imports via the TypeScript AST and enforce a strict Layer 2 horizontal cross-module import allowlist across the codebase.
+  - Slimmed `skills/agy-nov/SKILL.md` from ~30 KB down to **`9.5 KB`**, clearing `ops.large-instruction-file` rule-bloat warnings while keeping concise invocation instructions intact.
+  - Added `test/v121-consistency-hardening.test.ts` verifying dual-star snapshot freshness/aggregation, disabled-module hard gating, and `PostToolUse` O(1) short-circuiting, expanding total automated verification to **101 suites / 286 tests** passing green across the macOS / Windows / Linux 3-OS CI matrix.
+- **Preserved 13-Module Architecture, 5 Presets & Strictly 47 Canonical Model Tools (+0 Inflation):** All 13 toggleable native modules (12 local offline + 1 opt-in `remote`), 5 presets (`minimal` 6 / `core` 12 / `power` 32 / `local-all` 43 / `full` 47), 6 official Lifecycle Hooks, 6 official Skills, 2 read-only specialist subagents, 4 `agy-nov://context/*` resources, 11 CLI commands, 18-asset + 4-check Marketplace `doctor`, and all **47 canonical model tool names** remain 100% backward-compatible from `v0.4` through `v1.2.1`.
+- **Measured `v1.2.1` Runtime Artifacts & Synchronized Documentation:**
+  - Measured minified `v1.2.1` artifacts: `dist/server.cjs` **`1,584.5 KB`** (`~1.55 MiB`), `dist/hook.cjs` **`212.8 KB`**, `dist/cli.cjs` **`201.2 KB`**, single-file 8-language UI `dist/ui/app.html` **`1,390.2 KB`** (`~1.36 MiB`, far below the 10 MiB cap, carrying **755 core dictionary keys × 8 locales** across all **24 UI components**), and `skills/agy-nov/SKILL.md` **`9.5 KB`**.
+  - Updated `docs/ARCHITECTURE.md`, `docs/DUAL-STAR-CONTRACT.md`, `README.md`, all 7 localized `docs/i18n/README.*.md` files, `llms.txt`, and `docs/llms-install.md` to `v1.2.1` (`doctor` reporting `version=1.2.1`).
+
+### Security
+- **Disabled-Module Zero-Write Containment & AST Layer Enforcement (`v1.2.1`):**
+  - Verified `archiveSpecToMemory` performs zero disk writes and zero directory creation whenever `cfg.modules.mem` is `false`, Audit Sidecar sweeps respect `cfg.modules.{mem,verify,guard}`, and `PostToolUse` short-circuits in O(1) when all participating modules are off.
+  - Verified TypeScript AST architecture checks enforce unidirectional 4-layer imports and the Layer 2 horizontal cross-module allowlist with zero circular dependencies, preserving 100% Zero ASAR / Zero CDP boundaries, four-zero OFF-state isolation for `remote`, 10-key `plugin.json` hygiene, and **101 suites / 286 tests** green.
+
 ## [1.2.0] - 2026-11-28
 
 ### Added

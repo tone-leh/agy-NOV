@@ -23,7 +23,7 @@ import {
   isPathInsideDir,
 } from './fs-safe.js';
 
-export const FEED_SNAPSHOT_VERSION = '1.2.0' as const;
+export const FEED_SNAPSHOT_VERSION = '1.2.1' as const;
 export const FEED_SNAPSHOT_FILENAME = 'feed-snapshot.json' as const;
 export const MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
 export const MAX_FEED_ALERTS = 6;
@@ -256,15 +256,22 @@ function toNonNegFloat(value: unknown): number {
   return Number.isFinite(num) && num > 0 ? Math.round(num * 10000) / 10000 : 0;
 }
 
-function extractGuardSummary(rootDataDir: string, enabled: boolean): NovFeedGuardSummary {
+interface ExtractedGuardSummary {
+  summary: NovFeedGuardSummary;
+  lastDeniedReason?: string;
+}
+
+function extractGuardSummary(rootDataDir: string, enabled: boolean): ExtractedGuardSummary {
   if (!enabled) {
     return {
-      enabled: false,
-      blockedCount: 0,
-      askCount: 0,
-      forceAskCount: 0,
-      snapshotCount: 0,
-      latestSnapshotId: null,
+      summary: {
+        enabled: false,
+        blockedCount: 0,
+        askCount: 0,
+        forceAskCount: 0,
+        snapshotCount: 0,
+        latestSnapshotId: null,
+      },
     };
   }
   const raw = readSafeModuleJson(rootDataDir, 'guard', 'audit.json');
@@ -280,6 +287,8 @@ function extractGuardSummary(rootDataDir: string, enabled: boolean): NovFeedGuar
   let forceAskCount = 0;
   let lastEvent: NovFeedGuardLastEvent | undefined;
   let lastEventTs = -Infinity;
+  let lastDeniedReason: string | undefined;
+  let lastDeniedTs = -Infinity;
 
   for (const item of eventsRaw) {
     const rec = asRecord(item);
@@ -287,7 +296,12 @@ function extractGuardSummary(rootDataDir: string, enabled: boolean): NovFeedGuar
     const rawDecision = String(rec.decision ?? rec.action ?? rec.outcome ?? '')
       .trim()
       .toLowerCase();
-    if (rawDecision === 'deny' || rawDecision === 'denied' || rawDecision === 'block' || rawDecision === 'blocked') {
+    const isDenied =
+      rawDecision === 'deny' ||
+      rawDecision === 'denied' ||
+      rawDecision === 'block' ||
+      rawDecision === 'blocked';
+    if (isDenied) {
       blockedCount += 1;
     } else if (rawDecision === 'force_ask') {
       askCount += 1;
@@ -310,6 +324,10 @@ function extractGuardSummary(rootDataDir: string, enabled: boolean): NovFeedGuar
       lastEvent = candidate;
       lastEventTs = scoreTs;
     }
+    if (isDenied && (lastDeniedReason === undefined || scoreTs > lastDeniedTs)) {
+      lastDeniedReason = candidate.reason;
+      lastDeniedTs = scoreTs;
+    }
   }
 
   const policyObj = asRecord(readSafeModuleJson(rootDataDir, 'guard', 'policy.json'));
@@ -331,23 +349,32 @@ function extractGuardSummary(rootDataDir: string, enabled: boolean): NovFeedGuar
   for (const snapItem of snapshotsArr) {
     const rec = asRecord(snapItem);
     if (!rec || typeof rec.id !== 'string' || !rec.id.trim()) continue;
-    const tsVal = typeof rec.timestamp === 'string' ? Date.parse(rec.timestamp) : Number.NaN;
+    const rawTs =
+      typeof rec.createdAt === 'string' && rec.createdAt.trim()
+        ? rec.createdAt.trim()
+        : typeof rec.timestamp === 'string' && rec.timestamp.trim()
+          ? rec.timestamp.trim()
+          : '';
+    const tsVal = rawTs ? Date.parse(rawTs) : Number.NaN;
     const score = Number.isFinite(tsVal) ? tsVal : -Infinity;
-    if (latestSnapshotId === null || score >= latestSnapTs) {
+    if (latestSnapshotId === null || score > latestSnapTs) {
       latestSnapshotId = redactFeedText(rec.id.trim(), 64);
       latestSnapTs = score;
     }
   }
 
   return {
-    enabled: true,
-    blockedCount,
-    askCount,
-    forceAskCount,
-    permissionMode,
-    snapshotCount: snapshotsArr.length,
-    latestSnapshotId,
-    ...(lastEvent ? { lastEvent } : {}),
+    summary: {
+      enabled: true,
+      blockedCount,
+      askCount,
+      forceAskCount,
+      permissionMode,
+      snapshotCount: snapshotsArr.length,
+      latestSnapshotId,
+      ...(lastEvent ? { lastEvent } : {}),
+    },
+    ...(lastDeniedReason ? { lastDeniedReason } : {}),
   };
 }
 
@@ -452,7 +479,24 @@ function extractVerifySummary(rootDataDir: string, enabled: boolean): NovFeedVer
   const enforceOnStop = typeof policy?.enforceOnStop === 'boolean' ? policy.enforceOnStop : false;
 
   const evidenceRaw = Array.isArray(state?.evidence) ? state.evidence : [];
-  const latest = evidenceRaw.map((e) => asRecord(e)).find((e): e is Record<string, unknown> => e !== null);
+  let latest: Record<string, unknown> | null = null;
+  let latestTs = -Infinity;
+  for (const item of evidenceRaw) {
+    const rec = asRecord(item);
+    if (!rec) continue;
+    const rawTs =
+      typeof rec.timestamp === 'string' && rec.timestamp.trim()
+        ? rec.timestamp.trim()
+        : typeof rec.createdAt === 'string' && rec.createdAt.trim()
+          ? rec.createdAt.trim()
+          : '';
+    const tsMs = rawTs ? Date.parse(rawTs) : Number.NaN;
+    const score = Number.isFinite(tsMs) ? tsMs : -Infinity;
+    if (!latest || score > latestTs) {
+      latest = rec;
+      latestTs = score;
+    }
+  }
 
   let lastStatus: 'pass' | 'fail' | 'blocked' | 'idle' = 'idle';
   if (latest) {
@@ -617,13 +661,20 @@ function buildFeedAlerts(
   summary: NovFeedSummary,
   exposedModelTools: number,
   estimatedTotalTools?: number,
+  guardLastDeniedReason?: string,
 ): NovFeedAlert[] {
   const alerts: NovFeedAlert[] = [];
 
   if (summary.guard.enabled && summary.guard.blockedCount > 0) {
-    const lastReason = summary.guard.lastEvent?.reason
-      ? `: ${summary.guard.lastEvent.reason}`
-      : '';
+    const lastEvDecision = (summary.guard.lastEvent?.decision ?? '').toLowerCase();
+    const isLastEvDenied =
+      lastEvDecision === 'deny' ||
+      lastEvDecision === 'denied' ||
+      lastEvDecision === 'block' ||
+      lastEvDecision === 'blocked';
+    const effectiveReason =
+      guardLastDeniedReason ?? (isLastEvDenied ? summary.guard.lastEvent?.reason : undefined);
+    const lastReason = effectiveReason ? `: ${effectiveReason}` : '';
     alerts.push({
       level: 'danger',
       moduleId: 'guard',
@@ -787,8 +838,9 @@ export function buildFeedSnapshot(
   const exposedModelTools = countEnabledModelTools(normalized.modules);
   const generatedAt = (options.now ?? new Date()).toISOString();
 
+  const guardExtracted = extractGuardSummary(rootDataDir, normalized.modules.guard);
   const summary: NovFeedSummary = {
-    guard: extractGuardSummary(rootDataDir, normalized.modules.guard),
+    guard: guardExtracted.summary,
     spec: extractSpecSummary(rootDataDir, normalized.modules.spec),
     verify: extractVerifySummary(rootDataDir, normalized.modules.verify),
     mem: extractMemSummary(rootDataDir, normalized.modules.mem),
@@ -805,7 +857,12 @@ export function buildFeedSnapshot(
     },
   };
 
-  const alerts = buildFeedAlerts(summary, exposedModelTools, options.estimatedTotalTools);
+  const alerts = buildFeedAlerts(
+    summary,
+    exposedModelTools,
+    options.estimatedTotalTools,
+    guardExtracted.lastDeniedReason,
+  );
 
   const snapshot: NovFeedSnapshot = {
     schemaVersion: 1,

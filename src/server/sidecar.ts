@@ -294,7 +294,12 @@ function inspectVerifyReadOnly(rootDataDir: string): HealthSweepReport['verify']
   for (const item of evidenceRaw) {
     const rec = asRecord(item);
     if (!rec) continue;
-    const tsStr = typeof rec.timestamp === 'string' ? rec.timestamp : '';
+    const tsStr =
+      typeof rec.timestamp === 'string' && rec.timestamp.trim()
+        ? rec.timestamp.trim()
+        : typeof rec.createdAt === 'string' && rec.createdAt.trim()
+          ? rec.createdAt.trim()
+          : '';
     const parsedTs = tsStr ? Date.parse(tsStr) : Number.NaN;
     const scoreTs = Number.isFinite(parsedTs) ? parsedTs : -Infinity;
     if (!latest || scoreTs > latestTs) {
@@ -560,9 +565,15 @@ export function runReadOnlyHealthSweep(options: HealthSweepOptions = {}): Health
     };
   }
 
-  const mem = inspectMemoriesReadOnly(dataDir, nowMs);
-  const verify = inspectVerifyReadOnly(dataDir);
-  const guard = inspectGuardReadOnly(dataDir);
+  const mem: HealthSweepReport['mem'] = cfg.modules.mem
+    ? inspectMemoriesReadOnly(dataDir, nowMs)
+    : { totalMemories: 0, staleCount: 0, expiredUnpinnedCount: 0 };
+  const verify: HealthSweepReport['verify'] = cfg.modules.verify
+    ? inspectVerifyReadOnly(dataDir)
+    : { verifyLastStatus: 'idle', dirtyFilesCount: 0 };
+  const guard: HealthSweepReport['guard'] = cfg.modules.guard
+    ? inspectGuardReadOnly(dataDir)
+    : { guardBlockedCount: 0 };
 
   const overallStatus = computeOverallStatus({
     workspaceAccessible,

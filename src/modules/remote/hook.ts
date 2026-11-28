@@ -239,10 +239,24 @@ function readVerifyStatusReadOnly(rootDataDir?: string): {
     }
     const rec = parsed as Record<string, unknown>;
     const evidenceRaw = Array.isArray(rec.evidence) ? rec.evidence : [];
-    const latest = evidenceRaw.find(
-      (item): item is Record<string, unknown> =>
-        Boolean(item && typeof item === 'object' && !Array.isArray(item)),
-    );
+    let latest: Record<string, unknown> | null = null;
+    let latestTs = -Infinity;
+    for (const item of evidenceRaw) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+      const entry = item as Record<string, unknown>;
+      const rawTs =
+        typeof entry.timestamp === 'string' && entry.timestamp.trim()
+          ? entry.timestamp.trim()
+          : typeof entry.createdAt === 'string' && entry.createdAt.trim()
+            ? entry.createdAt.trim()
+            : '';
+      const tsMs = rawTs ? Date.parse(rawTs) : Number.NaN;
+      const score = Number.isFinite(tsMs) ? tsMs : -Infinity;
+      if (!latest || score > latestTs) {
+        latest = entry;
+        latestTs = score;
+      }
+    }
     if (!latest) {
       return { verifyStatus: 'idle' };
     }
