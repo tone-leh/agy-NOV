@@ -1026,20 +1026,28 @@ describe('Defense 2 & 3: Oversized/Corrupt Sessions, 600KB Single-Step Tail, Hoo
       header.writeUInt16BE(4096, 16);
       fs.writeFileSync(corruptDb, header);
 
-      await assert.rejects(
-        () =>
-          inspectSqliteDatabase(
-            tmpDir,
-            corruptDb,
-            'corrupt.db',
-            header.byteLength,
-            undefined,
-            undefined,
-            20,
-            'sqlite3',
-          ),
-        /corrupt|malformed|SQLite/i,
-      );
+      let threwErr: unknown = null;
+      let fallbackResult: Awaited<ReturnType<typeof inspectSqliteDatabase>> | null = null;
+      try {
+        fallbackResult = await inspectSqliteDatabase(
+          tmpDir,
+          corruptDb,
+          'corrupt.db',
+          header.byteLength,
+          undefined,
+          undefined,
+          20,
+          'sqlite3',
+        );
+      } catch (err) {
+        threwErr = err;
+      }
+      if (threwErr) {
+        assert.match(String(threwErr instanceof Error ? threwErr.message : threwErr), /corrupt|malformed|SQLite/i);
+      } else {
+        // Environments without sqlite3 CLI on PATH (e.g., default Windows CI runners) degrade cleanly to header-only metadata
+        assert.equal(fallbackResult?.sqlite?.sqliteCliAvailable, false);
+      }
     });
 
     // WAL-mode SQLite DB inside a read-only directory (no -shm file): auto-falls back to immutable=1 URI with zero writes
@@ -1367,7 +1375,7 @@ describe('Antigravity Desktop v2.36.0 Compatibility Suite', () => {
       const agentsIdx = roots.findIndex((r) => r.source === 'agents');
       assert.ok(geminiIdx >= 0 && agentsIdx > geminiIdx, '~/.gemini roots must precede ~/.agents/skills');
 
-      const discovered = discoverUserCustomSkillsReadOnly({ homeDir: fakeHome, platform: 'darwin', env: {} });
+      const discovered = discoverUserCustomSkillsReadOnly({ homeDir: fakeHome, platform: process.platform, env: {} });
       assert.equal(discovered.skills.length, 2);
       const shared = discovered.skills.find((s) => s.name === 'shared-skill');
       const unique = discovered.skills.find((s) => s.name === 'agents-only');
@@ -1382,8 +1390,12 @@ describe('Antigravity Desktop v2.36.0 Compatibility Suite', () => {
       fs.mkdirSync(path.join(symGeminiSkills, 'one-skill'), { recursive: true });
       fs.writeFileSync(path.join(symGeminiSkills, 'one-skill', 'SKILL.md'), '# One\n', 'utf8');
       fs.mkdirSync(path.join(symHome, '.agents'), { recursive: true });
-      fs.symlinkSync(symGeminiSkills, path.join(symHome, '.agents', 'skills'));
-      const symDiscovered = discoverUserCustomSkillsReadOnly({ homeDir: symHome, platform: 'darwin', env: {} });
+      fs.symlinkSync(
+        symGeminiSkills,
+        path.join(symHome, '.agents', 'skills'),
+        process.platform === 'win32' ? 'junction' : 'dir',
+      );
+      const symDiscovered = discoverUserCustomSkillsReadOnly({ homeDir: symHome, platform: process.platform, env: {} });
       assert.equal(symDiscovered.skills.length, 1);
       assert.equal(symDiscovered.shadowedByGemini.length, 0, 'Symlink to same physical skill dir must not report false shadowing');
 
@@ -1675,7 +1687,7 @@ describe('Antigravity Desktop v2.36.0 Compatibility Suite', () => {
       fs.mkdirSync(victimDir, { recursive: true });
       const blobsLink = path.join(guardDir, 'blobs');
       fs.rmSync(blobsLink, { recursive: true, force: true });
-      fs.symlinkSync(victimDir, blobsLink);
+      fs.symlinkSync(victimDir, blobsLink, process.platform === 'win32' ? 'junction' : 'dir');
       const safeFile = path.join(ws, 'sample.ts');
       fs.writeFileSync(safeFile, 'export const ok = 1;\n', 'utf8');
       assert.throws(() => {
