@@ -1,4 +1,4 @@
-# agy-NOV × agy-Sag 双星零端口文件契约（v1.2.2）
+# agy-NOV × agy-Sag 双星零端口文件契约（v1.2.3）
 
 本文档定义 `agy-NOV` 与 `agy-Sag` 之间的零重叠、零端口、纯文件原子协作契约，涵盖 `<NOV_DATA_DIR>` 跨客户端探测、配置真源 `config.json`、聚合只读快照 `feed-snapshot.json`、可选只读巡检快照 `health-sweep.json`、全部 `modules/<id>/` 标准落盘路径，以及 `agy-Sag` 联机接入核查要点。
 
@@ -13,7 +13,7 @@
 
 ```mermaid
 flowchart LR
-  subgraph NOV["agy-NOV v1.2.2 (MCP Server + 6 Hooks + 11-Cmd CLI + Opt-In Sidecar)"]
+  subgraph NOV["agy-NOV v1.2.3 (MCP Server + 6 Hooks + 11-Cmd CLI + Opt-In Sidecar)"]
     S["src/server/index.ts\nstatSync 热同步 + 串行队列"]
     H["src/hooks/dispatcher.ts\nPreToolUse 拦截 + PostToolUse/Stop 刷新"]
     C["src/server/cli.ts\n配置变更同步刷新已有快照"]
@@ -122,14 +122,14 @@ flowchart LR
   3. `PostToolUse`（3 秒合并窗防写放大）与 `Stop` Hook 末尾 best-effort 刷新；
   4. `agy-nov` CLI `enable` / `disable` / `preset` / `locale` 写盘后刷新已存在的 `feed-snapshot.json`。
 
-### 4.2 完整嵌套 Schema（`schemaVersion: 1`，`version: "1.2.2"`）
+### 4.2 完整嵌套 Schema（`schemaVersion: 1`，`version: "1.2.3"`）
 
 > **重要**：全部模块摘要位于顶层 **`summary.*`** 嵌套对象内（消费端应先解包 `const s = snap.summary ?? snap;`）。
 
 ```json
 {
   "schemaVersion": 1,
-  "version": "1.2.2",
+  "version": "1.2.3",
   "generatedAt": "2026-11-28T12:00:00.000Z",
   "preset": "local-all",
   "locale": "zh-CN",

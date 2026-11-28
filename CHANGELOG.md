@@ -2,6 +2,44 @@
 
 All notable changes to **agy-NOV** will be documented in this file.
 
+## [1.2.3] - 2026-11-28
+
+### Added
+- **Cross-Process Exclusive File Lock (`withFileLockSync`) Eliminating Concurrent Write Races (`core`, `guard`, `radar`, `verify`, `test`):**
+  - Added cross-platform `${target}.lock` exclusive locking (`withFileLockSync`) in `src/core/fs-safe.ts` featuring atomic `wx` + `0600` lock creation, symlink refusal, short backoff polling, single-winner `.reclaim` stale/dead-PID lock recovery (preventing `lstat -> unlink` TOCTOU races), random lock nonce verification, Windows NTFS transient `EPERM`/`EBUSY`/`EACCES` retry guards, and timeout graceful fallback.
+  - Protected concurrent persistence across `guard` (snapshots, audit log, policy), `radar` (session board), and `verify` (state, policy, and check result writes while holding locks strictly synchronously without crossing `await`).
+  - Verified with 8 concurrent `dist/hook.cjs` child processes achieving **8/8 snapshots, 0 orphan blobs, 8/8 audit records, and 8/8 Radar sessions with zero data loss**, plus 40-round × 8-thread dead-PID lock contention verification achieving 0 overlaps and 0 lost updates.
+- **Expanded Automated Regression Suite (`test`):**
+  - Added `test/v123-stability-lock-hardening.test.ts` covering cross-process locking concurrency, protocol/Hook/CLI robustness, P0 module boundary hardening, X-Ray privacy/billing, and Studio large-DB/CSV protections, expanding total automated verification to **108 suites / 308 tests** passing green across the macOS / Windows / Linux 3-OS CI matrix.
+
+### Changed
+- **X-Ray Privacy/Billing & Studio Large-Database Upgrades (`xray`, `radar`, `studio`, `ui`):**
+  - Wired full linear secret redaction and `<private>` tag stripping before disk persistence across both `X-Ray` and `Radar`.
+  - Normalized negative and invalid token counts in `X-Ray`, retained complete cost accounting for long sessions exceeding `200` turns, and replaced the blunt `> 20 MiB` skip threshold with bounded `4 MiB` head/tail sampling.
+  - Raised `Studio` read-only SQLite inspection limit independently to **`256 MiB`** (with explicit `immutable` fallback guidance when WAL sidecars are unreadable), updated CSV inspection to slice rows before redaction while preserving filter-oracle protection, and added `connect`/`callTool` timeouts in the MCP Apps bridge alongside `0×0` resize protection in `CanvasPanel`.
+- **Preserved 13-Module Architecture, 5 Presets & Strictly 47 Canonical Model Tools (+0 Inflation):** All 13 toggleable native modules (12 local offline + 1 opt-in `remote`), 5 presets (`minimal` 6 / `core` 12 / `power` 32 / `local-all` 43 / `full` 47), 6 official Lifecycle Hooks, 6 official Skills, 2 read-only specialist subagents, 4 `agy-nov://context/*` resources, 11 CLI commands, 18-asset + 4-check Marketplace `doctor`, and all **47 canonical model tool names** remain 100% backward-compatible from `v0.4` through `v1.2.3`.
+- **Measured `v1.2.3` Runtime Artifacts & Synchronized Documentation:**
+  - Measured minified `v1.2.3` artifacts: `dist/server.cjs` **`1,626.4 KB`** (`~1.59 MiB`), `dist/hook.cjs` **`231.2 KB`**, `dist/cli.cjs` **`210.6 KB`**, single-file 8-language UI `dist/ui/app.html` **`1,403.8 KB`** (`~1.37 MiB`, far below the 10 MiB cap, carrying **758 core dictionary keys × 8 locales** across all **24 UI components**), `skills/agy-nov/SKILL.md` **`9.5 KB`**, `sidecars/audit-sidecar.mjs` **`6.2 KB`**, and `sidecars/README.md` **`4.2 KB`**.
+  - Synchronized `README.md`, all 7 localized `docs/i18n/README.*.md` files, `llms.txt`, `docs/llms-install.md`, and `skills/agy-nov/SKILL.md` to `v1.2.3` (`doctor` reporting `version=1.2.3`).
+
+### Fixed
+- **Protocol Entrypoints, Hook, Server & CLI Extreme Robustness (`hooks`, `server`, `cli`, `sidecars`, `core`, `remote`):**
+  - Fixed unhandled promise rejections when `sendToolListChanged` fires after client disconnect in `src/server/index.ts`, enforced synchronous non-UI `app_*` hiding on `oninitialized` while keeping external client `roots/list` RPC non-blocking with sequence-guarded updates so stalled clients never block tool calls or `dispose()`, and isolated per-module runtime failures without advancing the config signature.
+  - Added `EPIPE` / `ERR_STREAM_DESTROYED` exit guards and `realpathSync.native` resolution across `cli.cjs`, `hook.cjs`, `server.cjs`, and `audit-sidecar.mjs`.
+  - Fixed CLI subcommand extraction to skip space-separated option values properly (e.g., `--data-dir /path status`).
+  - Unified connection release and response-body draining across every non-2xx and ignored-body path in `ConversationService` and `Remote`.
+- **Core Module P0 Boundary Hardening (`canvas`, `remote`, `worktree`, `radar`, `spec`, `ui`):**
+  - Updated `CanvasStore.writeBoard` to prune older revisions automatically within a `7.5 MiB` budget to prevent `> 8 MiB` self-lockout, and validated finite numbers in `addAnnotation` to prevent `NaN` persistence.
+  - Wrapped `decodeURIComponent` in `RemoteGateway` to return HTTP `400`, attached persistent runtime `error` and `clientError` listeners, clamped finite timeout parameters, and added Mobile PWA storage sandbox fallbacks plus EventSource `401` halt and exponential backoff.
+  - Absorbed `stdin` `EPIPE` errors in `Worktree`, added safe timestamp parsing in `Radar` and `Spec` to prevent `NaN` sorting corruption, added `connect`/`callTool` timeouts in the MCP Apps bridge, and protected `CanvasPanel` against transient `0×0` dimensions.
+
+### Security
+- **Fail-Closed `PreToolUse` & Strict `GuardStore.loadPolicy` Validation (`hooks`, `guard`):**
+  - Hardened `PreToolUse` so malformed JSON resulting from `> 4 MiB` stdin truncation or read timeout fails closed with `ask` whenever `guard` is enabled.
+  - Enforced strict root-object validation inside `GuardStore.loadPolicy` and full field normalization inside `GuardStore.savePolicy` to prevent `policy.json = null` / `[]` fail-open bypasses or `undefined` field overwrites.
+- **Cross-Process Lock Containment & Pre-Persistence Redaction (`core`, `xray`, `radar`, `studio`):**
+  - Enforced `wx` + `0600` lock files with symlink refusal and `.reclaim`-coordinated stale/dead-PID recovery in `withFileLockSync`, applied full linear redaction and `<private>` stripping prior to disk persistence in `X-Ray` and `Radar`, and eliminated ragged-CSV column-count filter-oracle leakage on Studio CSV row slicing while maintaining 100% Zero ASAR / Zero CDP boundaries, four-zero OFF-state isolation for `remote`, 10-key `plugin.json` hygiene, and **108 suites / 308 tests** green.
+
 ## [1.2.2] - 2026-11-28
 
 ### Added

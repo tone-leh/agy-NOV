@@ -2,12 +2,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getModuleDataDir } from '../../core/config.js';
 import type { NormalizedHookPayload } from '../../core/types.js';
-import { atomicWriteJson } from '../../core/utils.js';
+import { atomicWriteJson, redactSecretsLinear } from '../../core/utils.js';
 import type { LiveHookState } from './types.js';
 
 const MAX_XRAY_LIVE_STATE_BYTES = 2 * 1024 * 1024;
 const MAX_XRAY_ERROR_CHARS = 512;
+const MAX_XRAY_RAW_ERROR_CHARS = 16_384;
 const XRAY_POST_TOOL_COALESCE_MS = 2000;
+
+function sanitizeHookSummaryField(raw: string | undefined): string | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  const redacted = redactSecretsLinear(trimmed, { stripPrivate: true }).trim();
+  return redacted || undefined;
+}
 
 function formatErrorValue(err: unknown): string | undefined {
   if (err === undefined || err === null || err === '') return undefined;
@@ -25,16 +34,21 @@ function formatErrorValue(err: unknown): string | undefined {
   }
   const trimmed = text.trim();
   if (!trimmed) return undefined;
-  return trimmed.length > MAX_XRAY_ERROR_CHARS
-    ? `${trimmed.slice(0, MAX_XRAY_ERROR_CHARS - 1)}…`
-    : trimmed;
+  const boundedRaw =
+    trimmed.length > MAX_XRAY_RAW_ERROR_CHARS ? trimmed.slice(0, MAX_XRAY_RAW_ERROR_CHARS) : trimmed;
+  const redacted = redactSecretsLinear(boundedRaw, { stripPrivate: true }).trim();
+  if (!redacted) return undefined;
+  return redacted.length > MAX_XRAY_ERROR_CHARS
+    ? `${redacted.slice(0, MAX_XRAY_ERROR_CHARS - 1)}…`
+    : redacted;
 }
 
 /**
  * Pure fail-open hook handler: records active conversation metadata and recent tool events
  * into `<rootDataDir>/modules/xray/live-state.json`.
  *
- * Includes bounded error truncation and short-window coalescing for repetitive PostToolUse bursts.
+ * Includes linear secret redaction, bounded error truncation, and short-window coalescing for
+ * repetitive PostToolUse bursts.
  */
 export function handleXrayHook(payload: NormalizedHookPayload, rootDataDir: string): void {
   const moduleDataDir = getModuleDataDir(rootDataDir, 'xray');
@@ -62,16 +76,22 @@ export function handleXrayHook(payload: NormalizedHookPayload, rootDataDir: stri
       }
     }
 
+    const safeConversationId = sanitizeHookSummaryField(payload.conversationId);
+    const safeTranscriptPath = sanitizeHookSummaryField(payload.transcriptPath);
+    const safeToolName = sanitizeHookSummaryField(payload.toolName);
+    const safeWorkspacePaths = payload.workspacePaths
+      .map((p) => sanitizeHookSummaryField(p))
+      .filter((p): p is string => Boolean(p));
     const formattedError = formatErrorValue(payload.error);
+
     if (existed && event === 'PostToolUse' && !formattedError && state.updatedAt) {
       const prevMs = Date.parse(state.updatedAt);
-      const sameConv =
-        !payload.conversationId || payload.conversationId === state.activeConversationId;
+      const sameConv = !safeConversationId || safeConversationId === state.activeConversationId;
       const seenConcurrentConv =
-        Boolean(payload.conversationId) &&
-        state.recentEvents.some((ev) => ev.conversationId === payload.conversationId);
+        Boolean(safeConversationId) &&
+        state.recentEvents.some((ev) => ev.conversationId === safeConversationId);
       const sameTranscript =
-        !payload.transcriptPath || payload.transcriptPath === state.activeTranscriptPath;
+        !safeTranscriptPath || safeTranscriptPath === state.activeTranscriptPath;
       if (
         Number.isFinite(prevMs) &&
         nowMs - prevMs >= 0 &&
@@ -84,17 +104,17 @@ export function handleXrayHook(payload: NormalizedHookPayload, rootDataDir: stri
       }
     }
 
-    if (payload.conversationId) state.activeConversationId = payload.conversationId;
-    if (payload.transcriptPath) state.activeTranscriptPath = payload.transcriptPath;
-    if (payload.workspacePaths.length > 0) state.activeWorkspacePaths = payload.workspacePaths;
-    if (payload.toolName) state.lastToolName = payload.toolName;
+    if (safeConversationId) state.activeConversationId = safeConversationId;
+    if (safeTranscriptPath) state.activeTranscriptPath = safeTranscriptPath;
+    if (safeWorkspacePaths.length > 0) state.activeWorkspacePaths = safeWorkspacePaths;
+    if (safeToolName) state.lastToolName = safeToolName;
     state.lastEvent = event;
     state.updatedAt = now;
 
     state.recentEvents.push({
       event,
-      conversationId: payload.conversationId ?? 'unknown',
-      toolName: payload.toolName,
+      conversationId: safeConversationId ?? 'unknown',
+      toolName: safeToolName,
       stepIdx: payload.stepIdx,
       timestamp: now,
       error: formattedError,

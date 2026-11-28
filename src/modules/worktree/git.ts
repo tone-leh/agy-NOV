@@ -193,6 +193,9 @@ export function runGit(cwd: string, args: string[], stdinText?: string): Promise
     );
 
     if (child.stdin) {
+      child.stdin.on('error', () => {
+        // Ignore EPIPE / broken pipe when git exits early before reading stdin
+      });
       if (stdinText !== undefined) {
         child.stdin.end(stdinText, 'utf8');
       } else {

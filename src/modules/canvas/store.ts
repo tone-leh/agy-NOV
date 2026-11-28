@@ -41,6 +41,90 @@ export const ALLOWED_FILE_EXTENSIONS = Object.keys(EXTENSION_KIND_MAP);
 const BOARD_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
 const SENSITIVE_EXT_RE = /\.(pem|key|p12|pfx|jks|kdbx)$/i;
 const SENSITIVE_NAME_RE = /^(id_rsa|id_ed25519|id_ecdsa|id_dsa)(\..+)?$/i;
+const VALID_ARTIFACT_KINDS: ReadonlySet<string> = new Set([
+  'html',
+  'svg',
+  'markdown',
+  'slides',
+  'image',
+]);
+
+function sanitizePercentCoord(value: unknown, fallback: number): number {
+  const num = typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+  return Number(Math.max(0, Math.min(100, num)).toFixed(1));
+}
+
+function sanitizePercentSize(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 0;
+  }
+  return Number(Math.max(0, Math.min(100, value)).toFixed(1));
+}
+
+function normalizeStoredBoard(raw: unknown): CanvasBoard | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null;
+  }
+  const b = raw as Record<string, unknown>;
+  if (
+    typeof b.id !== 'string' ||
+    !b.id.trim() ||
+    !Array.isArray(b.revisions) ||
+    !Array.isArray(b.annotations)
+  ) {
+    return null;
+  }
+
+  const updatedAt = typeof b.updatedAt === 'string' ? b.updatedAt : '';
+  const createdAt = typeof b.createdAt === 'string' ? b.createdAt : updatedAt;
+  const title = typeof b.title === 'string' ? b.title : b.id;
+  const kind: ArtifactKind =
+    typeof b.kind === 'string' && VALID_ARTIFACT_KINDS.has(b.kind)
+      ? (b.kind as ArtifactKind)
+      : 'html';
+
+  const revisions = b.revisions.filter(
+    (r): r is CanvasBoard['revisions'][number] =>
+      Boolean(
+        r &&
+          typeof r === 'object' &&
+          !Array.isArray(r) &&
+          typeof (r as Record<string, unknown>).content === 'string',
+      ),
+  );
+  const annotations = b.annotations.filter(
+    (a): a is CanvasAnnotation =>
+      Boolean(
+        a &&
+          typeof a === 'object' &&
+          !Array.isArray(a) &&
+          typeof (a as Record<string, unknown>).id === 'string',
+      ),
+  );
+
+  const lastRev = revisions[revisions.length - 1];
+  const fallbackVersion =
+    lastRev && typeof lastRev.version === 'number' && Number.isFinite(lastRev.version)
+      ? lastRev.version
+      : revisions.length;
+  const currentVersion =
+    typeof b.currentVersion === 'number' && Number.isFinite(b.currentVersion)
+      ? b.currentVersion
+      : fallbackVersion;
+
+  return {
+    id: b.id,
+    title,
+    kind,
+    ...(typeof b.sourcePath === 'string' ? { sourcePath: b.sourcePath } : {}),
+    ...(typeof b.sourceUri === 'string' ? { sourceUri: b.sourceUri } : {}),
+    createdAt,
+    updatedAt,
+    currentVersion,
+    revisions,
+    annotations,
+  };
+}
 
 function chmodSafe(targetPath: string, mode: number): void {
   if (process.platform === 'win32') return;
@@ -264,7 +348,12 @@ export class CanvasStore {
   }
 
   private static readonly MAX_BOARD_FILE_BYTES = 8 * 1024 * 1024;
+  private static readonly MAX_BOARD_WRITE_BYTES = Math.floor(7.5 * 1024 * 1024);
   private static readonly MAX_ANNOTATIONS_PER_BOARD = 500;
+
+  private static serializedByteLength(board: CanvasBoard): number {
+    return Buffer.byteLength(`${JSON.stringify(board, null, 2)}\n`, 'utf8');
+  }
 
   private readBoardById(boardId: string): CanvasBoard | null {
     if (typeof boardId !== 'string' || !BOARD_ID_RE.test(boardId)) {
@@ -279,15 +368,28 @@ export class CanvasStore {
       if (st.isSymbolicLink() || !st.isFile() || st.size > CanvasStore.MAX_BOARD_FILE_BYTES) {
         return null;
       }
-      const parsed = JSON.parse(fs.readFileSync(p, 'utf8')) as CanvasBoard;
-      if (!parsed || typeof parsed.id !== 'string') return null;
-      return parsed;
+      const parsed = JSON.parse(fs.readFileSync(p, 'utf8')) as unknown;
+      return normalizeStoredBoard(parsed);
     } catch {
       return null;
     }
   }
 
   private writeBoard(board: CanvasBoard): void {
+    // Evict oldest revisions first so persisted JSON stays strictly under the 8 MiB read ceiling
+    // while always keeping the latest revision intact.
+    while (
+      board.revisions.length > 1 &&
+      CanvasStore.serializedByteLength(board) > CanvasStore.MAX_BOARD_WRITE_BYTES
+    ) {
+      board.revisions.shift();
+    }
+    const finalBytes = CanvasStore.serializedByteLength(board);
+    if (finalBytes > CanvasStore.MAX_BOARD_WRITE_BYTES) {
+      throw new Error(
+        `Canvas board "${board.id}" exceeds maximum storage budget (${finalBytes} > ${CanvasStore.MAX_BOARD_WRITE_BYTES} bytes).`,
+      );
+    }
     this.ensureStorageDirs();
     const file = this.boardPath(board.id);
     atomicWriteJson(file, board);
@@ -302,7 +404,9 @@ export class CanvasStore {
         if (st.isSymbolicLink() || !st.isFile() || st.size > CanvasStore.MAX_BOARD_FILE_BYTES) {
           continue;
         }
-        const b = JSON.parse(fs.readFileSync(file, 'utf8')) as CanvasBoard;
+        const raw = JSON.parse(fs.readFileSync(file, 'utf8')) as unknown;
+        const b = normalizeStoredBoard(raw);
+        if (!b) continue;
         out.push({
           id: b.id,
           title: b.title,
@@ -317,7 +421,11 @@ export class CanvasStore {
         // skip corrupted file
       }
     }
-    return out.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return out.sort((a, b) => {
+      const bAt = typeof b.updatedAt === 'string' ? b.updatedAt : '';
+      const aAt = typeof a.updatedAt === 'string' ? a.updatedAt : '';
+      return bAt.localeCompare(aAt);
+    });
   }
 
   getBoard(boardId?: string): CanvasBoard | null {
@@ -345,24 +453,26 @@ export class CanvasStore {
 
     if (existing) {
       const nextVer = existing.currentVersion + 1;
-      existing.title = input.title || existing.title;
-      existing.kind = input.kind;
-      existing.sourcePath = input.sourcePath ?? existing.sourcePath;
-      existing.sourceUri = sourceUri;
-      existing.updatedAt = now;
-      existing.currentVersion = nextVer;
-      existing.revisions.push({
-        version: nextVer,
-        createdAt: now,
-        summary: input.summary || `Revision v${nextVer}`,
-        content: input.content,
-      });
-      // Keep latest 15 revisions to stay lean
-      if (existing.revisions.length > 15) {
-        existing.revisions = existing.revisions.slice(-15);
-      }
-      this.writeBoard(existing);
-      return existing;
+      const updated: CanvasBoard = {
+        ...existing,
+        title: input.title || existing.title,
+        kind: input.kind,
+        sourcePath: input.sourcePath ?? existing.sourcePath,
+        sourceUri,
+        updatedAt: now,
+        currentVersion: nextVer,
+        revisions: [
+          ...existing.revisions,
+          {
+            version: nextVer,
+            createdAt: now,
+            summary: input.summary || `Revision v${nextVer}`,
+            content: input.content,
+          },
+        ].slice(-15),
+      };
+      this.writeBoard(updated);
+      return updated;
     }
 
     const fresh: CanvasBoard = {
@@ -403,16 +513,28 @@ export class CanvasStore {
   ): CanvasBoard | null {
     const board = this.getBoard(boardId);
     if (!board) return null;
-    const nextNum = board.annotations.reduce((m, a) => Math.max(m, a.number), 0) + 1;
+    const nextNum =
+      board.annotations.reduce(
+        (m, a) => Math.max(m, typeof a.number === 'number' && Number.isFinite(a.number) ? a.number : 0),
+        0,
+      ) + 1;
+    const revision =
+      typeof input.revision === 'number' && Number.isFinite(input.revision)
+        ? Math.max(1, Math.floor(input.revision))
+        : board.currentVersion;
+    const slideIndex =
+      typeof input.slideIndex === 'number' && Number.isFinite(input.slideIndex)
+        ? Math.max(0, Math.floor(input.slideIndex))
+        : undefined;
     const pin: CanvasAnnotation = {
       id: `pin_${crypto.randomBytes(4).toString('hex')}`,
       number: nextNum,
-      revision: input.revision ?? board.currentVersion,
-      slideIndex: input.slideIndex,
-      xPct: Number(Math.max(0, Math.min(100, input.xPct)).toFixed(1)),
-      yPct: Number(Math.max(0, Math.min(100, input.yPct)).toFixed(1)),
-      wPct: Number(Math.max(0, Math.min(100, input.wPct ?? 0)).toFixed(1)),
-      hPct: Number(Math.max(0, Math.min(100, input.hPct ?? 0)).toFixed(1)),
+      revision,
+      slideIndex,
+      xPct: sanitizePercentCoord(input.xPct, 50),
+      yPct: sanitizePercentCoord(input.yPct, 50),
+      wPct: sanitizePercentSize(input.wPct),
+      hPct: sanitizePercentSize(input.hPct),
       tag: input.tag ?? 'fix',
       note: input.note.trim(),
       status: 'open',

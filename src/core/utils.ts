@@ -11,7 +11,9 @@ export {
   isSamePath,
   normalizePathForCompare,
   safeReadJsonReadOnly,
+  withFileLockSync,
   type AtomicWriteJsonOptions,
+  type FileLockOptions,
 } from './fs-safe.js';
 export { isPidAlive, resolveSafeSpawnTarget, type ResolvedSafeSpawnTarget } from './process-safe.js';
 export {

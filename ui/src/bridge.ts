@@ -139,6 +139,33 @@ export type HostResourceReadResult =
 
 const MAX_HOST_RESOURCE_BYTES = 10 * 1024 * 1024;
 const BASE64_CONTENT_RE = /^[A-Za-z0-9+/]*={0,2}$/;
+const CONNECT_TIMEOUT_MS = 10_000;
+const CALL_TOOL_TIMEOUT_MS = 30_000;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+    promise.then(
+      (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
 
 /**
  * Validate a URI for host `resources/read` requests.
@@ -466,6 +493,7 @@ export class NovBridge {
   private app: McpApp | null = null;
   private readyPromise: Promise<void>;
   private isWorkbenchMode = false;
+  private workbenchMessageHandler: ((event: MessageEvent) => void) | null = null;
   private capabilities: HostCapabilitiesSummary = {
     message: false,
     updateModelContext: false,
@@ -493,22 +521,53 @@ export class NovBridge {
     this.readyPromise = this.init();
   }
 
-  private async init(): Promise<void> {
-    if (typeof window === 'undefined') return;
-
-    // Listen for workbench theme & locale toggle postMessages
-    window.addEventListener('message', (event) => {
+  private attachWorkbenchMessageListener(): void {
+    if (typeof window === 'undefined' || this.workbenchMessageHandler) return;
+    const handler = (event: MessageEvent) => {
+      if (event.source && event.source !== window && event.source !== window.parent) {
+        return;
+      }
+      if (
+        typeof event.origin === 'string' &&
+        event.origin &&
+        typeof window.location?.origin === 'string' &&
+        window.location.origin !== 'null' &&
+        event.origin !== window.location.origin
+      ) {
+        return;
+      }
       const data = event.data as Record<string, unknown> | null;
-      if (!data) return;
+      if (!data || typeof data !== 'object') return;
       if (data.type === 'nov-workbench-theme' && (data.theme === 'dark' || data.theme === 'light')) {
         this.applyTheme(data.theme);
       }
       if (data.type === 'nov-workbench-locale' && typeof data.locale === 'string') {
         this.applyHostLocaleHint(data.locale);
       }
-    });
+    };
+    this.workbenchMessageHandler = handler;
+    window.addEventListener('message', handler);
+  }
+
+  dispose(): void {
+    if (typeof window !== 'undefined' && this.workbenchMessageHandler) {
+      window.removeEventListener('message', this.workbenchMessageHandler);
+      this.workbenchMessageHandler = null;
+    }
+    this.themeListeners.clear();
+    this.localeListeners.clear();
+    this.toolResultListeners.clear();
+    this.toolInputListeners.clear();
+    this.toolCancelledListeners.clear();
+    this.configListeners.clear();
+  }
+
+  private async init(): Promise<void> {
+    if (typeof window === 'undefined') return;
 
     if (this.isWorkbenchMode) {
+      // Mount workbench theme/locale postMessage listener strictly in workbench mode
+      this.attachWorkbenchMessageListener();
       const initialTheme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
       this.applyTheme(initialTheme);
       this.capabilities = {
@@ -520,7 +579,7 @@ export class NovBridge {
       return;
     }
 
-    const app = new McpApp({ name: 'agy-NOV', version: '1.2.2' }, {});
+    const app = new McpApp({ name: 'agy-NOV', version: '1.2.3' }, {});
     this.app = app;
 
     app.ontoolinput = (params) => {
@@ -590,7 +649,7 @@ export class NovBridge {
     };
 
     try {
-      await app.connect();
+      await withTimeout(app.connect(), CONNECT_TIMEOUT_MS, 'MCP host connect');
       const ctx = app.getHostContext();
       if (ctx?.theme === 'dark' || ctx?.theme === 'light') {
         this.applyTheme(ctx.theme);
@@ -612,8 +671,10 @@ export class NovBridge {
         isWorkbench: false,
       };
     } catch {
-      // Fallback safely to standalone workbench mode if host handshake unavailable
+      // Fallback safely to standalone workbench mode if host handshake times out or is unavailable
+      this.app = null;
       this.isWorkbenchMode = true;
+      this.attachWorkbenchMessageListener();
       this.capabilities = {
         message: true,
         updateModelContext: true,
@@ -739,32 +800,57 @@ export class NovBridge {
     await this.readyPromise;
 
     if (this.isWorkbenchMode || !this.app) {
-      const res = await fetch(`/api/tool/${encodeURIComponent(name)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(args),
-      });
-      if (!res.ok) {
-        const errText = await res.text().catch(() => res.statusText);
-        throw new Error(`Tool ${name} failed (${res.status}): ${errText}`);
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const fetchTimer = controller
+        ? setTimeout(() => {
+            try {
+              controller.abort();
+            } catch {
+              // ignore abort error
+            }
+          }, CALL_TOOL_TIMEOUT_MS)
+        : undefined;
+      try {
+        const res = await withTimeout(
+          fetch(`/api/tool/${encodeURIComponent(name)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(args),
+            ...(controller ? { signal: controller.signal } : {}),
+          }),
+          CALL_TOOL_TIMEOUT_MS,
+          `Tool ${name}`,
+        );
+        if (!res.ok) {
+          const errText = await res.text().catch(() => res.statusText);
+          throw new Error(`Tool ${name} failed (${res.status}): ${errText}`);
+        }
+        const data = (await res.json()) as {
+          structuredContent?: T;
+          error?: string;
+          isError?: boolean;
+          content?: Array<{ text?: string }>;
+        };
+        if (data.error) throw new Error(data.error);
+        if (data.isError) {
+          const textItem = Array.isArray(data.content)
+            ? data.content.find((c) => c && typeof c === 'object' && typeof c.text === 'string')
+            : undefined;
+          throw new Error(textItem?.text || `Tool ${name} returned error`);
+        }
+        return (data.structuredContent ?? (data as unknown as T)) as T;
+      } finally {
+        if (fetchTimer !== undefined) {
+          clearTimeout(fetchTimer);
+        }
       }
-      const data = (await res.json()) as {
-        structuredContent?: T;
-        error?: string;
-        isError?: boolean;
-        content?: Array<{ text?: string }>;
-      };
-      if (data.error) throw new Error(data.error);
-      if (data.isError) {
-        const textItem = Array.isArray(data.content)
-          ? data.content.find((c) => c && typeof c === 'object' && typeof c.text === 'string')
-          : undefined;
-        throw new Error(textItem?.text || `Tool ${name} returned error`);
-      }
-      return (data.structuredContent ?? (data as unknown as T)) as T;
     }
 
-    const res = await this.app.callServerTool({ name, arguments: args });
+    const res = await withTimeout(
+      this.app.callServerTool({ name, arguments: args }),
+      CALL_TOOL_TIMEOUT_MS,
+      `Tool ${name}`,
+    );
     if (res?.isError) {
       const textItem = Array.isArray(res.content)
         ? (res.content.find((c) => c && typeof c === 'object' && 'text' in c) as { text?: string } | undefined)

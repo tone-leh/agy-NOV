@@ -1,4 +1,5 @@
 import {
+  redactStudioSecrets,
   rowMatchesFilter,
   sanitizeCellValue,
   sanitizeRowRecord,
@@ -8,6 +9,51 @@ import {
 // ============================================================================
 // CSV / TSV RFC-4180 Parser & JSON / NDJSON Table Inspector
 // ============================================================================
+
+export const STUDIO_MAX_PREVIEW_COLUMNS = 100;
+
+const REDACTED_PLACEHOLDER_CATALOG =
+  '[redacted:private_key][redacted:aws_key][redacted:github_token][redacted:google_api_key][redacted:api_secret][redacted:slack_token][redacted_webhook][redacted_jwt][redacted_bot_token][redacted_key][redacted]';
+
+function filterCouldMatchRedactedPlaceholder(needleLower: string): boolean {
+  return Boolean(needleLower) && REDACTED_PLACEHOLDER_CATALOG.includes(needleLower);
+}
+
+function rawValuesMayMatchFilter(values: Iterable<unknown>, needleLower: string): boolean {
+  if (!needleLower) return true;
+  if (filterCouldMatchRedactedPlaceholder(needleLower)) return true;
+  for (const val of values) {
+    if (val === null || val === undefined) continue;
+    if (typeof val === 'string') {
+      if (val.toLowerCase().includes(needleLower)) return true;
+    } else if (typeof val === 'number' || typeof val === 'boolean') {
+      if (String(val).toLowerCase().includes(needleLower)) return true;
+    } else {
+      try {
+        if (JSON.stringify(val).toLowerCase().includes(needleLower)) return true;
+      } catch {
+        if (String(val).toLowerCase().includes(needleLower)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function sliceAndSanitizeObjectRow(
+  raw: Record<string, unknown>,
+  maxColumns: number,
+): Record<string, unknown> {
+  const entries = Object.entries(raw);
+  if (entries.length <= maxColumns) {
+    return sanitizeRowRecord(raw);
+  }
+  const bounded: Record<string, unknown> = {};
+  for (let i = 0; i < maxColumns; i += 1) {
+    const [k, v] = entries[i];
+    bounded[k] = v;
+  }
+  return sanitizeRowRecord(bounded);
+}
 
 /**
  * Linear-time RFC-4180 CSV/TSV parser supporting quoted fields, embedded commas/newlines,
@@ -109,37 +155,68 @@ export function inspectCsvOrTsv(
     };
   }
 
-  // Deduplicate and normalize header columns
-  const rawHeader = records[0];
+  // Deduplicate, cap preview column count, and redact header columns
+  const rawHeader = records[0].slice(0, STUDIO_MAX_PREVIEW_COLUMNS);
   const usedHeaders = new Map<string, number>();
   const columns: string[] = rawHeader.map((h, idx) => {
-    const base = h.trim() || `col_${idx + 1}`;
+    const cleaned = redactStudioSecrets(h.trim());
+    const base = cleaned || `col_${idx + 1}`;
     const prev = usedHeaders.get(base) ?? 0;
     usedHeaders.set(base, prev + 1);
     return prev === 0 ? base : `${base}_${prev + 1}`;
   });
 
+  const buildSanitizedCsvRow = (
+    rec: string[],
+  ): { obj: Record<string, unknown>; neededCols: number } => {
+    const obj: Record<string, unknown> = {};
+    const neededCols = Math.min(STUDIO_MAX_PREVIEW_COLUMNS, Math.max(columns.length, rec.length));
+    for (let cIdx = 0; cIdx < neededCols; cIdx += 1) {
+      const colName = cIdx < columns.length ? columns[cIdx] : `col_${cIdx + 1}`;
+      obj[colName] = sanitizeCellValue(rec[cIdx] ?? '');
+    }
+    return { obj, neededCols };
+  };
+
+  const extendColumnsTo = (neededCols: number): void => {
+    while (columns.length < neededCols) {
+      columns.push(`col_${columns.length + 1}`);
+    }
+  };
+
   const needle = filter?.trim().toLowerCase() || '';
   let totalRows = 0;
   const rows: Array<Record<string, unknown>> = [];
 
-  for (let rIdx = 1; rIdx < records.length; rIdx += 1) {
-    const rec = records[rIdx];
-    const obj: Record<string, unknown> = {};
-    const maxCols = Math.max(columns.length, rec.length);
-    for (let cIdx = 0; cIdx < maxCols; cIdx += 1) {
-      if (cIdx >= columns.length) {
-        columns.push(`col_${cIdx + 1}`);
-      }
-      obj[columns[cIdx]] = sanitizeCellValue(rec[cIdx] ?? '');
-    }
-
-    if (needle && !rowMatchesFilter(obj, needle)) {
-      continue;
-    }
-    totalRows += 1;
-    if (rows.length < limit) {
+  if (!needle) {
+    // Unfiltered fast path: slice rows/columns to preview bounds BEFORE running secret redaction
+    totalRows = Math.max(0, records.length - 1);
+    const endIdx = Math.min(records.length, 1 + limit);
+    for (let rIdx = 1; rIdx < endIdx; rIdx += 1) {
+      const { obj, neededCols } = buildSanitizedCsvRow(records[rIdx]);
+      extendColumnsTo(neededCols);
       rows.push(obj);
+    }
+  } else {
+    // Filtered path: cheap raw-value precheck skips non-matching rows without regex redaction,
+    // then redacts bounded columns BEFORE matching and only extends `columns` on matched rows
+    // so non-matching ragged rows never leak redacted secrets via a column-count filter oracle.
+    for (let rIdx = 1; rIdx < records.length; rIdx += 1) {
+      const rec = records[rIdx];
+      const boundedRaw =
+        rec.length > STUDIO_MAX_PREVIEW_COLUMNS ? rec.slice(0, STUDIO_MAX_PREVIEW_COLUMNS) : rec;
+      if (!rawValuesMayMatchFilter(boundedRaw, needle)) {
+        continue;
+      }
+      const { obj, neededCols } = buildSanitizedCsvRow(boundedRaw);
+      if (!rowMatchesFilter(obj, needle)) {
+        continue;
+      }
+      totalRows += 1;
+      if (rows.length < limit) {
+        extendColumnsTo(neededCols);
+        rows.push(obj);
+      }
     }
   }
 
@@ -188,12 +265,33 @@ export function inspectJsonOrNdjson(
         continue;
       }
       totalValidItems += 1;
+
+      if (!needle) {
+        totalMatched += 1;
+        if (rows.length < limit) {
+          const record: Record<string, unknown> =
+            parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+              ? sliceAndSanitizeObjectRow(parsed as Record<string, unknown>, STUDIO_MAX_PREVIEW_COLUMNS)
+              : { value: sanitizeCellValue(parsed) };
+          for (const key of Object.keys(record)) colSet.add(key);
+          rows.push(record);
+        }
+        continue;
+      }
+
+      const rawVals =
+        parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+          ? Object.values(parsed as Record<string, unknown>).slice(0, STUDIO_MAX_PREVIEW_COLUMNS)
+          : [parsed];
+      if (!rawValuesMayMatchFilter(rawVals, needle)) {
+        continue;
+      }
       const record: Record<string, unknown> =
         parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-          ? sanitizeRowRecord(parsed as Record<string, unknown>)
+          ? sliceAndSanitizeObjectRow(parsed as Record<string, unknown>, STUDIO_MAX_PREVIEW_COLUMNS)
           : { value: sanitizeCellValue(parsed) };
 
-      if (needle && !rowMatchesFilter(record, needle)) {
+      if (!rowMatchesFilter(record, needle)) {
         continue;
       }
       totalMatched += 1;
@@ -236,20 +334,41 @@ export function inspectJsonOrNdjson(
     const rows: Array<Record<string, unknown>> = [];
     let totalMatched = 0;
 
-    for (let i = 0; i < parsed.length; i += 1) {
-      const item = parsed[i];
-      const record: Record<string, unknown> =
-        item && typeof item === 'object' && !Array.isArray(item)
-          ? sanitizeRowRecord(item as Record<string, unknown>)
-          : { index: i, value: sanitizeCellValue(item) };
-
-      if (needle && !rowMatchesFilter(record, needle)) {
-        continue;
-      }
-      totalMatched += 1;
-      if (rows.length < limit) {
+    if (!needle) {
+      totalMatched = parsed.length;
+      const previewEnd = Math.min(parsed.length, limit);
+      for (let i = 0; i < previewEnd; i += 1) {
+        const item = parsed[i];
+        const record: Record<string, unknown> =
+          item && typeof item === 'object' && !Array.isArray(item)
+            ? sliceAndSanitizeObjectRow(item as Record<string, unknown>, STUDIO_MAX_PREVIEW_COLUMNS)
+            : { index: i, value: sanitizeCellValue(item) };
         for (const key of Object.keys(record)) colSet.add(key);
         rows.push(record);
+      }
+    } else {
+      for (let i = 0; i < parsed.length; i += 1) {
+        const item = parsed[i];
+        const rawVals =
+          item && typeof item === 'object' && !Array.isArray(item)
+            ? Object.values(item as Record<string, unknown>).slice(0, STUDIO_MAX_PREVIEW_COLUMNS)
+            : [i, item];
+        if (!rawValuesMayMatchFilter(rawVals, needle)) {
+          continue;
+        }
+        const record: Record<string, unknown> =
+          item && typeof item === 'object' && !Array.isArray(item)
+            ? sliceAndSanitizeObjectRow(item as Record<string, unknown>, STUDIO_MAX_PREVIEW_COLUMNS)
+            : { index: i, value: sanitizeCellValue(item) };
+
+        if (!rowMatchesFilter(record, needle)) {
+          continue;
+        }
+        totalMatched += 1;
+        if (rows.length < limit) {
+          for (const key of Object.keys(record)) colSet.add(key);
+          rows.push(record);
+        }
       }
     }
 
@@ -278,21 +397,40 @@ export function inspectJsonOrNdjson(
     const rows: Array<Record<string, unknown>> = [];
     let totalMatched = 0;
 
-    for (const key of topLevelKeys) {
-      const val = obj[key];
-      const valType = Array.isArray(val)
-        ? `array(${val.length})`
-        : val === null
-          ? 'null'
-          : typeof val;
-      const preview = sanitizeCellValue(val);
-      const record: Record<string, unknown> = { key, type: valType, preview };
-      if (needle && !rowMatchesFilter(record, needle)) {
-        continue;
+    if (!needle) {
+      totalMatched = topLevelKeys.length;
+      const previewEnd = Math.min(topLevelKeys.length, limit);
+      for (let i = 0; i < previewEnd; i += 1) {
+        const key = topLevelKeys[i];
+        const val = obj[key];
+        const valType = Array.isArray(val)
+          ? `array(${val.length})`
+          : val === null
+            ? 'null'
+            : typeof val;
+        const preview = sanitizeCellValue(val);
+        rows.push({ key, type: valType, preview });
       }
-      totalMatched += 1;
-      if (rows.length < limit) {
-        rows.push(record);
+    } else {
+      for (const key of topLevelKeys) {
+        const val = obj[key];
+        const valType = Array.isArray(val)
+          ? `array(${val.length})`
+          : val === null
+            ? 'null'
+            : typeof val;
+        if (!rawValuesMayMatchFilter([key, valType, val], needle)) {
+          continue;
+        }
+        const preview = sanitizeCellValue(val);
+        const record: Record<string, unknown> = { key, type: valType, preview };
+        if (!rowMatchesFilter(record, needle)) {
+          continue;
+        }
+        totalMatched += 1;
+        if (rows.length < limit) {
+          rows.push(record);
+        }
       }
     }
 

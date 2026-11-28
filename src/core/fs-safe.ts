@@ -323,3 +323,382 @@ export function safeReadJsonReadOnly(filePath: string, maxBytes = 2 * 1024 * 102
     return null;
   }
 }
+
+const DEFAULT_FILE_LOCK_TIMEOUT_MS = 1500;
+const DEFAULT_FILE_LOCK_STALE_MS = 15_000;
+const MAX_LOCK_FILE_READ_BYTES = 4096;
+
+export interface FileLockOptions {
+  /** Max total milliseconds to wait on lock contention before best-effort fallback (default 1500ms). */
+  timeoutMs?: number;
+  /** Lock age threshold (ms) after which an existing lock file is considered stale and reclaimed (default 15000ms). */
+  staleMs?: number;
+}
+
+/**
+ * Pure read-only PID liveness probe (`process.kill(pid, 0)`) kept local to Layer 1 `fs-safe.ts`
+ * so `fs-safe.ts` avoids a circular import with `process-safe.ts` (which imports `fs-safe.ts`).
+ */
+function isLockPidAlive(pid: number): boolean {
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return false;
+  }
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException | undefined)?.code;
+    return code === 'EPERM';
+  }
+}
+
+function readLockHolderMetadata(
+  lockPath: string,
+  size: number,
+): { pid?: number; ts?: number; id?: string } | null {
+  if (size <= 0 || size > MAX_LOCK_FILE_READ_BYTES) {
+    return null;
+  }
+  try {
+    const raw = fs.readFileSync(lockPath, 'utf8');
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return null;
+    }
+    const rec = parsed as Record<string, unknown>;
+    const pid =
+      typeof rec.pid === 'number' && Number.isInteger(rec.pid) && rec.pid > 0
+        ? rec.pid
+        : undefined;
+    const ts =
+      typeof rec.ts === 'number' && Number.isFinite(rec.ts) && rec.ts > 0
+        ? rec.ts
+        : undefined;
+    const id =
+      typeof rec.id === 'string' && rec.id.length > 0 && rec.id.length <= 64
+        ? rec.id
+        : undefined;
+    return { pid, ts, id };
+  } catch {
+    return null;
+  }
+}
+
+function unlinkFileWithWinRetry(filePath: string): void {
+  const maxAttempts = process.platform === 'win32' ? 6 : 1;
+  for (let i = 0; i < maxAttempts; i += 1) {
+    try {
+      fs.unlinkSync(filePath);
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException | undefined)?.code;
+      if (code === 'ENOENT') {
+        return;
+      }
+      if (
+        process.platform === 'win32' &&
+        code &&
+        RETRYABLE_WIN_RENAME_CODES.has(code) &&
+        i < maxAttempts - 1
+      ) {
+        syncSleepMs((i + 1) * 5);
+        continue;
+      }
+      return;
+    }
+  }
+}
+
+function reclaimStaleLockSafely(
+  lockPath: string,
+  expectedSt: fs.Stats,
+  staleMs: number,
+): boolean {
+  const reclaimPath = `${lockPath}.reclaim`;
+  try {
+    const existingReclaim = fs.lstatSync(reclaimPath);
+    if (existingReclaim.isSymbolicLink()) {
+      return false;
+    }
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException | undefined)?.code !== 'ENOENT') {
+      return false;
+    }
+  }
+
+  let reclaimFd: number | null = null;
+  try {
+    reclaimFd = fs.openSync(reclaimPath, 'wx', 0o600);
+    try {
+      fs.writeSync(reclaimFd, JSON.stringify({ pid: process.pid, ts: Date.now() }), undefined, 'utf8');
+    } catch {
+      // best-effort metadata
+    }
+    try {
+      fs.closeSync(reclaimFd);
+    } catch {
+      // ignore close error
+    }
+    reclaimFd = null;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException | undefined)?.code;
+    if (code === 'EEXIST') {
+      // Another contender is actively reclaiming; only clear an orphaned reclaim lock if dead/expired
+      try {
+        const rst = fs.lstatSync(reclaimPath);
+        if (!rst.isSymbolicLink() && rst.isFile()) {
+          const reclaimMaxAge = Math.max(2000, Math.min(staleMs, 10_000));
+          const ageExpired = Date.now() - rst.mtimeMs > reclaimMaxAge;
+          const rMeta = !ageExpired ? readLockHolderMetadata(reclaimPath, rst.size) : null;
+          const rDead = rMeta?.pid !== undefined && !isLockPidAlive(rMeta.pid);
+          if (ageExpired || rDead) {
+            unlinkFileWithWinRetry(reclaimPath);
+          }
+        }
+      } catch {
+        // ignore inspection race
+      }
+    }
+    return false;
+  }
+
+  try {
+    const recheck = fs.lstatSync(lockPath);
+    if (recheck.isSymbolicLink() || !recheck.isFile()) {
+      return false;
+    }
+    const sameIdentity =
+      expectedSt.ino !== 0 && recheck.ino !== 0
+        ? recheck.ino === expectedSt.ino && recheck.mtimeMs === expectedSt.mtimeMs
+        : recheck.mtimeMs === expectedSt.mtimeMs && recheck.size === expectedSt.size;
+    if (!sameIdentity) {
+      return false;
+    }
+    // Re-verify staleness/dead-PID while holding the single-winner reclaim coordinator lock
+    const stillAgeStale = Date.now() - recheck.mtimeMs > staleMs;
+    const stillDeadPid = !stillAgeStale
+      ? (() => {
+          const meta = readLockHolderMetadata(lockPath, recheck.size);
+          return meta?.pid !== undefined && !isLockPidAlive(meta.pid);
+        })()
+      : false;
+    if (!stillAgeStale && !stillDeadPid) {
+      return false;
+    }
+    unlinkFileWithWinRetry(lockPath);
+    return true;
+  } catch (err) {
+    return (err as NodeJS.ErrnoException | undefined)?.code === 'ENOENT';
+  } finally {
+    if (reclaimFd !== null) {
+      try {
+        fs.closeSync(reclaimFd);
+      } catch {
+        // ignore close error
+      }
+    }
+    try {
+      const rst = fs.lstatSync(reclaimPath);
+      if (!rst.isSymbolicLink() && rst.isFile()) {
+        unlinkFileWithWinRetry(reclaimPath);
+      }
+    } catch {
+      // already removed
+    }
+  }
+}
+
+/**
+ * Cross-process exclusive advisory file lock (`${targetFilePath}.lock`) using atomic `O_CREAT | O_EXCL` (`wx`).
+ *
+ * Refuses symlink lock files / unsafe symlink ancestors, uses zero-CPU `Atomics.wait` short backoff
+ * (4–25ms), reclaims stale or dead-PID locks via a single-winner `.reclaim` coordinator lock (preventing
+ * `lstat -> unlink` TOCTOU races), handles Windows NTFS transient `EPERM`/`EBUSY`/`EACCES`, always cleans
+ * up owned locks in `finally`, and degrades to best-effort execution of `fn()` on timeout so hooks never deadlock.
+ */
+export function withFileLockSync<T>(
+  targetFilePath: string,
+  fn: () => T,
+  opts?: FileLockOptions,
+): T {
+  const lockPath = `${targetFilePath}.lock`;
+  const timeoutMs =
+    typeof opts?.timeoutMs === 'number' && Number.isFinite(opts.timeoutMs)
+      ? Math.max(0, Math.floor(opts.timeoutMs))
+      : DEFAULT_FILE_LOCK_TIMEOUT_MS;
+  const staleMs =
+    typeof opts?.staleMs === 'number' && Number.isFinite(opts.staleMs)
+      ? Math.max(0, Math.floor(opts.staleMs))
+      : DEFAULT_FILE_LOCK_STALE_MS;
+
+  // Reject symlink lock files or unsafe symlink ancestors before touching parent directories
+  if (hasUnsafeSymlinkAncestor(lockPath)) {
+    return fn();
+  }
+  try {
+    const existing = fs.lstatSync(lockPath);
+    if (existing.isSymbolicLink()) {
+      return fn();
+    }
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      return fn();
+    }
+  }
+
+  try {
+    ensurePrivateDir(path.dirname(lockPath));
+  } catch {
+    return fn();
+  }
+
+  const deadline = Date.now() + timeoutMs;
+  let fd: number | null = null;
+  let acquired = false;
+  let lockTs = 0;
+  let lockIno: number | null = null;
+  let lockNonce = '';
+  let wroteMetadata = false;
+  let attempt = 0;
+  let winTransientErrors = 0;
+
+  while (true) {
+    try {
+      fd = fs.openSync(lockPath, 'wx', 0o600);
+      acquired = true;
+      lockTs = Date.now();
+      lockNonce = crypto.randomBytes(6).toString('hex');
+      wroteMetadata = false;
+      try {
+        const payload = JSON.stringify({ pid: process.pid, ts: lockTs, id: lockNonce });
+        fs.writeSync(fd, payload, undefined, 'utf8');
+        wroteMetadata = true;
+      } catch {
+        // Exclusive lock file is already created; metadata write failure is non-fatal
+      }
+      try {
+        fs.fchmodSync(fd, 0o600);
+      } catch {
+        // Ignore on platforms without POSIX mode bits
+      }
+      try {
+        const st = fs.fstatSync(fd);
+        lockIno = st.ino !== 0 ? st.ino : null;
+      } catch {
+        lockIno = null;
+      }
+      try {
+        fs.closeSync(fd);
+      } catch {
+        // ignore close failure
+      }
+      fd = null;
+      break;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException)?.code;
+      if (
+        process.platform === 'win32' &&
+        code &&
+        RETRYABLE_WIN_RENAME_CODES.has(code) &&
+        winTransientErrors < 6
+      ) {
+        const remainingWin = deadline - Date.now();
+        if (remainingWin > 0) {
+          winTransientErrors += 1;
+          syncSleepMs(Math.min(remainingWin, 6 * winTransientErrors));
+          continue;
+        }
+      }
+      if (code !== 'EEXIST') {
+        // Non-contention error (e.g. EACCES, EROFS, ENOSPC, ELOOP): degrade best-effort
+        break;
+      }
+
+      // Inspect existing lock file safely without following symlinks
+      let st: fs.Stats;
+      try {
+        st = fs.lstatSync(lockPath);
+      } catch (statErr) {
+        if ((statErr as NodeJS.ErrnoException)?.code === 'ENOENT') {
+          if (Date.now() < deadline) {
+            attempt += 1;
+            continue;
+          }
+          break;
+        }
+        break;
+      }
+
+      if (st.isSymbolicLink()) {
+        // Refuse to follow or unlink a symlinked lock file; degrade immediately
+        break;
+      }
+
+      if (st.isFile()) {
+        const now = Date.now();
+        const ageStale = now - st.mtimeMs > staleMs;
+        const deadPid = !ageStale
+          ? (() => {
+              const meta = readLockHolderMetadata(lockPath, st.size);
+              return meta?.pid !== undefined && !isLockPidAlive(meta.pid);
+            })()
+          : false;
+        if (ageStale || deadPid) {
+          const reclaimed = reclaimStaleLockSafely(lockPath, st, staleMs);
+          if (reclaimed) {
+            attempt += 1;
+            if (Date.now() <= deadline || attempt <= 2) {
+              continue;
+            }
+            break;
+          }
+        }
+      }
+
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        break;
+      }
+      const waitMs = Math.min(remaining, Math.min(25, 4 + attempt * 3 + (attempt % 4)));
+      attempt += 1;
+      syncSleepMs(waitMs);
+    }
+  }
+
+  try {
+    return fn();
+  } finally {
+    if (fd !== null) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        // ignore close error
+      }
+      fd = null;
+    }
+    if (acquired) {
+      try {
+        const st = fs.lstatSync(lockPath);
+        if (!st.isSymbolicLink() && st.isFile()) {
+          let isOurs = false;
+          if (lockIno !== null && st.ino !== 0) {
+            isOurs = st.ino === lockIno;
+          } else {
+            const meta = readLockHolderMetadata(lockPath, st.size);
+            isOurs =
+              (meta !== null &&
+                meta.pid === process.pid &&
+                meta.ts === lockTs &&
+                meta.id === lockNonce) ||
+              (!wroteMetadata && st.size === 0);
+          }
+          if (isOurs) {
+            unlinkFileWithWinRetry(lockPath);
+          }
+        }
+      } catch {
+        // best-effort unlock
+      }
+    }
+  }
+}

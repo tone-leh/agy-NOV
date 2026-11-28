@@ -24,7 +24,7 @@ import {
 } from './fs-safe.js';
 import { isPidAlive } from './process-safe.js';
 
-export const FEED_SNAPSHOT_VERSION = '1.2.2' as const;
+export const FEED_SNAPSHOT_VERSION = '1.2.3' as const;
 export const FEED_SNAPSHOT_FILENAME = 'feed-snapshot.json' as const;
 export const MAX_FEED_SNAPSHOT_BYTES = 64 * 1024;
 export const MAX_FEED_ALERTS = 6;

@@ -64,7 +64,7 @@ import { NOV_CONTEXT_RESOURCE_URIS, registerNovContextResources } from './contex
 
 export { NOV_CONTEXT_RESOURCE_URIS };
 export const UI_RESOURCE_URI = 'ui://agy-nov/app.html';
-export const NOV_VERSION = '1.2.2';
+export const NOV_VERSION = '1.2.3';
 
 const MCP_APPS_UI_EXTENSION_ID = 'io.modelcontextprotocol/ui';
 
@@ -219,6 +219,7 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
   let lastSyncedUiAllowed = true;
   const snapshotListeners = new Set<(snapshot: NovConfigSnapshotPayload) => void>();
   const lastSyncedVisibility = new Map<ModuleId, boolean>();
+  const failedRuntimeModules = new Set<ModuleId>();
   const exemptAppOnlyHandles: ModuleToolHandle[] = [];
   const topLevelAppOnlyHandles: ModuleToolHandle[] = [];
 
@@ -369,7 +370,11 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
       server.sendToolListChanged = baseSendToolListChanged;
     }
     if (anyChanged) {
-      baseSendToolListChanged();
+      try {
+        void Promise.resolve(baseSendToolListChanged()).catch(() => undefined);
+      } catch {
+        // Ignore synchronous send failure if transport is not connected or already closed
+      }
     }
   }
 
@@ -388,12 +393,16 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     }
   }
 
+  let rootsSyncSeq = 0;
+
   async function syncWorkspaceRootFromClientRoots(): Promise<void> {
     if (disposed) return;
+    const seq = ++rootsSyncSeq;
     try {
       const clientCaps = server.server.getClientCapabilities();
       if (!clientCaps?.roots) return;
       const result = await server.server.listRoots();
+      if (disposed || seq !== rootsSyncSeq) return;
       const roots = Array.isArray(result?.roots) ? result.roots : [];
       for (const root of roots) {
         const localDir = resolveLocalRootFileUri(root?.uri);
@@ -407,14 +416,27 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     }
   }
 
-  async function syncModuleRuntimes(prev: NovConfig, next: NovConfig): Promise<void> {
+  async function syncModuleRuntimes(prev: NovConfig, next: NovConfig): Promise<boolean> {
+    let allSucceeded = true;
     for (const id of MODULE_IDS) {
-      if (prev.modules[id] === next.modules[id]) continue;
+      const targetEnabled = Boolean(next.modules[id]);
+      const changed = Boolean(prev.modules[id]) !== targetEnabled;
+      const needsRetry = failedRuntimeModules.has(id);
+      if (!changed && !needsRetry) continue;
       const reg = registrations.get(id);
-      if (reg?.setEnabledRuntime) {
-        await reg.setEnabledRuntime(Boolean(next.modules[id]));
+      if (!reg?.setEnabledRuntime) {
+        failedRuntimeModules.delete(id);
+        continue;
+      }
+      try {
+        await reg.setEnabledRuntime(targetEnabled);
+        failedRuntimeModules.delete(id);
+      } catch {
+        failedRuntimeModules.add(id);
+        allSucceeded = false;
       }
     }
+    return allSucceeded;
   }
 
   function refreshFeedSnapshotSafe(cfg: NovConfig): void {
@@ -431,14 +453,15 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     return enqueueMutation(async () => {
       if (disposed) return false;
       const diskSig = getConfigFileSignature(options.dataDir);
-      if (diskSig === lastConfigSignature) {
+      if (diskSig === lastConfigSignature && failedRuntimeModules.size === 0) {
         return false;
       }
 
       let next: NovConfig;
+      let nextSig: string | null;
       if (diskSig === null) {
         next = createDefaultConfig();
-        lastConfigSignature = null;
+        nextSig = null;
       } else {
         const readRes = readDiskConfigForSync(options.dataDir);
         if (readRes.status === 'invalid') {
@@ -446,17 +469,24 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
           return false;
         }
         next = readRes.config;
-        lastConfigSignature = readRes.status === 'missing' ? null : diskSig;
+        nextSig = readRes.status === 'missing' ? null : diskSig;
       }
 
       const prev = currentConfig;
-      if (!hasConfigChanged(prev, next)) {
+      const configChanged = hasConfigChanged(prev, next);
+      if (!configChanged && failedRuntimeModules.size === 0) {
+        lastConfigSignature = nextSig;
         return false;
       }
 
       currentConfig = next;
-      syncToolVisibility(next);
-      await syncModuleRuntimes(prev, next);
+      if (configChanged) {
+        syncToolVisibility(next);
+      }
+      const runtimesOk = await syncModuleRuntimes(prev, next);
+      if (runtimesOk) {
+        lastConfigSignature = nextSig;
+      }
       broadcastSnapshot();
       refreshFeedSnapshotSafe(next);
       return true;
@@ -467,10 +497,13 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     enqueueMutation(async () => {
       const prev = currentConfig;
       const next = setModuleEnabled(options.dataDir, moduleId, enabled);
-      lastConfigSignature = getConfigFileSignature(options.dataDir);
+      const nextSig = getConfigFileSignature(options.dataDir);
       currentConfig = next;
       syncToolVisibility(next);
-      await syncModuleRuntimes(prev, next);
+      const runtimesOk = await syncModuleRuntimes(prev, next);
+      if (runtimesOk) {
+        lastConfigSignature = nextSig;
+      }
       broadcastSnapshot();
       refreshFeedSnapshotSafe(next);
       return next;
@@ -480,10 +513,13 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     enqueueMutation(async () => {
       const prev = currentConfig;
       const next = applyPresetConfig(options.dataDir, preset);
-      lastConfigSignature = getConfigFileSignature(options.dataDir);
+      const nextSig = getConfigFileSignature(options.dataDir);
       currentConfig = next;
       syncToolVisibility(next);
-      await syncModuleRuntimes(prev, next);
+      const runtimesOk = await syncModuleRuntimes(prev, next);
+      if (runtimesOk) {
+        lastConfigSignature = nextSig;
+      }
       broadcastSnapshot();
       refreshFeedSnapshotSafe(next);
       return next;
@@ -493,10 +529,13 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     enqueueMutation(async () => {
       const prev = currentConfig;
       const next = setNovLocale(options.dataDir, locale);
-      lastConfigSignature = getConfigFileSignature(options.dataDir);
+      const nextSig = getConfigFileSignature(options.dataDir);
       currentConfig = next;
       syncToolVisibility(next);
-      await syncModuleRuntimes(prev, next);
+      const runtimesOk = await syncModuleRuntimes(prev, next);
+      if (runtimesOk) {
+        lastConfigSignature = nextSig;
+      }
       broadcastSnapshot();
       refreshFeedSnapshotSafe(next);
       return next;
@@ -506,10 +545,13 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     enqueueMutation(async () => {
       const prev = currentConfig;
       const next = setNovStartupView(options.dataDir, startupView);
-      lastConfigSignature = getConfigFileSignature(options.dataDir);
+      const nextSig = getConfigFileSignature(options.dataDir);
       currentConfig = next;
       syncToolVisibility(next);
-      await syncModuleRuntimes(prev, next);
+      const runtimesOk = await syncModuleRuntimes(prev, next);
+      if (runtimesOk) {
+        lastConfigSignature = nextSig;
+      }
       broadcastSnapshot();
       refreshFeedSnapshotSafe(next);
       return next;
@@ -519,10 +561,13 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     enqueueMutation(async () => {
       const prev = currentConfig;
       const next = saveNovConfig(options.dataDir, importedConfig);
-      lastConfigSignature = getConfigFileSignature(options.dataDir);
+      const nextSig = getConfigFileSignature(options.dataDir);
       currentConfig = next;
       syncToolVisibility(next);
-      await syncModuleRuntimes(prev, next);
+      const runtimesOk = await syncModuleRuntimes(prev, next);
+      if (runtimesOk) {
+        lastConfigSignature = nextSig;
+      }
       broadcastSnapshot();
       refreshFeedSnapshotSafe(next);
       return next;
@@ -532,10 +577,13 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
     enqueueMutation(async () => {
       const prev = currentConfig;
       const next = resetNovConfig(options.dataDir);
-      lastConfigSignature = getConfigFileSignature(options.dataDir);
+      const nextSig = getConfigFileSignature(options.dataDir);
       currentConfig = next;
       syncToolVisibility(next);
-      await syncModuleRuntimes(prev, next);
+      const runtimesOk = await syncModuleRuntimes(prev, next);
+      if (runtimesOk) {
+        lastConfigSignature = nextSig;
+      }
       broadcastSnapshot();
       refreshFeedSnapshotSafe(next);
       return next;
@@ -621,7 +669,12 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
   if (pollMs > 0) {
     configPollTimer = setInterval(() => {
       if (disposed || pollInFlight) return;
-      if (getConfigFileSignature(options.dataDir) === lastConfigSignature) return;
+      if (
+        getConfigFileSignature(options.dataDir) === lastConfigSignature &&
+        failedRuntimeModules.size === 0
+      ) {
+        return;
+      }
       pollInFlight = true;
       void syncConfigFromDiskIfChanged()
         .catch(() => undefined)
@@ -938,21 +991,24 @@ export function createNovServer(rawOpts: Partial<NovRuntimeOptions> = {}): NovSe
   const prevOnInitialized = server.server.oninitialized;
   server.server.oninitialized = () => {
     prevOnInitialized?.();
+    if (disposed) return;
     const forceExpose =
       Boolean(options.exposeAppToolsWithoutUiCapability) ||
       process.env.AGY_NOV_EXPOSE_APP_TOOLS === '1';
-    if (!forceExpose) {
-      const clientCaps = server.server.getClientCapabilities();
-      if (!hasMcpAppsUiCapability(clientCaps)) {
-        uiAppToolsAllowed = false;
-        syncToolVisibility(currentConfig, true);
-      }
+    const clientCaps = server.server.getClientCapabilities();
+    const shouldHideAppTools = !forceExpose && !hasMcpAppsUiCapability(clientCaps);
+    if (shouldHideAppTools) {
+      uiAppToolsAllowed = false;
+      // Apply synchronously so immediate tools/list from non-UI clients never observes app_* tools.
+      syncToolVisibility(currentConfig, true);
     }
+    // Keep external client roots/list RPC outside enqueueMutation so a slow/stalled client never
+    // blocks tool calls, config mutations, or graceful dispose().
     void syncWorkspaceRootFromClientRoots();
   };
 
-  server.server.setNotificationHandler(RootsListChangedNotificationSchema, async () => {
-    await syncWorkspaceRootFromClientRoots();
+  server.server.setNotificationHandler(RootsListChangedNotificationSchema, () => {
+    void syncWorkspaceRootFromClientRoots();
   });
 
   async function dispose(): Promise<void> {
@@ -1041,9 +1097,12 @@ async function main(): Promise<void> {
   process.stdin.on('close', () => void shutdown());
   process.stdin.on('end', () => void shutdown());
   process.stdout.on('error', (err: NodeJS.ErrnoException) => {
-    if (err?.code === 'EPIPE') {
+    if (err?.code === 'EPIPE' || err?.code === 'ERR_STREAM_DESTROYED') {
       void shutdown();
     }
+  });
+  process.stderr.on('error', () => {
+    // Ignore stderr broken-pipe errors during host teardown
   });
 
   await bundle.server.connect(transport);
@@ -1056,5 +1115,13 @@ const isMain =
       /(?:^|[/\\])server[/\\]index\.ts$/i.test(process.argv[1])));
 
 if (isMain) {
-  void main();
+  void main().catch((err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    try {
+      process.stderr.write(`[agy-NOV] Fatal startup error: ${msg}\n`);
+    } catch {
+      // ignore stderr write failure
+    }
+    process.exit(1);
+  });
 }

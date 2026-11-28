@@ -446,7 +446,10 @@ export async function handleRemotePreToolHook(
   }
 
   try {
-    const waitMs = Math.max(2_000, Math.min(25_000, config.approvalTimeoutSec * 1000));
+    const safeTimeoutSec = Number.isFinite(config.approvalTimeoutSec)
+      ? Math.min(300, Math.max(1, config.approvalTimeoutSec))
+      : 25;
+    const waitMs = Math.max(2_000, Math.min(25_000, safeTimeoutSec * 1000));
     const res = await fetch(`${runtime.url}/api/hooks/approval`, {
       method: 'POST',
       headers: {
@@ -459,7 +462,7 @@ export async function handleRemotePreToolHook(
         summary,
         matchedRule: matched,
         riskCard,
-        timeoutSec: config.approvalTimeoutSec,
+        timeoutSec: safeTimeoutSec,
         waitMs,
       }),
       signal: AbortSignal.timeout(waitMs + 1_500),
@@ -480,6 +483,8 @@ export async function handleRemotePreToolHook(
           reason: `Denied remotely via Agy Remote (${data.approval?.decidedBy ?? 'mobile'}).`,
         };
       }
+    } else {
+      await res.body?.cancel?.().catch(() => {});
     }
   } catch {
     // Gateway unreachable or timed out: fail safe to local ask without outbound fallback
@@ -513,7 +518,7 @@ export async function handleRemoteStopHook(
   const terminationReason = payload.terminationReason ?? 'NO_TOOL_CALL';
   const lastUserInput = payload.lastUserInput ?? '';
   try {
-    await fetch(`${runtime.url}/api/hooks/stop`, {
+    const res = await fetch(`${runtime.url}/api/hooks/stop`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -527,6 +532,7 @@ export async function handleRemoteStopHook(
       }),
       signal: AbortSignal.timeout(3_000),
     });
+    await res.body?.cancel?.().catch(() => {});
   } catch {
     // Gateway unreachable: never fall back to direct IM broadcast
   }

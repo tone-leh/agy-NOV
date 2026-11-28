@@ -6,6 +6,7 @@ import {
   canonicalRealpathSync,
   isPathInsideDir,
   isSamePath,
+  withFileLockSync,
 } from '../../core/fs-safe.js';
 import {
   clampMaxConsecutiveBlocks,
@@ -33,6 +34,13 @@ import {
 } from './types.js';
 
 const MAX_SYMLINK_DEPTH = 20;
+const MAX_VERIFY_STATE_BYTES = 8 * 1024 * 1024;
+
+function safeParseTimestampMs(raw: unknown): number {
+  if (typeof raw !== 'string' || !raw) return 0;
+  const parsed = Date.parse(raw);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 export function getVerifyStatePath(moduleDataDir: string): string {
   return path.join(moduleDataDir, 'state.json');
@@ -219,14 +227,25 @@ function normalizeEvidenceFromDisk(raw: unknown): VerifyEvidenceRecord | null {
 
 /**
  * Pure read-only load. Never creates directories or writes to disk.
+ * Enforces symlink refusal, regular-file check, and an 8 MiB file size ceiling.
  */
 export function loadVerifyStateReadOnly(moduleDataDir: string): VerifyStateFile {
   const statePath = getVerifyStatePath(moduleDataDir);
-  if (!fs.existsSync(statePath)) {
+  let st: fs.Stats;
+  try {
+    st = fs.lstatSync(statePath);
+  } catch {
+    return createDefaultVerifyState();
+  }
+  if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_VERIFY_STATE_BYTES) {
     return createDefaultVerifyState();
   }
   try {
-    const raw = JSON.parse(fs.readFileSync(statePath, 'utf8')) as Record<string, unknown>;
+    const parsed = JSON.parse(fs.readFileSync(statePath, 'utf8')) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return createDefaultVerifyState();
+    }
+    const raw = parsed as Record<string, unknown>;
     const policy = normalizePolicyFromDisk(raw.policy);
     const sessions: Record<string, VerifySessionRecord> = {};
     if (raw.sessions && typeof raw.sessions === 'object' && !Array.isArray(raw.sessions)) {
@@ -262,7 +281,7 @@ export function loadVerifyStateReadOnly(moduleDataDir: string): VerifyStateFile 
 
 export function saveVerifyState(moduleDataDir: string, state: VerifyStateFile): VerifyStateFile {
   const sortedSessions = Object.values(state.sessions)
-    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+    .sort((a, b) => safeParseTimestampMs(b.updatedAt) - safeParseTimestampMs(a.updatedAt))
     .slice(0, MAX_STORED_SESSIONS);
   const prunedSessions: Record<string, VerifySessionRecord> = {};
   for (const s of sortedSessions) {
@@ -308,7 +327,7 @@ export function buildVerifyStateView(
       dirtyFiles: [...s.dirtyFiles],
       emptyFiles: [...s.emptyFiles],
     }))
-    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+    .sort((a, b) => safeParseTimestampMs(b.updatedAt) - safeParseTimestampMs(a.updatedAt));
 
   return {
     mode,
@@ -466,14 +485,21 @@ export function updateVerifyPolicy(
   moduleDataDir: string,
   patch: VerifyPolicyPatch,
 ): { valid: true; policy: VerifyPolicy; state: VerifyStateFile } | { valid: false; error: string } {
-  const state = loadVerifyStateReadOnly(moduleDataDir);
-  const validated = validateAndBuildPolicy(state.policy, patch);
-  if (!validated.valid) {
-    return validated;
+  const precheckState = loadVerifyStateReadOnly(moduleDataDir);
+  const precheck = validateAndBuildPolicy(precheckState.policy, patch);
+  if (!precheck.valid) {
+    return precheck;
   }
-  state.policy = validated.policy;
-  const saved = saveVerifyState(moduleDataDir, state);
-  return { valid: true, policy: saved.policy, state: saved };
+  return withFileLockSync(getVerifyStatePath(moduleDataDir), () => {
+    const state = loadVerifyStateReadOnly(moduleDataDir);
+    const validated = validateAndBuildPolicy(state.policy, patch);
+    if (!validated.valid) {
+      return validated;
+    }
+    state.policy = validated.policy;
+    const saved = saveVerifyState(moduleDataDir, state);
+    return { valid: true, policy: saved.policy, state: saved };
+  });
 }
 
 export function clearVerifyHistoryInState(state: VerifyStateFile): number {
@@ -489,11 +515,16 @@ export function clearVerifyHistory(
   moduleDataDir: string,
 ): { cleared: number; state: VerifyStateFile } {
   const statePath = getVerifyStatePath(moduleDataDir);
-  const state = loadVerifyStateReadOnly(moduleDataDir);
-  const cleared = clearVerifyHistoryInState(state);
-  if (cleared === 0 && !fs.existsSync(statePath)) {
-    return { cleared: 0, state };
+  if (!fs.existsSync(statePath)) {
+    return { cleared: 0, state: createDefaultVerifyState() };
   }
-  const saved = saveVerifyState(moduleDataDir, state);
-  return { cleared, state: saved };
+  return withFileLockSync(statePath, () => {
+    const state = loadVerifyStateReadOnly(moduleDataDir);
+    const cleared = clearVerifyHistoryInState(state);
+    if (cleared === 0 && !fs.existsSync(statePath)) {
+      return { cleared: 0, state };
+    }
+    const saved = saveVerifyState(moduleDataDir, state);
+    return { cleared, state: saved };
+  });
 }

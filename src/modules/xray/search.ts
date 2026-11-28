@@ -57,7 +57,9 @@ function extractSnippet(text: string, query: string, maxLen = 220): string {
 }
 
 const MAX_SEARCH_TRANSCRIPT_SLICE_BYTES = 512 * 1024;
+const MAX_SEARCH_TRANSCRIPT_FILE_BYTES = 512 * 1024 * 1024; // 512 MiB ceiling (bounded head+tail slice avoids loading full file)
 const MAX_SEARCH_ARTIFACT_BYTES = 64 * 1024;
+const MAX_SEARCH_ARTIFACT_FILE_BYTES = 10 * 1024 * 1024; // 10 MiB ceiling for markdown artifacts
 const MAX_SEARCH_ARTIFACTS_PER_SESSION = 20;
 const MAX_TOTAL_SEARCH_READ_BYTES = 32 * 1024 * 1024;
 
@@ -65,12 +67,17 @@ function readBoundedSearchSlice(
   filePath: string,
   maxBytes: number,
   includeTailIfOversized: boolean,
-): { text: string; bytesRead: number } {
+  maxFileSizeBytes: number,
+): { text: string; bytesRead: number; mtimeMs?: number } {
   let fd: number | undefined;
   try {
+    const lst = fs.lstatSync(filePath);
+    if (lst.isSymbolicLink() || !lst.isFile() || lst.size <= 0 || lst.size > maxFileSizeBytes) {
+      return { text: '', bytesRead: 0 };
+    }
     fd = fs.openSync(filePath, 'r');
     const st = fs.fstatSync(fd);
-    if (!st.isFile() || st.size <= 0) {
+    if (!st.isFile() || st.size <= 0 || st.size > maxFileSizeBytes) {
       return { text: '', bytesRead: 0 };
     }
     if (st.size <= maxBytes) {
@@ -81,7 +88,7 @@ function readBoundedSearchSlice(
         if (n <= 0) break;
         off += n;
       }
-      return { text: buf.subarray(0, off).toString('utf8'), bytesRead: off };
+      return { text: buf.subarray(0, off).toString('utf8'), bytesRead: off, mtimeMs: st.mtimeMs };
     }
 
     const headBuf = Buffer.alloc(maxBytes);
@@ -93,7 +100,7 @@ function readBoundedSearchSlice(
     }
     let headText = headBuf.subarray(0, headOff).toString('utf8');
     if (!includeTailIfOversized) {
-      return { text: headText, bytesRead: headOff };
+      return { text: headText, bytesRead: headOff, mtimeMs: st.mtimeMs };
     }
 
     const lastHeadNl = headText.lastIndexOf('\n');
@@ -108,13 +115,18 @@ function readBoundedSearchSlice(
       if (n <= 0) break;
       tailOff += n;
     }
-    let tailText = tailBuf.subarray(0, tailOff).toString('utf8');
+    let tailSliceStart = 0;
+    while (tailSliceStart < tailOff && (tailBuf[tailSliceStart] & 0xc0) === 0x80) {
+      tailSliceStart += 1;
+    }
+    let tailText = tailBuf.subarray(tailSliceStart, tailOff).toString('utf8');
     const firstTailNl = tailText.indexOf('\n');
     if (firstTailNl >= 0) tailText = tailText.slice(firstTailNl + 1);
 
     return {
       text: `${headText}\n${tailText}`,
       bytesRead: headOff + tailOff,
+      mtimeMs: st.mtimeMs,
     };
   } finally {
     if (fd !== undefined) {
@@ -143,6 +155,7 @@ function collectDocuments(opts: DiscoveryOptions & { maxSessions?: number }): In
         entry.transcriptPath,
         MAX_SEARCH_TRANSCRIPT_SLICE_BYTES,
         true,
+        MAX_SEARCH_TRANSCRIPT_FILE_BYTES,
       );
       totalReadBytes += slice.bytesRead;
       const lines = slice.text.split(/\r?\n/);
@@ -215,14 +228,20 @@ function collectDocuments(opts: DiscoveryOptions & { maxSessions?: number }): In
         if (!dirent.isFile() || !/\.md$/i.test(dirent.name) || dirent.name.startsWith('.')) continue;
         const artPath = path.join(entry.brainDir, dirent.name);
         try {
-          const slice = readBoundedSearchSlice(artPath, MAX_SEARCH_ARTIFACT_BYTES, false);
+          const slice = readBoundedSearchSlice(
+            artPath,
+            MAX_SEARCH_ARTIFACT_BYTES,
+            false,
+            MAX_SEARCH_ARTIFACT_FILE_BYTES,
+          );
+          if (slice.bytesRead <= 0) continue;
           totalReadBytes += slice.bytesRead;
           const content = slice.text.slice(0, 40_000);
           artCount += 1;
           docs.push({
             sessionId: entry.id,
             sessionTitle,
-            updatedAt: fs.statSync(artPath).mtime.toISOString(),
+            updatedAt: new Date(slice.mtimeMs ?? entry.mtimeMs).toISOString(),
             sourceKind: 'artifact',
             sourceLabel: dirent.name,
             filePath: artPath,

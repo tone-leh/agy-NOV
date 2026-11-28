@@ -12,8 +12,57 @@ import {
   PRESET_IDS,
 } from '../../core/config.js';
 
-export const CLI_VERSION = '1.2.2';
+export const CLI_VERSION = '1.2.3';
 export const MAX_READ_JSON_BYTES = 2 * 1024 * 1024; // 2 MiB hard cap for silent read-only JSON loading
+
+export const CLI_VALUE_FLAGS: ReadonlySet<string> = new Set([
+  '--data-dir',
+  '--workspace',
+  '--repo',
+  '--segments',
+  '--payload',
+  '--format',
+  '--target',
+  '--out',
+  '--spec',
+  '--preset',
+  '--locale',
+  '--model',
+]);
+
+/**
+ * Extract positional arguments (subcommand and positional operands) while skipping
+ * values attached to space-separated value options (e.g. `--data-dir /path/to/dir status`).
+ * Supports `--flag=val`, `--flag val`, and the `--` end-of-options terminator.
+ */
+export function extractCliPositionals(
+  argv: string[],
+  valueFlags: ReadonlySet<string> = CLI_VALUE_FLAGS,
+): string[] {
+  const positional: string[] = [];
+  let afterDoubleDash = false;
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i] ?? '';
+    if (afterDoubleDash) {
+      positional.push(arg);
+      continue;
+    }
+    if (arg === '--') {
+      afterDoubleDash = true;
+      continue;
+    }
+    if (arg.startsWith('-')) {
+      if (valueFlags.has(arg) && i + 1 < argv.length) {
+        i += 1;
+      }
+      continue;
+    }
+    positional.push(arg);
+  }
+
+  return positional;
+}
 
 export function printHelp(): void {
   console.log(`agy-NOV CLI (v${CLI_VERSION}) — The 100% Native Modular Super-Workbench for Antigravity 2.0

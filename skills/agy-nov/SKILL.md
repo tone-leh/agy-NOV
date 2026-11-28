@@ -1,9 +1,9 @@
 ---
 name: agy-nov
-description: Open and manage agy-NOV (v1.2.2), the 100% native 4-layer modular super-workbench for Google Antigravity 2.0 (Zero ASAR, Zero CDP). Manage 13 toggleable modules, 5 presets, 47 canonical model tools, 6 official hooks, 4 zero-tax MCP context resources, 11 CLI commands, and the opt-in read-only audit sidecar.
+description: Open and manage agy-NOV (v1.2.3), the 100% native 4-layer modular super-workbench for Google Antigravity 2.0 (Zero ASAR, Zero CDP). Manage 13 toggleable modules, 5 presets, 47 canonical model tools, 6 official hooks, 4 zero-tax MCP context resources, 11 CLI commands, and the opt-in read-only audit sidecar.
 ---
 
-# agy-NOV — 100% Native Modular Super-Workbench (v1.2.2)
+# agy-NOV — 100% Native Modular Super-Workbench (v1.2.3)
 
 `agy-NOV` unifies 13 Google Antigravity 2.0 engineering workflows into one official native plugin (Zero ASAR, Zero CDP, cross-platform macOS / Windows / Linux) organized across **4+1 functional domains** (Core Essentials `core` / Engineering Pipeline `pipeline` / On-Demand Toolbox `toolbox` / Opt-In Connectivity `connectivity` + **L0 Workflow Hub**), with 8-language UI (`758` keys × 8 locales, `< 1.4 MiB`), strict **47** canonical model tools max, and zero token tax when modules are off.
 

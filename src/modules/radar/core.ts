@@ -2,7 +2,8 @@ import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { ConversationRecord } from '../../core/conversation-service.js';
-import { atomicWriteJson } from '../../core/utils.js';
+import { redactSecretsLinear } from '../../core/sanitize.js';
+import { atomicWriteJson, withFileLockSync } from '../../core/utils.js';
 
 export type RadarSessionStatus =
   | 'running'
@@ -160,6 +161,12 @@ export function normalizeRadarPrefs(raw: unknown): RadarPrefs {
   };
 }
 
+function safeParseTimestampMs(raw: unknown): number {
+  if (typeof raw !== 'string' || !raw) return 0;
+  const parsed = Date.parse(raw);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function createEmptyBoard(): RadarBoardFile {
   return {
     schemaVersion: 1,
@@ -179,7 +186,7 @@ function isStoredStatus(value: unknown): value is RadarStoredStatus {
 }
 
 function normalizeSessionRecord(id: string, raw: unknown): RadarSessionRecord | null {
-  if (!raw || typeof raw !== 'object') return null;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const obj = raw as Record<string, unknown>;
   const nowIso = new Date().toISOString();
   const status: RadarStoredStatus = isStoredStatus(obj.status) ? obj.status : 'running';
@@ -220,8 +227,8 @@ function normalizeSessionRecord(id: string, raw: unknown): RadarSessionRecord | 
     lastEvent,
     stepCount: typeof obj.stepCount === 'number' && Number.isFinite(obj.stepCount) ? Math.max(0, Math.floor(obj.stepCount)) : 0,
     unread: Boolean(obj.unread),
-    summary: typeof obj.summary === 'string' ? obj.summary : undefined,
-    errorMessage: typeof obj.errorMessage === 'string' ? obj.errorMessage : undefined,
+    summary: typeof obj.summary === 'string' ? cleanBriefText(obj.summary, 140) : undefined,
+    errorMessage: typeof obj.errorMessage === 'string' ? cleanBriefText(obj.errorMessage, 160) : undefined,
     startedAt: typeof obj.startedAt === 'string' ? obj.startedAt : nowIso,
     lastActiveAt: typeof obj.lastActiveAt === 'string' ? obj.lastActiveAt : nowIso,
     completedAt: typeof obj.completedAt === 'string' ? obj.completedAt : undefined,
@@ -243,10 +250,14 @@ export function loadRadarBoardReadOnly(moduleDataDir: string): RadarBoardFile {
     if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_RADAR_BOARD_BYTES) {
       return createEmptyBoard();
     }
-    const raw = JSON.parse(fs.readFileSync(boardPath, 'utf8')) as Record<string, unknown>;
+    const parsed = JSON.parse(fs.readFileSync(boardPath, 'utf8')) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return createEmptyBoard();
+    }
+    const raw = parsed as Record<string, unknown>;
     const prefs = normalizeRadarPrefs(raw.prefs);
     const sessions: Record<string, RadarSessionRecord> = {};
-    if (raw.sessions && typeof raw.sessions === 'object') {
+    if (raw.sessions && typeof raw.sessions === 'object' && !Array.isArray(raw.sessions)) {
       for (const [id, rec] of Object.entries(raw.sessions as Record<string, unknown>)) {
         const normalized = normalizeSessionRecord(id, rec);
         if (normalized) {
@@ -267,7 +278,7 @@ export function loadRadarBoardReadOnly(moduleDataDir: string): RadarBoardFile {
 
 export function saveRadarBoard(moduleDataDir: string, board: RadarBoardFile): RadarBoardFile {
   const entries = Object.values(board.sessions).sort(
-    (a, b) => Date.parse(b.lastActiveAt) - Date.parse(a.lastActiveAt),
+    (a, b) => safeParseTimestampMs(b.lastActiveAt) - safeParseTimestampMs(a.lastActiveAt),
   );
   const pruned: Record<string, RadarSessionRecord> = {};
   for (const rec of entries.slice(0, MAX_STORED_SESSIONS)) {
@@ -358,7 +369,7 @@ export function computeRadarBoardView(
     const bWeight =
       b.status === 'completed' && !b.unread ? 5 : STATUS_PRIORITY[b.status];
     if (aWeight !== bWeight) return aWeight - bWeight;
-    return Date.parse(b.lastActiveAt) - Date.parse(a.lastActiveAt);
+    return safeParseTimestampMs(b.lastActiveAt) - safeParseTimestampMs(a.lastActiveAt);
   });
 
   const filtered = allViews.filter((item) => {
@@ -394,128 +405,133 @@ export interface RadarEventUpdate {
 
 export function cleanBriefText(raw: string | undefined, maxLen = 160): string | undefined {
   if (!raw) return undefined;
-  const cleaned = raw.replace(/[\r\n\t\x00-\x1f]+/g, ' ').trim();
+  const redacted = redactSecretsLinear(raw, { stripPrivate: true });
+  const cleaned = redacted.replace(/[\r\n\t\x00-\x1f]+/g, ' ').trim();
   if (!cleaned) return undefined;
-  return cleaned.length > maxLen ? `${cleaned.slice(0, maxLen - 1)}…` : cleaned;
+  if (cleaned.length <= maxLen) return cleaned;
+  return redactSecretsLinear(`${cleaned.slice(0, Math.max(1, maxLen - 1))}…`, { stripPrivate: true });
 }
 
 export function recordRadarSessionEvent(
   moduleDataDir: string,
   input: RadarEventUpdate,
 ): { board: RadarBoardFile; session: RadarSessionRecord } {
-  const board = loadRadarBoardReadOnly(moduleDataDir);
-  const nowIso = input.timestampIso ?? new Date().toISOString();
-  const convId = input.conversationId.trim().slice(0, 120) || 'default-session';
-  const existing = board.sessions[convId];
-  const workspaceName = input.workspaceRoot
-    ? path.basename(path.resolve(input.workspaceRoot)) || existing?.workspaceName || 'workspace'
-    : existing?.workspaceName ?? 'workspace';
+  const boardPath = getRadarBoardPath(moduleDataDir);
+  return withFileLockSync(boardPath, () => {
+    const board = loadRadarBoardReadOnly(moduleDataDir);
+    const nowIso = input.timestampIso ?? new Date().toISOString();
+    const convId = input.conversationId.trim().slice(0, 120) || 'default-session';
+    const existing = board.sessions[convId];
+    const workspaceName = input.workspaceRoot
+      ? path.basename(path.resolve(input.workspaceRoot)) || existing?.workspaceName || 'workspace'
+      : existing?.workspaceName ?? 'workspace';
 
-  const rawParent = input.parentConversationId?.trim().slice(0, 120) || existing?.parentConversationId;
-  const parentConversationId = rawParent && rawParent !== convId ? rawParent : undefined;
-  const agentRole = cleanBriefText(input.agentRole, 64) ?? existing?.agentRole;
-  const isSubagent =
-    input.isSubagent !== undefined
-      ? input.isSubagent
-      : parentConversationId
-        ? true
-        : existing?.isSubagent;
+    const rawParent = input.parentConversationId?.trim().slice(0, 120) || existing?.parentConversationId;
+    const parentConversationId = rawParent && rawParent !== convId ? rawParent : undefined;
+    const agentRole = cleanBriefText(input.agentRole, 64) ?? existing?.agentRole;
+    const isSubagent =
+      input.isSubagent !== undefined
+        ? input.isSubagent
+        : parentConversationId
+          ? true
+          : existing?.isSubagent;
 
-  let nextStatus: RadarStoredStatus = existing?.status ?? 'running';
-  let nextUnread = existing?.unread ?? false;
-  let completedAt = existing?.completedAt;
-  let errorMessage = existing?.errorMessage;
+    let nextStatus: RadarStoredStatus = existing?.status ?? 'running';
+    let nextUnread = existing?.unread ?? false;
+    let completedAt = existing?.completedAt;
+    let errorMessage = existing?.errorMessage;
 
-  if (input.event === 'PreToolUse') {
-    if (input.awaitingApproval) {
-      nextStatus = 'awaiting_approval';
-      nextUnread = true;
-    } else {
-      nextStatus = 'running';
-    }
-    completedAt = undefined;
-    errorMessage = undefined;
-  } else if (input.event === 'PostToolUse') {
-    nextStatus = 'running';
-    if (existing?.status === 'awaiting_approval') {
-      nextUnread = false;
-    }
-    completedAt = undefined;
-    errorMessage = undefined;
-  } else if (input.event === 'Stop') {
-    if (input.errorMessage) {
-      nextStatus = 'error';
-      errorMessage = cleanBriefText(input.errorMessage, 160);
-    } else {
-      nextStatus = 'completed';
+    if (input.event === 'PreToolUse') {
+      if (input.awaitingApproval) {
+        nextStatus = 'awaiting_approval';
+        nextUnread = true;
+      } else {
+        nextStatus = 'running';
+      }
+      completedAt = undefined;
       errorMessage = undefined;
+    } else if (input.event === 'PostToolUse') {
+      nextStatus = 'running';
+      if (existing?.status === 'awaiting_approval') {
+        nextUnread = false;
+      }
+      completedAt = undefined;
+      errorMessage = undefined;
+    } else if (input.event === 'Stop') {
+      if (input.errorMessage) {
+        nextStatus = 'error';
+        errorMessage = cleanBriefText(input.errorMessage, 160);
+      } else {
+        nextStatus = 'completed';
+        errorMessage = undefined;
+      }
+      nextUnread = true;
+      completedAt = nowIso;
     }
-    nextUnread = true;
-    completedAt = nowIso;
-  }
 
-  const cleanedSummary = cleanBriefText(input.summary, 140);
-  const coalesceMs =
-    typeof input.coalesceWindowMs === 'number' && Number.isFinite(input.coalesceWindowMs)
-      ? Math.max(0, input.coalesceWindowMs)
-      : 0;
-  if (
-    coalesceMs > 0 &&
-    existing &&
-    input.event !== 'Stop' &&
-    !input.awaitingApproval &&
-    existing.status === 'running' &&
-    nextStatus === 'running' &&
-    existing.unread === nextUnread &&
-    existing.parentConversationId === parentConversationId &&
-    existing.agentRole === agentRole &&
-    existing.isSubagent === isSubagent &&
-    (!cleanedSummary || cleanedSummary === existing.summary) &&
-    (!input.workspaceRoot || workspaceName === existing.workspaceName)
-  ) {
-    const prevActiveMs = Date.parse(existing.lastActiveAt);
-    const nowMs = Date.parse(nowIso);
-    // Keep the initial stepCount 1 -> 2 transition accurate when tool changes (e.g. cold-start verification),
-    // then coalesce all rapid PreToolUse/PostToolUse bursts for an already-active running session within coalesceMs.
-    const withinRunningBurst =
-      existing.stepCount >= 2 ||
-      existing.lastEvent === input.event ||
-      (existing.lastEvent === 'PreToolUse' &&
-        input.event === 'PostToolUse' &&
-        (!input.toolName || input.toolName === existing.lastToolName));
+    const cleanedSummary = cleanBriefText(input.summary, 140);
+    const coalesceMs =
+      typeof input.coalesceWindowMs === 'number' && Number.isFinite(input.coalesceWindowMs)
+        ? Math.max(0, input.coalesceWindowMs)
+        : 0;
     if (
-      withinRunningBurst &&
-      Number.isFinite(prevActiveMs) &&
-      Number.isFinite(nowMs) &&
-      nowMs - prevActiveMs >= 0 &&
-      nowMs - prevActiveMs < coalesceMs
+      coalesceMs > 0 &&
+      existing &&
+      input.event !== 'Stop' &&
+      !input.awaitingApproval &&
+      existing.status === 'running' &&
+      nextStatus === 'running' &&
+      existing.unread === nextUnread &&
+      existing.parentConversationId === parentConversationId &&
+      existing.agentRole === agentRole &&
+      existing.isSubagent === isSubagent &&
+      (!cleanedSummary || cleanedSummary === existing.summary) &&
+      (!input.workspaceRoot || workspaceName === existing.workspaceName)
     ) {
-      return { board, session: existing };
+      const prevActiveMs = Date.parse(existing.lastActiveAt);
+      const nowMs = Date.parse(nowIso);
+      // Keep the initial stepCount 1 -> 2 transition accurate when tool changes (e.g. cold-start verification),
+      // then coalesce all rapid PreToolUse/PostToolUse bursts for an already-active running session within coalesceMs.
+      const withinRunningBurst =
+        existing.stepCount >= 2 ||
+        existing.lastEvent === input.event ||
+        (existing.lastEvent === 'PreToolUse' &&
+          input.event === 'PostToolUse' &&
+          (!input.toolName || input.toolName === existing.lastToolName));
+      if (
+        withinRunningBurst &&
+        Number.isFinite(prevActiveMs) &&
+        Number.isFinite(nowMs) &&
+        nowMs - prevActiveMs >= 0 &&
+        nowMs - prevActiveMs < coalesceMs
+      ) {
+        return { board, session: existing };
+      }
     }
-  }
 
-  const nextSession: RadarSessionRecord = {
-    conversationId: convId,
-    ...(parentConversationId ? { parentConversationId } : {}),
-    ...(agentRole ? { agentRole } : {}),
-    ...(isSubagent !== undefined ? { isSubagent } : {}),
-    status: nextStatus,
-    workspaceName,
-    workspaceRoot: input.workspaceRoot ?? existing?.workspaceRoot,
-    lastToolName: input.toolName ?? existing?.lastToolName,
-    lastEvent: input.event,
-    stepCount: (existing?.stepCount ?? 0) + 1,
-    unread: nextUnread,
-    summary: cleanedSummary ?? existing?.summary,
-    errorMessage,
-    startedAt: existing?.startedAt ?? nowIso,
-    lastActiveAt: nowIso,
-    completedAt,
-  };
+    const nextSession: RadarSessionRecord = {
+      conversationId: convId,
+      ...(parentConversationId ? { parentConversationId } : {}),
+      ...(agentRole ? { agentRole } : {}),
+      ...(isSubagent !== undefined ? { isSubagent } : {}),
+      status: nextStatus,
+      workspaceName,
+      workspaceRoot: input.workspaceRoot ?? existing?.workspaceRoot,
+      lastToolName: input.toolName ?? existing?.lastToolName,
+      lastEvent: input.event,
+      stepCount: (existing?.stepCount ?? 0) + 1,
+      unread: nextUnread,
+      summary: cleanedSummary ?? existing?.summary,
+      errorMessage,
+      startedAt: existing?.startedAt ?? nowIso,
+      lastActiveAt: nowIso,
+      completedAt,
+    };
 
-  board.sessions[convId] = nextSession;
-  const saved = saveRadarBoard(moduleDataDir, board);
-  return { board: saved, session: nextSession };
+    board.sessions[convId] = nextSession;
+    const saved = saveRadarBoard(moduleDataDir, board);
+    return { board: saved, session: nextSession };
+  });
 }
 
 export function ackRadarSessionsInBoard(
@@ -545,25 +561,33 @@ export function ackRadarSession(
   moduleDataDir: string,
   conversationId?: string,
 ): { board: RadarBoardFile; acknowledgedCount: number } {
-  const board = loadRadarBoardReadOnly(moduleDataDir);
-  const { changed, acknowledgedCount } = ackRadarSessionsInBoard(board, conversationId);
-  if (!changed) {
-    return { board, acknowledgedCount: 0 };
+  const boardPath = getRadarBoardPath(moduleDataDir);
+  if (!fs.existsSync(boardPath)) {
+    return { board: createEmptyBoard(), acknowledgedCount: 0 };
   }
-  const saved = saveRadarBoard(moduleDataDir, board);
-  return { board: saved, acknowledgedCount };
+  return withFileLockSync(boardPath, () => {
+    const board = loadRadarBoardReadOnly(moduleDataDir);
+    const { changed, acknowledgedCount } = ackRadarSessionsInBoard(board, conversationId);
+    if (!changed) {
+      return { board, acknowledgedCount: 0 };
+    }
+    const saved = saveRadarBoard(moduleDataDir, board);
+    return { board: saved, acknowledgedCount };
+  });
 }
 
 export function updateRadarPrefs(
   moduleDataDir: string,
   patch: Partial<RadarPrefs>,
 ): RadarBoardFile {
-  const board = loadRadarBoardReadOnly(moduleDataDir);
-  board.prefs = normalizeRadarPrefs({
-    ...board.prefs,
-    ...patch,
+  return withFileLockSync(getRadarBoardPath(moduleDataDir), () => {
+    const board = loadRadarBoardReadOnly(moduleDataDir);
+    board.prefs = normalizeRadarPrefs({
+      ...board.prefs,
+      ...patch,
+    });
+    return saveRadarBoard(moduleDataDir, board);
   });
-  return saveRadarBoard(moduleDataDir, board);
 }
 
 export function clearCompletedInBoard(board: RadarBoardFile): { removedCount: number } {
@@ -580,20 +604,28 @@ export function clearCompletedInBoard(board: RadarBoardFile): { removedCount: nu
 export function clearCompletedRadarSessions(
   moduleDataDir: string,
 ): { board: RadarBoardFile; removedCount: number } {
-  const board = loadRadarBoardReadOnly(moduleDataDir);
-  const { removedCount } = clearCompletedInBoard(board);
-  if (removedCount === 0) {
-    return { board, removedCount: 0 };
+  const boardPath = getRadarBoardPath(moduleDataDir);
+  if (!fs.existsSync(boardPath)) {
+    return { board: createEmptyBoard(), removedCount: 0 };
   }
-  const saved = saveRadarBoard(moduleDataDir, board);
-  return { board: saved, removedCount };
+  return withFileLockSync(boardPath, () => {
+    const board = loadRadarBoardReadOnly(moduleDataDir);
+    const { removedCount } = clearCompletedInBoard(board);
+    if (removedCount === 0) {
+      return { board, removedCount: 0 };
+    }
+    const saved = saveRadarBoard(moduleDataDir, board);
+    return { board: saved, removedCount };
+  });
 }
 
 /**
- * Strip control chars, quotes, backslashes, shell metacharacters, and truncate safely.
+ * Redact secrets/private blocks, strip control chars, quotes, backslashes, shell metacharacters,
+ * and truncate safely.
  */
 export function sanitizeNotificationText(text: string, maxLen = 120): string {
-  const stripped = String(text ?? '')
+  const redacted = redactSecretsLinear(String(text ?? ''), { stripPrivate: true });
+  const stripped = redacted
     .replace(/[\x00-\x1f\x7f]/g, ' ')
     .replace(/["'`\\$<>|;&{}]/g, '')
     .replace(/\s+/g, ' ')

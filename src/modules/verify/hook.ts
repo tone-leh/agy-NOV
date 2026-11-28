@@ -1,10 +1,12 @@
 import crypto from 'node:crypto';
 import { getModuleDataDir, resolveNovDataDir } from '../../core/config.js';
+import { withFileLockSync } from '../../core/fs-safe.js';
 import type { NormalizedHookPayload } from '../../core/types.js';
 import {
   appendEvidenceToState,
   createEvidenceId,
   formatFailureTailSnippet,
+  getVerifyStatePath,
   inspectWorkspaceFile,
   loadVerifyStateReadOnly,
   redactVerifyOutput,
@@ -168,76 +170,79 @@ export function handleVerifyPostToolHook(
 
     const resolvedRoot = resolveNovDataDir(rootDataDir);
     const moduleDataDir = getModuleDataDir(resolvedRoot, 'verify');
-    const state = loadVerifyStateReadOnly(moduleDataDir);
     const conversationId = deriveVerifyConversationId(payload);
-    const nowIso = new Date().toISOString();
 
-    const existing = state.sessions[conversationId];
-    const prevDirty = existing?.dirtyFiles ?? [];
-    const prevEmpty = existing?.emptyFiles ?? [];
-    const dirtySet = new Set<string>(prevDirty);
-    const emptySet = new Set<string>(prevEmpty);
-    let resolvedWorkspaceRoot = existing?.workspaceRoot;
+    withFileLockSync(getVerifyStatePath(moduleDataDir), () => {
+      const state = loadVerifyStateReadOnly(moduleDataDir);
+      const nowIso = new Date().toISOString();
 
-    for (const check of validChecks) {
-      if (!check.relPath) continue;
-      if (check.realRoot) resolvedWorkspaceRoot = check.realRoot;
-      dirtySet.add(check.relPath);
-      if (check.exists && check.isFile && check.isEmpty) {
-        emptySet.add(check.relPath);
-      } else {
-        // File now has non-empty content (or was removed) -> clear empty flag
-        emptySet.delete(check.relPath);
+      const existing = state.sessions[conversationId];
+      const prevDirty = existing?.dirtyFiles ?? [];
+      const prevEmpty = existing?.emptyFiles ?? [];
+      const dirtySet = new Set<string>(prevDirty);
+      const emptySet = new Set<string>(prevEmpty);
+      let resolvedWorkspaceRoot = existing?.workspaceRoot;
+
+      for (const check of validChecks) {
+        if (!check.relPath) continue;
+        if (check.realRoot) resolvedWorkspaceRoot = check.realRoot;
+        dirtySet.add(check.relPath);
+        if (check.exists && check.isFile && check.isEmpty) {
+          emptySet.add(check.relPath);
+        } else {
+          // File now has non-empty content (or was removed) -> clear empty flag
+          emptySet.delete(check.relPath);
+        }
       }
-    }
 
-    const lastVerifiedMs = existing?.lastVerifiedAt ? Date.parse(existing.lastVerifiedAt) : Number.NaN;
-    const nowMs = Date.parse(nowIso);
-    const existingEditMs = existing?.lastEditAt ? Date.parse(existing.lastEditAt) : Number.NaN;
-    const existingUpdatedMs = existing?.updatedAt ? Date.parse(existing.updatedAt) : Number.NaN;
+      const lastVerifiedMs = existing?.lastVerifiedAt ? Date.parse(existing.lastVerifiedAt) : Number.NaN;
+      const nowMs = Date.parse(nowIso);
+      const existingEditMs = existing?.lastEditAt ? Date.parse(existing.lastEditAt) : Number.NaN;
+      const existingUpdatedMs = existing?.updatedAt ? Date.parse(existing.updatedAt) : Number.NaN;
 
-    // Coalesce repeated edits to already-dirty files within 2s when dirty/empty sets are unchanged
-    const sameDirty =
-      dirtySet.size === prevDirty.length && prevDirty.every((f) => dirtySet.has(f));
-    const sameEmpty =
-      emptySet.size === prevEmpty.length && prevEmpty.every((f) => emptySet.has(f));
-    const alreadyStaleAfterVerify =
-      !Number.isFinite(lastVerifiedMs) ||
-      (Number.isFinite(existingEditMs) && existingEditMs > lastVerifiedMs);
-    if (
-      existing &&
-      sameDirty &&
-      sameEmpty &&
-      existing.lastVerifiedPassed === false &&
-      alreadyStaleAfterVerify &&
-      Number.isFinite(existingUpdatedMs) &&
-      nowMs - existingUpdatedMs >= 0 &&
-      nowMs - existingUpdatedMs < 2000
-    ) {
-      return;
-    }
+      // Coalesce repeated edits to already-dirty files within 2s when dirty/empty sets are unchanged
+      const sameDirty =
+        dirtySet.size === prevDirty.length && prevDirty.every((f) => dirtySet.has(f));
+      const sameEmpty =
+        emptySet.size === prevEmpty.length && prevEmpty.every((f) => emptySet.has(f));
+      const alreadyStaleAfterVerify =
+        !Number.isFinite(lastVerifiedMs) ||
+        (Number.isFinite(existingEditMs) && existingEditMs > lastVerifiedMs);
+      if (
+        existing &&
+        sameDirty &&
+        sameEmpty &&
+        existing.lastVerifiedPassed === false &&
+        alreadyStaleAfterVerify &&
+        Number.isFinite(existingUpdatedMs) &&
+        nowMs - existingUpdatedMs >= 0 &&
+        nowMs - existingUpdatedMs < 2000
+      ) {
+        return;
+      }
 
-    const editIso =
-      Number.isFinite(lastVerifiedMs) && nowMs <= lastVerifiedMs
-        ? new Date(lastVerifiedMs + 1).toISOString()
-        : nowIso;
+      const editIso =
+        Number.isFinite(lastVerifiedMs) && nowMs <= lastVerifiedMs
+          ? new Date(lastVerifiedMs + 1).toISOString()
+          : nowIso;
 
-    const nextSession: VerifySessionRecord = {
-      conversationId,
-      workspaceRoot: resolvedWorkspaceRoot ?? workspaceRoot,
-      dirtyFiles: [...dirtySet],
-      emptyFiles: [...emptySet],
-      lastEditAt: editIso,
-      lastVerifiedAt: existing?.lastVerifiedAt,
-      lastVerifiedPassed: false,
-      consecutiveBlocks: existing?.consecutiveBlocks ?? 0,
-      totalBlocks: existing?.totalBlocks ?? 0,
-      lastGuardrailReleaseAt: existing?.lastGuardrailReleaseAt,
-      updatedAt: editIso,
-    };
+      const nextSession: VerifySessionRecord = {
+        conversationId,
+        workspaceRoot: resolvedWorkspaceRoot ?? workspaceRoot,
+        dirtyFiles: [...dirtySet],
+        emptyFiles: [...emptySet],
+        lastEditAt: editIso,
+        lastVerifiedAt: existing?.lastVerifiedAt,
+        lastVerifiedPassed: false,
+        consecutiveBlocks: existing?.consecutiveBlocks ?? 0,
+        totalBlocks: existing?.totalBlocks ?? 0,
+        lastGuardrailReleaseAt: existing?.lastGuardrailReleaseAt,
+        updatedAt: editIso,
+      };
 
-    state.sessions[conversationId] = nextSession;
-    saveVerifyState(moduleDataDir, state);
+      state.sessions[conversationId] = nextSession;
+      saveVerifyState(moduleDataDir, state);
+    });
   } catch {
     // Strictly fail-open
   }
@@ -291,6 +296,7 @@ export async function handleVerifyStopHook(
 
     const resolvedRoot = resolveNovDataDir(rootDataDir);
     const moduleDataDir = getModuleDataDir(resolvedRoot, 'verify');
+    const statePath = getVerifyStatePath(moduleDataDir);
     const state = loadVerifyStateReadOnly(moduleDataDir);
 
     if (!state.policy.enforceOnStop) {
@@ -309,37 +315,47 @@ export async function handleVerifyStopHook(
 
     // 1. Loop guardrail: allow safely once consecutiveBlocks hits maxConsecutiveBlocks
     if (session.consecutiveBlocks >= state.policy.maxConsecutiveBlocks) {
-      const snapshotDirty = [...session.dirtyFiles];
       const snapshotEmpty = scanEmptyWorkspaceFiles(workspaceRoot, [
         ...session.dirtyFiles,
         ...session.emptyFiles,
       ]);
       const continuationNote = isContinuationActive(payload) ? ' (continuationActive=true)' : '';
 
-      const record: VerifyEvidenceRecord = {
-        id: createEvidenceId('ver'),
-        conversationId,
-        trigger: 'stop-hook',
-        outcome: 'guardrail-allow',
-        passed: false,
-        timestamp: nowIso,
-        durationMs: 0,
-        dirtyFiles: snapshotDirty,
-        emptyFiles: snapshotEmpty,
-        results: [],
-        summary: `${GUARDRAIL_ALLOW_REASON}${continuationNote} consecutiveBlocks=${session.consecutiveBlocks}/${state.policy.maxConsecutiveBlocks}.`,
-        reason: GUARDRAIL_ALLOW_REASON,
-      };
+      withFileLockSync(statePath, () => {
+        const latestState = loadVerifyStateReadOnly(moduleDataDir);
+        const latestSession = latestState.sessions[conversationId] ?? {
+          ...session,
+          dirtyFiles: [...session.dirtyFiles],
+          emptyFiles: [...session.emptyFiles],
+        };
+        latestState.sessions[conversationId] = latestSession;
+        const snapshotDirty = [...new Set([...session.dirtyFiles, ...latestSession.dirtyFiles])];
 
-      session.dirtyFiles = [];
-      session.emptyFiles = [];
-      session.consecutiveBlocks = 0;
-      session.lastVerifiedPassed = false;
-      session.lastGuardrailReleaseAt = nowIso;
-      session.updatedAt = nowIso;
+        const record: VerifyEvidenceRecord = {
+          id: createEvidenceId('ver'),
+          conversationId,
+          trigger: 'stop-hook',
+          outcome: 'guardrail-allow',
+          passed: false,
+          timestamp: nowIso,
+          durationMs: 0,
+          dirtyFiles: snapshotDirty,
+          emptyFiles: snapshotEmpty,
+          results: [],
+          summary: `${GUARDRAIL_ALLOW_REASON}${continuationNote} consecutiveBlocks=${latestSession.consecutiveBlocks}/${latestState.policy.maxConsecutiveBlocks}.`,
+          reason: GUARDRAIL_ALLOW_REASON,
+        };
 
-      appendEvidenceToState(state, record);
-      saveVerifyState(moduleDataDir, state);
+        latestSession.dirtyFiles = [];
+        latestSession.emptyFiles = [];
+        latestSession.consecutiveBlocks = 0;
+        latestSession.lastVerifiedPassed = false;
+        latestSession.lastGuardrailReleaseAt = nowIso;
+        latestSession.updatedAt = nowIso;
+
+        appendEvidenceToState(latestState, record);
+        saveVerifyState(moduleDataDir, latestState);
+      });
       return {
         decision: 'allow',
         reason: GUARDRAIL_ALLOW_REASON,
@@ -354,161 +370,26 @@ export async function handleVerifyStopHook(
     session.emptyFiles = currentEmptyFiles;
 
     if (state.policy.blockEmptyWrites && currentEmptyFiles.length > 0) {
-      session.consecutiveBlocks += 1;
-      session.totalBlocks += 1;
-      session.lastVerifiedPassed = false;
-      session.updatedAt = nowIso;
-      state.blockedStops += 1;
-
       const fileList = currentEmptyFiles.slice(0, 5).join(', ');
       const extra = currentEmptyFiles.length > 5 ? ` (+${currentEmptyFiles.length - 5} more)` : '';
       const reason = `[agy-NOV Verify Gate] Blocked stop: detected ${currentEmptyFiles.length} empty (0-byte) modified file(s): ${fileList}${extra}. Write valid content or remove empty files before finishing.`;
 
-      const record: VerifyEvidenceRecord = {
-        id: createEvidenceId('ver'),
-        conversationId,
-        trigger: 'stop-hook',
-        outcome: 'blocked',
-        passed: false,
-        timestamp: nowIso,
-        durationMs: 0,
-        dirtyFiles: [...session.dirtyFiles],
-        emptyFiles: [...currentEmptyFiles],
-        results: [],
-        summary: `Blocked stop due to ${currentEmptyFiles.length} empty modified file(s).`,
-        reason,
-      };
-
-      appendEvidenceToState(state, record);
-      saveVerifyState(moduleDataDir, state);
-      return { decision: 'continue', reason };
-    }
-
-    // 3. Auto-run enabled checks on Stop within bounded Stop-hook budget (<=8s each, <=14s total)
-    const enabledCommands = state.policy.commands.filter((c) => c.enabled);
-    let commandResults = [] as VerifyEvidenceRecord['results'];
-    let runDurationMs = 0;
-    let targetState = state;
-    let targetSession = session;
-    let effectiveNowIso = nowIso;
-    let concurrentEditOccurred = false;
-    const preRunDirtyFiles = [...session.dirtyFiles];
-
-    if (state.policy.autoRunOnStop && enabledCommands.length > 0) {
-      if (!workspaceRoot) {
-        return { decision: 'allow' };
-      }
-
-      const preRunLastEditAt = session.lastEditAt;
-      const preRunWorkspaceRoot = session.workspaceRoot;
-      const preRunConsecutiveBlocks = session.consecutiveBlocks;
-      const preRunTotalBlocks = session.totalBlocks;
-      const preRunLastGuardrailReleaseAt = session.lastGuardrailReleaseAt;
-
-      const runOut = await runVerifyCommands(enabledCommands, workspaceRoot, {
-        singleTimeoutCapMs: STOP_HOOK_SINGLE_TIMEOUT_MS,
-        totalBudgetMs: STOP_HOOK_TOTAL_BUDGET_MS,
-      });
-      commandResults = runOut.results;
-      runDurationMs = runOut.durationMs;
-
-      // Reload latest state from disk before writing so concurrent session/policy/evidence updates are merged
-      effectiveNowIso = new Date().toISOString();
-      targetState = loadVerifyStateReadOnly(moduleDataDir);
-      targetSession = targetState.sessions[conversationId] ?? {
-        conversationId,
-        workspaceRoot: preRunWorkspaceRoot ?? workspaceRoot,
-        dirtyFiles: [...preRunDirtyFiles],
-        emptyFiles: [...currentEmptyFiles],
-        lastEditAt: preRunLastEditAt,
-        consecutiveBlocks: preRunConsecutiveBlocks,
-        totalBlocks: preRunTotalBlocks,
-        lastGuardrailReleaseAt: preRunLastGuardrailReleaseAt,
-        updatedAt: effectiveNowIso,
-      };
-      targetState.sessions[conversationId] = targetSession;
-      concurrentEditOccurred = targetSession.lastEditAt !== preRunLastEditAt;
-
-      if (!runOut.passed) {
-        const failed = runOut.results.filter((r) => !r.passed);
-        const mergedDirtyFiles = [...new Set([...preRunDirtyFiles, ...targetSession.dirtyFiles])];
-        const mergedEmptyFiles = scanEmptyWorkspaceFiles(workspaceRoot, [
-          ...mergedDirtyFiles,
-          ...targetSession.emptyFiles,
-          ...currentEmptyFiles,
-        ]);
-
-        targetSession.dirtyFiles = mergedDirtyFiles;
-        targetSession.emptyFiles = mergedEmptyFiles;
-        targetSession.consecutiveBlocks += 1;
-        targetSession.totalBlocks += 1;
-        targetSession.lastVerifiedAt = effectiveNowIso;
-        targetSession.lastVerifiedPassed = false;
-        targetSession.updatedAt = effectiveNowIso;
-        targetState.blockedStops += 1;
-
-        const failureDetails = failed
-          .slice(0, 3)
-          .map((item) => {
-            const statusText = item.timedOut
-              ? 'timed out'
-              : `exit=${item.exitCode !== null ? item.exitCode : 'error'}`;
-            const tail = formatFailureTailSnippet(
-              item.outputTail.trim() || item.error || '',
-              3,
-              220,
-            );
-            return tail
-              ? `${item.label} [${item.commandId}] (${statusText}): ${tail}`
-              : `${item.label} [${item.commandId}] (${statusText})`;
-          })
-          .join('; ');
-
-        const reason = redactVerifyOutput(
-          `[agy-NOV Verify Gate] Blocked stop: ${failed.length}/${runOut.results.length} check(s) failed — ${failureDetails}. Fix the failing check(s) before finishing.`,
-        );
-
-        const record: VerifyEvidenceRecord = {
-          id: createEvidenceId('ver'),
-          conversationId,
-          trigger: 'stop-hook',
-          outcome: 'blocked',
-          passed: false,
-          timestamp: effectiveNowIso,
-          durationMs: runDurationMs,
-          dirtyFiles: [...mergedDirtyFiles],
-          emptyFiles: [...mergedEmptyFiles],
-          results: commandResults,
-          summary: `Blocked stop: ${failed.length}/${runOut.results.length} verification check(s) failed.`,
-          reason,
+      withFileLockSync(statePath, () => {
+        const latestState = loadVerifyStateReadOnly(moduleDataDir);
+        const latestSession = latestState.sessions[conversationId] ?? {
+          ...session,
+          dirtyFiles: [...session.dirtyFiles],
+          emptyFiles: [...currentEmptyFiles],
         };
-
-        appendEvidenceToState(targetState, record);
-        saveVerifyState(moduleDataDir, targetState);
-        return { decision: 'continue', reason };
-      }
-    } else if (!state.policy.autoRunOnStop && session.dirtyFiles.length > 0) {
-      // 4. Manual verification enforcement when autoRunOnStop is disabled
-      const lastEditMs = session.lastEditAt ? Date.parse(session.lastEditAt) : Number.POSITIVE_INFINITY;
-      const lastVerifiedMs = session.lastVerifiedAt
-        ? Date.parse(session.lastVerifiedAt)
-        : Number.NEGATIVE_INFINITY;
-      const unverified =
-        !session.lastVerifiedAt ||
-        !Number.isFinite(lastVerifiedMs) ||
-        (Number.isFinite(lastEditMs) && lastVerifiedMs < lastEditMs) ||
-        session.lastVerifiedPassed === false;
-
-      if (unverified) {
-        session.consecutiveBlocks += 1;
-        session.totalBlocks += 1;
-        session.updatedAt = nowIso;
-        state.blockedStops += 1;
-
-        const fileList = session.dirtyFiles.slice(0, 5).join(', ');
-        const extra =
-          session.dirtyFiles.length > 5 ? ` (+${session.dirtyFiles.length - 5} more)` : '';
-        const reason = `[agy-NOV Verify Gate] Blocked stop: ${session.dirtyFiles.length} modified file(s) (${fileList}${extra}) have not been verified since the last edit. Run verify_run_checks and ensure checks pass before finishing.`;
+        latestState.sessions[conversationId] = latestSession;
+        const mergedDirty = [...new Set([...session.dirtyFiles, ...latestSession.dirtyFiles])];
+        latestSession.dirtyFiles = mergedDirty;
+        latestSession.emptyFiles = [...currentEmptyFiles];
+        latestSession.consecutiveBlocks += 1;
+        latestSession.totalBlocks += 1;
+        latestSession.lastVerifiedPassed = false;
+        latestSession.updatedAt = nowIso;
+        latestState.blockedStops += 1;
 
         const record: VerifyEvidenceRecord = {
           id: createEvidenceId('ver'),
@@ -518,56 +399,242 @@ export async function handleVerifyStopHook(
           passed: false,
           timestamp: nowIso,
           durationMs: 0,
-          dirtyFiles: [...session.dirtyFiles],
+          dirtyFiles: mergedDirty,
           emptyFiles: [...currentEmptyFiles],
           results: [],
-          summary: `Blocked stop: ${session.dirtyFiles.length} modified file(s) unverified (autoRunOnStop=false).`,
+          summary: `Blocked stop due to ${currentEmptyFiles.length} empty modified file(s).`,
           reason,
         };
 
-        appendEvidenceToState(state, record);
-        saveVerifyState(moduleDataDir, state);
-        return { decision: 'continue', reason };
+        appendEvidenceToState(latestState, record);
+        saveVerifyState(moduleDataDir, latestState);
+      });
+      return { decision: 'continue', reason };
+    }
+
+    // 3. Auto-run enabled checks on Stop within bounded Stop-hook budget (<=8s each, <=14s total)
+    const enabledCommands = state.policy.commands.filter((c) => c.enabled);
+    const preRunDirtyFiles = [...session.dirtyFiles];
+    const preRunLastEditAt = session.lastEditAt;
+    const preRunWorkspaceRoot = session.workspaceRoot;
+    const preRunConsecutiveBlocks = session.consecutiveBlocks;
+    const preRunTotalBlocks = session.totalBlocks;
+    const preRunLastGuardrailReleaseAt = session.lastGuardrailReleaseAt;
+
+    if (state.policy.autoRunOnStop && enabledCommands.length > 0) {
+      if (!workspaceRoot) {
+        return { decision: 'allow' };
       }
+
+      const runOut = await runVerifyCommands(enabledCommands, workspaceRoot, {
+        singleTimeoutCapMs: STOP_HOOK_SINGLE_TIMEOUT_MS,
+        totalBudgetMs: STOP_HOOK_TOTAL_BUDGET_MS,
+      });
+      const commandResults = runOut.results;
+      const runDurationMs = runOut.durationMs;
+      const effectiveNowIso = new Date().toISOString();
+
+      // Reload latest state under file lock before writing so concurrent session/policy/evidence updates are merged
+      return withFileLockSync<{ decision: 'allow' | 'continue'; reason?: string }>(statePath, () => {
+        const targetState = loadVerifyStateReadOnly(moduleDataDir);
+        const targetSession = targetState.sessions[conversationId] ?? {
+          conversationId,
+          workspaceRoot: preRunWorkspaceRoot ?? workspaceRoot,
+          dirtyFiles: [...preRunDirtyFiles],
+          emptyFiles: [...currentEmptyFiles],
+          lastEditAt: preRunLastEditAt,
+          consecutiveBlocks: preRunConsecutiveBlocks,
+          totalBlocks: preRunTotalBlocks,
+          lastGuardrailReleaseAt: preRunLastGuardrailReleaseAt,
+          updatedAt: effectiveNowIso,
+        };
+        targetState.sessions[conversationId] = targetSession;
+        const concurrentEditOccurred = targetSession.lastEditAt !== preRunLastEditAt;
+
+        if (!runOut.passed) {
+          const failed = runOut.results.filter((r) => !r.passed);
+          const mergedDirtyFiles = [...new Set([...preRunDirtyFiles, ...targetSession.dirtyFiles])];
+          const mergedEmptyFiles = scanEmptyWorkspaceFiles(workspaceRoot, [
+            ...mergedDirtyFiles,
+            ...targetSession.emptyFiles,
+            ...currentEmptyFiles,
+          ]);
+
+          targetSession.dirtyFiles = mergedDirtyFiles;
+          targetSession.emptyFiles = mergedEmptyFiles;
+          targetSession.consecutiveBlocks += 1;
+          targetSession.totalBlocks += 1;
+          targetSession.lastVerifiedAt = effectiveNowIso;
+          targetSession.lastVerifiedPassed = false;
+          targetSession.updatedAt = effectiveNowIso;
+          targetState.blockedStops += 1;
+
+          const failureDetails = failed
+            .slice(0, 3)
+            .map((item) => {
+              const statusText = item.timedOut
+                ? 'timed out'
+                : `exit=${item.exitCode !== null ? item.exitCode : 'error'}`;
+              const tail = formatFailureTailSnippet(
+                item.outputTail.trim() || item.error || '',
+                3,
+                220,
+              );
+              return tail
+                ? `${item.label} [${item.commandId}] (${statusText}): ${tail}`
+                : `${item.label} [${item.commandId}] (${statusText})`;
+            })
+            .join('; ');
+
+          const reason = redactVerifyOutput(
+            `[agy-NOV Verify Gate] Blocked stop: ${failed.length}/${runOut.results.length} check(s) failed — ${failureDetails}. Fix the failing check(s) before finishing.`,
+          );
+
+          const record: VerifyEvidenceRecord = {
+            id: createEvidenceId('ver'),
+            conversationId,
+            trigger: 'stop-hook',
+            outcome: 'blocked',
+            passed: false,
+            timestamp: effectiveNowIso,
+            durationMs: runDurationMs,
+            dirtyFiles: [...mergedDirtyFiles],
+            emptyFiles: [...mergedEmptyFiles],
+            results: commandResults,
+            summary: `Blocked stop: ${failed.length}/${runOut.results.length} verification check(s) failed.`,
+            reason,
+          };
+
+          appendEvidenceToState(targetState, record);
+          saveVerifyState(moduleDataDir, targetState);
+          return { decision: 'continue', reason };
+        }
+
+        const verifiedDirtyFiles = [...preRunDirtyFiles];
+        if (concurrentEditOccurred) {
+          // Preserve concurrent edits that landed while checks were running
+          targetSession.consecutiveBlocks = 0;
+          targetSession.lastVerifiedPassed = false;
+        } else {
+          targetSession.dirtyFiles = [];
+          targetSession.emptyFiles = [];
+          targetSession.consecutiveBlocks = 0;
+          targetSession.lastVerifiedAt = effectiveNowIso;
+          targetSession.lastVerifiedPassed = true;
+          targetSession.updatedAt = effectiveNowIso;
+        }
+
+        const passRecord: VerifyEvidenceRecord = {
+          id: createEvidenceId('ver'),
+          conversationId,
+          trigger: 'stop-hook',
+          outcome: 'pass',
+          passed: true,
+          timestamp: effectiveNowIso,
+          durationMs: runDurationMs,
+          dirtyFiles: verifiedDirtyFiles,
+          emptyFiles: [],
+          results: commandResults,
+          summary: `All ${commandResults.length} verification check(s) passed on Stop in ${runDurationMs}ms.`,
+        };
+
+        appendEvidenceToState(targetState, passRecord);
+        saveVerifyState(moduleDataDir, targetState);
+        return { decision: 'allow' };
+      });
     }
 
-    // 5. All checks passed -> clear session dirty state & consecutiveBlocks and log PASS evidence
-    const verifiedDirtyFiles = [...preRunDirtyFiles];
-    if (concurrentEditOccurred) {
-      // Preserve concurrent edits that landed while checks were running
-      targetSession.consecutiveBlocks = 0;
-      targetSession.lastVerifiedPassed = false;
-    } else {
-      targetSession.dirtyFiles = [];
-      targetSession.emptyFiles = [];
-      targetSession.consecutiveBlocks = 0;
-      targetSession.lastVerifiedAt = effectiveNowIso;
-      targetSession.lastVerifiedPassed = true;
-      targetSession.updatedAt = effectiveNowIso;
-    }
+    // 4 & 5. Manual verification enforcement or no-command pass path -> merge and persist under file lock
+    return withFileLockSync<{ decision: 'allow' | 'continue'; reason?: string }>(statePath, () => {
+      const targetState = loadVerifyStateReadOnly(moduleDataDir);
+      const targetSession = targetState.sessions[conversationId] ?? {
+        ...session,
+        dirtyFiles: [...preRunDirtyFiles],
+        emptyFiles: [...currentEmptyFiles],
+      };
+      targetState.sessions[conversationId] = targetSession;
+      const mergedDirtyFiles = [...new Set([...preRunDirtyFiles, ...targetSession.dirtyFiles])];
+      targetSession.dirtyFiles = mergedDirtyFiles;
 
-    const summary =
-      commandResults.length > 0
-        ? `All ${commandResults.length} verification check(s) passed on Stop in ${runDurationMs}ms.`
-        : `Verified ${verifiedDirtyFiles.length} modified file(s) with no empty writes; Stop allowed.`;
+      if (!targetState.policy.autoRunOnStop && targetSession.dirtyFiles.length > 0) {
+        const lastEditMs = targetSession.lastEditAt
+          ? Date.parse(targetSession.lastEditAt)
+          : Number.POSITIVE_INFINITY;
+        const lastVerifiedMs = targetSession.lastVerifiedAt
+          ? Date.parse(targetSession.lastVerifiedAt)
+          : Number.NEGATIVE_INFINITY;
+        const unverified =
+          !targetSession.lastVerifiedAt ||
+          !Number.isFinite(lastVerifiedMs) ||
+          (Number.isFinite(lastEditMs) && lastVerifiedMs < lastEditMs) ||
+          targetSession.lastVerifiedPassed === false;
 
-    const passRecord: VerifyEvidenceRecord = {
-      id: createEvidenceId('ver'),
-      conversationId,
-      trigger: 'stop-hook',
-      outcome: 'pass',
-      passed: true,
-      timestamp: effectiveNowIso,
-      durationMs: runDurationMs,
-      dirtyFiles: verifiedDirtyFiles,
-      emptyFiles: [],
-      results: commandResults,
-      summary,
-    };
+        if (unverified) {
+          targetSession.consecutiveBlocks += 1;
+          targetSession.totalBlocks += 1;
+          targetSession.updatedAt = nowIso;
+          targetState.blockedStops += 1;
 
-    appendEvidenceToState(targetState, passRecord);
-    saveVerifyState(moduleDataDir, targetState);
-    return { decision: 'allow' };
+          const fileList = targetSession.dirtyFiles.slice(0, 5).join(', ');
+          const extra =
+            targetSession.dirtyFiles.length > 5
+              ? ` (+${targetSession.dirtyFiles.length - 5} more)`
+              : '';
+          const reason = `[agy-NOV Verify Gate] Blocked stop: ${targetSession.dirtyFiles.length} modified file(s) (${fileList}${extra}) have not been verified since the last edit. Run verify_run_checks and ensure checks pass before finishing.`;
+
+          const record: VerifyEvidenceRecord = {
+            id: createEvidenceId('ver'),
+            conversationId,
+            trigger: 'stop-hook',
+            outcome: 'blocked',
+            passed: false,
+            timestamp: nowIso,
+            durationMs: 0,
+            dirtyFiles: [...targetSession.dirtyFiles],
+            emptyFiles: [...currentEmptyFiles],
+            results: [],
+            summary: `Blocked stop: ${targetSession.dirtyFiles.length} modified file(s) unverified (autoRunOnStop=false).`,
+            reason,
+          };
+
+          appendEvidenceToState(targetState, record);
+          saveVerifyState(moduleDataDir, targetState);
+          return { decision: 'continue', reason };
+        }
+      }
+
+      const concurrentEditOccurred = targetSession.lastEditAt !== preRunLastEditAt;
+      const verifiedDirtyFiles = [...preRunDirtyFiles];
+      if (concurrentEditOccurred) {
+        targetSession.consecutiveBlocks = 0;
+        targetSession.lastVerifiedPassed = false;
+      } else {
+        targetSession.dirtyFiles = [];
+        targetSession.emptyFiles = [];
+        targetSession.consecutiveBlocks = 0;
+        targetSession.lastVerifiedAt = nowIso;
+        targetSession.lastVerifiedPassed = true;
+        targetSession.updatedAt = nowIso;
+      }
+
+      const passRecord: VerifyEvidenceRecord = {
+        id: createEvidenceId('ver'),
+        conversationId,
+        trigger: 'stop-hook',
+        outcome: 'pass',
+        passed: true,
+        timestamp: nowIso,
+        durationMs: 0,
+        dirtyFiles: verifiedDirtyFiles,
+        emptyFiles: [],
+        results: [],
+        summary: `Verified ${verifiedDirtyFiles.length} modified file(s) with no empty writes; Stop allowed.`,
+      };
+
+      appendEvidenceToState(targetState, passRecord);
+      saveVerifyState(moduleDataDir, targetState);
+      return { decision: 'allow' };
+    });
   } catch {
     // Fail-open on unexpected runtime/I/O error
     return { decision: 'allow' };

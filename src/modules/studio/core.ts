@@ -1,13 +1,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  canonicalRealpathSync,
+  isPathInsideDir,
+  isSamePath,
+} from '../../core/utils.js';
 import { inspectCsvOrTsv, inspectJsonOrNdjson } from './csv.js';
 import {
   clampDataLimit,
+  isSensitiveStudioPath,
   resolveStudioWorkspaceFile,
+  STUDIO_MAX_FILE_BYTES,
+  type ResolvedStudioFile,
   type StudioDataResult,
   type StudioInspectDataOptions,
 } from './sources.js';
 import { inspectSqliteDatabase } from './sqlite.js';
+
+export const STUDIO_SQLITE_MAX_FILE_BYTES = 256 * 1024 * 1024; // 256 MiB read-only CLI cap (never loads whole DB into memory)
 
 // ============================================================================
 // Workspace Studio Public Facade (100% Backward-Compatible Re-Exports)
@@ -95,15 +105,79 @@ export {
 // Top-Level Data Inspection Dispatcher (studio_inspect_data)
 // ============================================================================
 
+function isSqliteExtension(ext: string): boolean {
+  return ext === '.sqlite' || ext === '.sqlite3' || ext === '.db';
+}
+
+function resolveStudioDataFile(
+  workspaceRoot: string,
+  targetPath: string,
+): ResolvedStudioFile {
+  if (!workspaceRoot || workspaceRoot.includes('\0')) {
+    throw new Error('Invalid workspace root path');
+  }
+  if (!targetPath || !targetPath.trim() || targetPath.includes('\0')) {
+    throw new Error('Invalid file path');
+  }
+
+  const realRoot = canonicalRealpathSync(path.resolve(workspaceRoot));
+  const cleanedTarget = targetPath.trim();
+  const candidate = path.isAbsolute(cleanedTarget)
+    ? path.resolve(cleanedTarget)
+    : path.resolve(realRoot, cleanedTarget);
+
+  if (!path.isAbsolute(cleanedTarget) && isSensitiveStudioPath(cleanedTarget)) {
+    throw new Error(`Refused to access sensitive or restricted path: ${cleanedTarget}`);
+  }
+  const logicalRel = path.relative(realRoot, candidate).replace(/\\/g, '/');
+  if (logicalRel && !logicalRel.startsWith('..') && isSensitiveStudioPath(logicalRel)) {
+    throw new Error(`Refused to access sensitive or restricted path: ${logicalRel}`);
+  }
+
+  let realTarget: string;
+  try {
+    realTarget = canonicalRealpathSync(candidate);
+  } catch {
+    throw new Error(`File does not exist or cannot be resolved: ${cleanedTarget}`);
+  }
+
+  if (isSamePath(realRoot, realTarget) || !isPathInsideDir(realRoot, realTarget)) {
+    throw new Error(`Path escapes workspace boundary: ${cleanedTarget}`);
+  }
+
+  const relPath = path.relative(realRoot, realTarget).replace(/\\/g, '/');
+  if (isSensitiveStudioPath(relPath)) {
+    throw new Error(`Refused to access sensitive or restricted path: ${relPath}`);
+  }
+
+  const ext = path.extname(relPath).toLowerCase();
+  if (!isSqliteExtension(ext)) {
+    // Non-SQLite text/CSV/JSON files keep the existing 10 MiB full-read safety gate
+    return resolveStudioWorkspaceFile(workspaceRoot, targetPath);
+  }
+
+  const stat = fs.statSync(realTarget);
+  if (!stat.isFile()) {
+    throw new Error(`Target is not a regular file: ${relPath}`);
+  }
+  if (stat.size > STUDIO_SQLITE_MAX_FILE_BYTES) {
+    throw new Error(
+      `SQLite file exceeds 256 MiB Studio read-only size limit (${stat.size} bytes > ${STUDIO_SQLITE_MAX_FILE_BYTES} bytes): ${relPath}`,
+    );
+  }
+
+  return { realRoot, realTarget, relPath, stat };
+}
+
 export async function inspectStudioData(
   workspaceRoot: string,
   opts: StudioInspectDataOptions,
 ): Promise<StudioDataResult> {
-  const resolved = resolveStudioWorkspaceFile(workspaceRoot, opts.filePath);
+  const resolved = resolveStudioDataFile(workspaceRoot, opts.filePath);
   const ext = path.extname(resolved.relPath).toLowerCase();
   const limit = clampDataLimit(opts.limit);
 
-  if (ext === '.sqlite' || ext === '.sqlite3' || ext === '.db') {
+  if (isSqliteExtension(ext)) {
     return inspectSqliteDatabase(
       resolved.realRoot,
       resolved.realTarget,

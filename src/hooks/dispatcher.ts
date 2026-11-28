@@ -882,15 +882,78 @@ async function dispatchNovHookInner(
 
 const MAX_HOOK_STDIN_BYTES = 4 * 1024 * 1024;
 const HOOK_STDIN_READ_TIMEOUT_MS = 1500;
+export const PRE_TOOL_USE_TRUNCATED_OR_TIMEOUT_REASON =
+  '[agy-NOV Guard] PreToolUse payload exceeded safety limit or timed out; explicit confirmation required.';
 
-function readStdinTextAsync(): Promise<string> {
+export interface BoundedStdinReadResult {
+  text: string;
+  truncated: boolean;
+  timedOut: boolean;
+}
+
+function isGuardPreToolDefenseActive(rootDataDir: string): boolean {
+  const raw = readJsonStrictReadOnly(rootDataDir, 'guard', 'policy.json');
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    // Default GuardPolicy has enabled=true (fail-safe when missing/corrupt)
+    return true;
+  }
+  const policy = raw as Record<string, unknown>;
+  return policy.enabled !== false;
+}
+
+export function resolveHookStdinPayload(
+  readResult: BoundedStdinReadResult,
+  event: HookEventName,
+  cliDataDir?: string,
+): { ok: true; rawInput: unknown } | { ok: false; gateResult: UnifiedHookResult } {
+  const trimmed = readResult.text.trim();
+  let rawInput: unknown = {};
+  let parseFailed = false;
+
+  if (trimmed) {
+    try {
+      rawInput = JSON.parse(trimmed);
+    } catch {
+      parseFailed = true;
+      rawInput = {};
+    }
+  }
+
+  // Never silently fail-open to `allow` on PreToolUse when stdin exceeded 4 MiB or timed out
+  // with an incomplete/unparseable payload while Guard default defense is active.
+  if (
+    event === 'PreToolUse' &&
+    (readResult.truncated || (readResult.timedOut && parseFailed))
+  ) {
+    const rootDataDir = resolveNovDataDir(sanitizeDataDirCandidate(cliDataDir));
+    const config = loadNovConfigReadOnly(rootDataDir);
+    if (config.modules.guard && isGuardPreToolDefenseActive(rootDataDir)) {
+      return {
+        ok: false,
+        gateResult: {
+          decision: 'ask',
+          reason: PRE_TOOL_USE_TRUNCATED_OR_TIMEOUT_REASON,
+        },
+      };
+    }
+  }
+
+  return { ok: true, rawInput };
+}
+
+function readBoundedStdinAsync(
+  maxBytes = MAX_HOOK_STDIN_BYTES,
+  timeoutMs = HOOK_STDIN_READ_TIMEOUT_MS,
+): Promise<BoundedStdinReadResult> {
   if (process.stdin.isTTY) {
-    return Promise.resolve('');
+    return Promise.resolve({ text: '', truncated: false, timedOut: false });
   }
   return new Promise((resolve) => {
     const chunks: Buffer[] = [];
     let totalBytes = 0;
     let settled = false;
+    let truncated = false;
+    let timedOut = false;
 
     const finish = () => {
       if (settled) return;
@@ -904,15 +967,20 @@ function readStdinTextAsync(): Promise<string> {
       } catch {
         // ignore
       }
-      resolve(Buffer.concat(chunks).toString('utf8'));
+      resolve({
+        text: Buffer.concat(chunks, totalBytes).toString('utf8'),
+        truncated,
+        timedOut,
+      });
     };
 
     const onData = (chunk: Buffer | string) => {
       const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, 'utf8');
-      if (totalBytes + buf.length > MAX_HOOK_STDIN_BYTES) {
-        const remaining = Math.max(0, MAX_HOOK_STDIN_BYTES - totalBytes);
+      if (totalBytes + buf.length > maxBytes) {
+        const remaining = Math.max(0, maxBytes - totalBytes);
         if (remaining > 0) chunks.push(buf.subarray(0, remaining));
-        totalBytes = MAX_HOOK_STDIN_BYTES;
+        totalBytes = maxBytes;
+        truncated = true;
         finish();
         return;
       }
@@ -923,7 +991,10 @@ function readStdinTextAsync(): Promise<string> {
     const onEnd = () => finish();
     const onError = () => finish();
 
-    const timer = setTimeout(finish, HOOK_STDIN_READ_TIMEOUT_MS);
+    const timer = setTimeout(() => {
+      timedOut = true;
+      finish();
+    }, timeoutMs);
     timer.unref?.();
 
     process.stdin.on('data', onData);
@@ -938,18 +1009,15 @@ async function main(): Promise<void> {
   const event = normalizeHookEvent(parseCliFlag(argv, '--event'), 'PostToolUse');
   const cliDataDir = parseCliFlag(argv, '--data-dir');
 
-  let rawInput: unknown = {};
-  const text = (await readStdinTextAsync()).trim();
-  if (text) {
-    try {
-      rawInput = JSON.parse(text);
-    } catch {
-      rawInput = {};
-    }
+  const stdinResult = await readBoundedStdinAsync();
+  const resolved = resolveHookStdinPayload(stdinResult, event, cliDataDir);
+  if (!resolved.ok) {
+    process.stdout.write(`${JSON.stringify(clampHookResult(resolved.gateResult))}\n`);
+    return;
   }
 
   try {
-    const out = await dispatchNovHook(rawInput, event, cliDataDir);
+    const out = await dispatchNovHook(resolved.rawInput, event, cliDataDir);
     process.stdout.write(`${JSON.stringify(out)}\n`);
   } catch {
     const fallback = event === 'Stop' || event === 'PreToolUse' ? { decision: 'allow' } : {};
@@ -964,5 +1032,12 @@ const isMain =
       /(?:^|[/\\])dispatcher\.ts$/i.test(process.argv[1])));
 
 if (isMain) {
-  void main();
+  process.stdout.on('error', (err: NodeJS.ErrnoException) => {
+    if (err?.code === 'EPIPE' || err?.code === 'ERR_STREAM_DESTROYED') {
+      process.exit(0);
+    }
+  });
+  void main().catch(() => {
+    process.exit(0);
+  });
 }

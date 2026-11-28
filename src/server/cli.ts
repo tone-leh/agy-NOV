@@ -19,7 +19,13 @@ import { canonicalRealpathSync, hasCliFlag, parseCliFlag } from '../core/utils.j
 import { compileActiveSpecWorkflowReadOnly } from '../modules/spec/core.js';
 import { executeSafeCompactRun } from '../modules/turbo/auto-rtk.js';
 import { runDoctor } from './cli/doctor.js';
-import { CLI_VERSION, printHelp, printStatus } from './cli/helpers.js';
+import {
+  CLI_VALUE_FLAGS,
+  CLI_VERSION,
+  extractCliPositionals,
+  printHelp,
+  printStatus,
+} from './cli/helpers.js';
 import {
   buildTeamPresetDraft,
   buildWorkspaceRecommendation,
@@ -56,6 +62,8 @@ export {
   buildStatusLine,
   buildTeamPresetDraft,
   buildWorkspaceRecommendation,
+  CLI_VALUE_FLAGS,
+  extractCliPositionals,
   getHealthSweepReportPath,
   MAX_HEALTH_SWEEP_BYTES,
   parseHostStatusLineStdin,
@@ -98,8 +106,8 @@ function refreshExistingFeedSnapshotBestEffort(
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
-  const cmd = argv.find((a) => !a.startsWith('-')) ?? 'status';
-  const positional = argv.filter((a) => !a.startsWith('-'));
+  const positional = extractCliPositionals(argv);
+  const cmd = positional[0] ?? 'status';
   const dataDir = resolveNovDataDir(parseCliFlag(argv, '--data-dir'));
 
   if (cmd === 'help' || argv.includes('--help') || argv.includes('-h')) {
@@ -467,5 +475,23 @@ function isCliEntrypoint(): boolean {
 }
 
 if (isCliEntrypoint()) {
-  void main();
+  process.stdout.on('error', (err: NodeJS.ErrnoException) => {
+    if (err?.code === 'EPIPE' || err?.code === 'ERR_STREAM_DESTROYED') {
+      process.exit(0);
+    }
+  });
+  process.stderr.on('error', (err: NodeJS.ErrnoException) => {
+    if (err?.code === 'EPIPE' || err?.code === 'ERR_STREAM_DESTROYED') {
+      process.exit(0);
+    }
+  });
+  void main().catch((err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    try {
+      process.stderr.write(`[agy-NOV CLI] Fatal error: ${msg}\n`);
+    } catch {
+      // ignore stderr write failure
+    }
+    process.exit(1);
+  });
 }

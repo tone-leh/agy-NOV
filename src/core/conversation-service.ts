@@ -341,6 +341,14 @@ function sanitizeErrorMessage(err: unknown, csrfToken?: string): string {
   return redactFeedText(safe, 200) || 'ConversationService request failed';
 }
 
+async function cancelResponseBodySafely(res: Response): Promise<void> {
+  try {
+    await res.body?.cancel?.().catch(() => undefined);
+  } catch {
+    // Ignore errors when response body is already locked, disturbed, or closed
+  }
+}
+
 type ConnectRpcResult =
   | { ok: true; data: Record<string, unknown> }
   | { ok: false; available: boolean; reason: string };
@@ -403,6 +411,7 @@ async function invokeConversationServiceRpc(
   }
 
   if (!res.ok) {
+    await cancelResponseBodySafely(res);
     return {
       ok: false,
       available: false,
@@ -415,11 +424,7 @@ async function invokeConversationServiceRpc(
   if (contentLengthHeader) {
     const parsedLen = Number(contentLengthHeader);
     if (Number.isFinite(parsedLen) && parsedLen > MAX_RPC_RESPONSE_BYTES) {
-      try {
-        await res.body?.cancel?.();
-      } catch {
-        // ignore cancel failure
-      }
+      await cancelResponseBodySafely(res);
       return {
         ok: false,
         available: false,
@@ -435,17 +440,27 @@ async function invokeConversationServiceRpc(
       const reader = res.body.getReader();
       const chunks: Buffer[] = [];
       let totalBytes = 0;
+      let streamCompleted = false;
+      let streamCancelled = false;
+      const cancelReaderOnce = async (): Promise<void> => {
+        if (streamCancelled) return;
+        streamCancelled = true;
+        await reader.cancel().catch(() => undefined);
+      };
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            streamCompleted = true;
+            break;
+          }
           if (!value) continue;
           const chunkBuf = Buffer.isBuffer(value)
             ? value
             : Buffer.from(value.buffer, value.byteOffset, value.byteLength);
           totalBytes += chunkBuf.byteLength;
           if (totalBytes > MAX_RPC_RESPONSE_BYTES) {
-            await reader.cancel().catch(() => undefined);
+            await cancelReaderOnce();
             return {
               ok: false,
               available: false,
@@ -454,7 +469,13 @@ async function invokeConversationServiceRpc(
           }
           chunks.push(chunkBuf);
         }
+      } catch (readErr) {
+        await cancelReaderOnce();
+        throw readErr;
       } finally {
+        if (!streamCompleted) {
+          await cancelReaderOnce();
+        }
         try {
           reader.releaseLock();
         } catch {
@@ -465,6 +486,7 @@ async function invokeConversationServiceRpc(
     } else {
       rawText = await res.text();
       if (Buffer.byteLength(rawText, 'utf8') > MAX_RPC_RESPONSE_BYTES) {
+        await cancelResponseBodySafely(res);
         return {
           ok: false,
           available: false,
@@ -474,6 +496,7 @@ async function invokeConversationServiceRpc(
     }
     parsed = JSON.parse(rawText);
   } catch (err) {
+    await cancelResponseBodySafely(res);
     return {
       ok: false,
       available: false,

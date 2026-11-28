@@ -97,7 +97,9 @@ export function registerRemoteModule(
 
   // Strictly opt-in: when initialEnabled is false, perform zero port binds, zero config.json writes, and zero timers.
   if (initialEnabled) {
-    void setEnabledRuntime(true);
+    void setEnabledRuntime(true).catch(() => {
+      // Initialization errors (e.g., read-only dataDir) must never surface as unhandled rejections
+    });
   }
 
   const APP_ONLY_META = {

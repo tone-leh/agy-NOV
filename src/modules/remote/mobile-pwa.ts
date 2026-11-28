@@ -100,10 +100,57 @@ export function renderMobilePwaHtml(): string {
   <script>
     (function () {
       const STORAGE_KEY = 'agy_remote_token';
+      const MAX_SSE_RETRIES = 6;
+      const SSE_BASE_BACKOFF_MS = 1000;
+      const SSE_MAX_BACKOFF_MS = 30000;
+
+      function getStorage(kind) {
+        try {
+          if (kind === 'local') return typeof localStorage !== 'undefined' ? localStorage : null;
+          return typeof sessionStorage !== 'undefined' ? sessionStorage : null;
+        } catch {
+          return null;
+        }
+      }
+
+      function safeStorageGet(storage, key) {
+        try {
+          return storage && typeof storage.getItem === 'function' ? storage.getItem(key) : null;
+        } catch {
+          return null;
+        }
+      }
+
+      function safeStorageSet(storage, key, value) {
+        try {
+          if (storage && typeof storage.setItem === 'function') {
+            storage.setItem(key, value);
+          }
+        } catch {}
+      }
+
+      function safeStorageRemove(storage, key) {
+        try {
+          if (storage && typeof storage.removeItem === 'function') {
+            storage.removeItem(key);
+          }
+        } catch {}
+      }
+
       const params = new URLSearchParams(location.search);
       const urlToken = params.get('token');
-      let token = urlToken || localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY) || '';
+      let token =
+        urlToken ||
+        safeStorageGet(getStorage('local'), STORAGE_KEY) ||
+        safeStorageGet(getStorage('session'), STORAGE_KEY) ||
+        '';
       let eventSource = null;
+      let sseRetryTimer = null;
+      let sseFailures = 0;
+      let sseStopped = false;
+      let sseProbing = false;
+      let pairInFlight = false;
+      let dispatchInFlight = false;
       let lastConversations = [];
       let refreshInFlight = false;
       const expandedConvs = Object.create(null);
@@ -122,15 +169,28 @@ export function renderMobilePwaHtml(): string {
       }
 
       if (urlToken) {
-        try { localStorage.setItem(STORAGE_KEY, urlToken); } catch {}
-        try { sessionStorage.setItem(STORAGE_KEY, urlToken); } catch {}
+        safeStorageSet(getStorage('local'), STORAGE_KEY, urlToken);
+        safeStorageSet(getStorage('session'), STORAGE_KEY, urlToken);
         try { history.replaceState(null, '', location.pathname); } catch {}
       }
 
       function saveToken(nextToken) {
         token = nextToken;
-        try { localStorage.setItem(STORAGE_KEY, nextToken); } catch {}
-        try { sessionStorage.setItem(STORAGE_KEY, nextToken); } catch {}
+        if (nextToken) {
+          safeStorageSet(getStorage('local'), STORAGE_KEY, nextToken);
+          safeStorageSet(getStorage('session'), STORAGE_KEY, nextToken);
+        } else {
+          safeStorageRemove(getStorage('local'), STORAGE_KEY);
+          safeStorageRemove(getStorage('session'), STORAGE_KEY);
+        }
+      }
+
+      function handleUnauthorized(statusLabel) {
+        sseStopped = true;
+        closeEventStream();
+        saveToken('');
+        document.getElementById('authCard').style.display = 'block';
+        document.getElementById('statusPill').textContent = statusLabel || 'Locked';
       }
 
       function authHeaders() {
@@ -145,62 +205,129 @@ export function renderMobilePwaHtml(): string {
       }
 
       async function pairWithPin() {
+        if (pairInFlight) return;
         const pinEl = document.getElementById('pinInput');
         const msgEl = document.getElementById('pairMsg');
+        const pairBtn = document.getElementById('pairBtn');
         const pin = pinEl.value.trim();
         msgEl.textContent = '';
         if (!pin) {
           msgEl.textContent = 'Please enter the 6-digit PIN.';
           return;
         }
-        const res = await fetch('/api/pair', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ pin }),
-        });
-        if (!res.ok) {
-          let errMsg = res.status === 429 ? 'Too many attempts. Locked for 15 minutes.' : 'Invalid or expired PIN.';
-          try {
-            const errData = await res.json();
-            if (errData && typeof errData.error === 'string') errMsg = errData.error;
-          } catch {}
-          msgEl.textContent = errMsg;
-          return;
+        pairInFlight = true;
+        if (pairBtn) pairBtn.disabled = true;
+        try {
+          const res = await fetch('/api/pair', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin }),
+          });
+          if (!res.ok) {
+            let errMsg = res.status === 429 ? 'Too many attempts. Locked for 15 minutes.' : 'Invalid or expired PIN.';
+            try {
+              const errData = await res.json();
+              if (errData && typeof errData.error === 'string') errMsg = errData.error;
+            } catch {}
+            msgEl.textContent = errMsg;
+            return;
+          }
+          const data = await res.json();
+          const nextToken = data && typeof data.token === 'string' ? data.token : '';
+          if (!nextToken) {
+            msgEl.textContent = 'Pairing response missing token. Please retry.';
+            return;
+          }
+          saveToken(nextToken);
+          pinEl.value = '';
+          document.getElementById('authCard').style.display = 'none';
+          boot();
+        } catch {
+          msgEl.textContent = 'Network error while pairing. Check connection and retry.';
+        } finally {
+          pairInFlight = false;
+          if (pairBtn) pairBtn.disabled = false;
         }
-        const data = await res.json();
-        saveToken(String(data.token || ''));
-        pinEl.value = '';
-        document.getElementById('authCard').style.display = 'none';
-        boot();
       }
 
-      async function decide(id, decision) {
-        await fetch('/api/approvals/' + encodeURIComponent(String(id)) + '/decide', {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify({ decision, actor: 'mobile-pwa' }),
-        });
-        await refreshAll();
+      async function decide(id, decision, buttons, errEl) {
+        if (Array.isArray(buttons)) {
+          buttons.forEach(function (btn) {
+            if (btn) btn.disabled = true;
+          });
+        }
+        if (errEl) errEl.textContent = '';
+        try {
+          const res = await fetch('/api/approvals/' + encodeURIComponent(String(id)) + '/decide', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ decision, actor: 'mobile-pwa' }),
+          });
+          if (res.status === 401) {
+            handleUnauthorized('Locked');
+            if (errEl) errEl.textContent = 'Session expired. Please pair again.';
+            return;
+          }
+          if (!res.ok) {
+            let errText = 'Failed to submit decision (HTTP ' + String(res.status) + ').';
+            try {
+              const errJson = await res.json();
+              if (errJson && typeof errJson.error === 'string') errText = errJson.error;
+            } catch {}
+            if (errEl) errEl.textContent = errText;
+            return;
+          }
+          await refreshAll();
+        } catch {
+          if (errEl) errEl.textContent = 'Network error while submitting decision. Please retry.';
+        } finally {
+          if (Array.isArray(buttons)) {
+            buttons.forEach(function (btn) {
+              if (btn) btn.disabled = false;
+            });
+          }
+        }
       }
 
       async function dispatchTask() {
+        if (dispatchInFlight) return;
         const promptEl = document.getElementById('promptInput');
+        const dispatchBtn = document.getElementById('dispatchBtn');
         const prompt = promptEl.value.trim();
         if (!prompt) return;
         const model = document.getElementById('modelSel').value;
         const msgEl = document.getElementById('dispatchMsg');
+        dispatchInFlight = true;
+        if (dispatchBtn) dispatchBtn.disabled = true;
         msgEl.textContent = 'Dispatching…';
-        const res = await fetch('/api/conversations', {
-          method: 'POST',
-          headers: authHeaders(),
-          body: JSON.stringify({ prompt, model }),
-        });
-        if (res.ok) {
-          promptEl.value = '';
-          msgEl.textContent = 'Task started on desktop Antigravity!';
-          await refreshAll();
-        } else {
-          msgEl.textContent = 'Failed to dispatch task.';
+        try {
+          const res = await fetch('/api/conversations', {
+            method: 'POST',
+            headers: authHeaders(),
+            body: JSON.stringify({ prompt, model }),
+          });
+          if (res.status === 401) {
+            handleUnauthorized('Locked');
+            msgEl.textContent = 'Session locked. Please pair again.';
+            return;
+          }
+          if (res.ok) {
+            promptEl.value = '';
+            msgEl.textContent = 'Task started on desktop Antigravity!';
+            await refreshAll();
+          } else {
+            let errText = 'Failed to dispatch task (HTTP ' + String(res.status) + ').';
+            try {
+              const errJson = await res.json();
+              if (errJson && typeof errJson.error === 'string') errText = errJson.error;
+            } catch {}
+            msgEl.textContent = errText;
+          }
+        } catch {
+          msgEl.textContent = 'Network error while dispatching task. Please retry.';
+        } finally {
+          dispatchInFlight = false;
+          if (dispatchBtn) dispatchBtn.disabled = false;
         }
       }
 
@@ -273,21 +400,26 @@ export function renderMobilePwaHtml(): string {
           const row = document.createElement('div');
           row.className = 'row';
 
+          const errNote = createTextElement('div', 'err', '');
+
           const approveBtn = createTextElement('button', 'btn-ok', 'Approve');
           approveBtn.type = 'button';
-          approveBtn.addEventListener('click', function () {
-            void decide(String(a.id || ''), 'approved');
-          });
 
           const denyBtn = createTextElement('button', 'btn-no', 'Deny');
           denyBtn.type = 'button';
+
+          const btnPair = [approveBtn, denyBtn];
+          approveBtn.addEventListener('click', function () {
+            void decide(String(a.id || ''), 'approved', btnPair, errNote);
+          });
           denyBtn.addEventListener('click', function () {
-            void decide(String(a.id || ''), 'denied');
+            void decide(String(a.id || ''), 'denied', btnPair, errNote);
           });
 
           row.appendChild(approveBtn);
           row.appendChild(denyBtn);
           item.appendChild(row);
+          item.appendChild(errNote);
           return item;
         });
         box.replaceChildren.apply(box, nodes);
@@ -314,8 +446,7 @@ export function renderMobilePwaHtml(): string {
             headers: authHeaders(),
           });
           if (res.status === 401) {
-            document.getElementById('authCard').style.display = 'block';
-            document.getElementById('statusPill').textContent = 'Locked';
+            handleUnauthorized('Locked');
             streamStates[convId] = { loading: false, error: 'Unauthorized', data: null };
             renderConvs(lastConversations);
             return;
@@ -487,8 +618,11 @@ export function renderMobilePwaHtml(): string {
         try {
           const res = await fetch('/api/state', { headers: authHeaders() });
           if (res.status === 401) {
-            document.getElementById('authCard').style.display = 'block';
-            document.getElementById('statusPill').textContent = 'Locked';
+            handleUnauthorized('Locked');
+            return;
+          }
+          if (res.status === 503) {
+            document.getElementById('statusPill').textContent = 'Busy (503)';
             return;
           }
           if (!res.ok) {
@@ -508,22 +642,103 @@ export function renderMobilePwaHtml(): string {
       }
 
       function closeEventStream() {
+        if (sseRetryTimer !== null && typeof clearTimeout === 'function') {
+          clearTimeout(sseRetryTimer);
+          sseRetryTimer = null;
+        }
         if (eventSource) {
           eventSource.close();
           eventSource = null;
         }
       }
 
+      function scheduleSseReconnect(delayMs) {
+        if (sseStopped || !token) return;
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+        if (typeof setTimeout !== 'function') return;
+        if (sseRetryTimer !== null && typeof clearTimeout === 'function') {
+          clearTimeout(sseRetryTimer);
+        }
+        sseRetryTimer = setTimeout(function () {
+          sseRetryTimer = null;
+          connectEventStream();
+        }, delayMs);
+      }
+
+      async function handleSseError() {
+        closeEventStream();
+        if (sseStopped || !token || sseProbing) return;
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+        sseProbing = true;
+        sseFailures += 1;
+        try {
+          const probeRes = await fetch('/api/state', { headers: authHeaders() });
+          if (probeRes.status === 401) {
+            handleUnauthorized('Locked (401)');
+            return;
+          }
+          if (probeRes.status === 503) {
+            if (sseFailures >= MAX_SSE_RETRIES) {
+              sseStopped = true;
+              document.getElementById('statusPill').textContent = 'Busy (503) — Tap to retry';
+              return;
+            }
+            const busyDelay = Math.min(
+              SSE_MAX_BACKOFF_MS,
+              SSE_BASE_BACKOFF_MS * Math.pow(2, sseFailures),
+            );
+            document.getElementById('statusPill').textContent = 'Busy (503) · Retrying…';
+            scheduleSseReconnect(busyDelay);
+            return;
+          }
+          if (sseFailures >= MAX_SSE_RETRIES) {
+            sseStopped = true;
+            document.getElementById('statusPill').textContent = 'Disconnected — Tap to reconnect';
+            return;
+          }
+          const delay = Math.min(
+            SSE_MAX_BACKOFF_MS,
+            SSE_BASE_BACKOFF_MS * Math.pow(2, sseFailures - 1),
+          );
+          document.getElementById('statusPill').textContent = 'Reconnecting…';
+          scheduleSseReconnect(delay);
+        } catch {
+          if (sseFailures >= MAX_SSE_RETRIES) {
+            sseStopped = true;
+            document.getElementById('statusPill').textContent = 'Offline — Tap to retry';
+            return;
+          }
+          const netDelay = Math.min(
+            SSE_MAX_BACKOFF_MS,
+            SSE_BASE_BACKOFF_MS * Math.pow(2, sseFailures - 1),
+          );
+          document.getElementById('statusPill').textContent = 'Offline · Retrying…';
+          scheduleSseReconnect(netDelay);
+        } finally {
+          sseProbing = false;
+        }
+      }
+
       function connectEventStream() {
         closeEventStream();
-        if (!token || (typeof document !== 'undefined' && document.visibilityState === 'hidden')) return;
+        if (sseStopped || !token || (typeof document !== 'undefined' && document.visibilityState === 'hidden')) return;
         eventSource = new EventSource('/api/events?token=' + encodeURIComponent(token));
+        eventSource.onopen = function () {
+          sseFailures = 0;
+          document.getElementById('statusPill').textContent = 'Connected';
+        };
         eventSource.onmessage = function () {
+          sseFailures = 0;
           void refreshAll();
+        };
+        eventSource.onerror = function () {
+          void handleSseError();
         };
       }
 
       function boot() {
+        sseFailures = 0;
+        sseStopped = false;
         void refreshAll();
         connectEventStream();
       }
@@ -533,6 +748,8 @@ export function renderMobilePwaHtml(): string {
           if (document.visibilityState === 'hidden') {
             closeEventStream();
           } else {
+            sseFailures = 0;
+            sseStopped = false;
             void refreshAll();
             connectEventStream();
           }
@@ -541,6 +758,15 @@ export function renderMobilePwaHtml(): string {
       if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
         window.addEventListener('pagehide', closeEventStream);
         window.addEventListener('beforeunload', closeEventStream);
+      }
+
+      const statusPillEl = document.getElementById('statusPill');
+      if (statusPillEl && typeof statusPillEl.addEventListener === 'function') {
+        statusPillEl.addEventListener('click', function () {
+          if (sseStopped && token) {
+            boot();
+          }
+        });
       }
 
       document.getElementById('pairBtn').addEventListener('click', function () {

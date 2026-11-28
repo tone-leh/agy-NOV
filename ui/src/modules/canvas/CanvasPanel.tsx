@@ -566,10 +566,20 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
     );
   }, [board, slideIdx]);
 
-  const toPct = (e: React.MouseEvent) => {
-    const rect = overlayRef.current!.getBoundingClientRect();
-    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+  const toPct = (e: React.MouseEvent): { x: number; y: number } | null => {
+    const el = overlayRef.current;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    if (!(rect.width > 0 && rect.height > 0) || !Number.isFinite(rect.width) || !Number.isFinite(rect.height)) {
+      return null;
+    }
+    const rawX = ((e.clientX - rect.left) / rect.width) * 100;
+    const rawY = ((e.clientY - rect.top) / rect.height) * 100;
+    if (!Number.isFinite(rawX) || !Number.isFinite(rawY)) {
+      return null;
+    }
+    const x = Math.max(0, Math.min(100, rawX));
+    const y = Math.max(0, Math.min(100, rawY));
     return { x, y };
   };
 
@@ -577,6 +587,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
     if (!annotateMode || !overlayRef.current) return;
     if ((e.target as HTMLElement).closest('.canvas-pin-box')) return;
     const pt = toPct(e);
+    if (!pt) return;
     dragStart.current = pt;
     setDragBox({ x: pt.x, y: pt.y, w: 0, h: 0 });
   };
@@ -584,6 +595,7 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
   const onMouseMove = (e: React.MouseEvent) => {
     if (!dragStart.current || !overlayRef.current) return;
     const pt = toPct(e);
+    if (!pt) return;
     const sx = dragStart.current.x;
     const sy = dragStart.current.y;
     setDragBox({
@@ -597,6 +609,15 @@ export const CanvasPanel: React.FC<NovModulePanelProps> = ({
   const finishDrag = () => {
     if (!dragStart.current || !dragBox) return;
     dragStart.current = null;
+    if (
+      !Number.isFinite(dragBox.x) ||
+      !Number.isFinite(dragBox.y) ||
+      !Number.isFinite(dragBox.w) ||
+      !Number.isFinite(dragBox.h)
+    ) {
+      setDragBox(null);
+      return;
+    }
     setDraftBox({
       xPct: Number(dragBox.x.toFixed(1)),
       yPct: Number(dragBox.y.toFixed(1)),

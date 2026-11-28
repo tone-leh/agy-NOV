@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { getModuleDataDir, resolveNovDataDir } from '../../core/config.js';
+import { redactSecretsLinear } from '../../core/sanitize.js';
 import type { NormalizedHookPayload } from '../../core/types.js';
 import {
   cleanBriefText,
@@ -53,20 +54,31 @@ function detectAwaitingApproval(payload: NormalizedHookPayload): boolean {
 
 function formatErrorValue(err: unknown): string | undefined {
   if (err === undefined || err === null || err === false) return undefined;
-  if (typeof err === 'string') return err.trim() || undefined;
-  if (err instanceof Error) return err.message || err.name;
-  if (typeof err === 'object') {
+  let rawText: string | undefined;
+  if (typeof err === 'string') {
+    rawText = err.trim() || undefined;
+  } else if (err instanceof Error) {
+    rawText = err.message || err.name;
+  } else if (typeof err === 'object') {
     const rec = err as Record<string, unknown>;
-    if (typeof rec.message === 'string' && rec.message.trim()) return rec.message.trim();
-    if (typeof rec.code === 'string' && rec.code.trim()) return `Error ${rec.code.trim()}`;
-    try {
-      const json = JSON.stringify(err);
-      return json && json !== '{}' ? json : 'Unknown error';
-    } catch {
-      return 'Unknown error';
+    if (typeof rec.message === 'string' && rec.message.trim()) {
+      rawText = rec.message.trim();
+    } else if (typeof rec.code === 'string' && rec.code.trim()) {
+      rawText = `Error ${rec.code.trim()}`;
+    } else {
+      try {
+        const json = JSON.stringify(err);
+        rawText = json && json !== '{}' ? json : 'Unknown error';
+      } catch {
+        rawText = 'Unknown error';
+      }
     }
+  } else {
+    rawText = String(err);
   }
-  return String(err);
+  if (!rawText) return undefined;
+  const redacted = redactSecretsLinear(rawText, { stripPrivate: true }).trim();
+  return redacted || 'Error';
 }
 
 const RADAR_HOOK_COALESCE_MS = 2000;
@@ -96,13 +108,13 @@ export function handleRadarHook(
     const awaitingApproval =
       payload.event === 'PreToolUse' ? detectAwaitingApproval(payload) : false;
     const errorMessage =
-      payload.event === 'Stop' ? formatErrorValue(payload.error) : undefined;
+      payload.event === 'Stop' ? cleanBriefText(formatErrorValue(payload.error), 160) : undefined;
     const summary =
       cleanBriefText(payload.lastUserInput, 120) ??
       (payload.terminationReason ? cleanBriefText(payload.terminationReason, 120) : undefined);
 
     const parentConversationId = payload.parentConversationId?.trim() || undefined;
-    const agentRole = payload.agentRole?.trim() || undefined;
+    const agentRole = cleanBriefText(payload.agentRole, 64);
     const isSubagent = parentConversationId ? true : undefined;
 
     const { board, session } = recordRadarSessionEvent(moduleDataDir, {
@@ -124,15 +136,24 @@ export function handleRadarHook(
         session.status === 'error'
           ? `agy-NOV Radar: Error (${session.workspaceName})`
           : `agy-NOV Radar: Completed (${session.workspaceName})`;
-      const message =
+      const rawMessage =
         session.status === 'error'
           ? session.errorMessage || `Session ${session.conversationId} ended with an error.`
           : `Session ${session.conversationId} finished after ${session.stepCount} step(s).`;
-      triggerRadarNotification(title, message, board.prefs);
+      triggerRadarNotification(
+        redactSecretsLinear(title, { stripPrivate: true }),
+        redactSecretsLinear(rawMessage, { stripPrivate: true }),
+        board.prefs,
+      );
     } else if (awaitingApproval) {
       triggerRadarNotification(
-        `agy-NOV Radar: Approval Needed (${session.workspaceName})`,
-        `Tool ${session.lastToolName ?? 'action'} is awaiting your confirmation.`,
+        redactSecretsLinear(`agy-NOV Radar: Approval Needed (${session.workspaceName})`, {
+          stripPrivate: true,
+        }),
+        redactSecretsLinear(
+          `Tool ${session.lastToolName ?? 'action'} is awaiting your confirmation.`,
+          { stripPrivate: true },
+        ),
         board.prefs,
       );
     }

@@ -53,14 +53,30 @@ function buildUtcDateWindow(nowMs: number, days: number): string[] {
   return dates;
 }
 
+function safeNonNegNumber(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function safeCacheHitRate(cacheReadTokens: number, inputTokens: number): number {
+  if (!Number.isFinite(cacheReadTokens) || !Number.isFinite(inputTokens) || inputTokens <= 0) {
+    return 0;
+  }
+  const ratio = cacheReadTokens / inputTokens;
+  if (!Number.isFinite(ratio)) return 0;
+  return Number(Math.max(0, Math.min(1, ratio)).toFixed(4));
+}
+
 export function classifyFiveHourWarning(
   totalTokens: number,
   estimatedUsd: number,
 ): FiveHourBurnWindow['warningLevel'] {
-  if (totalTokens >= FIVE_HOUR_CRITICAL_TOKENS || estimatedUsd >= FIVE_HOUR_CRITICAL_USD) {
+  const safeTokens = safeNonNegNumber(totalTokens);
+  const safeUsd = safeNonNegNumber(estimatedUsd);
+  if (safeTokens >= FIVE_HOUR_CRITICAL_TOKENS || safeUsd >= FIVE_HOUR_CRITICAL_USD) {
     return 'critical';
   }
-  if (totalTokens >= FIVE_HOUR_WARN_TOKENS || estimatedUsd >= FIVE_HOUR_WARN_USD) {
+  if (safeTokens >= FIVE_HOUR_WARN_TOKENS || safeUsd >= FIVE_HOUR_WARN_USD) {
     return 'warn';
   }
   return 'ok';
@@ -202,7 +218,8 @@ function parseTimestampMs(iso: string | undefined, fallbackMs: number): number {
 
 /**
  * Offline read-only cost, 14-day UTC trend, and 5-hour rolling burn-rate aggregator.
- * Scans at most the 60 most recent transcripts (skipping files > 20 MiB) and never writes to disk.
+ * Scans at most the 60 most recent transcripts via bounded sampling (keeping total sync reads
+ * capped) and never writes to disk.
  */
 export function computeCostAnalytics(
   opts: DiscoveryOptions & { nowMs?: number; limit?: number } = {},
@@ -270,8 +287,8 @@ export function computeCostAnalytics(
     }
     let fileSize = 0;
     try {
-      const st = fs.statSync(entry.transcriptPath);
-      if (!st.isFile() || st.size === 0 || st.size > MAX_ANALYTICS_TRANSCRIPT_BYTES) {
+      const st = fs.lstatSync(entry.transcriptPath);
+      if (st.isSymbolicLink() || !st.isFile() || st.size === 0) {
         continue;
       }
       fileSize = st.size;
@@ -295,6 +312,16 @@ export function computeCostAnalytics(
       continue;
     }
 
+    // Skip empty, sparse, or completely unparseable transcripts that yielded zero valid steps
+    if (
+      detail.summary.steps === 0 &&
+      detail.turns.length === 0 &&
+      safeNonNegNumber(detail.summary.totalInputTokens) === 0 &&
+      safeNonNegNumber(detail.summary.totalOutputTokens) === 0
+    ) {
+      continue;
+    }
+
     sessionsAnalyzed += 1;
     const sessionFallbackMs = parseTimestampMs(detail.summary.updatedAt, entry.mtimeMs);
 
@@ -305,21 +332,25 @@ export function computeCostAnalytics(
       cacheReadTokens: number,
       outputTokens: number,
     ) => {
-      const effectiveInput = Math.max(0, freshInputTokens) + Math.max(0, cacheReadTokens);
-      const safeOutput = Math.max(0, outputTokens);
+      const safeFresh = safeNonNegNumber(freshInputTokens);
+      const safeCache = safeNonNegNumber(cacheReadTokens);
+      const effectiveInput = safeFresh + safeCache;
+      const safeOutput = safeNonNegNumber(outputTokens);
       const totalTokens = effectiveInput + safeOutput;
       const cost = estimateTokenCostUsd(
         model,
         {
-          freshInputTokens,
-          cacheReadTokens,
+          freshInputTokens: safeFresh,
+          cacheReadTokens: safeCache,
           outputTokens: safeOutput,
         },
         pricingOverrides,
       );
+      const safeCostTotal = safeNonNegNumber(cost.totalUsd);
+      const safeCostSavings = safeNonNegNumber(cost.cacheSavingsUsd);
 
-      totalEstimatedUsdRaw += cost.totalUsd;
-      totalCacheSavingsUsdRaw += cost.cacheSavingsUsd;
+      totalEstimatedUsdRaw += safeCostTotal;
+      totalCacheSavingsUsdRaw += safeCostSavings;
 
       const modelKey = model || 'unknown';
       let mBucket = modelBuckets.get(modelKey);
@@ -335,57 +366,84 @@ export function computeCostAnalytics(
       }
       mBucket.sessionIds.add(entry.id);
       mBucket.inputTokens += effectiveInput;
-      mBucket.cacheReadTokens += Math.max(0, cacheReadTokens);
+      mBucket.cacheReadTokens += safeCache;
       mBucket.outputTokens += safeOutput;
-      mBucket.estimatedUsd += cost.totalUsd;
+      mBucket.estimatedUsd += safeCostTotal;
 
       const dateKey = toUtcDateKey(tsMs);
       const dBucket = dailyBuckets.get(dateKey);
       if (dBucket) {
         dBucket.sessionIds.add(entry.id);
         dBucket.inputTokens += effectiveInput;
-        dBucket.cacheReadTokens += Math.max(0, cacheReadTokens);
+        dBucket.cacheReadTokens += safeCache;
         dBucket.outputTokens += safeOutput;
-        dBucket.estimatedUsd += cost.totalUsd;
+        dBucket.estimatedUsd += safeCostTotal;
       }
 
       if (tsMs >= windowStartMs && tsMs <= windowUpperMs) {
         fiveHourSessionIds.add(entry.id);
         fiveHourTokens += totalTokens;
-        fiveHourUsdRaw += cost.totalUsd;
+        fiveHourUsdRaw += safeCostTotal;
       }
     };
 
     if (detail.turns.length > 0) {
+      const countedByModel = new Map<string, { fresh: number; cache: number; output: number }>();
       for (const turn of detail.turns) {
         const turnTs = parseTimestampMs(turn.timestamp, sessionFallbackMs);
-        recordUsageUnit(
-          turnTs,
-          turn.model,
-          turn.freshInputTokens,
-          turn.cacheReadTokens,
-          turn.outputTokens,
-        );
+        const safeFresh = safeNonNegNumber(turn.freshInputTokens);
+        const safeCache = safeNonNegNumber(turn.cacheReadTokens);
+        const safeOut = safeNonNegNumber(turn.outputTokens);
+        const mKey = turn.model || 'unknown';
+        const acc = countedByModel.get(mKey) ?? { fresh: 0, cache: 0, output: 0 };
+        acc.fresh += safeFresh;
+        acc.cache += safeCache;
+        acc.output += safeOut;
+        countedByModel.set(mKey, acc);
+        recordUsageUnit(turnTs, turn.model, safeFresh, safeCache, safeOut);
       }
-    } else if (detail.summary.totalInputTokens + detail.summary.totalOutputTokens > 0) {
+
+      // Preserve full-session accuracy when detail.turns was sliced at MAX_RETURNED_TURNS (>200 turns)
+      if (detail.summary.turns > detail.turns.length && detail.modelBreakdown.length > 0) {
+        const earlyTs = parseTimestampMs(detail.summary.startedAt, sessionFallbackMs);
+        for (const m of detail.modelBreakdown) {
+          const mKey = m.model || 'unknown';
+          const counted = countedByModel.get(mKey) ?? { fresh: 0, cache: 0, output: 0 };
+          const deltaFresh = Math.max(0, safeNonNegNumber(m.freshInputTokens) - counted.fresh);
+          const deltaCache = Math.max(0, safeNonNegNumber(m.cacheReadTokens) - counted.cache);
+          const deltaOut = Math.max(0, safeNonNegNumber(m.outputTokens) - counted.output);
+          if (deltaFresh > 0 || deltaCache > 0 || deltaOut > 0) {
+            recordUsageUnit(earlyTs, m.model, deltaFresh, deltaCache, deltaOut);
+          }
+        }
+      }
+    } else if (
+      safeNonNegNumber(detail.summary.totalInputTokens) +
+        safeNonNegNumber(detail.summary.totalOutputTokens) >
+      0
+    ) {
       recordUsageUnit(
         sessionFallbackMs,
         detail.summary.model,
-        detail.summary.totalFreshInputTokens,
-        detail.summary.totalCacheReadTokens,
-        detail.summary.totalOutputTokens,
+        safeNonNegNumber(detail.summary.totalFreshInputTokens),
+        safeNonNegNumber(detail.summary.totalCacheReadTokens),
+        safeNonNegNumber(detail.summary.totalOutputTokens),
       );
     }
   }
 
   const dailyTrend: DailyCostTrendItem[] = dateKeys.map((date) => {
     const b = dailyBuckets.get(date)!;
+    const safeIn = safeNonNegNumber(b.inputTokens);
+    const safeCache = safeNonNegNumber(b.cacheReadTokens);
+    const safeOut = safeNonNegNumber(b.outputTokens);
+    const safeUsd = safeNonNegNumber(b.estimatedUsd);
     return {
       date,
       sessions: b.sessionIds.size,
-      totalTokens: b.inputTokens + b.outputTokens,
-      estimatedUsd: roundUsd(b.estimatedUsd),
-      cacheHitRate: b.inputTokens > 0 ? Number((b.cacheReadTokens / b.inputTokens).toFixed(4)) : 0,
+      totalTokens: safeIn + safeOut,
+      estimatedUsd: roundUsd(safeUsd),
+      cacheHitRate: safeCacheHitRate(safeCache, safeIn),
     };
   });
 
@@ -394,40 +452,47 @@ export function computeCostAnalytics(
   const weekEstimatedUsd = roundUsd(
     dailyTrend
       .filter((item) => weekDateSet.has(item.date))
-      .reduce((sum, item) => sum + item.estimatedUsd, 0),
+      .reduce((sum, item) => sum + safeNonNegNumber(item.estimatedUsd), 0),
   );
 
   const modelTotals: ModelCostTotalItem[] = Array.from(modelBuckets.entries())
-    .map(([model, m]) => ({
-      model,
-      sessions: m.sessionIds.size,
-      totalTokens: m.inputTokens + m.outputTokens,
-      estimatedUsd: roundUsd(m.estimatedUsd),
-      cacheHitRate: m.inputTokens > 0 ? Number((m.cacheReadTokens / m.inputTokens).toFixed(4)) : 0,
-    }))
+    .map(([model, m]) => {
+      const safeIn = safeNonNegNumber(m.inputTokens);
+      const safeCache = safeNonNegNumber(m.cacheReadTokens);
+      const safeOut = safeNonNegNumber(m.outputTokens);
+      const safeUsd = safeNonNegNumber(m.estimatedUsd);
+      return {
+        model,
+        sessions: m.sessionIds.size,
+        totalTokens: safeIn + safeOut,
+        estimatedUsd: roundUsd(safeUsd),
+        cacheHitRate: safeCacheHitRate(safeCache, safeIn),
+      };
+    })
     .sort((a, b) => b.estimatedUsd - a.estimatedUsd || b.totalTokens - a.totalTokens);
 
-  const fiveHourUsd = roundUsd(fiveHourUsdRaw);
+  const safeFiveHourTokens = safeNonNegNumber(fiveHourTokens);
+  const fiveHourUsd = roundUsd(safeNonNegNumber(fiveHourUsdRaw));
 
   return {
     mode: 'live',
     generatedAt: new Date(nowMs).toISOString(),
     sessionsAnalyzed,
-    totalEstimatedUsd: roundUsd(totalEstimatedUsdRaw),
+    totalEstimatedUsd: roundUsd(safeNonNegNumber(totalEstimatedUsdRaw)),
     todayEstimatedUsd,
     weekEstimatedUsd,
-    cacheSavingsUsd: roundUsd(totalCacheSavingsUsdRaw),
+    cacheSavingsUsd: roundUsd(safeNonNegNumber(totalCacheSavingsUsdRaw)),
     dailyTrend,
     modelTotals,
     fiveHourWindow: {
       windowStartIso: new Date(windowStartMs).toISOString(),
       windowHours: FIVE_HOUR_WINDOW_HOURS,
       sessionsCount: fiveHourSessionIds.size,
-      totalTokens: fiveHourTokens,
+      totalTokens: safeFiveHourTokens,
       estimatedUsd: fiveHourUsd,
       burnRateUsdPerHour: roundUsd(fiveHourUsd / FIVE_HOUR_WINDOW_HOURS),
-      burnRateTokensPerHour: Math.round(fiveHourTokens / FIVE_HOUR_WINDOW_HOURS),
-      warningLevel: classifyFiveHourWarning(fiveHourTokens, fiveHourUsd),
+      burnRateTokensPerHour: Math.round(safeFiveHourTokens / FIVE_HOUR_WINDOW_HOURS),
+      warningLevel: classifyFiveHourWarning(safeFiveHourTokens, fiveHourUsd),
     },
   };
 }
@@ -437,10 +502,15 @@ function escapeMdCell(raw: string): string {
 }
 
 function resolveSessionCost(detail: SessionDetail): { estimatedUsd: number; cacheSavingsUsd: number } {
-  if (detail.summary.estimatedUsd != null && detail.summary.cacheSavingsUsd != null) {
+  if (
+    detail.summary.estimatedUsd != null &&
+    detail.summary.cacheSavingsUsd != null &&
+    Number.isFinite(detail.summary.estimatedUsd) &&
+    Number.isFinite(detail.summary.cacheSavingsUsd)
+  ) {
     return {
-      estimatedUsd: detail.summary.estimatedUsd,
-      cacheSavingsUsd: detail.summary.cacheSavingsUsd,
+      estimatedUsd: safeNonNegNumber(detail.summary.estimatedUsd),
+      cacheSavingsUsd: safeNonNegNumber(detail.summary.cacheSavingsUsd),
     };
   }
   if (detail.modelBreakdown && detail.modelBreakdown.length > 0) {
@@ -448,12 +518,12 @@ function resolveSessionCost(detail: SessionDetail): { estimatedUsd: number; cach
     let savings = 0;
     for (const m of detail.modelBreakdown) {
       const c = estimateTokenCostUsd(m.model, {
-        freshInputTokens: m.freshInputTokens,
-        cacheReadTokens: m.cacheReadTokens,
-        outputTokens: m.outputTokens,
+        freshInputTokens: safeNonNegNumber(m.freshInputTokens),
+        cacheReadTokens: safeNonNegNumber(m.cacheReadTokens),
+        outputTokens: safeNonNegNumber(m.outputTokens),
       });
-      total += c.totalUsd;
-      savings += c.cacheSavingsUsd;
+      total += safeNonNegNumber(c.totalUsd);
+      savings += safeNonNegNumber(c.cacheSavingsUsd);
     }
     return {
       estimatedUsd: roundUsd(total),
@@ -461,13 +531,13 @@ function resolveSessionCost(detail: SessionDetail): { estimatedUsd: number; cach
     };
   }
   const c = estimateTokenCostUsd(detail.summary.model, {
-    freshInputTokens: detail.summary.totalFreshInputTokens,
-    cacheReadTokens: detail.summary.totalCacheReadTokens,
-    outputTokens: detail.summary.totalOutputTokens,
+    freshInputTokens: safeNonNegNumber(detail.summary.totalFreshInputTokens),
+    cacheReadTokens: safeNonNegNumber(detail.summary.totalCacheReadTokens),
+    outputTokens: safeNonNegNumber(detail.summary.totalOutputTokens),
   });
   return {
-    estimatedUsd: c.totalUsd,
-    cacheSavingsUsd: c.cacheSavingsUsd,
+    estimatedUsd: safeNonNegNumber(c.totalUsd),
+    cacheSavingsUsd: safeNonNegNumber(c.cacheSavingsUsd),
   };
 }
 
@@ -939,10 +1009,10 @@ export function renderUsageCsv(analytics: CostAnalyticsReport): string {
   const rows = analytics.dailyTrend.map((row) =>
     [
       escapeCsvCell(row.date),
-      escapeCsvCell(Math.max(0, Math.round(row.sessions))),
-      escapeCsvCell(Math.max(0, Math.round(row.totalTokens))),
-      escapeCsvCell(roundUsd(row.estimatedUsd).toFixed(4)),
-      escapeCsvCell(Number(Math.max(0, Math.min(1, row.cacheHitRate)).toFixed(4))),
+      escapeCsvCell(Math.round(safeNonNegNumber(row.sessions))),
+      escapeCsvCell(Math.round(safeNonNegNumber(row.totalTokens))),
+      escapeCsvCell(roundUsd(safeNonNegNumber(row.estimatedUsd)).toFixed(4)),
+      escapeCsvCell(Number(Math.min(1, safeNonNegNumber(row.cacheHitRate)).toFixed(4))),
     ].join(','),
   );
   return [header, ...rows].join('\n');

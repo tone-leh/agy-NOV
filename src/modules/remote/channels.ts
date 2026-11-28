@@ -275,8 +275,12 @@ async function postJson(
     redirect: 'error',
     signal: AbortSignal.timeout(6_000),
   });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
+  try {
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+  } finally {
+    await res.body?.cancel?.().catch(() => {});
   }
 }
 

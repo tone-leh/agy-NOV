@@ -22,6 +22,8 @@ import {
 
 export const STUDIO_SQLITE_TIMEOUT_MS = 4000;
 export const STUDIO_SQLITE_MAX_BUFFER_BYTES = 2 * 1024 * 1024;
+const IMMUTABLE_FALLBACK_WARNING =
+  'Read-only directory fallback (immutable=1): WAL skipped; results may omit recent uncheckpointed writes (只读目录跳过 WAL，可能不含最新未 checkpoint 写入).';
 
 const SQLITE_FORBIDDEN_KEYWORDS_RE =
   /\b(?:INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE|VACUUM|ATTACH|DETACH|REINDEX|ANALYZE|LOAD_EXTENSION|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|TRIGGER)\b/i;
@@ -345,15 +347,26 @@ function execSqliteJson(
   realRoot: string,
   realPath: string,
   sql: string,
-): Promise<{ cliAvailable: boolean; rows: Array<Record<string, unknown>> }> {
+  preferImmutable = false,
+): Promise<{
+  cliAvailable: boolean;
+  rows: Array<Record<string, unknown>>;
+  usedImmutableFallback: boolean;
+}> {
   assertSafeSqliteCompanionFiles(realRoot, realPath);
 
   const runExec = (
     useSafeFlag: boolean,
     useImmutableUri: boolean,
-  ): Promise<{ cliAvailable: boolean; rows: Array<Record<string, unknown>> }> =>
+  ): Promise<{
+    cliAvailable: boolean;
+    rows: Array<Record<string, unknown>>;
+    usedImmutableFallback: boolean;
+  }> =>
     new Promise((resolve, reject) => {
-      const targetArg = useImmutableUri ? buildImmutableSqliteUri(realPath) ?? realPath : realPath;
+      const immutableUri = useImmutableUri ? buildImmutableSqliteUri(realPath) : null;
+      const effectiveImmutable = Boolean(useImmutableUri && immutableUri);
+      const targetArg = effectiveImmutable ? immutableUri! : realPath;
       const args = useSafeFlag
         ? [
             '-safe',
@@ -384,6 +397,7 @@ function execSqliteJson(
         args,
         {
           shell: false,
+          windowsHide: true,
           timeout: STUDIO_SQLITE_TIMEOUT_MS,
           maxBuffer: STUDIO_SQLITE_MAX_BUFFER_BYTES,
           encoding: 'utf8',
@@ -392,20 +406,21 @@ function execSqliteJson(
           if (err) {
             const code = (err as NodeJS.ErrnoException).code;
             if (code === 'ENOENT') {
-              resolve({ cliAvailable: false, rows: [] });
+              resolve({ cliAvailable: false, rows: [], usedImmutableFallback: false });
               return;
             }
             const detail = (stderr || err.message || 'sqlite3 execution failed').trim();
             // Graceful fallback for older sqlite3 binaries (< 3.42) that do not support -safe;
             // validateReadOnlySqliteQuery has already blocked all dangerous functions/vtables.
             if (useSafeFlag && /unknown option:\s*-{1,2}safe\b/i.test(detail)) {
-              runExec(false, useImmutableUri).then(resolve, reject);
+              runExec(false, effectiveImmutable).then(resolve, reject);
               return;
             }
             // Fallback for WAL-mode SQLite DBs residing in read-only directories where sqlite3 -readonly
             // cannot create a -shm index file: retry with immutable=1 URI (strictly zero locks & zero disk writes).
             if (
-              !useImmutableUri &&
+              !effectiveImmutable &&
+              buildImmutableSqliteUri(realPath) !== null &&
               /unable to open database file|attempt to write a readonly database|SQLITE_CANTOPEN/i.test(detail)
             ) {
               runExec(useSafeFlag, true).then(resolve, reject);
@@ -432,13 +447,21 @@ function execSqliteJson(
           }
           const trimmed = (stdout || '').trim();
           if (!trimmed) {
-            resolve({ cliAvailable: true, rows: [] });
+            resolve({
+              cliAvailable: true,
+              rows: [],
+              usedImmutableFallback: effectiveImmutable,
+            });
             return;
           }
           try {
             const parsed = JSON.parse(trimmed);
             if (!Array.isArray(parsed)) {
-              resolve({ cliAvailable: true, rows: [] });
+              resolve({
+                cliAvailable: true,
+                rows: [],
+                usedImmutableFallback: effectiveImmutable,
+              });
               return;
             }
             resolve({
@@ -447,6 +470,7 @@ function execSqliteJson(
                 (item): item is Record<string, unknown> =>
                   Boolean(item) && typeof item === 'object' && !Array.isArray(item),
               ),
+              usedImmutableFallback: effectiveImmutable,
             });
           } catch (parseErr) {
             // sqlite3 CLI formats EXPLAIN QUERY PLAN as plain tree text even under -json
@@ -458,6 +482,7 @@ function execSqliteJson(
               resolve({
                 cliAvailable: true,
                 rows: planLines.map((detail, idx) => ({ step: idx + 1, detail })),
+                usedImmutableFallback: effectiveImmutable,
               });
               return;
             }
@@ -471,7 +496,7 @@ function execSqliteJson(
       );
     });
 
-  return runExec(true, false);
+  return runExec(true, preferImmutable);
 }
 
 function quoteSqliteIdentifier(ident: string): string {
@@ -506,6 +531,7 @@ export async function inspectSqliteDatabase(
     realPath,
     "SELECT name, type FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY type, name LIMIT 50",
   );
+  let usedImmutableFallback = masterRes.usedImmutableFallback;
 
   if (!masterRes.cliAvailable) {
     return {
@@ -553,7 +579,9 @@ export async function inspectSqliteDatabase(
         realRoot,
         realPath,
         "SELECT m.name AS table_name, m.type AS table_type, p.cid, p.name, p.type, p.\"notnull\", p.pk, p.dflt_value FROM sqlite_master AS m JOIN pragma_table_info(m.name) AS p WHERE m.type IN ('table', 'view') AND m.name NOT LIKE 'sqlite_%' ORDER BY m.type, m.name, p.cid LIMIT 1500",
+        usedImmutableFallback,
       );
+      if (batchRes.usedImmutableFallback) usedImmutableFallback = true;
       if (batchRes.cliAvailable) {
         const colsByTable = new Map<string, StudioSqliteColumnInfo[]>();
         for (const c of batchRes.rows) {
@@ -590,7 +618,14 @@ export async function inspectSqliteDatabase(
     for (const target of tableTargets) {
       try {
         const pragmaSql = `PRAGMA table_info(${quoteSqliteIdentifier(target.name)})`;
-        const colRes = await execSqliteJson(sqliteBin, realRoot, realPath, pragmaSql);
+        const colRes = await execSqliteJson(
+          sqliteBin,
+          realRoot,
+          realPath,
+          pragmaSql,
+          usedImmutableFallback,
+        );
+        if (colRes.usedImmutableFallback) usedImmutableFallback = true;
         const columns: StudioSqliteColumnInfo[] = colRes.rows.map((c) => ({
           cid: Number(c.cid ?? 0),
           name: String(c.name ?? ''),
@@ -620,6 +655,20 @@ export async function inspectSqliteDatabase(
       .filter((r) => (!needle ? true : rowMatchesFilter(r, needle)));
 
     const sliced = schemaRows.slice(0, limit);
+    const schemaSqliteMeta: NonNullable<StudioDataResult['sqlite']> & {
+      usedImmutableFallback?: boolean;
+    } = {
+      sqliteCliAvailable: true,
+      headerFormat: headerInfo.headerFormat,
+      pageSize: headerInfo.pageSize,
+      tables,
+      ...(usedImmutableFallback
+        ? {
+            usedImmutableFallback: true,
+            note: IMMUTABLE_FALLBACK_WARNING,
+          }
+        : {}),
+    };
     return {
       mode: 'live',
       filePath: relPath,
@@ -631,13 +680,8 @@ export async function inspectSqliteDatabase(
       returnedRows: sliced.length,
       truncated: schemaRows.length > sliced.length,
       filter: filter?.trim() || undefined,
-      summary: `${relPath} (SQLite 3): ${tables.length} table(s)/view(s) discovered (read-only schema view).`,
-      sqlite: {
-        sqliteCliAvailable: true,
-        headerFormat: headerInfo.headerFormat,
-        pageSize: headerInfo.pageSize,
-        tables,
-      },
+      summary: `${relPath} (SQLite 3): ${tables.length} table(s)/view(s) discovered (read-only schema view).${usedImmutableFallback ? ` Warning: ${IMMUTABLE_FALLBACK_WARNING}` : ''}`,
+      sqlite: schemaSqliteMeta,
     };
   }
 
@@ -647,7 +691,14 @@ export async function inspectSqliteDatabase(
     ? `SELECT * FROM (${safeSql}) LIMIT ${limit + 1}`
     : safeSql;
 
-  const queryRes = await execSqliteJson(sqliteBin, realRoot, realPath, wrappedSql);
+  const queryRes = await execSqliteJson(
+    sqliteBin,
+    realRoot,
+    realPath,
+    wrappedSql,
+    usedImmutableFallback,
+  );
+  if (queryRes.usedImmutableFallback) usedImmutableFallback = true;
   const needle = filter?.trim().toLowerCase() || '';
 
   const sanitizedAll = queryRes.rows.map(sanitizeRowRecord);
@@ -662,6 +713,22 @@ export async function inspectSqliteDatabase(
     for (const k of Object.keys(r)) colSet.add(k);
   }
 
+  const querySqliteMeta: NonNullable<StudioDataResult['sqlite']> & {
+    usedImmutableFallback?: boolean;
+  } = {
+    sqliteCliAvailable: true,
+    headerFormat: headerInfo.headerFormat,
+    pageSize: headerInfo.pageSize,
+    tables,
+    executedSql: wrappedSql,
+    ...(usedImmutableFallback
+      ? {
+          usedImmutableFallback: true,
+          note: IMMUTABLE_FALLBACK_WARNING,
+        }
+      : {}),
+  };
+
   return {
     mode: 'live',
     filePath: relPath,
@@ -674,13 +741,7 @@ export async function inspectSqliteDatabase(
     truncated,
     filter: filter?.trim() || undefined,
     query: safeSql,
-    summary: `${relPath} (SQLite 3 read-only query): returned ${rows.length} row(s)${truncated ? ` (truncated at limit ${limit})` : ''}.`,
-    sqlite: {
-      sqliteCliAvailable: true,
-      headerFormat: headerInfo.headerFormat,
-      pageSize: headerInfo.pageSize,
-      tables,
-      executedSql: wrappedSql,
-    },
+    summary: `${relPath} (SQLite 3 read-only query): returned ${rows.length} row(s)${truncated ? ` (truncated at limit ${limit})` : ''}.${usedImmutableFallback ? ` Warning: ${IMMUTABLE_FALLBACK_WARNING}` : ''}`,
+    sqlite: querySqliteMeta,
   };
 }

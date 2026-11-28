@@ -106,6 +106,43 @@ export const PAIR_MAX_FAILURES = 5;
 export const PAIR_LOCKOUT_MS = 15 * 60 * 1000;
 export const MAX_SSE_CLIENTS = 16;
 export const SSE_KEEPALIVE_INTERVAL_MS = 25_000;
+const MIN_APPROVAL_TIMEOUT_SEC = 1;
+const MAX_APPROVAL_TIMEOUT_SEC = 300;
+const DEFAULT_APPROVAL_TIMEOUT_SEC = 25;
+const MIN_WAIT_MS = 1_000;
+const MAX_WAIT_MS = 300_000;
+const DEFAULT_HOOK_WAIT_MS = 24_000;
+
+function clampApprovalTimeoutSec(raw: unknown, fallback = DEFAULT_APPROVAL_TIMEOUT_SEC): number {
+  const safeFallback = Number.isFinite(fallback)
+    ? Math.min(MAX_APPROVAL_TIMEOUT_SEC, Math.max(MIN_APPROVAL_TIMEOUT_SEC, fallback))
+    : DEFAULT_APPROVAL_TIMEOUT_SEC;
+  if (raw === undefined || raw === null || raw === '') {
+    return safeFallback;
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return safeFallback;
+  }
+  return Math.min(MAX_APPROVAL_TIMEOUT_SEC, Math.max(MIN_APPROVAL_TIMEOUT_SEC, parsed));
+}
+
+function clampWaitMs(raw: unknown, fallback = DEFAULT_HOOK_WAIT_MS, allowZero = false): number {
+  const safeFallback = Number.isFinite(fallback)
+    ? Math.min(MAX_WAIT_MS, Math.max(MIN_WAIT_MS, Math.floor(fallback)))
+    : DEFAULT_HOOK_WAIT_MS;
+  if (raw === undefined || raw === null || raw === '') {
+    return safeFallback;
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return safeFallback;
+  }
+  if (allowZero && parsed === 0) {
+    return 0;
+  }
+  return Math.min(MAX_WAIT_MS, Math.max(MIN_WAIT_MS, Math.floor(parsed)));
+}
 
 export interface GatewayOptions {
   pinTtlMs?: number;
@@ -612,7 +649,8 @@ export class RemoteGateway {
     toolInput?: Record<string, unknown> | string;
     riskCard?: ApprovalRiskCard;
   }): Promise<ApprovalRequest> {
-    const timeoutMs = Math.max(100, (input.timeoutSec ?? this.config.approvalTimeoutSec) * 1000);
+    const safeTimeoutSec = clampApprovalTimeoutSec(input.timeoutSec, this.config.approvalTimeoutSec);
+    const timeoutMs = Math.round(safeTimeoutSec * 1000);
     const now = this.nowFn();
     const safeSummary = redactLiveStreamText(redactText(input.summary)).slice(0, 400);
     const riskCard =
@@ -701,6 +739,7 @@ export class RemoteGateway {
     const cur = this.approvals.get(id);
     if (!cur) return Promise.resolve(null);
     if (cur.status !== 'pending') return Promise.resolve(cur);
+    const safeMaxWaitMs = clampWaitMs(maxWaitMs, DEFAULT_HOOK_WAIT_MS, false);
     return new Promise((resolve) => {
       let settled = false;
       const finish = (finalReq: ApprovalRequest | null) => {
@@ -718,7 +757,7 @@ export class RemoteGateway {
           else this.waiters.delete(id);
         }
         finish(this.approvals.get(id) ?? null);
-      }, maxWaitMs);
+      }, safeMaxWaitMs);
       timer.unref();
       const list = this.waiters.get(id) ?? [];
       list.push(waiterCb);
@@ -1002,15 +1041,16 @@ export class RemoteGateway {
         // Hook endpoint: request approval & optionally long-poll until decided
         if (url.pathname === '/api/hooks/approval' && req.method === 'POST') {
           const body = await this.readBody(req);
+          const timeoutSec = clampApprovalTimeoutSec(body.timeoutSec, this.config.approvalTimeoutSec);
           const created = await this.createApproval({
             conversationId: String(body.conversationId ?? 'unknown'),
             toolName: String(body.toolName ?? 'run_command'),
             summary: String(body.summary ?? ''),
             matchedRule: String(body.matchedRule ?? 'risk'),
-            timeoutSec: Number(body.timeoutSec ?? this.config.approvalTimeoutSec),
+            timeoutSec,
             riskCard: sanitizeIncomingRiskCard(body.riskCard),
           });
-          const waitMs = Math.min(26_000, Number(body.waitMs ?? 24_000));
+          const waitMs = clampWaitMs(body.waitMs, DEFAULT_HOOK_WAIT_MS, true);
           const finalReq = waitMs > 0 ? await this.waitForApproval(created.id, waitMs) : created;
           this.writeJson(res, 200, { approval: finalReq ?? created });
           return;
@@ -1047,10 +1087,17 @@ export class RemoteGateway {
         // Decide approval
         const decideMatch = url.pathname.match(/^\/api\/approvals\/([^/]+)\/decide$/);
         if (decideMatch && req.method === 'POST') {
+          let approvalId: string;
+          try {
+            approvalId = decodeURIComponent(decideMatch[1]);
+          } catch {
+            this.writeJson(res, 400, { error: 'Invalid approvalId encoding' });
+            return;
+          }
           const body = await this.readBody(req);
           const decision = body.decision === 'approved' ? 'approved' : 'denied';
           const actor = String(body.actor ?? 'mobile-pwa');
-          const updated = this.decideApproval(decodeURIComponent(decideMatch[1]), decision, actor);
+          const updated = this.decideApproval(approvalId, decision, actor);
           this.writeJson(res, updated ? 200 : 404, { approval: updated });
           return;
         }
@@ -1161,6 +1208,18 @@ export class RemoteGateway {
         };
         const onListening = () => {
           srv.off('error', onError);
+          srv.on('error', () => {
+            // Guard against unhandled runtime server errors crashing the MCP process
+          });
+          srv.on('clientError', (_err, socket) => {
+            try {
+              if (socket.writable) {
+                socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+              }
+            } catch {
+              // ignore broken client socket
+            }
+          });
           const addr = srv.address() as AddressInfo | null;
           if (addr?.port) this.actualPort = addr.port;
           this.boundHost = addr?.address || bindHost;

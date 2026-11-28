@@ -7,6 +7,7 @@ import {
   canonicalRealpathSync,
   isPathInsideDir,
   isSamePath,
+  withFileLockSync,
 } from '../../core/utils.js';
 import { computeLineDiff } from './diff.js';
 import {
@@ -19,6 +20,7 @@ import {
   DEFAULT_POLICY,
   type AuditEvent,
   type GuardDashboardState,
+  type GuardDecision,
   type GuardPolicy,
   type SnapshotDiff,
   type SnapshotRecord,
@@ -164,16 +166,50 @@ function assertNotSensitive(
 }
 
 const MAX_GUARD_STORE_JSON_BYTES = 16 * 1024 * 1024;
+const VALID_GUARD_DECISIONS: ReadonlySet<string> = new Set(['allow', 'ask', 'force_ask', 'deny']);
 
-function readJsonSafe<T>(filePath: string, fallback: T): T {
+function policyPath(dataDir: string): string {
+  return path.join(dataDir, 'policy.json');
+}
+
+function snapshotsPath(dataDir: string): string {
+  return path.join(dataDir, 'snapshots.json');
+}
+
+function auditPath(dataDir: string): string {
+  return path.join(dataDir, 'audit.json');
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeGuardDecision(raw: unknown, fallback: GuardDecision): GuardDecision {
+  return typeof raw === 'string' && VALID_GUARD_DECISIONS.has(raw)
+    ? (raw as GuardDecision)
+    : fallback;
+}
+
+function normalizePolicyStringArray(raw: unknown, fallback: readonly string[]): string[] {
+  if (!Array.isArray(raw)) return [...fallback];
+  return raw.filter((item): item is string => typeof item === 'string');
+}
+
+function normalizePositiveInt(raw: unknown, fallback: number): number {
+  return typeof raw === 'number' && Number.isFinite(raw) && raw >= 1
+    ? Math.floor(raw)
+    : fallback;
+}
+
+function readJsonSafe(filePath: string): unknown {
   try {
     const st = fs.lstatSync(filePath);
     if (st.isSymbolicLink() || !st.isFile() || st.size > MAX_GUARD_STORE_JSON_BYTES) {
-      return fallback;
+      return undefined;
     }
-    return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
+    return JSON.parse(fs.readFileSync(filePath, 'utf8')) as unknown;
   } catch {
-    return fallback;
+    return undefined;
   }
 }
 
@@ -181,30 +217,72 @@ export function sha256Buffer(buf: Buffer | string): string {
   return crypto.createHash('sha256').update(buf).digest('hex');
 }
 
-export function loadPolicy(dataDir: string): GuardPolicy {
-  const stored = readJsonSafe<Partial<GuardPolicy>>(path.join(dataDir, 'policy.json'), {});
+function normalizeGuardPolicy(
+  raw: unknown,
+  fallback: GuardPolicy = DEFAULT_POLICY,
+): GuardPolicy {
+  const stored: Partial<Record<keyof GuardPolicy, unknown>> = isPlainObject(raw) ? raw : {};
   return {
-    ...DEFAULT_POLICY,
-    ...stored,
-    permissionMode: normalizePermissionMode(stored.permissionMode),
-    blockInboundPromptSecrets: normalizeBlockInboundPromptSecrets(stored.blockInboundPromptSecrets),
+    ...fallback,
+    enabled: typeof stored.enabled === 'boolean' ? stored.enabled : fallback.enabled,
+    permissionMode: normalizePermissionMode(stored.permissionMode ?? fallback.permissionMode),
+    protectEnvAndKeys: normalizeGuardDecision(
+      stored.protectEnvAndKeys,
+      fallback.protectEnvAndKeys,
+    ),
+    blockSecretWrites: normalizeGuardDecision(
+      stored.blockSecretWrites,
+      fallback.blockSecretWrites,
+    ),
+    blockInboundPromptSecrets: normalizeBlockInboundPromptSecrets(
+      stored.blockInboundPromptSecrets !== undefined
+        ? stored.blockInboundPromptSecrets
+        : fallback.blockInboundPromptSecrets,
+    ),
+    blockDestructiveCommands: normalizeGuardDecision(
+      stored.blockDestructiveCommands,
+      fallback.blockDestructiveCommands,
+    ),
+    askOnNetworkPipes: normalizeGuardDecision(
+      stored.askOnNetworkPipes,
+      fallback.askOnNetworkPipes,
+    ),
+    autoSnapshotBeforeEdit:
+      typeof stored.autoSnapshotBeforeEdit === 'boolean'
+        ? stored.autoSnapshotBeforeEdit
+        : fallback.autoSnapshotBeforeEdit,
+    maxSnapshotsPerFile: normalizePositiveInt(
+      stored.maxSnapshotsPerFile,
+      fallback.maxSnapshotsPerFile,
+    ),
+    maxSnapshotFileBytes: normalizePositiveInt(
+      stored.maxSnapshotFileBytes,
+      fallback.maxSnapshotFileBytes,
+    ),
+    customProtectedPaths: normalizePolicyStringArray(
+      stored.customProtectedPaths,
+      fallback.customProtectedPaths,
+    ),
+    customBlockedCommands: normalizePolicyStringArray(
+      stored.customBlockedCommands,
+      fallback.customBlockedCommands,
+    ),
   };
 }
 
+export function loadPolicy(dataDir: string): GuardPolicy {
+  const raw = readJsonSafe(policyPath(dataDir));
+  return normalizeGuardPolicy(raw, DEFAULT_POLICY);
+}
+
 export function savePolicy(dataDir: string, patch: Partial<GuardPolicy>): GuardPolicy {
-  const current = loadPolicy(dataDir);
-  const next: GuardPolicy = {
-    ...current,
-    ...patch,
-    permissionMode: normalizePermissionMode(patch.permissionMode ?? current.permissionMode),
-    blockInboundPromptSecrets: normalizeBlockInboundPromptSecrets(
-      patch.blockInboundPromptSecrets !== undefined
-        ? patch.blockInboundPromptSecrets
-        : current.blockInboundPromptSecrets,
-    ),
-  };
-  writePrivateJson(path.join(dataDir, 'policy.json'), next);
-  return next;
+  const targetPath = policyPath(dataDir);
+  return withFileLockSync(targetPath, () => {
+    const current = loadPolicy(dataDir);
+    const next = normalizeGuardPolicy(patch, current);
+    writePrivateJson(targetPath, next);
+    return next;
+  });
 }
 
 function sanitizeTurnSegment(raw: string): string {
@@ -281,22 +359,25 @@ export function deriveTurnKey(
 }
 
 export function loadSnapshots(dataDir: string): SnapshotRecord[] {
-  return readJsonSafe<SnapshotRecord[]>(path.join(dataDir, 'snapshots.json'), []);
+  const raw = readJsonSafe(snapshotsPath(dataDir));
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((item): item is SnapshotRecord => isPlainObject(item));
 }
 
 export function saveSnapshots(dataDir: string, records: SnapshotRecord[]): void {
-  writePrivateJson(path.join(dataDir, 'snapshots.json'), records);
+  writePrivateJson(snapshotsPath(dataDir), records);
 }
 
 export function loadAuditLog(dataDir: string): AuditEvent[] {
-  return readJsonSafe<AuditEvent[]>(path.join(dataDir, 'audit.json'), []);
+  const raw = readJsonSafe(auditPath(dataDir));
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((item): item is AuditEvent => isPlainObject(item));
 }
 
 export function appendAuditEvent(
   dataDir: string,
   event: Omit<AuditEvent, 'id' | 'timestamp'> & { id?: string; timestamp?: string },
 ): AuditEvent {
-  const existing = loadAuditLog(dataDir);
   const full: AuditEvent = {
     id: event.id ?? `evt_${crypto.randomBytes(5).toString('hex')}`,
     timestamp: event.timestamp ?? new Date().toISOString(),
@@ -310,8 +391,12 @@ export function appendAuditEvent(
     snapshotId: event.snapshotId,
     isDemo: event.isDemo,
   };
-  const next = [full, ...existing].slice(0, 200);
-  writePrivateJson(path.join(dataDir, 'audit.json'), next);
+  const targetPath = auditPath(dataDir);
+  withFileLockSync(targetPath, () => {
+    const existing = loadAuditLog(dataDir);
+    const next = [full, ...existing].slice(0, 200);
+    writePrivateJson(targetPath, next);
+  });
   return full;
 }
 
@@ -391,6 +476,7 @@ export function capturePreEditSnapshot(params: {
   let sha256 = 'EMPTY_FILE';
   let sizeBytes = 0;
   let lineCount = 0;
+  let rawBytes: Buffer | null = null;
 
   if (existed) {
     const stat = fs.statSync(safePath);
@@ -399,140 +485,162 @@ export function capturePreEditSnapshot(params: {
     }
     const raw = fs.readFileSync(safePath);
     if (raw.includes(0)) return null;
+    rawBytes = raw;
     sha256 = sha256Buffer(raw);
     sizeBytes = raw.byteLength;
     lineCount = raw.toString('utf8').split(/\r?\n/).length;
-
-    const safeBlobsDir = resolveSafeBlobsDir(dataDir, true);
-    if (!safeBlobsDir) {
-      throw new Error('Refused unsafe or symlinked Guard snapshot blobs directory');
-    }
-    const targetBlob = path.join(safeBlobsDir, `${sha256}.blob`);
-    let blobExists = false;
-    try {
-      const existingSt = fs.lstatSync(targetBlob);
-      if (existingSt.isSymbolicLink() || !existingSt.isFile()) {
-        throw new Error('Refused unsafe or symlinked Guard snapshot blob target');
-      }
-      blobExists = true;
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-        throw err;
-      }
-    }
-    if (!blobExists) {
-      const tmpBlob = path.join(
-        safeBlobsDir,
-        `${sha256}.blob.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`,
-      );
-      try {
-        fs.writeFileSync(tmpBlob, raw, { mode: 0o600, flag: 'wx' });
-        try {
-          fs.chmodSync(tmpBlob, 0o600);
-        } catch {
-          // Ignore on platforms where chmod is unsupported
-        }
-        atomicRenameSync(tmpBlob, targetBlob);
-      } catch (err) {
-        try {
-          if (fs.existsSync(tmpBlob)) fs.unlinkSync(tmpBlob);
-        } catch {
-          // ignore cleanup
-        }
-        throw err;
-      }
-    }
   }
 
   const isManualCheckpoint = toolName === 'guard_create_checkpoint' || toolName === 'create_checkpoint';
-  const all = loadSnapshots(dataDir);
-  const latestForFile = all.find((s) => isSamePath(s.filePath, safePath) && !s.isDemo);
-  const sameTurn = (latestForFile?.turnKey ?? undefined) === (turnKey ?? undefined);
-  if (
-    latestForFile &&
-    sameTurn &&
-    latestForFile.sha256 === sha256 &&
-    latestForFile.existed === existed &&
-    !isManualCheckpoint &&
-    !restoredFromId
-  ) {
-    return latestForFile;
-  }
 
-  // Keep snapshot timestamps strictly monotonic within the same millisecond so earliest-in-turn selection is deterministic.
-  let createdMs = Date.now();
-  const newestPrevMs = all.reduce((max, s) => {
-    const t = Date.parse(s.createdAt);
-    return Number.isFinite(t) && t > max ? t : max;
-  }, 0);
-  if (newestPrevMs >= createdMs && newestPrevMs - createdMs < 60_000) {
-    createdMs = newestPrevMs + 1;
-  }
+  const outcome = withFileLockSync(snapshotsPath(dataDir), () => {
+    const all = loadSnapshots(dataDir);
+    const latestForFile = all.find(
+      (s) => typeof s.filePath === 'string' && isSamePath(s.filePath, safePath) && !s.isDemo,
+    );
+    const sameTurn = (latestForFile?.turnKey ?? undefined) === (turnKey ?? undefined);
+    if (
+      latestForFile &&
+      sameTurn &&
+      latestForFile.sha256 === sha256 &&
+      latestForFile.existed === existed &&
+      !isManualCheckpoint &&
+      !restoredFromId
+    ) {
+      return { record: latestForFile, deduplicated: true as const };
+    }
 
-  const record: SnapshotRecord = {
-    id: `snap_${createdMs.toString(36)}_${crypto.randomBytes(3).toString('hex')}`,
-    filePath: safePath,
-    relPath,
-    toolName,
-    reason,
-    createdAt: new Date(createdMs).toISOString(),
-    sha256,
-    sizeBytes,
-    lineCount,
-    existed,
-    ...(turnKey ? { turnKey } : {}),
-    ...(conversationId ? { conversationId } : {}),
-    ...(typeof stepIdx === 'number' && Number.isFinite(stepIdx) ? { stepIdx } : {}),
-    ...(restoredFromId ? { restoredFromId } : {}),
-  };
-
-  const sameFile = [record, ...all.filter((s) => isSamePath(s.filePath, safePath))].slice(0, policy.maxSnapshotsPerFile);
-  const others = all.filter((s) => !isSamePath(s.filePath, safePath));
-  const next = [...sameFile, ...others]
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, 300);
-
-  saveSnapshots(dataDir, next);
-
-  // O(1) targeted GC: unlink ONLY blobs belonging to snapshots explicitly evicted from `all`
-  // whose content hash is no longer referenced by either `next` OR the freshest disk snapshot list,
-  // strictly inside a verified non-symlink `blobs/` directory (safe under concurrent sessions).
-  const keptIds = new Set(next.map((s) => s.id));
-  const evicted = all.filter((s) => !keptIds.has(s.id));
-  if (evicted.length > 0) {
-    try {
-      const safeBlobsDir = resolveSafeBlobsDir(dataDir, false);
-      if (safeBlobsDir) {
-        const latestDisk = loadSnapshots(dataDir);
-        const activeHashes = new Set<string>([
-          ...next.map((s) => s.sha256),
-          ...latestDisk.map((s) => s.sha256),
-        ]);
-        const candidateHashes = new Set<string>();
-        for (const snap of evicted) {
-          if (snap.sha256 && /^[a-f0-9]{64}$/i.test(snap.sha256) && !activeHashes.has(snap.sha256)) {
-            candidateHashes.add(snap.sha256);
-          }
+    if (existed && rawBytes !== null) {
+      const safeBlobsDir = resolveSafeBlobsDir(dataDir, true);
+      if (!safeBlobsDir) {
+        throw new Error('Refused unsafe or symlinked Guard snapshot blobs directory');
+      }
+      const targetBlob = path.join(safeBlobsDir, `${sha256}.blob`);
+      let blobExists = false;
+      try {
+        const existingSt = fs.lstatSync(targetBlob);
+        if (existingSt.isSymbolicLink() || !existingSt.isFile()) {
+          throw new Error('Refused unsafe or symlinked Guard snapshot blob target');
         }
-        for (const hash of candidateHashes) {
-          const orphanPath = path.join(safeBlobsDir, `${hash}.blob`);
-          try {
-            const st = fs.lstatSync(orphanPath);
-            if (!st.isSymbolicLink() && st.isFile()) {
-              const realOrphan = canonicalRealpathSync(orphanPath);
-              if (isPathInsideDir(safeBlobsDir, realOrphan)) {
-                fs.unlinkSync(realOrphan);
-              }
-            }
-          } catch {
-            // ignore missing or concurrent unlink
-          }
+        blobExists = true;
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+          throw err;
         }
       }
-    } catch {
-      // Best-effort cleanup only
+      if (!blobExists) {
+        const tmpBlob = path.join(
+          safeBlobsDir,
+          `${sha256}.blob.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`,
+        );
+        try {
+          fs.writeFileSync(tmpBlob, rawBytes, { mode: 0o600, flag: 'wx' });
+          try {
+            fs.chmodSync(tmpBlob, 0o600);
+          } catch {
+            // Ignore on platforms where chmod is unsupported
+          }
+          atomicRenameSync(tmpBlob, targetBlob);
+        } catch (err) {
+          try {
+            if (fs.existsSync(tmpBlob)) fs.unlinkSync(tmpBlob);
+          } catch {
+            // ignore cleanup
+          }
+          throw err;
+        }
+      }
     }
+
+    // Keep snapshot timestamps strictly monotonic within the same millisecond so earliest-in-turn selection is deterministic.
+    let createdMs = Date.now();
+    const newestPrevMs = all.reduce((max, s) => {
+      const t = typeof s.createdAt === 'string' ? Date.parse(s.createdAt) : Number.NaN;
+      return Number.isFinite(t) && t > max ? t : max;
+    }, 0);
+    if (newestPrevMs >= createdMs && newestPrevMs - createdMs < 60_000) {
+      createdMs = newestPrevMs + 1;
+    }
+
+    const record: SnapshotRecord = {
+      id: `snap_${createdMs.toString(36)}_${crypto.randomBytes(3).toString('hex')}`,
+      filePath: safePath,
+      relPath,
+      toolName,
+      reason,
+      createdAt: new Date(createdMs).toISOString(),
+      sha256,
+      sizeBytes,
+      lineCount,
+      existed,
+      ...(turnKey ? { turnKey } : {}),
+      ...(conversationId ? { conversationId } : {}),
+      ...(typeof stepIdx === 'number' && Number.isFinite(stepIdx) ? { stepIdx } : {}),
+      ...(restoredFromId ? { restoredFromId } : {}),
+    };
+
+    const sameFile = [
+      record,
+      ...all.filter((s) => typeof s.filePath === 'string' && isSamePath(s.filePath, safePath)),
+    ].slice(0, policy.maxSnapshotsPerFile);
+    const others = all.filter((s) => typeof s.filePath !== 'string' || !isSamePath(s.filePath, safePath));
+    const next = [...sameFile, ...others]
+      .sort((a, b) => {
+        const bCreated = typeof b.createdAt === 'string' ? b.createdAt : '';
+        const aCreated = typeof a.createdAt === 'string' ? a.createdAt : '';
+        return bCreated.localeCompare(aCreated);
+      })
+      .slice(0, 300);
+
+    saveSnapshots(dataDir, next);
+
+    // O(1) targeted GC: unlink ONLY blobs belonging to snapshots explicitly evicted from `all`
+    // whose content hash is no longer referenced by either `next` OR the freshest disk snapshot list,
+    // strictly inside a verified non-symlink `blobs/` directory (safe under concurrent sessions).
+    const keptIds = new Set(next.map((s) => s.id));
+    const evicted = all.filter((s) => !keptIds.has(s.id));
+    if (evicted.length > 0) {
+      try {
+        const safeBlobsDir = resolveSafeBlobsDir(dataDir, false);
+        if (safeBlobsDir) {
+          const latestDisk = loadSnapshots(dataDir);
+          const activeHashes = new Set<string>([
+            ...next.map((s) => s.sha256),
+            ...latestDisk.map((s) => s.sha256),
+          ]);
+          const candidateHashes = new Set<string>();
+          for (const snap of evicted) {
+            if (snap.sha256 && /^[a-f0-9]{64}$/i.test(snap.sha256) && !activeHashes.has(snap.sha256)) {
+              candidateHashes.add(snap.sha256);
+            }
+          }
+          for (const hash of candidateHashes) {
+            const orphanPath = path.join(safeBlobsDir, `${hash}.blob`);
+            try {
+              const st = fs.lstatSync(orphanPath);
+              if (!st.isSymbolicLink() && st.isFile()) {
+                const realOrphan = canonicalRealpathSync(orphanPath);
+                if (isPathInsideDir(safeBlobsDir, realOrphan)) {
+                  fs.unlinkSync(realOrphan);
+                }
+              }
+            } catch {
+              // ignore missing or concurrent unlink
+            }
+          }
+        }
+      } catch {
+        // Best-effort cleanup only
+      }
+    }
+
+    return { record, deduplicated: false as const };
+  });
+
+  if (outcome.deduplicated) {
+    return outcome.record;
   }
+
   appendAuditEvent(dataDir, {
     event: isManualCheckpoint ? 'Checkpoint' : 'PreToolUse',
     toolName,
@@ -542,10 +650,10 @@ export function capturePreEditSnapshot(params: {
     summary: existed
       ? `Saved pre-edit snapshot (${lineCount} lines, ${sizeBytes} B) before ${toolName}`
       : `Recorded pre-create marker before ${toolName} creates ${relPath}`,
-    snapshotId: record.id,
+    snapshotId: outcome.record.id,
   });
 
-  return record;
+  return outcome.record;
 }
 
 export function groupSnapshotsByTurn(snapshots: SnapshotRecord[]): TurnCheckpointSummary[] {
@@ -555,13 +663,15 @@ export function groupSnapshotsByTurn(snapshots: SnapshotRecord[]): TurnCheckpoin
   // so that the first encounter of each file in a turn is the earliest (pre-first-edit) snapshot.
   const indexed = snapshots.map((snap, idx) => ({ snap, idx }));
   indexed.sort((a, b) => {
-    const ta = Date.parse(a.snap.createdAt);
-    const tb = Date.parse(b.snap.createdAt);
+    const aStr = typeof a.snap.createdAt === 'string' ? a.snap.createdAt : '';
+    const bStr = typeof b.snap.createdAt === 'string' ? b.snap.createdAt : '';
+    const ta = Date.parse(aStr);
+    const tb = Date.parse(bStr);
     const aValid = Number.isFinite(ta);
     const bValid = Number.isFinite(tb);
     if (aValid && bValid && ta !== tb) return ta - tb;
-    if (a.snap.createdAt !== b.snap.createdAt) {
-      return a.snap.createdAt.localeCompare(b.snap.createdAt);
+    if (aStr !== bStr) {
+      return aStr.localeCompare(bStr);
     }
     return b.idx - a.idx;
   });
@@ -578,14 +688,18 @@ export function groupSnapshotsByTurn(snapshots: SnapshotRecord[]): TurnCheckpoin
   const groups = new Map<string, MutableTurnGroup>();
 
   for (const { snap } of indexed) {
-    const turnKey = snap.turnKey && snap.turnKey.trim() ? snap.turnKey.trim() : `legacy:${snap.id}`;
+    const snapCreatedAt = typeof snap.createdAt === 'string' ? snap.createdAt : '';
+    const turnKey =
+      typeof snap.turnKey === 'string' && snap.turnKey.trim()
+        ? snap.turnKey.trim()
+        : `legacy:${snap.id}`;
     let group = groups.get(turnKey);
     if (!group) {
       group = {
         turnKey,
         conversationId: snap.conversationId,
-        createdAt: snap.createdAt,
-        latestAt: snap.createdAt,
+        createdAt: snapCreatedAt,
+        latestAt: snapCreatedAt,
         fileMap: new Map<string, TurnCheckpointFileEntry>(),
         toolSet: new Set<string>(),
       };
@@ -595,11 +709,11 @@ export function groupSnapshotsByTurn(snapshots: SnapshotRecord[]): TurnCheckpoin
     if (!group.conversationId && snap.conversationId) {
       group.conversationId = snap.conversationId;
     }
-    if (snap.createdAt.localeCompare(group.createdAt) < 0) {
-      group.createdAt = snap.createdAt;
+    if (snapCreatedAt.localeCompare(group.createdAt) < 0) {
+      group.createdAt = snapCreatedAt;
     }
-    if (snap.createdAt.localeCompare(group.latestAt) > 0) {
-      group.latestAt = snap.createdAt;
+    if (snapCreatedAt.localeCompare(group.latestAt) > 0) {
+      group.latestAt = snapCreatedAt;
     }
     group.toolSet.add(snap.toolName);
 
@@ -612,7 +726,7 @@ export function groupSnapshotsByTurn(snapshots: SnapshotRecord[]): TurnCheckpoin
         existed: snap.existed,
         sizeBytes: snap.sizeBytes,
         toolName: snap.toolName,
-        createdAt: snap.createdAt,
+        createdAt: snapCreatedAt,
       });
     }
   }

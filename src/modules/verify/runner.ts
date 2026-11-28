@@ -1,13 +1,14 @@
 import { execFile, execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { canonicalRealpathSync, isSamePath } from '../../core/fs-safe.js';
+import { canonicalRealpathSync, isSamePath, withFileLockSync } from '../../core/fs-safe.js';
 import { resolveSafeSpawnTarget } from '../../core/process-safe.js';
 import { validateVerifyCommand } from './allowlist.js';
 import { redactVerifyOutput } from './sanitize.js';
 import {
   appendEvidenceToState,
   createEvidenceId,
+  getVerifyStatePath,
   loadVerifyStateReadOnly,
   resolveRealPathWithMissingTail,
   saveVerifyState,
@@ -667,95 +668,97 @@ export async function runVerifyChecksLive(
   const nowIso = new Date().toISOString();
   const convId = options.conversationId?.trim() || 'manual';
 
-  // Reload latest state from disk before persisting so concurrent session/policy updates are preserved
-  const state = loadVerifyStateReadOnly(moduleDataDir);
+  // Reload latest state from disk under cross-process file lock so concurrent hook updates are preserved
+  return withFileLockSync(getVerifyStatePath(moduleDataDir), () => {
+    const state = loadVerifyStateReadOnly(moduleDataDir);
 
-  let realWorkspace: string | undefined;
-  try {
-    realWorkspace = resolveRealPathWithMissingTail(executionRoot);
-  } catch {
-    realWorkspace = undefined;
-  }
+    let realWorkspace: string | undefined;
+    try {
+      realWorkspace = resolveRealPathWithMissingTail(executionRoot);
+    } catch {
+      realWorkspace = undefined;
+    }
 
-  // Update matching session verification timestamps when running full check suite or targeted session
-  const targetSessions: VerifySessionRecord[] = [];
-  if (options.conversationId && state.sessions[convId]) {
-    targetSessions.push(state.sessions[convId]);
-  } else if (!options.commandId) {
-    for (const s of Object.values(state.sessions)) {
-      if (s.dirtyFiles.length === 0 && s.emptyFiles.length === 0) continue;
-      if (!s.workspaceRoot || !realWorkspace) {
-        targetSessions.push(s);
-      } else {
-        try {
-          if (isSamePath(resolveRealPathWithMissingTail(s.workspaceRoot), realWorkspace)) {
-            targetSessions.push(s);
+    // Update matching session verification timestamps when running full check suite or targeted session
+    const targetSessions: VerifySessionRecord[] = [];
+    if (options.conversationId && state.sessions[convId]) {
+      targetSessions.push(state.sessions[convId]);
+    } else if (!options.commandId) {
+      for (const s of Object.values(state.sessions)) {
+        if (s.dirtyFiles.length === 0 && s.emptyFiles.length === 0) continue;
+        if (!s.workspaceRoot || !realWorkspace) {
+          targetSessions.push(s);
+        } else {
+          try {
+            if (isSamePath(resolveRealPathWithMissingTail(s.workspaceRoot), realWorkspace)) {
+              targetSessions.push(s);
+            }
+          } catch {
+            // ignore unresolvable workspace
           }
-        } catch {
-          // ignore unresolvable workspace
         }
       }
     }
-  }
 
-  const dirtyFilesSet = new Set<string>();
-  const emptyFilesSet = new Set<string>();
-  for (const s of targetSessions) {
-    const curEmpty = scanEmptyWorkspaceFiles(s.workspaceRoot ?? executionRoot, [
-      ...s.dirtyFiles,
-      ...s.emptyFiles,
-    ]);
-    s.emptyFiles = curEmpty;
-    for (const f of s.dirtyFiles) dirtyFilesSet.add(f);
-    for (const f of curEmpty) emptyFilesSet.add(f);
+    const dirtyFilesSet = new Set<string>();
+    const emptyFilesSet = new Set<string>();
+    for (const s of targetSessions) {
+      const curEmpty = scanEmptyWorkspaceFiles(s.workspaceRoot ?? executionRoot, [
+        ...s.dirtyFiles,
+        ...s.emptyFiles,
+      ]);
+      s.emptyFiles = curEmpty;
+      for (const f of s.dirtyFiles) dirtyFilesSet.add(f);
+      for (const f of curEmpty) emptyFilesSet.add(f);
 
-    const editedDuringRun =
-      !initialLastEditAt.has(s.conversationId) ||
-      initialLastEditAt.get(s.conversationId) !== s.lastEditAt;
+      const editedDuringRun =
+        !initialLastEditAt.has(s.conversationId) ||
+        initialLastEditAt.get(s.conversationId) !== s.lastEditAt;
 
-    if (!options.commandId && !editedDuringRun) {
-      const lastEditMs = s.lastEditAt ? Date.parse(s.lastEditAt) : Number.NaN;
-      const verifiedTs =
-        Number.isFinite(lastEditMs) && Date.parse(nowIso) <= lastEditMs
-          ? new Date(lastEditMs + 1).toISOString()
-          : nowIso;
+      if (!options.commandId && !editedDuringRun) {
+        const lastEditMs = s.lastEditAt ? Date.parse(s.lastEditAt) : Number.NaN;
+        const verifiedTs =
+          Number.isFinite(lastEditMs) && Date.parse(nowIso) <= lastEditMs
+            ? new Date(lastEditMs + 1).toISOString()
+            : nowIso;
 
-      s.lastVerifiedAt = verifiedTs;
-      s.lastVerifiedPassed = runOut.passed && curEmpty.length === 0;
-      if (s.lastVerifiedPassed) {
-        s.consecutiveBlocks = 0;
+        s.lastVerifiedAt = verifiedTs;
+        s.lastVerifiedPassed = runOut.passed && curEmpty.length === 0;
+        if (s.lastVerifiedPassed) {
+          s.consecutiveBlocks = 0;
+        }
+        s.updatedAt = verifiedTs;
       }
-      s.updatedAt = verifiedTs;
     }
-  }
 
-  const passedCount = runOut.results.filter((r) => r.passed).length;
-  const summary =
-    runOut.results.length === 0
-      ? 'No enabled verification commands configured; check passed.'
-      : runOut.passed
-        ? `All ${runOut.results.length} verification command(s) passed in ${runOut.durationMs}ms.`
-        : `${runOut.results.length - passedCount}/${runOut.results.length} verification command(s) failed.`;
+    const passedCount = runOut.results.filter((r) => r.passed).length;
+    const summary =
+      runOut.results.length === 0
+        ? 'No enabled verification commands configured; check passed.'
+        : runOut.passed
+          ? `All ${runOut.results.length} verification command(s) passed in ${runOut.durationMs}ms.`
+          : `${runOut.results.length - passedCount}/${runOut.results.length} verification command(s) failed.`;
 
-  const record: VerifyEvidenceRecord = {
-    id: createEvidenceId('ver'),
-    conversationId: convId,
-    trigger: options.trigger ?? 'manual',
-    outcome: runOut.passed ? 'pass' : 'fail',
-    passed: runOut.passed,
-    timestamp: nowIso,
-    durationMs: runOut.durationMs,
-    dirtyFiles: [...dirtyFilesSet],
-    emptyFiles: [...emptyFilesSet],
-    results: runOut.results,
-    summary,
-    ...(targetResolution.branch ? { targetBranch: targetResolution.branch } : {}),
-    ...(options.worktreePath || targetResolution.isWorktree
-      ? { targetWorktree: executionRoot }
-      : {}),
-  };
+    const record: VerifyEvidenceRecord = {
+      id: createEvidenceId('ver'),
+      conversationId: convId,
+      trigger: options.trigger ?? 'manual',
+      outcome: runOut.passed ? 'pass' : 'fail',
+      passed: runOut.passed,
+      timestamp: nowIso,
+      durationMs: runOut.durationMs,
+      dirtyFiles: [...dirtyFilesSet],
+      emptyFiles: [...emptyFilesSet],
+      results: runOut.results,
+      summary,
+      ...(targetResolution.branch ? { targetBranch: targetResolution.branch } : {}),
+      ...(options.worktreePath || targetResolution.isWorktree
+        ? { targetWorktree: executionRoot }
+        : {}),
+    };
 
-  appendEvidenceToState(state, record);
-  const saved = saveVerifyState(moduleDataDir, state);
-  return { ok: true, run: record, state: saved };
+    appendEvidenceToState(state, record);
+    const saved = saveVerifyState(moduleDataDir, state);
+    return { ok: true as const, run: record, state: saved };
+  });
 }

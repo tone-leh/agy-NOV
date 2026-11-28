@@ -11,6 +11,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+for (const stream of [process.stdout, process.stderr]) {
+  stream.on('error', (err) => {
+    if (err?.code === 'EPIPE' || err?.code === 'ERR_STREAM_DESTROYED') {
+      process.exit(0);
+    }
+  });
+}
+
 function printHelp() {
   process.stdout.write(`agy-NOV Read-Only Audit Sidecar (Opt-In, Zero Idle Daemon)
 
@@ -137,11 +145,12 @@ function main() {
     process.exit(1);
   }
 
+  const realpathNative = fs.realpathSync.native ?? fs.realpathSync;
   let realPluginRoot;
   let realCliBundle;
   try {
-    realPluginRoot = fs.realpathSync(pluginRoot);
-    realCliBundle = fs.realpathSync(cliBundlePath);
+    realPluginRoot = realpathNative(pluginRoot);
+    realCliBundle = realpathNative(cliBundlePath);
   } catch {
     process.stderr.write(
       '[agy-NOV sidecar] Unable to verify canonical path of "dist/cli.cjs".\n',

@@ -383,8 +383,16 @@ export function loadSpecStateReadOnly(
   }
 }
 
+function safeSpecTimestampMs(iso: string | undefined): number {
+  if (typeof iso !== 'string' || !iso) return 0;
+  const parsed = Date.parse(iso);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export function saveSpecState(moduleDataDir: string, state: SpecStateFile): SpecStateFile {
-  const sorted = [...state.specs].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+  const sorted = [...state.specs].sort(
+    (a, b) => safeSpecTimestampMs(b.updatedAt) - safeSpecTimestampMs(a.updatedAt),
+  );
   let kept = sorted.slice(0, MAX_SPECS);
   if (state.activeSpecId && !kept.some((s) => s.id === state.activeSpecId)) {
     const activeDoc = sorted.find((s) => s.id === state.activeSpecId);

@@ -11,7 +11,8 @@ import {
 // Constants & Security Limits
 // ============================================================================
 
-export const STUDIO_MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MiB hard cap per inspected file
+export const STUDIO_MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MiB hard cap per inspected text/data file
+const STUDIO_SQLITE_LIST_MAX_BYTES = 256 * 1024 * 1024; // 256 MiB read-only CLI inspection cap for SQLite DBs
 export const STUDIO_MAX_SCAN_FILES = 500;
 export const STUDIO_MAX_SCAN_DEPTH = 6;
 
@@ -175,6 +176,7 @@ export interface StudioDataResult {
     pageSize?: number;
     tables: StudioSqliteTableSchema[];
     executedSql?: string;
+    usedImmutableFallback?: boolean;
     note?: string;
   };
 }
@@ -644,7 +646,10 @@ export function listStudioSources(
         extension: classified.extension,
         bytes: stat.size,
         updatedAt: stat.mtime.toISOString(),
-        ...(stat.size > STUDIO_MAX_FILE_BYTES ? { oversized: true } : {}),
+        ...(stat.size >
+        (classified.format === 'sqlite' ? STUDIO_SQLITE_LIST_MAX_BYTES : STUDIO_MAX_FILE_BYTES)
+          ? { oversized: true }
+          : {}),
       });
     }
   };

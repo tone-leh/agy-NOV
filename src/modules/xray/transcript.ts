@@ -543,16 +543,34 @@ function isParentSessionStopped(steps: RawTranscriptStep[]): boolean {
   return false;
 }
 
-const MAX_CHILD_TRANSCRIPT_BYTES = 20 * 1024 * 1024;
+function normalizeNonNegCount(raw: unknown): number {
+  const v = Number(raw ?? 0);
+  return Number.isFinite(v) ? Math.max(0, v) : 0;
+}
+
+function normalizeCacheHitRate(cacheReadTokens: number, effectiveInputTokens: number): number {
+  if (
+    !Number.isFinite(cacheReadTokens) ||
+    !Number.isFinite(effectiveInputTokens) ||
+    effectiveInputTokens <= 0
+  ) {
+    return 0;
+  }
+  const ratio = cacheReadTokens / effectiveInputTokens;
+  return Number.isFinite(ratio) ? Math.max(0, Math.min(1, ratio)) : 0;
+}
 
 function readChildTranscriptStats(transcriptPath: string): ChildTranscriptStats | null {
-  let rawText: string;
+  let lines: string[];
   try {
-    const st = fs.statSync(transcriptPath);
-    if (!st.isFile() || st.size > MAX_CHILD_TRANSCRIPT_BYTES) {
+    const { lines: sampledLines, fileSizeBytes } = readBoundedTranscriptLines(
+      transcriptPath,
+      MAX_FULL_TRANSCRIPT_BYTES,
+    );
+    if (fileSizeBytes <= 0 || sampledLines.length === 0) {
       return null;
     }
-    rawText = fs.readFileSync(transcriptPath, 'utf8');
+    lines = sampledLines;
   } catch {
     return null;
   }
@@ -564,7 +582,7 @@ function readChildTranscriptStats(transcriptPath: string): ChildTranscriptStats 
   let lastModel: string | undefined;
   let lastStep: RawTranscriptStep | undefined;
 
-  for (const line of rawText.split(/\r?\n/)) {
+  for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     let step: RawTranscriptStep;
@@ -579,16 +597,16 @@ function readChildTranscriptStats(transcriptPath: string): ChildTranscriptStats 
     }
     if (step.type === 'PLANNER_RESPONSE') {
       turns += 1;
-      const rawIn = Math.max(0, Number(step.input_tokens ?? 0));
-      const rawCache = Math.max(0, Number(step.cache_read_tokens ?? 0));
-      const rawOut = Math.max(0, Number(step.output_tokens ?? 0));
+      const rawIn = normalizeNonNegCount(step.input_tokens);
+      const rawCache = normalizeNonNegCount(step.cache_read_tokens);
+      const rawOut = normalizeNonNegCount(step.output_tokens);
       totalInputTokens += rawIn + rawCache;
       totalCacheReadTokens += rawCache;
       totalOutputTokens += rawOut;
     }
   }
 
-  const cacheHitRate = totalInputTokens > 0 ? totalCacheReadTokens / totalInputTokens : 0;
+  const cacheHitRate = normalizeCacheHitRate(totalCacheReadTokens, totalInputTokens);
   return {
     turns,
     totalInputTokens,
@@ -872,26 +890,25 @@ export function parseTranscriptLines(
       const model = s.model ?? lastModel;
       if (s.model) lastModel = s.model;
 
-      const rawIn = Number(s.input_tokens ?? 0);
-      const rawCache = Number(s.cache_read_tokens ?? 0);
-      const rawOut = Number(s.output_tokens ?? 0);
+      const freshInput = normalizeNonNegCount(s.input_tokens);
+      const cacheRead = normalizeNonNegCount(s.cache_read_tokens);
+      const outputTokens = normalizeNonNegCount(s.output_tokens);
 
-      const freshInput = Math.max(0, rawIn);
-      const effectiveInput = freshInput + Math.max(0, rawCache);
-      const cacheHitRate = effectiveInput > 0 ? rawCache / effectiveInput : 0;
+      const effectiveInput = freshInput + cacheRead;
+      const cacheHitRate = normalizeCacheHitRate(cacheRead, effectiveInput);
 
       totalInputTokens += effectiveInput;
-      totalCacheReadTokens += rawCache;
+      totalCacheReadTokens += cacheRead;
       totalFreshInputTokens += freshInput;
-      totalOutputTokens += rawOut;
+      totalOutputTokens += outputTokens;
       if (effectiveInput > peakContextTokens) peakContextTokens = effectiveInput;
 
       const mStat = ensureModelStat(model);
       mStat.turns += 1;
       mStat.inputTokens += effectiveInput;
-      mStat.cacheReadTokens += Math.max(0, rawCache);
+      mStat.cacheReadTokens += cacheRead;
       mStat.freshInputTokens += freshInput;
-      mStat.outputTokens += Math.max(0, rawOut);
+      mStat.outputTokens += outputTokens;
       if (hasRetrySignalInStep(s)) {
         mStat.retrySignals += 1;
       }
@@ -1004,9 +1021,9 @@ export function parseTranscriptLines(
         timestamp,
         model,
         inputTokens: effectiveInput,
-        cacheReadTokens: rawCache,
+        cacheReadTokens: cacheRead,
         freshInputTokens: freshInput,
-        outputTokens: rawOut,
+        outputTokens,
         thinkingChars,
         toolCallsCount: toolCalls.length,
         toolOutputBytes: 0,
@@ -1024,8 +1041,8 @@ export function parseTranscriptLines(
         timestamp,
         model,
         inputTokens: effectiveInput,
-        cacheReadTokens: rawCache,
-        outputTokens: rawOut,
+        cacheReadTokens: cacheRead,
+        outputTokens,
         toolNames,
         preview: redactSecrets(content || (s.thinking ? `[thinking] ${s.thinking}` : toolNames.join(', '))).slice(0, 180),
         bytes: Buffer.byteLength(content, 'utf8'),
@@ -1198,7 +1215,7 @@ export function parseTranscriptLines(
         cacheReadTokens: stat.cacheReadTokens,
         freshInputTokens: stat.freshInputTokens,
         outputTokens: stat.outputTokens,
-        cacheHitRate: stat.inputTokens > 0 ? stat.cacheReadTokens / stat.inputTokens : 0,
+        cacheHitRate: normalizeCacheHitRate(stat.cacheReadTokens, stat.inputTokens),
         retrySignals: stat.retrySignals,
         sharePercent,
         estimatedUsd: cost.totalUsd,
@@ -1290,7 +1307,7 @@ export function parseTranscriptLines(
   ];
   const composition = allBuckets.filter((b) => b.tokens > 0);
 
-  const overallCacheHit = totalInputTokens > 0 ? totalCacheReadTokens / totalInputTokens : 0;
+  const overallCacheHit = normalizeCacheHitRate(totalCacheReadTokens, totalInputTokens);
 
   const diagnostics: SessionDetail['diagnostics'] = [];
   if (turns.length >= 2) {
@@ -1416,9 +1433,10 @@ export function parseTranscriptLines(
 }
 
 export function formatCompactTokens(tokens: number): string {
-  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(2)}M`;
-  if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}K`;
-  return String(tokens);
+  const safe = Number.isFinite(tokens) ? Math.max(0, tokens) : 0;
+  if (safe >= 1_000_000) return `${(safe / 1_000_000).toFixed(2)}M`;
+  if (safe >= 1_000) return `${(safe / 1_000).toFixed(1)}K`;
+  return String(safe);
 }
 
 export function renderRedactedBrief(detail: SessionDetail): string {
